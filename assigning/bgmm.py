@@ -89,7 +89,7 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
 
         # Mean position prior
         mus = []
-        mu_prior_strength = pm.HalfNormal('mu_strength', tau=positions_belief)
+        mu_prior_strength = pm.HalfNormal('mu_strength', tau=positions_belief**2)
         for i in range(K):
             mus.append(pm.MvNormal('mu_%i' %i, mu=mu_prior[i,:], cov=mu_prior_strength*np.eye(2), shape=(2,)))
 
