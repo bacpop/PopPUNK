@@ -2,7 +2,7 @@
 '''BGMM using PyMC3 and sklearn'''
 
 # imports
-%env THEANO_FLAGS=device=cpu,floatX=float32
+%env THEANO_FLAGS=device=cpu,floatX=float64
 
 import theano
 import pymc3 as pm
