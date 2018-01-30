@@ -6,11 +6,6 @@ import argparse
 import numpy as np
 from scipy import stats
 
-# main code
-def main():
-    print("Hello\n")
-
-
 ###########################
 # read assembly file list #
 ###########################
@@ -214,6 +209,3 @@ if __name__ == '__main__':
             printQueryOutput(coreDist,accessoryDist,args.o)
         else:
             sys.exit("Need both a database and query file to run a search")
-    
-    # main processing
-    main()
