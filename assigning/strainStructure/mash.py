@@ -221,7 +221,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     for query in queryList:
         raw[query] = {}
 
-    # batch queries into groups for memory considerations
+    # batch query files to save on memory
     qFiles = []
     fileNumber = 1
     counter = 0
@@ -240,7 +240,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     if not tmpOut.closed:
         tmpOut.close()
         qFiles.append(tmpOutFn)
-        
+
     # initialise data structures
     core = {}
     accessory = {}
@@ -249,23 +249,22 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     refSeqs = []
     coreVals = []
     accVals = []
-    
+
+    # calculate sketch size
+    sketchSize = strainStructure.getSketchSize(dbPrefix,klist)
+
     # search each query file
     for qF in qFiles:
+        
         print("Processing file "+qF)
+        
         # iterate through kmer lengths
         for k in klist:
-            dbname = "./"+dbPrefix+"/"+dbPrefix+"."+str(k)+".msh"
-            # get sketch size for standaridising metrics
-            dbInfo = os.popen("mash info -t "+dbname).read();
-            for line in dbInfo.split("\n"):
-                if not (line.startswith('#')):
-                    sketchValues = line.split("\t")
-                    dbSketch[str(k)] = sketchValues[0]
-                    break
-            
+
             # run mash distance query based on current file
-            rawOutput = os.popen("mash dist -l "+dbname+" "+qF+" 2> "+dbPrefix+".err.log").read()
+            dbname = "./"+dbPrefix+"/"+dbPrefix+"."+str(k)+".msh"
+            print("mash dist -l "+dbname+" "+qF+" 2> "+dbPrefix+".err.log")
+            rawOutput = os.popen("mash dist "+dbname+" "+qF+" 2> "+dbPrefix+".err.log").read()
             for line in rawOutput.split("\n"):
                 mashVals = line.strip().split()
                 if (len(mashVals) > 2):
@@ -274,7 +273,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
                         raw[mashVals[1]][mashVals[0]] = {}
                     raw[mashVals[1]][mashVals[0]][str(k)] = mashMatch[0]
             
-        # run pairwise analyses
+        # run pairwise analyses across kmer lengths
         for query in raw:
             core[query] = {}
             accessory[query] = {}
@@ -283,8 +282,8 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
                 for k in klist:
                     pairwise.append(int(raw[query][ref][str(k)]))
                 gradient,intercept,r_value,p_value,std_err = stats.linregress(klist,pairwise)
-                accessory[query][ref] = 1.0-float(intercept)/float(dbSketch[str(k)])
-                core[query][ref] = -1*float(gradient)/float(dbSketch[str(k)])
+                accessory[query][ref] = 1.0-float(intercept)/float(sketchSize)
+                core[query][ref] = -1*float(gradient)/float(sketchSize)
                 # store output
                 querySeqs.append(query)
                 refSeqs.append(ref)
