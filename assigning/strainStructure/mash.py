@@ -12,6 +12,8 @@ import numpy as np
 import pymc3 as pm
 from scipy import stats
 from scipy import linalg
+from scipy import optimize
+from scipy.optimize import curve_fit
 # import strainStructure package
 import strainStructure
 
@@ -209,6 +211,14 @@ def constructDatabase(assemblyList,klist,sketch,oPrefix):
     # finish
     return None
 
+###############################
+# Genetic divergence function #
+###############################
+
+def divergenceFunction(x,core,accessory):
+    return np.log(1-accessory)+x*np.log(1-core)
+#    return (1-accessory)*(1-core)**x
+
 ####################
 # query a database #
 ####################
@@ -264,7 +274,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
             # run mash distance query based on current file
             dbname = "./"+dbPrefix+"/"+dbPrefix+"."+str(k)+".msh"
             print("mash dist -l "+dbname+" "+qF+" 2> "+dbPrefix+".err.log")
-            rawOutput = os.popen("mash dist "+dbname+" "+qF+" 2> "+dbPrefix+".err.log").read()
+            rawOutput = os.popen("mash dist -l "+dbname+" "+qF+" 2> "+dbPrefix+".err.log").read()
             for line in rawOutput.split("\n"):
                 mashVals = line.strip().split()
                 if (len(mashVals) > 2):
@@ -280,10 +290,13 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
             for ref in raw[query]:
                 pairwise = []
                 for k in klist:
-                    pairwise.append(int(raw[query][ref][str(k)]))
-                gradient,intercept,r_value,p_value,std_err = stats.linregress(klist,pairwise)
-                accessory[query][ref] = 1.0-float(intercept)/float(sketchSize)
-                core[query][ref] = -1*float(gradient)/float(sketchSize)
+                    pairwise.append(np.log(float(raw[query][ref][str(k)])/float(sketchSize)))
+            #gradient,intercept,r_value,p_value,std_err = stats.linregress(klist,pairwise)
+                # curve fit
+                init_vals = [0.0,0.0]
+                fitted_vals, covar = curve_fit(divergenceFunction, klist, pairwise, p0=init_vals,bounds=(0,1))
+                accessory[query][ref] = fitted_vals[1]
+                core[query][ref] = fitted_vals[0]
                 # store output
                 querySeqs.append(query)
                 refSeqs.append(ref)

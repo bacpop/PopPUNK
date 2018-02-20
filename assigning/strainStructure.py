@@ -31,8 +31,9 @@ if __name__ == '__main__':
     ioGroup.add_argument('-o', help='Prefix for output files')
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
-    kmerGroup.add_argument('-m', help='Minimum kmer length (default = 19)')
-    kmerGroup.add_argument('-M', help='Maximum kmer length (default = 31)')
+    kmerGroup.add_argument('-m', help='Minimum kmer length (default = 9)')
+    kmerGroup.add_argument('-M', help='Maximum kmer length (default = 29)')
+    kmerGroup.add_argument('-l', help='Step size (default = 4)')
     kmerGroup.add_argument('-s', help='Kmer sketch size (default = 10000)')
     # processing options
     procGroup = parser.add_argument_group('Processing options')
@@ -40,6 +41,7 @@ if __name__ == '__main__':
     procGroup.add_argument('-p', help='Store pickle of calculated distances')
     procGroup.add_argument('-f', help='Keep full reference database', default=False, action='store_true')
     procGroup.add_argument('-u', help='Update reference database with query sequences', default=False, action='store_true')
+    procGroup.add_argument('-j', help='Just calculate distances, do not fit statistical model', default=False, action='store_true')
     args = parser.parse_args()
     
     # check mash is installed
@@ -49,18 +51,21 @@ if __name__ == '__main__':
         sys.exit("mash not installed on your path")
     
     # identify kmer properties
-    minkmer = 19
-    maxkmer = 31
+    minkmer = 9
+    maxkmer = 29
+    stepSize = 4
+    if args.l is not None and int(args.l) != 2:
+        stepSize = int(args.l)
     if args.m is not None and int(args.m) > minkmer:
         minkmer = int(args.m)
     if args.M is not None and int(args.M) < maxkmer:
         maxkmer = int(args.M)
-    if minkmer >= maxkmer and minkmer >= 19 and maxkmer <= 31:
+    if minkmer >= maxkmer and minkmer >= 9 and maxkmer <= 31:
         sys.exit("Minimum kmer size "+minkmer+" must be smaller than maximum kmer size "+maxkmer+"; range must be between 19 and 31")
-    kmers = np.arange(minkmer,maxkmer+1,2)
+    kmers = np.arange(minkmer,maxkmer+1,stepSize)
     sketchSize = 10000
     if args.s is not None:
-        sketchSize = arg.s
+        sketchSize = args.s
     
     # check on batch size for running queries
     batchSize = 1000
@@ -120,14 +125,15 @@ if __name__ == '__main__':
         elif mode == "storeDb":
             print("Retrieving new database statistics from input sequences")
             refList,queryList,distMat = strainStructure.readPickle(args.i)
-        distanceAssignments,fitWeights,fitMeans,fitcovariances = strainStructure.fit2dMultiGaussian(distMat,args.o)
-        genomeNetwork = strainStructure.constructNetwork(refList,queryList,distanceAssignments,fitWeights,fitMeans,fitcovariances)
-        strainStructure.printClusters(genomeNetwork,args.o)
-        # extract limited references from clique by default
-        if args.f is False:
-            referenceGenomes = strainStructure.extractReferences(genomeNetwork,args.o)
-            strainStructure.constructDatabase(referenceGenomes,kmers,sketchSize,args.o)
-            os.system("rm "+referenceGenomes) # tidy up
+        if args.j is False:
+            distanceAssignments,fitWeights,fitMeans,fitcovariances = strainStructure.fit2dMultiGaussian(distMat,args.o)
+            genomeNetwork = strainStructure.constructNetwork(refList,queryList,distanceAssignments,fitWeights,fitMeans,fitcovariances)
+            strainStructure.printClusters(genomeNetwork,args.o)
+            # extract limited references from clique by default
+            if args.f is False:
+                referenceGenomes = strainStructure.extractReferences(genomeNetwork,args.o)
+                strainStructure.constructDatabase(referenceGenomes,kmers,sketchSize,args.o)
+                os.system("rm "+referenceGenomes) # tidy up
         strainStructure.printQueryOutput(refList,queryList,distMat,args.o)
 
     ##########################
@@ -147,13 +153,14 @@ if __name__ == '__main__':
         elif mode == "storeQuery":
             print("Retrieving query statistics from input sequences")
             refList,queryList,distMat = strainStructure.readPickle(args.i)
-        queryAssignments,fitWeights,fitMeans,fitcovariances = strainStructure.assignQuery(distMat,args.d)
-        querySearchResults,queryNetwork = strainStructure.findQueryLinksToNetwork(refList,queryList,kmers,queryAssignments,fitWeights,fitMeans,fitcovariances,args.o,args.d,batchSize)
-        newClusterMembers,existingClusterMatches = strainStructure.assignQueriesToClusters(querySearchResults,queryNetwork,args.d,args.o)
-        # update databases if so instructed
-        if args.u is True:
-            strainStructure.updateDatabase(args.d,newClusterMembers,queryNetwork,args.o,args.f)
-            strainStructure.updateClustering(args.d,existingClusterMatches)
+        if args.j is False:
+            queryAssignments,fitWeights,fitMeans,fitcovariances = strainStructure.assignQuery(distMat,args.d)
+            querySearchResults,queryNetwork = strainStructure.findQueryLinksToNetwork(refList,queryList,kmers,queryAssignments,fitWeights,fitMeans,fitcovariances,args.o,args.d,batchSize)
+            newClusterMembers,existingClusterMatches = strainStructure.assignQueriesToClusters(querySearchResults,queryNetwork,args.d,args.o)
+            # update databases if so instructed
+            if args.u is True:
+                strainStructure.updateDatabase(args.d,newClusterMembers,queryNetwork,args.o,args.f)
+                strainStructure.updateClustering(args.d,existingClusterMatches)
 
     # something's broken
     else:
