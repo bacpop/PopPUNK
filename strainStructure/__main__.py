@@ -4,7 +4,6 @@
 # universal
 import os
 import sys
-import re
 # additional
 import numpy as np
 import subprocess
@@ -15,7 +14,7 @@ from .__init__ import __version__
 from .mash import createDatabaseDir
 from .mash import storePickle
 from .mash import readPickle
-from .mash import readFile
+from .mash import readAssemblyList
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
@@ -86,6 +85,9 @@ def get_options():
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--batch-size', default=1000, help='Number of queries to run per batch [default = 1000]')
 
+    other.add_argument('--version', action='version',
+                       version='%(prog)s '+__version__)
+
     return parser.parse_args()
 
 def main():
@@ -125,7 +127,7 @@ def main():
     if args.create_db:
         sys.stderr.write("Building new database from input sequences\n")
         createDatabaseDir(args.output)
-        assemblyList = readFile(args.r_files)
+        assemblyList = readAssemblyList(args.r_files)
         constructDatabase(args.r_files, kmers, args.sketch_size, args.output)
         refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size)
         # store distances in pickle if requested
@@ -168,3 +170,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    sys.exit(0)
