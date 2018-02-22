@@ -11,9 +11,13 @@ import pymc3 as pm
 import random
 import matplotlib.pyplot as plt
 from pymc3.math import logsumexp as mc3_logsumexp
-import theano
-import theano.tensor as tt
-from theano.tensor.nlinalg import det, matrix_inverse
+try:
+    import theano
+    import theano.tensor as tt
+    from theano.tensor.nlinalg import det, matrix_inverse
+except ImportError:
+    sys.stderr.write("Could not import theano, likely because python was not compiled with shared libraries\n")
+    sys.stderr.write("Model fit to reference will not run\n")
 from scipy import stats
 from scipy import linalg
 try:  # SciPy >= 0.19

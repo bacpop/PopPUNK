@@ -18,21 +18,6 @@ from scipy.stats import linregress
 def getDatabaseName(prefix, k):
     return prefix + "/" + prefix + "." + k + ".msh"
 
-###########################
-# read assembly file list #
-###########################
-
-def readFile (fn):
-    assemblyList = []
-    try:
-        ifile = open(fn,'r')
-        assemblyList = [line.rstrip('\n') for line in ifile]
-        ifile.close()
-        return assemblyList
-    except:
-        sys.exit("Unable to read input file "+fn)
-    return None
-
 #############################
 # create database directory #
 #############################
@@ -225,7 +210,7 @@ def getSketchSize(dbPrefix, klist):
 ########################
 
 def constructDatabase(assemblyList, klist, sketch, oPrefix):
-    
+
     # create kmer databases
     for k in klist:
         sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
@@ -253,7 +238,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     # initialise dictionary
     nested_dict = lambda: collections.defaultdict(nested_dict)
     raw = nested_dict()
-    queryList = readFile(qFile)
+    queryList = readAssemblyList(qFile)
 
     # find sketch size
     sketchSize = getSketchSize(dbPrefix, klist)
