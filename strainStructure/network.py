@@ -17,7 +17,7 @@ from .mash import queryDatabase
 from .mash import getDatabaseName
 from .mash import getSketchSize
 
-from .bgmm import assignQuery
+from .bgmm import assign_samples
 
 #######################################
 # extract references based on cliques #
@@ -270,7 +270,7 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
         sketchSize = getSketchSize(dbPrefix, kmers)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString)
         qlist1,qlist2,distMat = queryDatabase(tmpFileName, kmers, tmpDirString, batchSize)
-        queryAssignation = assignSamples(distMat, weights, means, covariances)
+        queryAssignation = assign_samples(distMat, weights, means, covariances)
 
         # identify any links between queries and store in the same links dict
         # links dict now contains lists of links both to original database and new queries
@@ -289,7 +289,7 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
         # remove directory
         shutil.rmtree("./" + tmpDirString)
         os.remove(tmpFileName)
-        os.remove(tmpFileName + ".err.log")
+        os.remove("tmp_" + outPrefix + ".err.log")
 
     # finish by returning network and dict of query-ref and query-query link lists
     return links, G
@@ -304,7 +304,6 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False):
     clusteringCsvName = "./" + dbPrefix + "/" + dbPrefix + "_clusters.csv"
     with open(clusteringCsvName, 'a') as cFile:
         for genome in additionalIsolates:
-            sys.stderr.write("genome: " + genome + "," + str(additionalIsolates[genome]) + '\n')
             cFile.write(genome + "," + str(additionalIsolates[genome]) + '\n')
 
     # network is composed of links between queries that do not match
@@ -312,7 +311,7 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False):
     # extract cliques from network
     # identify new reference sequences
     if not full_db:
-        referenceFile = strainStructure.extractReferences(G,outPrefix)
+        referenceFile = extractReferences(G,outPrefix)
     else:
         referenceFile = "./" + outPrefix + "/" + outPrefix + ".refs"
         with open(referenceFile, 'w') as rFile:

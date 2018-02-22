@@ -28,6 +28,8 @@ from .network import extractReferences
 from .network import findQueryLinksToNetwork
 from .network import updateDatabase
 from .network import updateClustering
+from .network import printClusters
+
 
 #################
 # run main code #
@@ -66,6 +68,7 @@ def get_options():
     ioGroup.add_argument('--r-files', help='File listing reference input assemblies')
     ioGroup.add_argument('--q-files', help='File listing query input assemblies')
     ioGroup.add_argument('--distances', help='Input pickle of pre-calculated distances')
+    ioGroup.add_argument('--save_distances', help='Store calculated distances in output pickle', default=False, action='store_true')
 
     # processing options
     procGroup = parser.add_argument_group('Output options')
@@ -77,7 +80,7 @@ def get_options():
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
     kmerGroup.add_argument('--min-k', default = 9, type=int, help='Minimum kmer length [default = 9]')
-    kmerGroup.add_argument('--min-K', default = 29, type=int, help='Maximum kmer length [default = 29]')
+    kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
 
@@ -96,28 +99,39 @@ def main():
 
     # check mash is installed
     p = subprocess.Popen([args.mash + ' --version'], shell=True, stdout=subprocess.PIPE)
+    version = 0
     for line in iter(p.stdout.readline, ''):
-        if line.rstrip().split(".")[0] < 2:
-            sys.stderr.write("Need mash v2 or higher")
-            sys.exit(0)
+        if line != '':
+            version = int(line.rstrip().decode().split(".")[0])
+            break
+    if version < 2:
+        sys.stderr.write("Need mash v2 or higher")
+        sys.exit(0)
 
     # identify kmer properties
     minkmer = 9
     maxkmer = 29
     stepSize = 4
-    if args.k_step != 2:
+    if args.k_step is not None and args.k_step != 2:
         stepSize = args.k_step
-    if args.min_k > minkmer:
+    if args.min_k is not None and args.min_k > minkmer:
         minkmer = int(args.min_k)
-    if args.max_k < maxkmer:
+    if args.max_k is not None and args.max_k < maxkmer:
         maxkmer = int(args.max_k)
-    if minkmer >= maxkmer and minkmer >= 9 and maxkmer <= 31:
+    if minkmer >= maxkmer or minkmer < 9 or maxkmer > 31:
         sys.stderr.write("Minimum kmer size " + minkmer + " must be smaller than maximum kmer size " +
-                         maxkmer + "; range must be between 19 and 31")
+                         maxkmer + "; range must be between 9 and 31")
         sys.exit(1)
 
     kmers = np.arange(minkmer,maxkmer+1,stepSize)
-    if args.sketch_size < 100 or args.sketch_size > 10**6:
+
+    # define sketch sizes, store in hash in case on day
+    # different kmers get different hash sizes
+    sketch_sizes = {}
+    if args.sketch_size >= 100 and args.sketch_size <= 10**6:
+        for k in kmers:
+            sketch_sizes[k] = args.sketch_size
+    else:
         sys.stderr.write("Sketch size should be between 100 and 10^6")
         sys.exit(1)
 
@@ -126,47 +140,63 @@ def main():
     # database construction
     if args.create_db:
         sys.stderr.write("Building new database from input sequences\n")
-        createDatabaseDir(args.output)
-        assemblyList = readAssemblyList(args.r_files)
-        constructDatabase(args.r_files, kmers, args.sketch_size, args.output)
-        refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size)
-        # store distances in pickle if requested
-        if args.save_distances:
-            storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
+        if args.r_files is not None:
+            createDatabaseDir(args.output)
+            assemblyList = readAssemblyList(args.r_files)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size)
+            # store distances in pickle if requested
+            if args.save_distances:
+                storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
+        else:
+            sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
+            sys.exit(1)
 
     # model fit and network construction
     elif args.fit_model:
-        sys.stderr.write("Fitting model to reference database\n")
-        refList, queryList, distMat = readPickle(args.distances)
-        distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output)
-        genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
-        printClusters(genomeNetwork, args.output)
-        # extract limited references from clique by default
-        if not args.full_db:
-            referenceGenomes = extractReferences(genomeNetwork, args.output)
-            constructDatabase(referenceGenomes, kmers, args.sketch_size, args.output)
-            map(os.remove, referenceGenomes) # tidy up
-        printQueryOutput(refList, queryList, distMat, args.output)
+        if args.distances is not None:
+            sys.stderr.write("Fitting model to reference database\n")
+            refList, queryList, distMat = readPickle(args.distances)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output)
+            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
+            printClusters(genomeNetwork, args.output)
+            # extract limited references from clique by default
+            if not args.full_db:
+                referenceGenomes = extractReferences(genomeNetwork, args.output)
+                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output)
+                map(os.remove, referenceGenomes) # tidy up
+            printQueryOutput(refList, queryList, distMat, args.output)
+        else:
+            sys.stderr.write("Need to provide an input set of distances with --distances")
+            sys.exit(1)
 
     elif args.create_query_db:
-        sys.stderr.write("Building new database from input sequences\n")
-        refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size)
-        printQueryOutput(refList, queryList, distMat, args.output)
-        # store distances in pickle if requested
-        if args.save_distances:
-            storePickle(refList, queryList, distMat, args.output + "dists.pkl")
+        if args.ref_db is not None and args.q_files is not None:
+            sys.stderr.write("Building new database from input sequences\n")
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size)
+            printQueryOutput(refList, queryList, distMat, args.output)
+            # store distances in pickle if requested
+            if args.save_distances:
+                storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
+        else:
+            sys.stderr.write("Need to provide both a reference database with --ref-db and query list with --q-files; use --save-distances to subsequently assign queries to clusters")
+            sys.exit(1)
 
     elif args.assign_query:
-        sys.stderr.write("Assigning clusters of query sequences\n")
-        refList, queryList, distMat = readPickle(args.distances)
-        queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
-        querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
-                queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db, args.batch_size)
-        newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
-        # update databases if so instructed
-        if args.update_dbe:
-            updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db)
-            updateClustering(args.ref_db, existingClusterMatches)
+        if args.ref_db is not None and args.distances is not None:
+            sys.stderr.write("Assigning clusters of query sequences\n")
+            refList, queryList, distMat = readPickle(args.distances)
+            queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
+            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
+                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db, args.batch_size)
+            newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
+            # update databases if so instructed
+            if args.update_db:
+                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db)
+                updateClustering(args.ref_db, existingClusterMatches)
+        else:
+            sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances")
+            sys.exit(1)
 
 if __name__ == '__main__':
     main()

@@ -21,6 +21,8 @@ except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
 from sklearn import utils
 
+from .plot import plot_results
+
 #########################################
 # Log likelihood of normal distribution #
 #########################################
@@ -221,8 +223,8 @@ def fit2dMultiGaussian(X, outPrefix):
     np.savez(outFileName, weights=weights, means=means, covariances=covariances)
 
     # Plot results
-    y = strainStructure.assign_samples(X, weights, means, covariances)
-    strainStructure.plot_results(X, y, means, covariances, 0, outPrefix)
+    y = assign_samples(X, weights, means, covariances)
+    plot_results(X, y, means, covariances, 0, outPrefix)
 
     # return output
     return y, weights, means, covariances

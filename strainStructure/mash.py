@@ -3,10 +3,12 @@
 # universal
 import os
 import sys
+import subprocess
 # additional
 import collections
 import pickle
 import numpy as np
+import networkx as nx
 from scipy.stats import linregress
 
 #####################
@@ -15,6 +17,21 @@ from scipy.stats import linregress
 
 def getDatabaseName(prefix, k):
     return prefix + "/" + prefix + "." + k + ".msh"
+
+###########################
+# read assembly file list #
+###########################
+
+def readFile (fn):
+    assemblyList = []
+    try:
+        ifile = open(fn,'r')
+        assemblyList = [line.rstrip('\n') for line in ifile]
+        ifile.close()
+        return assemblyList
+    except:
+        sys.exit("Unable to read input file "+fn)
+    return None
 
 #############################
 # create database directory #
@@ -173,13 +190,17 @@ def readAssemblyList(fn):
 def getSketchSize(dbPrefix, klist):
 
     # identify sketch lengths used to generate databases
+    sketchdb = {}
     sketch = 0
     oldSketch = 0
-    dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
+
+    # iterate over kmer lengths
     for k in klist:
+        dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
         try:
-            mash_info = subprocess.run("mash info -t " + dbname, shell=True, check=True, stdout=subprocess.PIPE)
-            for line in mash_info.readlines():
+            mash_info = subprocess.Popen("mash info -t " + dbname, shell=True, stdout=subprocess.PIPE)
+            for line in iter(mash_info.stdout.readline, ''):
+                line = line.rstrip().decode()
                 if (line.startswith("#") is False):
                     sketchValues = line.split("\t")
                     if len(sketchValues[0]) > 0:
@@ -188,32 +209,35 @@ def getSketchSize(dbPrefix, klist):
                         else:
                             oldSketch = sketch
                         sketch = int(sketchValues[0])
-                        if (sketch != oldSketch):
-                            sys.stderr.write("Problem with database; not all files have same sketch size")
-                            sys.exit(1)
+                        if (sketch == oldSketch):
+                            sketchdb[k] = sketch
                         else:
-                            break
+                            sys.exit("Problem with database; not all files have same sketch size")
+                        break
         except:
-            sys.stderr.write("Could not get into about " + dbname)
+            sys.stderr.write("Could not get info about " + dbname)
             sys.exit(1)
 
-    return sketch
+    return sketchdb
 
 ########################
 # construct a database #
 ########################
 
 def constructDatabase(assemblyList, klist, sketch, oPrefix):
+    
     # create kmer databases
     for k in klist:
         sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
         dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-        try:
-            mash_cmd = "mash sketch -s " + str(sketch) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
-            subprocess.run(mash_cmd, shell=True, check=True)
-        except:
-            sys.stderr.write("Could not create mash database " + dbname)
-            sys.exit(1)
+#        try:
+        mash_cmd = "mash sketch -w 1  -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        subprocess.run(mash_cmd, shell=True, check=True)
+#        except:
+#            sys.stderr.write("Could not create mash database " + dbname)
+#            sys.exit(1)
+
+    return None
 
 # split input queries into chunks
 def chunks(l, n):
@@ -231,6 +255,9 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     raw = nested_dict()
     queryList = readFile(qFile)
 
+    # find sketch size
+    sketchSize = getSketchSize(dbPrefix, klist)
+
     # batch query files to save on memory
     qFiles = []
     fileNumber = 1
@@ -240,7 +267,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
         tmpOutFn = "tmp." + dbPrefix + "." + str(fileNumber)
         qFiles.append(tmpOutFn)
         with open(tmpOutFn, 'w') as tmpFile:
-            for qF in qFileChunk:
+            for qf in qFileChunk:
                 tmpFile.write(qf + '\n')
 
     # initialise data structures
@@ -252,9 +279,6 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     coreVals = []
     accVals = []
 
-    # calculate sketch size
-    sketchSize = getSketchSize(dbPrefix, klist)
-
     # search each query file
     for qF in qFiles:
         sys.stderr.write("Processing file " + qF + "\n")
@@ -263,33 +287,32 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
         for k in klist:
             # run mash distance query based on current file
             dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
-            mash_cmd = "mash dist -l " + dbname + " " + qF + " 2> " + dbPrefix + ".err.log"
-            sys.stderr.write(mash_cmd)
 
             try:
-                rawOutput = subprocess.run(mash_cmd, shell=True, stdout=subprocess.PIPE, check=True)
+                mash_cmd = "mash dist -l " + dbname + " " + qF + " 2> " + dbPrefix + ".err.log"
+                rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
                 for line in rawOutput.stdout.readlines():
-                    mashVals = line.rstrip().split()
+                    mashVals = line.rstrip().decode().split()
                     if (len(mashVals) > 2):
                         mashMatch = mashVals[len(mashVals)-1].split('/')
-                        if (k == klist[0]):
-                            raw[mashVals[1]][mashVals[0]][str(k)] = mashMatch[0]
+                        raw[mashVals[1]][mashVals[0]][str(k)] = mashMatch[0]
             except:
                 sys.stderr.write("mash dist command failed")
                 sys.exit(1)
 
         # run pairwise analyses across kmer lengths
-        for query in raw:
-            for ref in raw[query]:
+        for query in raw.keys():
+            for ref in raw[query].keys():
                 pairwise = []
                 for k in klist:
-                    pairwise.append(np.log(float(raw[query][ref][str(k)])/float(sketchSize)))
+                    # calculate sketch size
+                    pairwise.append(np.log(float(raw[query][ref][str(k)])/float(sketchSize[k])))
                 # curve fit pr = (1-a)(1-c)^k
                 # log pr = log(1-a) + k*log(1-c)
                 gradient, intercept, r_value, p_value, std_err = linregress(klist, pairwise)
-                accessory[query][ref] = 1 - exp(intercept)
-                core[query][ref] = 1 - exp(gradient)
+                accessory[query][ref] = 1 - np.exp(intercept)
+                core[query][ref] = 1 - np.exp(gradient)
                 # store output
                 querySeqs.append(query)
                 refSeqs.append(ref)
