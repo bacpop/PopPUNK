@@ -30,6 +30,7 @@ from .network import updateDatabase
 from .network import updateClustering
 from .network import printClusters
 
+from .plot import outputsForMicroreact
 
 #################
 # run main code #
@@ -69,6 +70,7 @@ def get_options():
     ioGroup.add_argument('--q-files', help='File listing query input assemblies')
     ioGroup.add_argument('--distances', help='Input pickle of pre-calculated distances')
     ioGroup.add_argument('--save_distances', help='Store calculated distances in output pickle', default=False, action='store_true')
+    ioGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
 
     # processing options
     procGroup = parser.add_argument_group('Output options')
@@ -159,7 +161,10 @@ def main():
             refList, queryList, distMat = readPickle(args.distances)
             distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
-            printClusters(genomeNetwork, args.output)
+            isolateClustering = printClusters(genomeNetwork, args.output)
+            # generate outputs for microreact if asked
+            if args.microreact:
+                outputsForMicroreact(refList,queryList,distMat,isolateClustering,args.output)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)

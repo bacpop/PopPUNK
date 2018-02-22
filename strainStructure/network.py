@@ -349,6 +349,9 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False):
 
 def printClusters(G, outPrefix):
 
+    # data structure
+    clustering = {}
+
     # identify network components
     clusters = sorted(nx.connected_components(G), key=len, reverse=True)
     cl_id = 1
@@ -360,3 +363,8 @@ def printClusters(G, outPrefix):
         for cl_id, cluster in enumerate(clusters):
             for cluster_member in cluster:
                 cluster_file.write(",".join((cluster_member,str(cl_id))) + "\n")
+                clustering[cluster_member] = cl_id
+
+    return clustering
+
+

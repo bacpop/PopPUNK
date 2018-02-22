@@ -8,6 +8,7 @@ import re
 # additional
 import numpy as np
 import pymc3 as pm
+import random
 import matplotlib.pyplot as plt
 from pymc3.math import logsumexp as mc3_logsumexp
 import theano
