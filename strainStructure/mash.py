@@ -216,7 +216,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix):
         sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
         dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
 #        try:
-        mash_cmd = "mash sketch -w 1  -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        mash_cmd = "mash sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
         subprocess.run(mash_cmd, shell=True, check=True)
 #        except:
 #            sys.stderr.write("Could not create mash database " + dbname)
@@ -317,7 +317,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
 def printQueryOutput(rlist, qlist, X, outPrefix):
 
     # open output file
-    outFileName = outPrefix + ".search.out"
+    outFileName = outPrefix + "/" + outPrefix + ".search.out"
     with open(outFileName, 'w') as oFile:
         oFile.write("\t".join(['Query', 'Reference', 'Core', 'Accessory']) + "\n")
         # add results

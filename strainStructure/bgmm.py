@@ -178,6 +178,14 @@ def assignQuery(X, refPrefix):
 
 def fit2dMultiGaussian(X, outPrefix):
 
+    # set output dir
+    if not os.path.isdir(outPrefix):
+        if not os.path.isfile(outPrefix):
+            os.makedirs(outPrefix)
+        else:
+            sys.stderr.write(outPrefix + " already exists as a file! Use a different --output\n")
+            sys.exit(1)
+
     # set the maximum sampling size
     max_samples = 100000
 
@@ -199,7 +207,7 @@ def fit2dMultiGaussian(X, outPrefix):
     #    plt.scatter(scaled_X[:, 0], scaled_X[:, 1])
     #    print(X[:,0])
     plt.scatter(subsampled_X[:,0].flat, subsampled_X[:,1].flat)
-    plt.savefig(outPrefix + "_distanceDistribution.png")
+    plt.savefig(outPrefix + "/" + outPrefix + "_distanceDistribution.png")
     plt.close()
 
     # fit bgmm model
@@ -209,10 +217,10 @@ def fit2dMultiGaussian(X, outPrefix):
 
     # Check convergence and parameters
     plt.plot(elbos)
-    plt.savefig(outPrefix + "_elbos.png")
+    plt.savefig(outPrefix + "/" + outPrefix + "_elbos.png")
     plt.close()
     pm.plot_posterior(trace, color='LightSeaGreen')
-    plt.savefig(outPrefix + "_trace.png")
+    plt.savefig(outPrefix + "/" + outPrefix + "_posterior.png")
     plt.close()
 
     # Save model fit
@@ -224,12 +232,11 @@ def fit2dMultiGaussian(X, outPrefix):
         covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
     means = np.vstack(means)
     covariances = np.stack(covariances)
-    outFileName = outPrefix + "/" + outPrefix + '_fit.npz'
-    np.savez(outFileName, weights=weights, means=means, covariances=covariances)
+    np.savez(outPrefix + "/" + outPrefix + '_fit.npz', weights=weights, means=means, covariances=covariances)
 
     # Plot results
     y = assign_samples(X, weights, means, covariances)
-    plot_results(X, y, means, covariances, 0, outPrefix)
+    plot_results(X, y, means, covariances, outPrefix + " 2-component BGMM", outPrefix + "/" + outPrefix)
 
     # return output
     return y, weights, means, covariances

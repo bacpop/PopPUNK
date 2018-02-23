@@ -81,11 +81,10 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
 # Plot model fits #
 ###################
 
-def plot_results(X, Y_, means, covariances, index, outPrefix):
-    title = outPrefix + " 2-component BGMM"
+def plot_results(X, Y_, means, covariances, title, out_file):
     color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
-    fig=plt.figure(figsize=(18, 16), dpi= 80, facecolor='w', edgecolor='k')
-    splot = plt.subplot(2, 1, 1 + index)
+    fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
+    splot = plt.subplot(1, 1, 1)
     for i, (mean, covar, color) in enumerate(zip(means, covariances, color_iter)):
         v, w = np.linalg.eigh(covar)
         v = 2. * np.sqrt(2.) * np.sqrt(v)
@@ -106,5 +105,5 @@ def plot_results(X, Y_, means, covariances, index, outPrefix):
         splot.add_artist(ell)
 
     plt.title(title)
-    plt.savefig(outPrefix + "_twoComponentBGMM.png")
+    plt.savefig(out_file)
     plt.close()
