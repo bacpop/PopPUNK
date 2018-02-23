@@ -66,7 +66,7 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
         nFile.write("}\n")
 
     sys.stderr.write("Printing clustering\n")
-    with open(outPrefix + ".csv", 'w') as cFile,
+    with open(outPrefix + ".csv", 'w') as cFile:
         cFile.write("id,Cluster__autocolour\n")
         for label, unique in zip(seqLabels, uniqueSeq):
             if unique in clustering:

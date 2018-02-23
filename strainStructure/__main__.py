@@ -106,7 +106,7 @@ def main():
         if line != '':
             version = line.rstrip().decode().split(".")[0]
             break
-    if not version.isdigit() or int(version) < '2':
+    if not version.isdigit() or int(version) < 2:
         sys.stderr.write("Need mash v2 or higher\n")
         sys.exit(0)
 
