@@ -180,7 +180,7 @@ def updateClustering(dbPrefix, existingHits):
                                     str(newClusterTranslation[superGroups[intCluster]]) +
                                     "." + str(clusteringVals[1]) + '\n')
                         else:
-                            sys.stderr.write("Problem with supergroup " + superGroups[intCluster])
+                            sys.stderr.write("Problem with supergroup " + superGroups[intCluster] + '\n')
                             sys.exit(1)
                     else:
                         newFile.write(line)
@@ -219,7 +219,7 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
             if superGroups[existingHit] in newClusterTranslation:
                 assignation = newClusterTranslation[superGroups[existingHit]]
             else:
-                sys.stderr.write("Problem with supergroup " + superGroups[existingHit])
+                sys.stderr.write("Problem with supergroup " + superGroups[existingHit] + '\n')
                 sys.exit(1)
         else:
             assignation = existingHit
@@ -338,9 +338,9 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False):
         try:
             subprocess.run("mash paste tmp." + dbPrefix + "." + k + " " + f1 + " " + f2 + " > /dev/null 2> /dev/null",
                 shell=True, check=True)
-            os.rename("tmp." + dbPrefix + "." + k +".msh", f1)
+            os.rename("tmp." + dbPrefix + "." + k + ".msh", f1)
         except:
-            sys.stderr.write("Failed to combine databases "+f1+" and "+f2)
+            sys.stderr.write("Failed to combine databases " + f1 + " and " + f2 + "\n")
             sys.exit(1)
 
 ############################

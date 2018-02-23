@@ -131,12 +131,12 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
 
     # ADVI - approximate inference
     with mini_model:
-        sys.stderr.write("Running model burn-in")
+        sys.stderr.write("Running model burn-in\n")
         s = theano.shared(pm.floatX(1))
         inference = pm.ADVI(cost_part_grad_scale=s)
         pm.fit(n=burnin_it, method=inference)
 
-        sys.stderr.write("Running model fit")
+        sys.stderr.write("Running model fit\n")
         s.set_value(0)
         approx = inference.fit(n=sampling_it)
 
@@ -159,7 +159,7 @@ def assignQuery(X, refPrefix):
     try:
         model_npz = np.load(modelFileName)
     except:
-        sys.stderr.write("Cannot load model information file " + modelFileName)
+        sys.stderr.write("Cannot load model information file " + modelFileName + "\n")
         sys.exit(1)
 
     # extract information

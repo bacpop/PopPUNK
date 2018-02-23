@@ -104,10 +104,10 @@ def main():
     version = 0
     for line in iter(p.stdout.readline, ''):
         if line != '':
-            version = int(line.rstrip().decode().split(".")[0])
+            version = line.rstrip().decode().split(".")[0]
             break
-    if version < 2:
-        sys.stderr.write("Need mash v2 or higher")
+    if not version.isdigit() or int(version) < '2':
+        sys.stderr.write("Need mash v2 or higher\n")
         sys.exit(0)
 
     # identify kmer properties
@@ -122,7 +122,7 @@ def main():
         maxkmer = int(args.max_k)
     if minkmer >= maxkmer or minkmer < 9 or maxkmer > 31:
         sys.stderr.write("Minimum kmer size " + minkmer + " must be smaller than maximum kmer size " +
-                         maxkmer + "; range must be between 9 and 31")
+                         maxkmer + "; range must be between 9 and 31\n")
         sys.exit(1)
 
     kmers = np.arange(minkmer,maxkmer+1,stepSize)
@@ -134,7 +134,7 @@ def main():
         for k in kmers:
             sketch_sizes[k] = args.sketch_size
     else:
-        sys.stderr.write("Sketch size should be between 100 and 10^6")
+        sys.stderr.write("Sketch size should be between 100 and 10^6\n")
         sys.exit(1)
 
     # run according to mode
@@ -172,7 +172,7 @@ def main():
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output)
         else:
-            sys.stderr.write("Need to provide an input set of distances with --distances")
+            sys.stderr.write("Need to provide an input set of distances with --distances\n")
             sys.exit(1)
 
     elif args.create_query_db:
@@ -184,7 +184,7 @@ def main():
             if args.save_distances:
                 storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
         else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and query list with --q-files; use --save-distances to subsequently assign queries to clusters")
+            sys.stderr.write("Need to provide both a reference database with --ref-db and query list with --q-files; use --save-distances to subsequently assign queries to clusters\n")
             sys.exit(1)
 
     elif args.assign_query:
@@ -200,7 +200,7 @@ def main():
                 updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances")
+            sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n")
             sys.exit(1)
 
 if __name__ == '__main__':
