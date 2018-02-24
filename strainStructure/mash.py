@@ -9,7 +9,7 @@ import collections
 import pickle
 import numpy as np
 import networkx as nx
-from scipy.stats import linregress
+from scipy import optimize
 
 #####################
 # Get database name #
@@ -229,6 +229,13 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+############################
+# Statistical relationship #
+############################
+
+fitfunc = lambda p, x: p[0] + p[1] * x
+errfunc = lambda p, x, y: (y - fitfunc(p, x))
+
 ####################
 # query a database #
 ####################
@@ -263,6 +270,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     refSeqs = []
     coreVals = []
     accVals = []
+    pinit = [0.0, -0.01]
 
     # search each query file
     for qF in qFiles:
@@ -295,9 +303,9 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
                     pairwise.append(np.log(float(raw[query][ref][str(k)])/float(sketchSize[k])))
                 # curve fit pr = (1-a)(1-c)^k
                 # log pr = log(1-a) + k*log(1-c)
-                gradient, intercept, r_value, p_value, std_err = linregress(klist, pairwise)
-                accessory[query][ref] = 1 - np.exp(intercept)
-                core[query][ref] = 1 - np.exp(gradient)
+                distFit = optimize.least_squares(errfunc,pinit,args=(klist, pairwise),bounds=([-np.inf,-np.inf],[0,0]))
+                accessory[query][ref] = 1 - np.exp(distFit.x[0])
+                core[query][ref] = 1 - np.exp(distFit.x[1])
                 # store output
                 querySeqs.append(query)
                 refSeqs.append(ref)

@@ -105,5 +105,6 @@ def plot_results(X, Y_, means, covariances, title, out_file):
         splot.add_artist(ell)
 
     plt.title(title)
-    plt.savefig(out_file)
+    out_file_name = out_file+".png"
+    plt.savefig(out_file_name)
     plt.close()
