@@ -178,7 +178,7 @@ def readPriors(priorFile = None):
     # default priors
     proportions = np.array([0.001, 0.999])
     prop_strength = 1
-    positions_belief = 3*10**3
+    positions_belief = 10**4
     mu_prior = pm.floatX(np.array([[0, 0], [0.006, 0.25]]))
 
     # Overwrite defaults if provided
@@ -195,11 +195,11 @@ def readPriors(priorFile = None):
                     prop_strength = float(value)
                 elif param == 'positions':
                     pos_read = []
-                    for pos_val in value.split(','):
+                    for pos_val in value.split(';'):
                         point_read = []
-                        for point_val in pos_val.split(';'):
+                        for point_val in pos_val.split(','):
                             point_read.append(float(point_val))
-                        pos_read.append(point_val)
+                        pos_read.append(point_read)
                     mu_prior = pm.floatX(np.array(pos_read))
                 elif param == 'pos_strength':
                     positions_belief = float(value)
