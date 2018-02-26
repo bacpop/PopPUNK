@@ -215,12 +215,8 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix):
     for k in klist:
         sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
         dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-#        try:
         mash_cmd = "mash sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
         subprocess.run(mash_cmd, shell=True, check=True)
-#        except:
-#            sys.stderr.write("Could not create mash database " + dbname)
-#            sys.exit(1)
 
     return None
 
@@ -233,8 +229,7 @@ def chunks(l, n):
 # Statistical relationship #
 ############################
 
-fitfunc = lambda p, x: p[0] + p[1] * x
-errfunc = lambda p, x, y: (y - fitfunc(p, x))
+
 
 ####################
 # query a database #
@@ -270,7 +265,6 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
     refSeqs = []
     coreVals = []
     accVals = []
-    pinit = [0.0, -0.01]
 
     # search each query file
     for qF in qFiles:
@@ -299,13 +293,18 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
             for ref in raw[query].keys():
                 pairwise = []
                 for k in klist:
-                    # calculate sketch size
+                    # calculate sketch size. Note log taken here
                     pairwise.append(np.log(float(raw[query][ref][str(k)])/float(sketchSize[k])))
                 # curve fit pr = (1-a)(1-c)^k
                 # log pr = log(1-a) + k*log(1-c)
-                distFit = optimize.least_squares(errfunc,pinit,args=(klist, pairwise),bounds=([-np.inf,-np.inf],[0,0]))
-                accessory[query][ref] = 1 - np.exp(distFit.x[0])
-                core[query][ref] = 1 - np.exp(distFit.x[1])
+                distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                                 x0=[0.0, -0.01],
+                                                 jac=lambda p, x, y: -np.hstack((np.ones((x.shape[0], 1)), x.reshape(-1, 1))),
+                                                 args=(klist, pairwise),
+                                                 bounds=([-np.inf, -np.inf], [0, 0]))
+                transformed_params = 1 - np.exp(distFit.x)
+                accessory[query][ref] = transformed_params[0]
+                core[query][ref] = transformed_params[1]
                 # store output
                 querySeqs.append(query)
                 refSeqs.append(ref)

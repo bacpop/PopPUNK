@@ -63,25 +63,25 @@ def get_options():
             default=False,
             action='store_true')
 
-    # io options
-    ioGroup = parser.add_argument_group('Input files')
-    ioGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
-    ioGroup.add_argument('--r-files', help='File listing reference input assemblies')
-    ioGroup.add_argument('--q-files', help='File listing query input assemblies')
-    ioGroup.add_argument('--distances', help='Input pickle of pre-calculated distances')
-    ioGroup.add_argument('--save_distances', help='Store calculated distances in output pickle', default=False, action='store_true')
-    ioGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
+    # input options
+    iGroup = parser.add_argument_group('Input files')
+    iGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
+    iGroup.add_argument('--r-files', help='File listing reference input assemblies')
+    iGroup.add_argument('--q-files', help='File listing query input assemblies')
+    iGroup.add_argument('--distances', help='Input pickle of pre-calculated distances')
+    iGroup.add_argument('--priors', help='File specifying model priors. See documentation for help', default=None)
 
-    # processing options
-    procGroup = parser.add_argument_group('Output options')
-    procGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    procGroup.add_argument('--save-distances', help='Store pickle of calculated distances', default=False, action='store_true')
-    procGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
-    procGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
+    # output options
+    oGroup = parser.add_argument_group('Output options')
+    oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
+    oGroup.add_argument('--save-distances', help='Store pickle of calculated distances', default=False, action='store_true')
+    oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
+    oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
+    oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
-    kmerGroup.add_argument('--min-k', default = 9, type=int, help='Minimum kmer length [default = 9]')
+    kmerGroup.add_argument('--min-k', default = 11, type=int, help='Minimum kmer length [default = 11]')
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
@@ -141,7 +141,7 @@ def main():
 
     # database construction
     if args.create_db:
-        sys.stderr.write("Building new database from input sequences\n")
+        sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
             createDatabaseDir(args.output)
             assemblyList = readAssemblyList(args.r_files)
@@ -157,9 +157,9 @@ def main():
     # model fit and network construction
     elif args.fit_model:
         if args.distances is not None:
-            sys.stderr.write("Fitting model to reference database\n")
+            sys.stderr.write("Mode: Fitting model to reference database\n\n")
             refList, queryList, distMat = readPickle(args.distances)
-            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
@@ -172,12 +172,12 @@ def main():
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output)
         else:
-            sys.stderr.write("Need to provide an input set of distances with --distances\n")
+            sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
             sys.exit(1)
 
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
-            sys.stderr.write("Building new database from input sequences\n")
+            sys.stderr.write("Mode: Building new database from input sequences\n")
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size)
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
@@ -189,7 +189,7 @@ def main():
 
     elif args.assign_query:
         if args.ref_db is not None and args.distances is not None:
-            sys.stderr.write("Assigning clusters of query sequences\n")
+            sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
             refList, queryList, distMat = readPickle(args.distances)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
@@ -200,7 +200,7 @@ def main():
                 updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n")
+            sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")
             sys.exit(1)
 
 if __name__ == '__main__':

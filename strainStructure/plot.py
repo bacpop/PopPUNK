@@ -77,11 +77,20 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
 
     sys.stderr.write("Done\n")
 
+# Simple scatter plot of distances
+
+def plot_scatter(X, out_prefix, title):
+    plt.ioff()
+    plt.title(title)
+    plt.scatter(X[:,0].flat,X[:,1].flat, s=0.8)
+    plt.savefig(out_prefix + ".png")
+    plt.close()
+
 ###################
 # Plot model fits #
 ###################
 
-def plot_results(X, Y_, means, covariances, title, out_file):
+def plot_results(X, Y_, means, covariances, title, out_prefix):
     color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
     fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
     splot = plt.subplot(1, 1, 1)
@@ -105,6 +114,5 @@ def plot_results(X, Y_, means, covariances, title, out_file):
         splot.add_artist(ell)
 
     plt.title(title)
-    out_file_name = out_file+".png"
-    plt.savefig(out_file_name)
+    plt.savefig(out_prefix + ".png")
     plt.close()

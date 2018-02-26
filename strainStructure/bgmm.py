@@ -26,6 +26,7 @@ except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
 from sklearn import utils
 
+from .plot import plot_scatter
 from .plot import plot_results
 
 #########################################
@@ -172,11 +173,50 @@ def assignQuery(X, refPrefix):
 
     return y, weights, means, covariances
 
+# Set priors from file, or provide default
+def readPriors(priorFile = None):
+    # default priors
+    proportions = np.array([0.001, 0.999])
+    prop_strength = 1
+    positions_belief = 3*10**3
+    mu_prior = pm.floatX(np.array([[0, 0], [0.006, 0.25]]))
+
+    # Overwrite defaults if provided
+    if priorFile is not None:
+        with open(priorFile, 'r') as priors:
+            for line in priors:
+                (param, value) = line.rstrip().split()
+                if param == 'proportions':
+                    prop_read = []
+                    for pop_val in value.split(','):
+                        prop_read.append(float(pop_val))
+                    proportions = np.array(prop_read)
+                elif param == 'prop_strength':
+                    prop_strength = float(value)
+                elif param == 'positions':
+                    pos_read = []
+                    for pos_val in value.split(','):
+                        point_read = []
+                        for point_val in pos_val.split(';'):
+                            point_read.append(float(point_val))
+                        pos_read.append(point_val)
+                    mu_prior = pm.floatX(np.array(pos_read))
+                elif param == 'pos_strength':
+                    positions_belief = float(value)
+                else:
+                    sys.stderr.write('Ignoring prior line for ' + param + '\n')
+
+    if proportions.shape[0] != mu_prior.shape[0]:
+        sys.stderr.write('The number of components must be equal in the proportion and position priors\n')
+        sys.exit(1)
+
+    return proportions, prop_strength, mu_prior, positions_belief
+
 #############
-# Fit model #   # needs work still
+# Fit model #
 #############
 
-def fit2dMultiGaussian(X, outPrefix):
+def fit2dMultiGaussian(X, outPrefix, priorFile = None):
 
     # set output dir
     if not os.path.isdir(outPrefix):
@@ -189,13 +229,6 @@ def fit2dMultiGaussian(X, outPrefix):
     # set the maximum sampling size
     max_samples = 100000
 
-    # Proportion within/between prior
-    proportions = np.array([0.001, 0.999])
-    strength = 1
-    # Location of Gaussians
-    positions_belief = 10**4
-    mu_prior = pm.floatX(np.array([[0, 0], [0.006, 0.25]]))
-
     # preprocess scaling
     if X.shape[0] > max_samples:
         subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_samples,]
@@ -203,16 +236,10 @@ def fit2dMultiGaussian(X, outPrefix):
         subsampled_X = X
 
     # Show clustering
-    plt.ioff()
-    #    plt.scatter(scaled_X[:, 0], scaled_X[:, 1])
-    #    print(X[:,0])
-    plt.scatter(subsampled_X[:,0].flat, subsampled_X[:,1].flat)
-    plt.savefig(outPrefix + "/" + outPrefix + "_distanceDistribution.png")
-    plt.close()
+    plot_scatter(subsampled_X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
 
     # fit bgmm model
-    #    parameters = (proportions, strength, within_core, within_accessory, between_core, between_accessory, positions_belief)
-    parameters = (proportions, strength, mu_prior, positions_belief)
+    parameters = readPriors(priorFile)
     (trace, elbos) = bgmm_model(subsampled_X, parameters)
 
     # Check convergence and parameters
@@ -227,7 +254,7 @@ def fit2dMultiGaussian(X, outPrefix):
     weights = trace[:]['pi'].mean(axis=0)
     means = []
     covariances = []
-    for i in range(mu_prior.shape[0]):
+    for i in range(parameters[0].shape[0]):
         means.append(trace[:]['mu_%i' %i].mean(axis=0).T)
         covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
     means = np.vstack(means)
