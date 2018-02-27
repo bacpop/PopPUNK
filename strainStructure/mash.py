@@ -283,6 +283,8 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
                 sys.exit(1)
 
         # run pairwise analyses across kmer lengths
+        # Hessian = 0, so Jacobian for regression is a constant
+        jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
         for query in raw.keys():
             for ref in raw[query].keys():
                 pairwise = []
@@ -293,7 +295,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
                 # log pr = log(1-a) + k*log(1-c)
                 distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                                  x0=[0.0, -0.01],
-                                                 jac=lambda p, x, y: -np.hstack((np.ones((x.shape[0], 1)), x.reshape(-1, 1))),
+                                                 jac=lambda p, x, y: jacobian,
                                                  args=(klist, pairwise),
                                                  bounds=([-np.inf, -np.inf], [0, 0]))
                 transformed_params = 1 - np.exp(distFit.x)

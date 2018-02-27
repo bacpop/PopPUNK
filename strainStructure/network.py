@@ -74,6 +74,14 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
     for connection in connections:
         G.add_edge(*connection)
 
+    # give some summaries
+    density = nx.density(G)
+    transitivity = nx.transitivity(G)
+    sys.stderr.write("Network summary:\n" + "\n".join(["Density\t" + "{:.4f}".format(density),
+                                                       "Transitivity\t" + "{:.4f}".format(transitivity),
+                                                       "Transitivity/density\t" + "{:.4f}".format(transitivity/density)])
+                                                       + "\n")
+
     return G
 
 #########################################
@@ -225,8 +233,6 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
             assignation = existingHit
 
     return assignation
-
-
 
 ##########################################
 # Identify links to network from queries #

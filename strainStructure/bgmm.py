@@ -17,7 +17,7 @@ try:
     from theano.tensor.nlinalg import det, matrix_inverse
 except ImportError:
     sys.stderr.write("Could not import theano, likely because python was not compiled with shared libraries\n")
-    sys.stderr.write("Model fit to reference will not run\n")
+    sys.stderr.write("Model fit to reference will not run unless --dpgmm is used\n")
 from scipy import stats
 from scipy import linalg
 try:  # SciPy >= 0.19
@@ -25,6 +25,7 @@ try:  # SciPy >= 0.19
 except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
 from sklearn import utils
+from sklearn import mixture
 
 from .plot import plot_scatter
 from .plot import plot_results
@@ -108,7 +109,7 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
     # Model definition
     with pm.Model() as mini_model:
         # Mixture prior
-        pi = pm.Dirichlet('pi', a=pm.floatX(strength * proportions), shape=(K,))
+        pi = pm.Dirichlet('pi', a=pm.floatX(proportions / strength), shape=(K,))
 
         # Mean position prior
         mus = []
@@ -123,7 +124,7 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
         tau = []
         sd_dist = pm.HalfCauchy.dist(beta=1, shape=2)
         for i in range(K):
-            chol_packed.append(pm.LKJCholeskyCov('chol_packed_%i' %i, n=2, eta=2, sd_dist=sd_dist))
+            chol_packed.append(pm.LKJCholeskyCov('chol_packed_%i' %i, n=2, eta=1, sd_dist=sd_dist))
             chol.append(pm.expand_packed_triangular(2, chol_packed[i]))
             cov.append(pm.Deterministic('cov_%i' %i, tt.dot(chol[i], chol[i].T)))
             tau.append(matrix_inverse(cov[i]))
@@ -145,6 +146,16 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
     elbos = -inference.hist
 
     return(trace, elbos)
+
+# Dirichlet BGMM through EM
+def dirichlet_bgmm(X, max_components = 5, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
+
+    dpgmm = mixture.BayesianGaussianMixture(n_components=max_components,
+                                            covariance_type='full',
+                                            weight_concentration_prior=weight_conc,
+                                            mean_precision_prior=mean_precision,
+                                            mean_prior=mean_prior).fit(X)
+    return(dpgmm)
 
 ##########################
 # Assign query via model #
@@ -216,7 +227,7 @@ def readPriors(priorFile = None):
 # Fit model #
 #############
 
-def fit2dMultiGaussian(X, outPrefix, priorFile = None):
+def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False):
 
     # set output dir
     if not os.path.isdir(outPrefix):
@@ -239,31 +250,38 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None):
     plot_scatter(subsampled_X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
 
     # fit bgmm model
-    parameters = readPriors(priorFile)
-    (trace, elbos) = bgmm_model(subsampled_X, parameters)
+    if not dpgmm:
+        parameters = readPriors(priorFile)
+        (trace, elbos) = bgmm_model(subsampled_X, parameters)
 
-    # Check convergence and parameters
-    plt.plot(elbos)
-    plt.savefig(outPrefix + "/" + outPrefix + "_elbos.png")
-    plt.close()
-    pm.plot_posterior(trace, color='LightSeaGreen')
-    plt.savefig(outPrefix + "/" + outPrefix + "_posterior.png")
-    plt.close()
+        # Check convergence and parameters
+        plt.plot(elbos)
+        plt.savefig(outPrefix + "/" + outPrefix + "_elbos.png")
+        plt.close()
+        pm.plot_posterior(trace, color='LightSeaGreen')
+        plt.savefig(outPrefix + "/" + outPrefix + "_posterior.png")
+        plt.close()
+
+        weights = trace[:]['pi'].mean(axis=0)
+        means = []
+        covariances = []
+        for i in range(parameters[0].shape[0]):
+            means.append(trace[:]['mu_%i' %i].mean(axis=0).T)
+            covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
+        means = np.vstack(means)
+        covariances = np.stack(covariances)
+    else:
+        dpgmm = dirichlet_bgmm(subsampled_X, max_components = 2)
+        weights = dpgmm.weights_
+        means = dpgmm.means_
+        covariances = dpgmm.covariances_
 
     # Save model fit
-    weights = trace[:]['pi'].mean(axis=0)
-    means = []
-    covariances = []
-    for i in range(parameters[0].shape[0]):
-        means.append(trace[:]['mu_%i' %i].mean(axis=0).T)
-        covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
-    means = np.vstack(means)
-    covariances = np.stack(covariances)
     np.savez(outPrefix + "/" + outPrefix + '_fit.npz', weights=weights, means=means, covariances=covariances)
 
     # Plot results
     y = assign_samples(X, weights, means, covariances)
-    plot_results(X, y, means, covariances, outPrefix + " 2-component BGMM", outPrefix + "/" + outPrefix)
+    plot_results(X, y, means, covariances, outPrefix + " 2-component BGMM", outPrefix + "/" + outPrefix + "_BGMM_fit")
 
     # return output
     return y, weights, means, covariances

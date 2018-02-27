@@ -88,6 +88,7 @@ def get_options():
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
+    other.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
     other.add_argument('--batch-size', default=1000, help='Number of queries to run per batch [default = 1000]')
 
     other.add_argument('--version', action='version',
@@ -159,7 +160,7 @@ def main():
         if args.distances is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
             refList, queryList, distMat = readPickle(args.distances)
-            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
