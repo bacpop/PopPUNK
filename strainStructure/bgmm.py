@@ -227,7 +227,7 @@ def readPriors(priorFile = None):
 # Fit model #
 #############
 
-def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False):
+def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_K = 2):
 
     # set output dir
     if not os.path.isdir(outPrefix):
@@ -271,7 +271,7 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False):
         means = np.vstack(means)
         covariances = np.stack(covariances)
     else:
-        dpgmm = dirichlet_bgmm(subsampled_X, max_components = 2)
+        dpgmm = dirichlet_bgmm(subsampled_X, max_components = dpgmm_max_K)
         weights = dpgmm.weights_
         means = dpgmm.means_
         covariances = dpgmm.covariances_

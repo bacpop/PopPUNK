@@ -69,7 +69,6 @@ def get_options():
     iGroup.add_argument('--r-files', help='File listing reference input assemblies')
     iGroup.add_argument('--q-files', help='File listing query input assemblies')
     iGroup.add_argument('--distances', help='Input pickle of pre-calculated distances')
-    iGroup.add_argument('--priors', help='File specifying model priors. See documentation for help', default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -86,9 +85,13 @@ def get_options():
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
 
+    modelGroup = parser.add_argument_group('Mixture model options')
+    modelGroup.add_argument('--priors', help='File specifying model priors. See documentation for help', default=None)
+    modelGroup.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
+    modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
+
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
-    other.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
     other.add_argument('--batch-size', default=1000, help='Number of queries to run per batch [default = 1000]')
 
     other.add_argument('--version', action='version',
@@ -160,7 +163,8 @@ def main():
         if args.distances is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
             refList, queryList, distMat = readPickle(args.distances)
-            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances =
+                fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
