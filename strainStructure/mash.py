@@ -197,13 +197,17 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
                         if (sketch == oldSketch):
                             sketchdb[k] = sketch
                         else:
-                            sys.exit("Problem with database; not all files have same sketch size")
+                            sys.stderr.write("Problem with database; not all files have same sketch size\n")
+                            sys.exit(1)
 
                         break
+
+            # Make sure process executed correctly
+            mash_info.wait()
             if mash_info.returncode != 0:
                 raise RuntimeError('mash info failed')
         except:
-            sys.stderr.write("Could not get info about " + dbname)
+            sys.stderr.write("Could not get info about " + dbname + "\n")
             sys.exit(1)
 
     return sketchdb
