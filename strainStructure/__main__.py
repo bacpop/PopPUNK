@@ -73,7 +73,7 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--save-distances', help='Store pickle of calculated distances', default=False, action='store_true')
+    oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences', default=False, action='store_true')
     oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
@@ -152,9 +152,7 @@ def main():
             assemblyList = readAssemblyList(args.r_files)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size)
-            # store distances in pickle if requested
-            if args.save_distances:
-                storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
+            storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
             sys.exit(1)

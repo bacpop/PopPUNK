@@ -215,8 +215,11 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix):
     for k in klist:
         sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
         dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-        mash_cmd = "mash sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
-        subprocess.run(mash_cmd, shell=True, check=True)
+        if not os.path.isfile(dbname):
+            mash_cmd = "mash sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+            subprocess.run(mash_cmd, shell=True, check=True)
+        else:
+            sys.stderr.write("Found existing mash database " + dbname + " for k = " + str(k) + "\n")
 
     return None
 
