@@ -21,11 +21,12 @@ from Bio.Phylo.TreeConstruction import _DistanceMatrix as DM
 
 def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
 
-    sys.stderr.write("Getting unique sequences\n")
+    sys.stderr.write("Writing Microreact output\n")
+    #sys.stderr.write("Getting unique sequences\n")
     uniqueSeq = list(set(refList))
     seqLabels = [r.split('.')[0] for r in uniqueSeq]
 
-    sys.stderr.write("Converting to matrix\n")
+    #sys.stderr.write("Converting to matrix\n")
     coreMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
     accMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
 
@@ -36,7 +37,7 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
             coreMat[i,j] = distMat[row, 0]
             accMat[i,j] = distMat[row, 1]
 
-    sys.stderr.write("Making triangular\n")
+    #sys.stderr.write("Making triangular\n")
     core_dist_tri = []
     for row in range(len(uniqueSeq)):
         core_dist_tri.append([])
@@ -49,24 +50,23 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
     # calculate phylogeny
     constructor = DistanceTreeConstructor()
     tree = constructor.nj(new_matrix)
-    Bio.Phylo.write(tree, outPrefix + ".nwk", "newick")
+    Bio.Phylo.write(tree, outPrefix + "/" + outPrefix + "_core_NJ.nwk", "newick")
 
-    sys.stderr.write("Running t-SNE\n")
     # generate accessory genome distance representation
-    accArray = np.array(accMat)
-    accArray_embedded = manifold.TSNE(n_components=2, perplexity=25.0).fit_transform(accArray)
+    sys.stderr.write("Running t-SNE\n")
+    accArray_embedded = manifold.TSNE(n_components=2, perplexity=25.0).fit_transform(np.array(accMat))
 
     # print dot file
-    sys.stderr.write("Printing t-SNE\n")
-    with open(outPrefix + ".dot", 'w') as nFile:
+    #sys.stderr.write("Printing t-SNE\n")
+    with open(outPrefix + "/" + outPrefix + "_accessory_tsne.dot", 'w') as nFile:
         nFile.write("graph G { ")
         for s, seqLabel in enumerate(seqLabels):
             nFile.write('"' + seqLabel + '"' +
                     '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
         nFile.write("}\n")
 
-    sys.stderr.write("Printing clustering\n")
-    with open(outPrefix + ".csv", 'w') as cFile:
+    #sys.stderr.write("Printing clustering\n")
+    with open(outPrefix + "/" + outPrefix + "_microreact_clusters.csv", 'w') as cFile:
         cFile.write("id,Cluster__autocolour\n")
         for label, unique in zip(seqLabels, uniqueSeq):
             if unique in clustering:
@@ -74,8 +74,6 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
             else:
                 sys.stderr.write("Cannot find " + unique + " in clustering\n")
                 sys.exit(1)
-
-    sys.stderr.write("Done\n")
 
 # Simple scatter plot of distances
 
@@ -90,7 +88,7 @@ def plot_scatter(X, out_prefix, title):
 # Plot model fits #
 ###################
 
-def plot_results(X, Y_, means, covariances, title, out_prefix):
+def plot_results(X, Y, means, covariances, title, out_prefix):
     color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
     fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
     splot = plt.subplot(1, 1, 1)
@@ -101,9 +99,9 @@ def plot_results(X, Y_, means, covariances, title, out_prefix):
         # as the DP will not use every component it has access to
         # unless it needs it, we shouldn't plot the redundant
         # components.
-        if not np.any(Y_ == i):
+        if not np.any(Y == i):
             continue
-        plt.scatter([X[Y_ == i, 0]], [X[Y_ == i, 1]], .8, color=color)
+        plt.scatter([X[Y == i, 0]], [X[Y == i, 1]], .8, color=color)
 
         # Plot an ellipse to show the Gaussian component
         angle = np.arctan(u[1] / u[0])

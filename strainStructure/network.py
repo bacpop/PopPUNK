@@ -54,8 +54,15 @@ def extractReferences(G, outPrefix):
 
 def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
 
-    # identify within-strain links (closest to origin)
-    within_label = np.argmin(np.apply_along_axis(np.linalg.norm, 1, means))
+    # Identify within-strain links (closest to origin)
+    # Make sure some samples are assigned, in the case of small weighted components
+    min_dist = None
+    for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
+        if np.any(assignments == mixture_component):
+            if min_dist is None or distance < min_dist:
+               min_dist = distance
+               within_label = mixture_component
+
     samples = set()
     connections = []
     distances = []
@@ -77,9 +84,13 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
     # give some summaries
     density = nx.density(G)
     transitivity = nx.transitivity(G)
+    if density > 0:
+        ratio = transitivity/density
+    else:
+        ratio = 0
     sys.stderr.write("Network summary:\n" + "\n".join(["Density\t" + "{:.4f}".format(density),
                                                        "Transitivity\t" + "{:.4f}".format(transitivity),
-                                                       "Transitivity/density\t" + "{:.4f}".format(transitivity/density)])
+                                                       "Transitivity/density\t" + "{:.4f}".format(ratio)])
                                                        + "\n")
 
     return G

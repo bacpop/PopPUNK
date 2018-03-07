@@ -33,6 +33,7 @@ from .plot import plot_results
 #########################################
 # Log likelihood of normal distribution #
 #########################################
+# for pymc3 fit
 
 def logp_normal(mu, tau, value):
     # log probability of individual samples
@@ -44,6 +45,7 @@ def logp_normal(mu, tau, value):
 ###################################################
 # Log likelihood of Gaussian mixture distribution #
 ###################################################
+# for pymc3 fit
 
 def logp_gmix(mus, pi, tau, n_samples):
     def logp_(value):
@@ -54,9 +56,15 @@ def logp_gmix(mus, pi, tau, n_samples):
 
     return logp_
 
+# stick breaking for Dirichlet prior
+def stick_breaking(beta):
+    portion_remaining = tt.concatenate([[1], tt.extra_ops.cumprod(1 - beta)[:-1]])
+    return beta * portion_remaining
+
 ##############################################################
 # Log likelihood of multivariate normal density distribution #
 ##############################################################
+# for sample assignment below
 
 def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
     n_samples, n_dim = X.shape
@@ -99,7 +107,7 @@ def assign_samples(X, weights, means, covars):
 
 def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sampling_it = 10000, num_samples = 2000):
     # Model priors
-    (proportions, strength, mu_prior, positions_belief) = model_parameters
+    (proportions, strength, mu_prior, positions_belief, dirichlet) = model_parameters
     K = mu_prior.shape[0]
 
     # Minibatches
@@ -109,7 +117,12 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
     # Model definition
     with pm.Model() as mini_model:
         # Mixture prior
-        pi = pm.Dirichlet('pi', a=pm.floatX(proportions / strength), shape=(K,))
+        if dirichlet == True:
+            alpha = pm.Gamma('alpha', 1, 2)
+            beta = pm.Beta('beta', 1, alpha, shape=K)
+            pi = pm.Deterministic('pi', stick_breaking(beta))
+        else:
+            pi = pm.Dirichlet('pi', a=pm.floatX(proportions / strength), shape=(K,))
 
         # Mean position prior
         mus = []
@@ -148,13 +161,14 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
     return(trace, elbos)
 
 # Dirichlet BGMM through EM
-def dirichlet_bgmm(X, max_components = 5, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
+def dirichlet_bgmm(X, max_components = 5, number_runs = 3, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
 
-    dpgmm = mixture.BayesianGaussianMixture(n_components=max_components,
-                                            covariance_type='full',
-                                            weight_concentration_prior=weight_conc,
-                                            mean_precision_prior=mean_precision,
-                                            mean_prior=mean_prior).fit(X)
+    dpgmm = mixture.BayesianGaussianMixture(n_components = max_components,
+                                            n_init = number_runs,
+                                            covariance_type = 'full',
+                                            weight_concentration_prior = weight_conc,
+                                            mean_precision_prior = mean_precision,
+                                            mean_prior = mean_prior).fit(X)
     return(dpgmm)
 
 ##########################
@@ -191,6 +205,7 @@ def readPriors(priorFile = None):
     prop_strength = 1
     positions_belief = 10**4
     mu_prior = pm.floatX(np.array([[0, 0], [0.006, 0.25]]))
+    dirichlet = False
 
     # Overwrite defaults if provided
     if priorFile is not None:
@@ -198,12 +213,17 @@ def readPriors(priorFile = None):
             for line in priors:
                 (param, value) = line.rstrip().split()
                 if param == 'proportions':
+                    if value == "Dirichlet":
+                        dirichlet = True
+                        continue
                     prop_read = []
                     for pop_val in value.split(','):
                         prop_read.append(float(pop_val))
                     proportions = np.array(prop_read)
+
                 elif param == 'prop_strength':
                     prop_strength = float(value)
+
                 elif param == 'positions':
                     pos_read = []
                     for pos_val in value.split(';'):
@@ -212,16 +232,18 @@ def readPriors(priorFile = None):
                             point_read.append(float(point_val))
                         pos_read.append(point_read)
                     mu_prior = pm.floatX(np.array(pos_read))
+
                 elif param == 'pos_strength':
                     positions_belief = float(value)
+
                 else:
                     sys.stderr.write('Ignoring prior line for ' + param + '\n')
 
-    if proportions.shape[0] != mu_prior.shape[0]:
+    if dirichlet == False and proportions.shape[0] != mu_prior.shape[0]:
         sys.stderr.write('The number of components must be equal in the proportion and position priors\n')
         sys.exit(1)
 
-    return proportions, prop_strength, mu_prior, positions_belief
+    return proportions, prop_strength, mu_prior, positions_belief, dirichlet
 
 #############
 # Fit model #
@@ -281,7 +303,13 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
 
     # Plot results
     y = assign_samples(X, weights, means, covariances)
-    plot_results(X, y, means, covariances, outPrefix + " 2-component BGMM", outPrefix + "/" + outPrefix + "_BGMM_fit")
+
+    title = outPrefix + " " + str(len(np.unique(y)))
+    if dpgmm:
+        title += "-component DPGMM"
+    else:
+        title +=  "-component BGMM"
+    plot_results(X, y, means, covariances, title, outPrefix + "/" + outPrefix + "_GMM_fit")
 
     # return output
     return y, weights, means, covariances

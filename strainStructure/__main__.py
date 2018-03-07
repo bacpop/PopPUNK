@@ -163,8 +163,7 @@ def main():
         if args.distances is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
             refList, queryList, distMat = readPickle(args.distances)
-            distanceAssignments, fitWeights, fitMeans, fitcovariances =
-                fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
@@ -207,6 +206,8 @@ def main():
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")
             sys.exit(1)
+
+    sys.stderr.write("Done\n")
 
 if __name__ == '__main__':
     main()
