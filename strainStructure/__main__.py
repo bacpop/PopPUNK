@@ -142,6 +142,7 @@ def main():
         sys.exit(1)
 
     # run according to mode
+    sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
 
     # database construction
     if args.create_db:
@@ -207,7 +208,7 @@ def main():
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")
             sys.exit(1)
 
-    sys.stderr.write("Done\n")
+    sys.stderr.write("\nDone\n")
 
 if __name__ == '__main__':
     main()

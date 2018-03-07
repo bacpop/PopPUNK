@@ -9,11 +9,7 @@ import itertools
 # for microreact
 from scipy import spatial
 from sklearn import manifold
-import Bio
-from Bio.Phylo import TreeConstruction
-from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
-from Bio.Phylo.TreeConstruction import _Matrix
-from Bio.Phylo.TreeConstruction import _DistanceMatrix as DM
+import dendropy
 
 #################################
 # Generate files for microreact #
@@ -37,20 +33,22 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
             coreMat[i,j] = distMat[row, 0]
             accMat[i,j] = distMat[row, 1]
 
-    #sys.stderr.write("Making triangular\n")
-    core_dist_tri = []
-    for row in range(len(uniqueSeq)):
-        core_dist_tri.append([])
-        for col in range(row + 1):
-            core_dist_tri[row].append(coreMat[row, col])
-    core_dist_matrix = _Matrix(uniqueSeq, core_dist_tri)
-    new_matrix = DM(names=seqLabels, matrix=core_dist_tri)
+    core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
+    np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
+    acc_dist_file = outPrefix + "/" + outPrefix + "_acc_dists.csv"
+    np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
 
-    sys.stderr.write("Building phylogeny\n")
     # calculate phylogeny
-    constructor = DistanceTreeConstructor()
-    tree = constructor.nj(new_matrix)
-    Bio.Phylo.write(tree, outPrefix + "/" + outPrefix + "_core_NJ.nwk", "newick")
+    sys.stderr.write("Building phylogeny\n")
+    pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
+                                                       delimiter=",",
+                                                       is_first_row_column_names=True,
+                                                       is_first_column_row_names=False)
+    tree = pdm.nj_tree()
+    tree.write(path=outPrefix + "/" + outPrefix + "_core_NJ.nwk",
+               schema="newick",
+               suppress_rooting=True,
+               unquoted_underscores=True)
 
     # generate accessory genome distance representation
     sys.stderr.write("Running t-SNE\n")
