@@ -198,7 +198,10 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
                             sketchdb[k] = sketch
                         else:
                             sys.exit("Problem with database; not all files have same sketch size")
+
                         break
+            if mash_info.returncode != 0:
+                raise RuntimeError('mash info failed')
         except:
             sys.stderr.write("Could not get info about " + dbname)
             sys.exit(1)
@@ -240,7 +243,7 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
     queryList = readAssemblyList(qFile)
 
     # find sketch size
-    sketchSize = getSketchSize(dbPrefix, klist)
+    sketchSize = getSketchSize(dbPrefix, klist, mash_exec)
 
     # batch query files to save on memory
     qFiles = []

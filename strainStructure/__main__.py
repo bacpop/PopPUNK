@@ -118,7 +118,7 @@ def main():
     minkmer = 9
     maxkmer = 29
     stepSize = 4
-    if args.k_step is not None and args.k_step != 2:
+    if args.k_step is not None and args.k_step >= 2:
         stepSize = args.k_step
     if args.min_k is not None and args.min_k > minkmer:
         minkmer = int(args.min_k)
@@ -129,7 +129,7 @@ def main():
                          maxkmer + "; range must be between 9 and 31\n")
         sys.exit(1)
 
-    kmers = np.arange(minkmer,maxkmer+1,stepSize)
+    kmers = np.arange(minkmer, maxkmer + 1, stepSize)
 
     # define sketch sizes, store in hash in case on day
     # different kmers get different hash sizes
@@ -196,11 +196,11 @@ def main():
             refList, queryList, distMat = readPickle(args.distances)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
-                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db, args.batch_size)
+                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db, args.batch_size, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
             if args.update_db:
-                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db)
+                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.mash)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")
