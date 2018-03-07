@@ -7,11 +7,11 @@ import argparse
 import re
 # additional
 import numpy as np
-import pymc3 as pm
 import random
 import matplotlib.pyplot as plt
-from pymc3.math import logsumexp as mc3_logsumexp
 try:
+    import pymc3 as pm
+    from pymc3.math import logsumexp as mc3_logsumexp
     import theano
     import theano.tensor as tt
     from theano.tensor.nlinalg import det, matrix_inverse
