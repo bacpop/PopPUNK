@@ -172,7 +172,7 @@ def readAssemblyList(fn):
 # Get sketch size from existing database #
 ##########################################
 
-def getSketchSize(dbPrefix, klist):
+def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
     # identify sketch lengths used to generate databases
     sketchdb = {}
@@ -183,7 +183,7 @@ def getSketchSize(dbPrefix, klist):
     for k in klist:
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
         try:
-            mash_info = subprocess.Popen("mash info -t " + dbname, shell=True, stdout=subprocess.PIPE)
+            mash_info = subprocess.Popen(mash_exec + " info -t " + dbname, shell=True, stdout=subprocess.PIPE)
             for line in iter(mash_info.stdout.readline, ''):
                 line = line.rstrip().decode()
                 if (line.startswith("#") is False):
@@ -209,17 +209,17 @@ def getSketchSize(dbPrefix, klist):
 # construct a database #
 ########################
 
-def constructDatabase(assemblyList, klist, sketch, oPrefix):
+def constructDatabase(assemblyList, klist, sketch, oPrefix, mash_exec = 'mash'):
 
     # create kmer databases
     for k in klist:
         sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
         dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-        if not os.path.isfile(dbname):
-            mash_cmd = "mash sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        if not os.path.isfile(dbname + ".msh"):
+            mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
             subprocess.run(mash_cmd, shell=True, check=True)
         else:
-            sys.stderr.write("Found existing mash database " + dbname + " for k = " + str(k) + "\n")
+            sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
 
     return None
 
@@ -232,7 +232,7 @@ def chunks(l, n):
 # query a database #
 ####################
 
-def queryDatabase(qFile,klist,dbPrefix,batchSize):
+def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
 
     # initialise dictionary
     nested_dict = lambda: collections.defaultdict(nested_dict)
@@ -273,7 +273,7 @@ def queryDatabase(qFile,klist,dbPrefix,batchSize):
             dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
             try:
-                mash_cmd = "mash dist -l " + dbname + " " + qF + " 2> " + dbPrefix + ".err.log"
+                mash_cmd = mash_exec + " dist -l " + dbname + " " + qF + " 2> " + dbPrefix + ".err.log"
                 rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
                 for line in rawOutput.stdout.readlines():

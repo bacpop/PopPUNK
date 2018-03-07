@@ -150,8 +150,8 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output)
             assemblyList = readAssemblyList(args.r_files)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.mash)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size, args.mash)
             storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
@@ -171,7 +171,7 @@ def main():
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
-                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output)
+                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.mash)
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output)
         else:
@@ -181,7 +181,7 @@ def main():
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
             sys.stderr.write("Mode: Building new database from input sequences\n")
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size)
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size, args.mash)
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
             if args.save_distances:
