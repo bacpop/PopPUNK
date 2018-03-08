@@ -29,7 +29,7 @@ def createDatabaseDir(outPrefix):
         try:
             os.makedirs(outputDir)
         except:
-            sys.stderr.write("Cannot create output directory")
+            sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
 #####################################
@@ -289,7 +289,7 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
                         mashMatch = mashVals[len(mashVals)-1].split('/')
                         raw[mashVals[1]][mashVals[0]][str(k)] = mashMatch[0]
             except:
-                sys.stderr.write("mash dist command failed")
+                sys.stderr.write("mash dist command failed\n")
                 sys.exit(1)
 
         # run pairwise analyses across kmer lengths
@@ -319,6 +319,8 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
 
             # clear for memory purposes
             raw[query].clear()
+        os.remove(qF)
+        os.remove(dbPrefix + ".err.log")
 
     distMat = np.transpose(np.matrix((coreVals, accVals)))
     return(refSeqs, querySeqs, distMat)

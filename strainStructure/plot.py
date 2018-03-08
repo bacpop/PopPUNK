@@ -17,7 +17,7 @@ import dendropy
 
 def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
 
-    sys.stderr.write("Writing Microreact output\n")
+    sys.stderr.write("Writing Microreact output:\n")
     #sys.stderr.write("Getting unique sequences\n")
     uniqueSeq = list(set(refList))
     seqLabels = [r.split('.')[0] for r in uniqueSeq]
