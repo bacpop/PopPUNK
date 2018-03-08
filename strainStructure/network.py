@@ -88,10 +88,10 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
         ratio = transitivity/density
     else:
         ratio = 0
-    sys.stderr.write("Network summary:\n" + "\n".join(["Density\t" + "{:.4f}".format(density),
-                                                       "Transitivity\t" + "{:.4f}".format(transitivity),
-                                                       "Transitivity/density\t" + "{:.4f}".format(ratio)])
-                                                       + "\n\n")
+    sys.stderr.write("Network summary:\n" + "\n".join(["\tDensity\t" + "{:.4f}".format(density),
+                                                       "\tTransitivity\t" + "{:.4f}".format(transitivity),
+                                                       "\tTransitivity/density\t" + "{:.4f}".format(ratio)])
+                                                       + "\n")
 
     return G
 

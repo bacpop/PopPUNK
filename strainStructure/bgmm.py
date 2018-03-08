@@ -287,7 +287,7 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         weights = trace[:]['pi'].mean(axis=0)
         means = []
         covariances = []
-        for i in range(parameters[0].shape[0]):
+        for i in range(parameters[2].shape[0]):
             means.append(trace[:]['mu_%i' %i].mean(axis=0).T)
             covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
         means = np.vstack(means)
