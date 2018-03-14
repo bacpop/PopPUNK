@@ -190,14 +190,14 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
                     sketchValues = line.split("\t")
                     if len(sketchValues[0]) > 0:
                         if oldSketch == 0:
-                            oldSketch = int(sketchValues[0])
+                            oldSketch = int(sketchValues[1])
                         else:
                             oldSketch = sketch
-                        sketch = int(sketchValues[0])
+                        sketch = int(sketchValues[1])
                         if (sketch == oldSketch):
                             sketchdb[k] = sketch
                         else:
-                            sys.stderr.write("Problem with database; not all files have same sketch size\n")
+                            sys.stderr.write("Problem with database; sketch size for kmer length "+str(k)+" is "+str(oldSketch)+", but smaller kmers have sketch sizes of "+str(sketch)+"\n")
                             sys.exit(1)
 
                         break
@@ -206,8 +206,8 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
             mash_info.wait()
             if mash_info.returncode != 0:
                 raise RuntimeError('mash info failed')
-        except:
-            sys.stderr.write("Could not get info about " + dbname + "\n")
+        except subprocess.CalledProcessError as e:
+            sys.stderr.write("Could not get info about " + dbname + "; command "+mash_exec + " info -t " + dbname+" returned "+str(mash_info.returncode)+": "+e.message+"\n")
             sys.exit(1)
 
     return sketchdb
@@ -287,7 +287,7 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
                     mashVals = line.rstrip().decode().split()
                     if (len(mashVals) > 2):
                         mashMatch = mashVals[len(mashVals)-1].split('/')
-                        raw[mashVals[1]][mashVals[0]][str(k)] = mashMatch[0]
+                        raw[mashVals[1]][mashVals[0]][str(k)] = int(mashMatch[0])/int(mashMatch[1])
             except:
                 sys.stderr.write("mash dist command failed\n")
                 sys.exit(1)
@@ -300,7 +300,7 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
                 pairwise = []
                 for k in klist:
                     # calculate sketch size. Note log taken here
-                    pairwise.append(np.log(float(raw[query][ref][str(k)])/float(sketchSize[k])))
+                    pairwise.append(np.log(float(raw[query][ref][str(k)])))
                 # curve fit pr = (1-a)(1-c)^k
                 # log pr = log(1-a) + k*log(1-c)
                 distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
