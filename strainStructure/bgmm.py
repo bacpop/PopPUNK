@@ -266,13 +266,16 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
     if X.shape[0] > max_samples:
         subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_samples,]
     else:
-        subsampled_X = X
+        subsampled_X = np.copy(X)
 
     # Show clustering
     plot_scatter(subsampled_X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
 
     # fit bgmm model
     if not dpgmm:
+        scale = np.amax(subsampled_X, axis = 0)
+        subsampled_X /= scale
+
         parameters = readPriors(priorFile)
         (trace, elbos) = bgmm_model(subsampled_X, parameters)
 
@@ -290,8 +293,8 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         for i in range(parameters[2].shape[0]):
             means.append(trace[:]['mu_%i' %i].mean(axis=0).T)
             covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
-        means = np.vstack(means)
-        covariances = np.stack(covariances)
+        means = np.vstack(means) * scale
+        covariances = scale * np.stack(covariances) * scale
     else:
         dpgmm = dirichlet_bgmm(subsampled_X, max_components = dpgmm_max_K)
         weights = dpgmm.weights_
