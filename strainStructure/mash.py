@@ -230,99 +230,76 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, mash_exec = 'mash'):
 
     return None
 
-# split input queries into chunks
-def chunks(l, n):
-    for i in range(0, len(l), n):
-        yield l[i:i + n]
-
 ####################
 # query a database #
 ####################
 
-def queryDatabase(qFile, klist, dbPrefix, batchSize, mash_exec = 'mash'):
+def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'mash', threads = 1):
 
-    # initialise dictionary
+    # initialise dictionary to keep distances in
     nested_dict = lambda: collections.defaultdict(nested_dict)
     raw = nested_dict()
     queryList = readAssemblyList(qFile)
 
-    # find sketch size
-    sketchSize = getSketchSize(dbPrefix, klist, mash_exec)
+    # iterate through kmer lengths
+    for k in klist:
+        # run mash distance query based on current file
+        dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
-    # batch query files to save on memory
-    qFiles = []
-    fileNumber = 1
-    counter = 0
+        try:
+            mash_cmd = mash_exec + " dist -p " + str(threads) + " -l " + dbname + " "
+            if self:
+                mash_cmd += dbname
+            else:
+                mash_cmd += qFile
+            mash_cmd += " 2> " + dbPrefix + ".err.log"
 
-    for fileNumber, qFileChunk in enumerate(chunks(queryList, batchSize)):
-        tmpOutFn = "tmp." + dbPrefix + "." + str(fileNumber)
-        qFiles.append(tmpOutFn)
-        with open(tmpOutFn, 'w') as tmpFile:
-            for qf in qFileChunk:
-                tmpFile.write(qf + '\n')
+            rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
-    # initialise data structures
-    core = nested_dict()
-    accessory = nested_dict()
-    dbSketch = {}
+            number_dists = 0
+            for line in rawOutput.stdout.readlines():
+                mashVals = line.decode().rstrip().split("\t")
+                if (len(mashVals) > 2):
+                    if mashVals[0] != mashVals[1] and raw[mashVals[0]][mashVals[1]] is not None:
+                        number_dists += 1
+                        mashMatch = mashVals[-1].split('/')
+                        raw[mashVals[1]][mashVals[0]][str(k)] = float(mashMatch[0])/int(mashMatch[1])
+        except:
+            sys.stderr.write("mash dist command failed\n")
+            sys.exit(1)
+
+    # run pairwise analyses across kmer lengths
     querySeqs = []
     refSeqs = []
-    coreVals = []
-    accVals = []
+    distMat = np.zeros((number_dists/len(klist), 2))
+    row = 0
 
-    # search each query file
-    for qF in qFiles:
-        sys.stderr.write("Processing file " + qF + "\n")
+    # Hessian = 0, so Jacobian for regression is a constant
+    jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+    for query in raw.keys():
+        for ref in raw[query].keys():
+            pairwise = []
+            for k in klist:
+                # calculate sketch size. Note log taken here
+                pairwise.append(np.log(raw[query][ref][str(k)]))
+            # curve fit pr = (1-a)(1-c)^k
+            # log pr = log(1-a) + k*log(1-c)
+            distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                             x0=[0.0, -0.01],
+                                             jac=lambda p, x, y: jacobian,
+                                             args=(klist, pairwise),
+                                             bounds=([-np.inf, -np.inf], [0, 0]))
+            transformed_params = 1 - np.exp(distFit.x)
 
-        # iterate through kmer lengths
-        for k in klist:
-            # run mash distance query based on current file
-            dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
+            # store output
+            distMat[row][0] = transformed_params[0]
+            distMat[row][1] = transformed_params[1]
+            querySeqs.append(query)
+            refSeqs.append(ref)
+            row += 1
 
-            try:
-                mash_cmd = mash_exec + " dist -l " + dbname + " " + qF + " 2> " + dbPrefix + ".err.log"
-                rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
+    os.remove(dbPrefix + ".err.log")
 
-                for line in rawOutput.stdout.readlines():
-                    mashVals = line.rstrip().decode().split()
-                    if (len(mashVals) > 2):
-                        mashMatch = mashVals[len(mashVals)-1].split('/')
-                        raw[mashVals[1]][mashVals[0]][str(k)] = int(mashMatch[0])/int(mashMatch[1])
-            except:
-                sys.stderr.write("mash dist command failed\n")
-                sys.exit(1)
-
-        # run pairwise analyses across kmer lengths
-        # Hessian = 0, so Jacobian for regression is a constant
-        jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-        for query in raw.keys():
-            for ref in raw[query].keys():
-                pairwise = []
-                for k in klist:
-                    # calculate sketch size. Note log taken here
-                    pairwise.append(np.log(float(raw[query][ref][str(k)])))
-                # curve fit pr = (1-a)(1-c)^k
-                # log pr = log(1-a) + k*log(1-c)
-                distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
-                                                 x0=[0.0, -0.01],
-                                                 jac=lambda p, x, y: jacobian,
-                                                 args=(klist, pairwise),
-                                                 bounds=([-np.inf, -np.inf], [0, 0]))
-                transformed_params = 1 - np.exp(distFit.x)
-                accessory[query][ref] = transformed_params[0]
-                core[query][ref] = transformed_params[1]
-                # store output
-                querySeqs.append(query)
-                refSeqs.append(ref)
-                coreVals.append(core[query][ref])
-                accVals.append(accessory[query][ref])
-
-            # clear for memory purposes
-            raw[query].clear()
-        os.remove(qF)
-        os.remove(dbPrefix + ".err.log")
-
-    distMat = np.transpose(np.matrix((coreVals, accVals)))
     return(refSeqs, querySeqs, distMat)
 
 ##############################

@@ -80,7 +80,7 @@ def get_options():
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
-    kmerGroup.add_argument('--min-k', default = 11, type=int, help='Minimum kmer length [default = 11]')
+    kmerGroup.add_argument('--min-k', default = 9, type=int, help='Minimum kmer length [default = 9]')
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
@@ -92,7 +92,7 @@ def get_options():
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
-    other.add_argument('--batch-size', default=1000, help='Number of queries to run per batch [default = 1000]')
+    other.add_argument('--threads', default=1, type=int, help='Number of threads to use during database querying [default = 1]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -151,7 +151,7 @@ def main():
             createDatabaseDir(args.output)
             assemblyList = readAssemblyList(args.r_files)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.mash)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size, args.mash)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
             storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
@@ -167,7 +167,7 @@ def main():
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList,queryList,distMat,isolateClustering,args.output)
+                outputsForMicroreact(refList, queryList, distMat, isolateClustering,args.output)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
@@ -181,7 +181,7 @@ def main():
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
             sys.stderr.write("Mode: Building new database from input sequences\n")
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size, args.mash)
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
             if args.save_distances:

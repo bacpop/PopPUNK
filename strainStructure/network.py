@@ -84,13 +84,10 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
     # give some summaries
     density = nx.density(G)
     transitivity = nx.transitivity(G)
-    if density > 0:
-        ratio = transitivity/density
-    else:
-        ratio = 0
+    score = transitivity * (1-density)
     sys.stderr.write("Network summary:\n" + "\n".join(["\tDensity\t" + "{:.4f}".format(density),
                                                        "\tTransitivity\t" + "{:.4f}".format(transitivity),
-                                                       "\tTransitivity/density\t" + "{:.4f}".format(ratio)])
+                                                       "\tScore\t" + "{:.4f}".format(score)])
                                                        + "\n")
 
     return G
