@@ -234,7 +234,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, mash_exec = 'mash'):
 # query a database #
 ####################
 
-def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'mash', threads = 1):
+def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 
     # initialise dictionary to keep distances in
     nested_dict = lambda: collections.defaultdict(nested_dict)
@@ -248,13 +248,13 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'm
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
         try:
-            mash_cmd = mash_exec + " dist -p " + str(threads) + " " + dbname + " "  # have removed "-l" before dbname here - might need to reinsert for querying
+            mash_cmd = mash_exec + " dist -p " + str(threads)
             if self:
-                mash_cmd += dbname
+                mash_cmd += " " + dbname + " " + dbname
             else:
-                mash_cmd += qFile
+                mash_cmd += " -l " + dbname + " " + qFile
             mash_cmd += " 2> " + dbPrefix + ".err.log"
-            print(mash_cmd)
+            sys.stderr.write(mash_cmd)
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
