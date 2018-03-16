@@ -247,7 +247,7 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
 ##########################################
 
 def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
-        covariances, outPrefix, dbPrefix, batchSize, mash_exec = 'mash'):
+        covariances, outPrefix, dbPrefix, batchSize, threads = 1, mash_exec = 'mash'):
 
     # identify within-strain links (closest component to origin)
     within_label = np.argmin(np.apply_along_axis(np.linalg.norm, 1, means))
@@ -282,7 +282,7 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
 
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
-        constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, mash_exec)
+        constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
         qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, batchSize, mash_exec)
         queryAssignation = assign_samples(distMat, weights, means, covariances)
 
@@ -312,7 +312,7 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
 # Update reference database with query information #
 ####################################################
 
-def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, mash_exec = 'mash'):
+def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, threads = 1, mash_exec = 'mash'):
 
     # append information to csv
     clusteringCsvName = "./" + dbPrefix + "/" + dbPrefix + "_clusters.csv"
@@ -345,7 +345,7 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, ma
 
     # make new databases and append
     createDatabaseDir(outPrefix)
-    constructDatabase(referenceFile, klist, sketch, outPrefix, mash_exec)
+    constructDatabase(referenceFile, klist, sketch, outPrefix, threads, mash_exec)
     for k in klist:
         f1 = getDatabaseName(dbPrefix, k)
         f2 = getDatabaseName(outPrefix, k)

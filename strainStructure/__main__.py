@@ -75,7 +75,6 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences', default=False, action='store_true')
     oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
-    oGroup.add_argument('--perplexity', help='Perplexity used to calculate tSNE projection [default=25]', default=25)
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
 
@@ -90,6 +89,9 @@ def get_options():
     modelGroup.add_argument('--priors', help='File specifying model priors. See documentation for help', default=None)
     modelGroup.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
     modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
+
+    algGroup = parser.add_argument_group('Algorithm options')
+    algGroup.add_argument('--perplexity', type=float, default = 25.0, help='Perplexity used to calculate t-SNE projection (with --microreact) [default=25]')
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
@@ -151,7 +153,7 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output)
             assemblyList = readAssemblyList(args.r_files)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.mash)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
             storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
@@ -172,7 +174,7 @@ def main():
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
-                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.mash)
+                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash)
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output)
         else:
@@ -197,11 +199,12 @@ def main():
             refList, queryList, distMat = readPickle(args.distances)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
-                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db, args.batch_size, args.mash)
+                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db,
+                    args.batch_size, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
             if args.update_db:
-                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.mash)
+                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.threads, args.mash)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")

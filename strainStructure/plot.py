@@ -53,7 +53,7 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
 
     # generate accessory genome distance representation
     sys.stderr.write("Running t-SNE\n")
-    accArray_embedded = manifold.TSNE(n_components=2, perplexity=int(perplexity)).fit_transform(np.array(accMat))
+    accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
 
     # print dot file
     #sys.stderr.write("Printing t-SNE\n")

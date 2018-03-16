@@ -7,6 +7,7 @@ import subprocess
 # additional
 import collections
 import pickle
+from multiprocessing import Pool, Lock
 import numpy as np
 import networkx as nx
 from scipy import optimize
@@ -216,19 +217,35 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 # construct a database #
 ########################
 
-def constructDatabase(assemblyList, klist, sketch, oPrefix, mash_exec = 'mash'):
+# Multithread wrapper around sketch
+def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash'):
 
     # create kmer databases
-    for k in klist:
-        sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
-        dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-        if not os.path.isfile(dbname + ".msh"):
-            mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
-            subprocess.run(mash_cmd, shell=True, check=True)
-        else:
-            sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
+    l = multiprocessing.Lock()
+    pool = multiprocessing.Pool(processes=threads, initializer=init_lock, initargs=(l,))
+    pool.map(runSketch, klist, assemblyList, sketch, oPrefix, mash_exec)
+    pool.close()
+    pool.join()
 
-    return None
+# lock on stderr
+def init_lock(l):
+    global lock
+    lock = l
+
+# create kmer databases
+def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
+    lock.acquire()
+    sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
+    lock.release()
+
+    dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
+    if not os.path.isfile(dbname + ".msh"):
+        mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        subprocess.run(mash_cmd, shell=True, check=True)
+    else:
+        lock.acquire()
+        sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
+        lock.release()
 
 ####################
 # query a database #
