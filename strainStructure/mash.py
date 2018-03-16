@@ -212,6 +212,29 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
     return sketchdb
 
+# Return an array with the sequences in the passed mash database
+def getSeqsInDb(mashSketch, mash_exec = 'mash'):
+
+    seqs = []
+
+    mash_cmd = mash_exec + " info -t " + mashSketch
+    try:
+        mash_info = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
+        for line in iter(mash_info.stdout.readline, ''):
+            line = line.rstrip().decode()
+            if (line.startswith("#") is False):
+                seqs.append(line.split("\t")[2])
+
+            # Make sure process executed correctly
+            mash_info.wait()
+            if mash_info.returncode != 0:
+                raise RuntimeError('mash info failed')
+        except subprocess.CalledProcessError as e:
+            sys.stderr.write("Could not get info about " + dbname + "; command " + mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
+            sys.exit(1)
+
+    return seqs
+
 ########################
 # construct a database #
 ########################
@@ -236,16 +259,37 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, mash_exec = 'mash'):
 
 def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'mash', threads = 1):
 
-    # initialise dictionary to keep distances in
-    nested_dict = lambda: collections.defaultdict(nested_dict)
-    raw = nested_dict()
     queryList = readAssemblyList(qFile)
+    refList = getSeqsInDb("./" + dbPrefix + "/" + dbPrefix + "." + str(klist[0]) + ".msh", mash_exec)
+
+    # write the order which comparisons will appear in the output array
+    number_pairs = 0
+    querySeqs = []
+    refSeqs = []
+    # TODO write to disk instead of storing?
+    if self:
+        number_pairs = 0.5 * len(refList) * (len(refList) - 1)
+        for i, ref in enumerate(0, refList):
+            for j in range(i + 1, len(refList)):
+                refSeqs.append(ref)
+                querySeqs.append(refList[j])
+    else:
+        for query in queryList:
+            for ref in refList:
+                if ref != query:
+                    refSeqs.append(ref)
+                    querySeqs.append(query)
+                    number_pairs += 1
+
+    # Pre-assign array for storage
+    raw = np.zeros((number_pairs, len(klist))
 
     # iterate through kmer lengths
-    for k in klist:
+    for k_idx, k in enumerate(klist):
         # run mash distance query based on current file
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
+        row = 0
         try:
             mash_cmd = mash_exec + " dist -p " + str(threads) + " -l " + dbname + " "
             if self:
@@ -256,51 +300,55 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'm
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
-            number_dists = 0
+            prev_ref = ""
+            skip = 0
+            skipped = 0
             for line in rawOutput.stdout.readlines():
+                # Skip the first row with self and symmetric elements
+                if skipped < skip:
+                    skipped += 1
+                    continue
+
                 mashVals = line.decode().rstrip().split("\t")
                 if (len(mashVals) > 2):
-                    if mashVals[0] != mashVals[1] and raw[mashVals[0]][mashVals[1]] is not None:
-                        number_dists += 1
+                    if self and mashVals[1] != prev_ref:
+                        prev_ref = mashVals[1]
+                        skip += 1
+                        skipped = 0
+                    else:
                         mashMatch = mashVals[-1].split('/')
-                        raw[mashVals[1]][mashVals[0]][str(k)] = float(mashMatch[0])/int(mashMatch[1])
+                        raw[row][k_idx] = float(mashMatch[0])/int(mashMatch[1])
+                        row += 1
         except:
             sys.stderr.write("mash dist command failed\n")
             sys.exit(1)
 
+        os.remove(dbPrefix + ".err.log")
+
     # run pairwise analyses across kmer lengths
-    querySeqs = []
-    refSeqs = []
-    distMat = np.zeros((number_dists/len(klist), 2))
-    row = 0
-
-    # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-    for query in raw.keys():
-        for ref in raw[query].keys():
-            pairwise = []
-            for k in klist:
-                # calculate sketch size. Note log taken here
-                pairwise.append(np.log(raw[query][ref][str(k)]))
-            # curve fit pr = (1-a)(1-c)^k
-            # log pr = log(1-a) + k*log(1-c)
-            distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
-                                             x0=[0.0, -0.01],
-                                             jac=lambda p, x, y: jacobian,
-                                             args=(klist, pairwise),
-                                             bounds=([-np.inf, -np.inf], [0, 0]))
-            transformed_params = 1 - np.exp(distFit.x)
-
-            # store output
-            distMat[row][0] = transformed_params[0]
-            distMat[row][1] = transformed_params[1]
-            querySeqs.append(query)
-            refSeqs.append(ref)
-            row += 1
-
-    os.remove(dbPrefix + ".err.log")
+    distMat = np.apply_along_axis(fitKmerCurve, axis = 0, arr = raw, klist, jacobian)
 
     return(refSeqs, querySeqs, distMat)
+
+# fit the function pr = (1-a)(1-c)^k
+def fitKmerCurve(pairwise, klist, jacobian):
+
+    if jacobian = None:
+        jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+
+    pairwise.append(np.log(raw[query][ref][str(k)]))
+    # curve fit pr = (1-a)(1-c)^k
+    # log pr = log(1-a) + k*log(1-c)
+    distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                     x0=[0.0, -0.01],
+                                     jac=lambda p, x, y: jacobian,
+                                     args=(klist, np.log(pairwise)),
+                                     bounds=([-np.inf, -np.inf], [0, 0]))
+    transformed_params = 1 - np.exp(distFit.x)
+
+    return(transformed_params)
+
 
 ##############################
 # write query output to file #
