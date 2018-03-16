@@ -93,6 +93,7 @@ def get_options():
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use during database querying [default = 1]')
+    other.add_argument('--batch_size', default=1, type=int, help='Number of batches to use in mash processing [default = 1]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -102,7 +103,7 @@ def get_options():
 def main():
 
     args = get_options()
-
+    
     # check mash is installed
     p = subprocess.Popen([args.mash + ' --version'], shell=True, stdout=subprocess.PIPE)
     version = 0
@@ -151,7 +152,7 @@ def main():
             createDatabaseDir(args.output)
             assemblyList = readAssemblyList(args.r_files)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.mash)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.batch_size, True, args.mash, args.threads)
             storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
@@ -181,7 +182,7 @@ def main():
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
             sys.stderr.write("Mode: Building new database from input sequences\n")
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.batch_size, False, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
             if args.save_distances:

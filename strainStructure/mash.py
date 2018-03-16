@@ -242,21 +242,22 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'm
     queryList = readAssemblyList(qFile)
 
     # iterate through kmer lengths
+    number_dists = 0
     for k in klist:
         # run mash distance query based on current file
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
         try:
-            mash_cmd = mash_exec + " dist -p " + str(threads) + " -l " + dbname + " "
+            mash_cmd = mash_exec + " dist -p " + str(threads) + " " + dbname + " "  # have removed "-l" before dbname here - might need to reinsert for querying
             if self:
                 mash_cmd += dbname
             else:
                 mash_cmd += qFile
             mash_cmd += " 2> " + dbPrefix + ".err.log"
+            print(mash_cmd)
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
-            number_dists = 0
             for line in rawOutput.stdout.readlines():
                 mashVals = line.decode().rstrip().split("\t")
                 if (len(mashVals) > 2):
@@ -271,7 +272,7 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'm
     # run pairwise analyses across kmer lengths
     querySeqs = []
     refSeqs = []
-    distMat = np.zeros((number_dists/len(klist), 2))
+    distMat = np.zeros((int(number_dists/len(klist)), 2))
     row = 0
 
     # Hessian = 0, so Jacobian for regression is a constant
