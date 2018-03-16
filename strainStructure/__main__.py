@@ -75,6 +75,7 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences', default=False, action='store_true')
     oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
+    oGroup.add_argument('--perplexity', help='Perplexity used to calculate tSNE projection [default=25]', default=25)
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
 
@@ -167,7 +168,7 @@ def main():
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, queryList, distMat, isolateClustering,args.output)
+                outputsForMicroreact(refList, queryList, distMat, isolateClustering, args.perplexity, args.output)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
