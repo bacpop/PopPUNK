@@ -252,70 +252,105 @@ def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
 # query a database #
 ####################
 
+def nested_dict():
+    return collections.defaultdict(nested_dict)
+
+def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
+    
+    # define matrix for storage
+#    nested_dict = lambda: collections.defaultdict(nested_dict)
+    raw_k = nested_dict()
+    
+    # multithreading
+    lock.acquire()
+    sys.stderr.write("Querying mash database for k = " + str(k) + "\n")
+    lock.release()
+    
+    # run mash distance query based on current file
+    dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
+    
+    try:
+        mash_cmd = mash_exec + " dist -p " + str(threads)   # does this need to change?
+        if self:
+            mash_cmd += " " + dbname + " " + dbname
+        else:
+            mash_cmd += " -l " + dbname + " " + qFile
+        mash_cmd += " 2> " + dbPrefix + ".err.log"
+        sys.stderr.write(mash_cmd)
+
+        rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
+
+        for line in rawOutput.stdout.readlines():
+            mashVals = line.decode().rstrip().split("\t")
+            if (len(mashVals) > 2):
+                if mashVals[0] != mashVals[1] and raw_k[mashVals[0]][mashVals[1]] is not None:
+                    mashMatch = mashVals[-1].split('/')
+                    raw_k[mashVals[1]][mashVals[0]] = float(mashMatch[0])/float(mashMatch[1])
+
+    except subprocess.CalledProcessError as e:
+        lock.acquire()
+        sys.stderr.write("mash dist command failed; returned: "+e.message+"\n")
+        lock.release()
+        sys.exit(1)
+
+    # return output
+    return raw_k
+
 def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 
     # initialise dictionary to keep distances in
-    nested_dict = lambda: collections.defaultdict(nested_dict)
-    raw = nested_dict()
-    queryList = readAssemblyList(qFile)
+    queryList = readAssemblyList(qFile) # function can be moved locally as not needed elsewhere now
 
     # iterate through kmer lengths
-    number_dists = 0
-    for k in klist:
-        # run mash distance query based on current file
-        dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
-
-        try:
-            mash_cmd = mash_exec + " dist -p " + str(threads)
-            if self:
-                mash_cmd += " " + dbname + " " + dbname
-            else:
-                mash_cmd += " -l " + dbname + " " + qFile
-            mash_cmd += " 2> " + dbPrefix + ".err.log"
-            sys.stderr.write(mash_cmd)
-
-            rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
-
-            for line in rawOutput.stdout.readlines():
-                mashVals = line.decode().rstrip().split("\t")
-                if (len(mashVals) > 2):
-                    if mashVals[0] != mashVals[1] and raw[mashVals[0]][mashVals[1]] is not None:
-                        number_dists += 1
-                        mashMatch = mashVals[-1].split('/')
-                        raw[mashVals[1]][mashVals[0]][str(k)] = float(mashMatch[0])/int(mashMatch[1])
-        except:
-            sys.stderr.write("mash dist command failed\n")
-            sys.exit(1)
-
-    # run pairwise analyses across kmer lengths
+    l = Lock()
+    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
+    raw = pool.map(partial(runQuery,qFile = qFile, dbPrefix = dbPrefix, self = self, mash_exec = mash_exec,threads = threads), klist)
+    pool.close()
+    pool.join()
+    
+    # iterate through first dict to get seq lists
+    # and number of comparisons - fix this with
+    # proper sequence indexing
     querySeqs = []
     refSeqs = []
-    distMat = np.zeros((int(number_dists/len(klist)), 2))
+    queryList = raw[0].keys()   # this can be optimised out
+    refList = []                # and this
+    number_dists = 0
+    for query in raw[0].keys():
+        if (len(refList) == 0):
+            refList = raw[0][query].keys()
+        for ref in raw[0][query].keys():
+            number_dists = number_dists + 1
+
+    # run pairwise analyses across kmer lengths
+    distMat = np.zeros((int(number_dists), 2))
     row = 0
 
     # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-    for query in raw.keys():
-        for ref in raw[query].keys():
-            pairwise = []
-            for k in klist:
-                # calculate sketch size. Note log taken here
-                pairwise.append(np.log(raw[query][ref][str(k)]))
-            # curve fit pr = (1-a)(1-c)^k
-            # log pr = log(1-a) + k*log(1-c)
-            distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
-                                             x0=[0.0, -0.01],
-                                             jac=lambda p, x, y: jacobian,
-                                             args=(klist, pairwise),
-                                             bounds=([-np.inf, -np.inf], [0, 0]))
-            transformed_params = 1 - np.exp(distFit.x)
+    for query in queryList:
+        for ref in refList:
+            if (raw[0][query][ref]):    # can be optimised out
+                pairwise = []
+                for i in range(len(klist)):
+                    k = klist[i]
+                    # calculate sketch size. Note log taken here
+                    pairwise.append(np.log(raw[i][query][ref]))
+                # curve fit pr = (1-a)(1-c)^k
+                # log pr = log(1-a) + k*log(1-c)
+                distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                                 x0=[0.0, -0.01],
+                                                 jac=lambda p, x, y: jacobian,
+                                                 args=(klist, pairwise),
+                                                 bounds=([-np.inf, -np.inf], [0, 0]))
+                transformed_params = 1 - np.exp(distFit.x)
 
-            # store output
-            distMat[row][0] = transformed_params[0]
-            distMat[row][1] = transformed_params[1]
-            querySeqs.append(query)
-            refSeqs.append(ref)
-            row += 1
+                # store output
+                distMat[row][0] = transformed_params[0]
+                distMat[row][1] = transformed_params[1]
+                querySeqs.append(query)
+                refSeqs.append(ref)
+                row += 1
 
     os.remove(dbPrefix + ".err.log")
 
