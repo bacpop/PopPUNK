@@ -8,6 +8,7 @@ import subprocess
 import collections
 import pickle
 from multiprocessing import Pool, Lock
+from functools import partial
 import numpy as np
 import networkx as nx
 from scipy import optimize
@@ -221,9 +222,9 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash'):
 
     # create kmer databases
-    l = multiprocessing.Lock()
-    pool = multiprocessing.Pool(processes=threads, initializer=init_lock, initargs=(l,))
-    pool.map(runSketch, klist, assemblyList, sketch, oPrefix, mash_exec)
+    l = Lock()
+    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
+    pool.map(partial(runSketch,assemblyList=assemblyList, sketch=sketch, oPrefix=oPrefix, mash_exec=mash_exec), klist)
     pool.close()
     pool.join()
 

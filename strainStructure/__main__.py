@@ -14,7 +14,6 @@ from .__init__ import __version__
 from .mash import createDatabaseDir
 from .mash import storePickle
 from .mash import readPickle
-from .mash import readAssemblyList
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
@@ -152,7 +151,6 @@ def main():
         sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
             createDatabaseDir(args.output)
-            assemblyList = readAssemblyList(args.r_files)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
             storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
