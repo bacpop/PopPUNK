@@ -256,25 +256,25 @@ def nested_dict():
     return collections.defaultdict(nested_dict)
 
 def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
-    
+
     # define matrix for storage
 #    nested_dict = lambda: collections.defaultdict(nested_dict)
     raw_k = nested_dict()
-    
+
     # multithreading
     lock.acquire()
     sys.stderr.write("Querying mash database for k = " + str(k) + "\n")
     lock.release()
-    
+
     # run mash distance query based on current file
     dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
-    
+
     try:
-        mash_cmd = mash_exec + " dist -p " + str(threads)   # does this need to change?
+        mash_cmd = mash_exec + " dist -p "
         if self:
-            mash_cmd += " " + dbname + " " + dbname
+            mash_cmd += dbname + " " + dbname
         else:
-            mash_cmd += " -l " + dbname + " " + qFile
+            mash_cmd += "-l " + dbname + " " + qFile
         mash_cmd += " 2> " + dbPrefix + ".err.log"
         sys.stderr.write(mash_cmd)
 
@@ -289,7 +289,7 @@ def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 
     except subprocess.CalledProcessError as e:
         lock.acquire()
-        sys.stderr.write("mash dist command failed; returned: "+e.message+"\n")
+        sys.stderr.write("mash dist command failed. Returned: " + e.message + "\n")
         lock.release()
         sys.exit(1)
 
@@ -299,32 +299,25 @@ def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 
     # initialise dictionary to keep distances in
-    queryList = readAssemblyList(qFile) # function can be moved locally as not needed elsewhere now
+    queryList = readAssemblyList(qFile)
 
     # iterate through kmer lengths
     l = Lock()
     pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
-    raw = pool.map(partial(runQuery,qFile = qFile, dbPrefix = dbPrefix, self = self, mash_exec = mash_exec,threads = threads), klist)
+    raw = pool.map(partial(runQuery, qFile = qFile, dbPrefix = dbPrefix, self = self, mash_exec = mash_exec, threads = threads), klist)
     pool.close()
     pool.join()
-    
-    # iterate through first dict to get seq lists
-    # and number of comparisons - fix this with
-    # proper sequence indexing
-    querySeqs = []
-    refSeqs = []
-    queryList = raw[0].keys()   # this can be optimised out
-    refList = []                # and this
-    number_dists = 0
-    for query in raw[0].keys():
-        if (len(refList) == 0):
-            refList = raw[0][query].keys()
-        for ref in raw[0][query].keys():
-            number_dists = number_dists + 1
+
+    # get seq lists and number of comparisons
+    queryList = raw[0].keys()
+    refList = raw[0][queryList[0]].keys()
+    number_dists = len(raw[0][queryList[0]].keys()) * len(raw)
 
     # run pairwise analyses across kmer lengths
-    distMat = np.zeros((int(number_dists), 2))
+    querySeqs = []
+    refSeqs = []
     row = 0
+    distMat = np.zeros((int(number_dists), 2))
 
     # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
