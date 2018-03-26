@@ -15,23 +15,41 @@ import dendropy
 # Generate files for microreact #
 #################################
 
-def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, outPrefix):
+from operator import itemgetter
+
+def outputsForMicroreact(refList, queryList, refIndices, queryIndices, distMat, clustering, perplexity, outPrefix):
 
     sys.stderr.write("Writing Microreact output:\n")
-    #sys.stderr.write("Getting unique sequences\n")
-    uniqueSeq = list(set(refList))
+
+    # define reverse indices
+    indexRefs = {}
+    indexQueries = {}
+    for ref in refIndices.keys():
+        indexRefs[refIndices[ref]] = ref
+        print("ref "+str(ref)+" index "+str(refIndices[ref])+" newv: "+str(indexRefs[refIndices[ref]]))
+    for query in queryIndices.keys():
+        indexQueries[queryIndices[query]] = query
+        print("query "+str(query)+" index "+str(queryIndices[query])+" newv: "+str(indexQueries[queryIndices[query]]))
+        quit()
+
+    uniqueSeq = []
+    for s in range(len(indexRefs.keys())):
+        uniqueSeq.append(refIndices[s])
     seqLabels = [r.split('.')[0] for r in uniqueSeq]
 
-    #sys.stderr.write("Converting to matrix\n")
     coreMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
     accMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
 
-    for row, (ref, query) in enumerate(zip(refList, queryList)):
-        i = uniqueSeq.index(ref)
-        j = uniqueSeq.index(query)
+    row = 0
+    for row, (ref, query) in enumerate(zip(indexRefs, indexQueries)):
+        i = indexRefs[ref]
+        j = indexQueries[query]
+        print("row: "+str(row)+ " i "+str(i)+" j "+str(j))
         if i != j:
             coreMat[i,j] = distMat[row, 0]
+            coreMat[j,i] = distMat[row, 0]
             accMat[i,j] = distMat[row, 1]
+            accMat[j,i] = distMat[row, 1]
 
     core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
     np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
