@@ -38,9 +38,9 @@ def createDatabaseDir(outPrefix):
 # Store distance matrix in a pickle #
 #####################################
 
-def storePickle(rlist, qlist, X, pklName):
+def storePickle(rlist, qlist, X, qindices, rindices, pklName):
     with open(pklName, 'wb') as pickle_file:
-        pickle.dump([rlist, qlist, X], pickle_file)
+        pickle.dump([rlist, qlist, X, qindices, rindices], pickle_file)
 
 ####################################
 # Load distance matrix from pickle #
@@ -48,8 +48,8 @@ def storePickle(rlist, qlist, X, pklName):
 
 def readPickle(pklName):
     with open(pklName, 'rb') as pickle_file:
-        rlist, qlist, X = pickle.load(pickle_file)
-    return rlist, qlist, X
+        rlist, qlist, X, qindices, rindices = pickle.load(pickle_file)
+    return rlist, qlist, X, qindices, rindices
 
 #########################
 # Print output of query #  # needs work still
@@ -159,17 +159,6 @@ def assignQueriesToClusters(links, G, databaseName, outPrefix):
     # additionalClusters: dict of query assignments to new clusters, if they do not match existing references
     return additionalClusters, existingHits
 
-###########################
-# read assembly file list #
-###########################
-
-def readAssemblyList(fn):
-    assemblyList = []
-    with open(fn, 'r') as iFile:
-        for line in iFile:
-            assemblyList.append(line.rstrip())
-    return assemblyList
-
 ##########################################
 # Get sketch size from existing database #
 ##########################################
@@ -253,12 +242,11 @@ def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
 ####################
 
 def nested_dict():
-    return collections.defaultdict(nested_dict)
+    return collections.defaultdict(nested_dict) # cannot easily pass lambda back and forth with pool.map
 
 def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
     
     # define matrix for storage
-#    nested_dict = lambda: collections.defaultdict(nested_dict)
     raw_k = nested_dict()
     
     # multithreading
@@ -270,7 +258,7 @@ def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
     dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
     
     try:
-        mash_cmd = mash_exec + " dist -p " + str(threads)   # does this need to change?
+        mash_cmd = mash_exec + " dist -p " + str(threads)   # this should be harmonised with sketching function - will profile this
         if self:
             mash_cmd += " " + dbname + " " + dbname
         else:
@@ -296,46 +284,77 @@ def runQuery(k, qFile, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
     # return output
     return raw_k
 
-def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
+# split list into unequally sized batches
+def splitList(a, n, inc):
+    # modified from https://stackoverflow.com/questions/35755608/split-a-python-list-logarithmically; alternatives available
+    zr = len(a) # remaining number of elements to split into sublists
+    st = 0 # starting index in the full list of the next sublist
+    nr = n # remaining number of sublist to construct
+    nc = 1 # number of elements in the next sublist
+    #
+    b=[]
+    while (zr/nr >= nc and nr>1):
+        b.append( a[st:st+nc] )
+        st, zr, nr, nc = st+nc, zr-nc, nr-1, nc+inc
+    #
+    nc = int(zr/nr)
+    for i in range(nr-1):
+        b.append( a[st:st+nc] )
+        st = st+nc
+    #
+    b.append( a[st:max(st+nc,len(a))] )
+    return b
 
-    # initialise dictionary to keep distances in
-    queryList = readAssemblyList(qFile) # function can be moved locally as not needed elsewhere now
-
-    # iterate through kmer lengths
-    l = Lock()
-    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
-    raw = pool.map(partial(runQuery,qFile = qFile, dbPrefix = dbPrefix, self = self, mash_exec = mash_exec,threads = threads), klist)
-    pool.close()
-    pool.join()
+def readAssemblyList(fn, threads = 1):
     
-    # iterate through first dict to get seq lists
-    # and number of comparisons - fix this with
-    # proper sequence indexing
+    # parse raw file
+    assemblyList = []
+    assemblyIndices = {}
+    index = 0
+    with open(fn, 'r') as iFile:
+        for line in iFile:
+            assembly = line.rstrip()
+            assemblyList.append(assembly)
+            assemblyIndices[assembly] = index
+            index = index + 1
+
+    # batch data into arithmetically-sized chunks for multithreading
+    assemblyBatches = {}
+    if (threads == 1):
+        assemblyBatches[0] = assemblyList
+    elif (threads > 1):
+        batch = 0
+        batchIncrement = int(len(assemblyList)/threads)
+        for batch, assemblies in enumerate(splitList(assemblyList,threads,batchIncrement)):
+            assemblyBatches[batch] = assemblies
+
+    # return values
+    return assemblyList, assemblyIndices, assemblyBatches
+
+# run comparisons between different batch sizes
+def runComparison(inputList,queryIndices,refIndices,klist,rawMatches,jacobian,self=True):
+    
+    # store results
+    number_dists = 0
+    if self:
+        for query in inputList:
+            number_dists = number_dists+queryIndices[query]
+    else:
+        number_dists = len(inputList)*len(refIndices.keys())
+    outDists = np.zeros((int(number_dists), 2))
     querySeqs = []
     refSeqs = []
-    queryList = raw[0].keys()   # this can be optimised out
-    refList = []                # and this
-    number_dists = 0
-    for query in raw[0].keys():
-        if (len(refList) == 0):
-            refList = raw[0][query].keys()
-        for ref in raw[0][query].keys():
-            number_dists = number_dists + 1
-
-    # run pairwise analyses across kmer lengths
-    distMat = np.zeros((int(number_dists), 2))
     row = 0
+    
+    for query in inputList:
+        for ref in refIndices.values():
 
-    # Hessian = 0, so Jacobian for regression is a constant
-    jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-    for query in queryList:
-        for ref in refList:
-            if (raw[0][query][ref]):    # can be optimised out
+            if (not self or queryIndices[query] > queryIndices[ref]):
                 pairwise = []
                 for i in range(len(klist)):
                     k = klist[i]
                     # calculate sketch size. Note log taken here
-                    pairwise.append(np.log(raw[i][query][ref]))
+                    pairwise.append(np.log(rawMatches[i][query][ref]))
                 # curve fit pr = (1-a)(1-c)^k
                 # log pr = log(1-a) + k*log(1-c)
                 distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
@@ -346,21 +365,75 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
                 transformed_params = 1 - np.exp(distFit.x)
 
                 # store output
-                distMat[row][0] = transformed_params[0]
-                distMat[row][1] = transformed_params[1]
-                querySeqs.append(query)
-                refSeqs.append(ref)
+                outDists[row][0] = transformed_params[0]
+                outDists[row][1] = transformed_params[1]
+                querySeqs.append(queryIndices[query])
+                if self:
+                    refSeqs.append(queryIndices[query])
+                else:
+                    refSeqs.append(refIndices[query])
                 row += 1
+
+    return(outDists,querySeqs,refSeqs)
+
+
+def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
+
+    # initialise dictionary to keep distances in
+    queryList, queryIndices, queryBatches = readAssemblyList(qFile,threads)
+
+    # iterate through kmer lengths
+    l = Lock()
+    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
+    threadsPerPool = int(threads/len(klist)) # not sure this is a good idea?
+    if threadsPerPool < 1:
+        threadsPerPool = 1
+    raw = pool.map(partial(runQuery,qFile = qFile, dbPrefix = dbPrefix, self = self, mash_exec = mash_exec,threads = threadsPerPool), klist)
+    pool.close()
+    pool.join()
+    
+    # iterate through first dict to get seq lists
+    # and number of comparisons - fix this with
+    # proper sequence indexing
+    querySeqs = []
+    refSeqs = []
+    queryList = list(raw[0].keys())   # this can be optimised out
+    refList = []                # and this
+    refIndices = {}
+    number_dists = 0
+    for query in raw[0].keys():
+        if (len(refList) == 0):
+            refList = list(raw[0][query].keys())
+            for i,r in enumerate(refList):
+                refIndices[i] = r
+        for ref in raw[0][query].keys():
+            number_dists = number_dists + 1
+
+    # Hessian = 0, so Jacobian for regression is a constant
+    jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+
+    # run pairwise analyses across kmer lengths
+    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
+    dists = pool.map(partial(runComparison,queryIndices=queryIndices,refIndices=refIndices,klist=klist,rawMatches=raw,jacobian=jacobian,self=self), queryBatches.values())
+    pool.close()
+    pool.join()
+
+    # merge outputs
+    distMat = np.empty((0,2),dtype=float)
+    for i in range(len(dists)):
+        distMat = np.concatenate((distMat,dists[i][0]))
+        queryList.append(dists[i][1])
+        refList.append(dists[i][2])
 
     os.remove(dbPrefix + ".err.log")
 
-    return(refSeqs, querySeqs, distMat)
+    return(refSeqs, querySeqs, distMat, queryIndices, refIndices)
 
 ##############################
 # write query output to file #
 ##############################
 
-def printQueryOutput(rlist, qlist, X, outPrefix):
+def printQueryOutput(rlist, qlist, qIndices, rIndices, X, outPrefix):
 
     # open output file
     outFileName = outPrefix + "/" + outPrefix + ".search.out"
@@ -368,5 +441,5 @@ def printQueryOutput(rlist, qlist, X, outPrefix):
         oFile.write("\t".join(['Query', 'Reference', 'Core', 'Accessory']) + "\n")
         # add results
         for i, (query, ref) in enumerate(zip(qlist, rlist)):
-            oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
+            oFile.write("\t".join([qIndices[query], rIndices[ref], str(X[i,0]), str(X[i,1])]) + "\n")
 

@@ -52,7 +52,7 @@ def extractReferences(G, outPrefix):
 # Construct network from model fit #
 ####################################
 
-def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
+def constructNetwork(rlist, qlist, rIndices, qIndices, assignments, weights, means, covariances):
 
     # Identify within-strain links (closest to origin)
     # Make sure some samples are assigned, in the case of small weighted components
@@ -67,13 +67,13 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
     connections = []
     distances = []
     for i in range(0,len(rlist)):
-        if (rlist[i] != qlist[i]):    # remove self matches
-            if rlist[i] not in samples:
-                samples.add(rlist[i])
-            if qlist[i] not in samples:
-                samples.add(qlist[i])
+        if (rIndices[rlist[i]] != qIndices[qlist[i]]):    # remove self matches
+            if rIndices[rlist[i]] not in samples:
+                samples.add(rIndices[rlist[i]])
+            if qIndices[qlist[i]] not in samples:
+                samples.add(qIndices[qlist[i]])
             if assignments[i] == within_label:
-                connections.append((rlist[i], qlist[i]))
+                connections.append((rIndices[rlist[i]], qIndices[qlist[i]]))
 
     # build the graph
     G = nx.Graph()
@@ -246,7 +246,7 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
 # Identify links to network from queries #
 ##########################################
 
-def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
+def findQueryLinksToNetwork(rlist, qlist, rIndices, qIndices, kmers, assignments, weights, means,
         covariances, outPrefix, dbPrefix, batchSize, threads = 1, mash_exec = 'mash'):
 
     # identify within-strain links (closest component to origin)
@@ -283,7 +283,7 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
-        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, batchSize, mash_exec)
+        qlist1, qlist2, distMat, qindices1, qindices2 = queryDatabase(tmpFileName, kmers, tmpDirString, batchSize, mash_exec)
         queryAssignation = assign_samples(distMat, weights, means, covariances)
 
         # identify any links between queries and store in the same links dict
@@ -294,7 +294,7 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
 
         # build network based on connections between queries
         # store links as a network
-        G = constructNetwork(qlist1, qlist2, queryAssignation, weights, means, covariances)
+        G = constructNetwork(qlist1, qlist2, qindices1, qindices2, queryAssignation, weights, means, covariances)
         # not used?
         #clusters = sorted(nx.connected_components(G), key=len, reverse=True)
         #cl_id = 1

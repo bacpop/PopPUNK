@@ -152,8 +152,10 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
-            storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
+            refList, queryList, distMat, queryIndices, refIndices = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
+            storePickle(refList, queryList, distMat, queryIndices, refIndices, args.output + "/" + args.output + ".dists.pkl")
+            print("queries: "+str(queryIndices)+"\n\n")
+            print("refs: "+str(refIndices)+"\n\n")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
             sys.exit(1)
@@ -162,19 +164,21 @@ def main():
     elif args.fit_model:
         if args.distances is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
-            refList, queryList, distMat = readPickle(args.distances)
+            refList, queryList, distMat, queryIndices, refIndices = readPickle(args.distances)
+            print("queries: "+str(queryIndices)+"\n\n")
+            print("refs: "+str(refIndices)+"\n\n")
             distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
-            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
+            genomeNetwork = constructNetwork(refList, queryList, queryIndices, refIndices, distanceAssignments, fitWeights, fitMeans, fitcovariances)
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, queryList, distMat, isolateClustering, args.perplexity, args.output)
+                outputsForMicroreact(refList, queryList, refIndices, queryIndices, distMat, isolateClustering, args.perplexity, args.output)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
                 constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash)
                 map(os.remove, referenceGenomes) # tidy up
-            printQueryOutput(refList, queryList, distMat, args.output)
+            printQueryOutput(refList, queryList, distMat, queryIndices, refIndices, args.output)
         else:
             sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
             sys.exit(1)
@@ -182,8 +186,8 @@ def main():
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
             sys.stderr.write("Mode: Building new database from input sequences\n")
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.mash, args.threads)
-            printQueryOutput(refList, queryList, distMat, args.output)
+            refList, queryList, distMat, queryIndices, refIndices = queryDatabase(args.q_files, kmers, args.ref_db, False, args.mash, args.threads)
+            printQueryOutput(refList, queryList, distMat, queryIndices, refIndices, args.output)
             # store distances in pickle if requested
             if args.save_distances:
                 storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
@@ -194,9 +198,9 @@ def main():
     elif args.assign_query:
         if args.ref_db is not None and args.distances is not None:
             sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
-            refList, queryList, distMat = readPickle(args.distances)
+            refList, queryList, distMat, queryIndices, refIndices = readPickle(args.distances)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
-            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
+            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, queryIndices, refIndices, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db,
                     args.batch_size, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
