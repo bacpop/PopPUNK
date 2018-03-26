@@ -153,7 +153,7 @@ def main():
             createDatabaseDir(args.output)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
-            storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
+            storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
             sys.exit(1)
@@ -162,7 +162,11 @@ def main():
     elif args.fit_model:
         if args.distances is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
-            refList, queryList, distMat = readPickle(args.distances)
+            refList, queryList, self, distMat = readPickle(args.distances)
+            if not self:
+                sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
+                sys.exit(1)
+
             distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
             isolateClustering = printClusters(genomeNetwork, args.output)
@@ -186,7 +190,7 @@ def main():
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
             if args.save_distances:
-                storePickle(refList, queryList, distMat, args.output + ".dists.pkl")
+                storePickle(refList, queryList, False, distMat, args.output + ".dists.pkl")
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and query list with --q-files; use --save-distances to subsequently assign queries to clusters\n")
             sys.exit(1)
@@ -194,9 +198,9 @@ def main():
     elif args.assign_query:
         if args.ref_db is not None and args.distances is not None:
             sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
-            refList, queryList, distMat = readPickle(args.distances)
+            refList, queryList, self, distMat = readPickle(args.distances)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
-            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
+            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db,
                     args.batch_size, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)

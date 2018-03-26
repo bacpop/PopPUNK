@@ -11,6 +11,8 @@ from scipy import spatial
 from sklearn import manifold
 import dendropy
 
+from .mash import iterDistRows
+
 #################################
 # Generate files for microreact #
 #################################
@@ -26,7 +28,7 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
     coreMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
     accMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
 
-    for row, (ref, query) in enumerate(zip(refList, queryList)):
+    for row, (ref, query) in enumerate(iterDistRows(refList, queryList)):
         i = uniqueSeq.index(ref)
         j = uniqueSeq.index(query)
         if i != j:

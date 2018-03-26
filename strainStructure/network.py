@@ -16,6 +16,7 @@ from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import getDatabaseName
 from .mash import getSketchSize
+from .mash import iterDistRows
 
 from .bgmm import assign_samples
 
@@ -52,10 +53,9 @@ def extractReferences(G, outPrefix):
 # Construct network from model fit #
 ####################################
 
-def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
-
-    # Identify within-strain links (closest to origin)
-    # Make sure some samples are assigned, in the case of small weighted components
+# Identify within-strain links (closest to origin)
+# Make sure some samples are assigned, in the case of small weighted components
+def findWithinLabel(means, assignments):
     min_dist = None
     for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
         if np.any(assignments == mixture_component):
@@ -63,21 +63,20 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
                min_dist = distance
                within_label = mixture_component
 
-    samples = set()
+    return(within_label)
+
+def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
+
     connections = []
-    distances = []
-    for i in range(0,len(rlist)):
-        if (rlist[i] != qlist[i]):    # remove self matches
-            if rlist[i] not in samples:
-                samples.add(rlist[i])
-            if qlist[i] not in samples:
-                samples.add(qlist[i])
-            if assignments[i] == within_label:
-                connections.append((rlist[i], qlist[i]))
+    withinLabel = findWithinLabel(means, assignments)
+    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+        samples.add(ref)
+        if assignment == within_label:
+            connections.append(ref, query)
 
     # build the graph
     G = nx.Graph()
-    G.add_nodes_from(samples)
+    G.add_nodes_from(rlist)
     for connection in connections:
         G.add_edge(*connection)
 
@@ -246,11 +245,11 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
 # Identify links to network from queries #
 ##########################################
 
-def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
+def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, means,
         covariances, outPrefix, dbPrefix, batchSize, threads = 1, mash_exec = 'mash'):
 
     # identify within-strain links (closest component to origin)
-    within_label = np.argmin(np.apply_along_axis(np.linalg.norm, 1, means))
+    within_label = findWithinLabel(means, assignments)
 
     # initialise links data structure
     links = {}
@@ -259,9 +258,9 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
             links[query] = []
 
     # store links for each query in a dict of lists: links[query] => list of hits
-    for i in range(0, len(qlist) - 1):
-        if assignments[i] == within_label:
-            links[qlist[i]].append(rlist[i])
+    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
+        if assignment == within_label:
+            links[query].append(ref)
 
     # identify potentially new lineages in list: unassigned is a list of queries with no hits
     unassigned = []
@@ -283,14 +282,14 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, weights, means,
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
-        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, batchSize, mash_exec)
+        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec, threads)
         queryAssignation = assign_samples(distMat, weights, means, covariances)
 
         # identify any links between queries and store in the same links dict
         # links dict now contains lists of links both to original database and new queries
-        for i, cluster in enumerate(queryAssignation):
-            if cluster == within_label:
-                links[qlist1[i]].append(qlist2[i])
+        for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+            if assignment == within_label:
+                links[query].append(ref)
 
         # build network based on connections between queries
         # store links as a network

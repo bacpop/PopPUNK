@@ -38,9 +38,9 @@ def createDatabaseDir(outPrefix):
 # Store distance matrix in a pickle #
 #####################################
 
-def storePickle(rlist, qlist, X, pklName):
+def storePickle(rlist, qlist, self, X, pklName):
     with open(pklName, 'wb') as pickle_file:
-        pickle.dump([rlist, qlist, X], pickle_file)
+        pickle.dump([rlist, qlist, self, X], pickle_file)
 
 ####################################
 # Load distance matrix from pickle #
@@ -48,8 +48,8 @@ def storePickle(rlist, qlist, X, pklName):
 
 def readPickle(pklName):
     with open(pklName, 'rb') as pickle_file:
-        rlist, qlist, X = pickle.load(pickle_file)
-    return rlist, qlist, X
+        rlist, qlist, self, X = pickle.load(pickle_file)
+    return rlist, qlist, self, X
 
 #########################
 # Print output of query #  # needs work still
@@ -224,16 +224,19 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
         mash_info = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
         for line in iter(mash_info.stdout.readline, ''):
             line = line.rstrip().decode()
-            if (line.startswith("#") is False):
-                seqs.append(line.split("\t")[2])
+            if line != '':
+                if line.startswith("#") is False:
+                    seqs.append(line.split("\t")[2])
+            else:
+                mash_info.wait()
+                break
 
-            # Make sure process executed correctly
-            mash_info.wait()
-            if mash_info.returncode != 0:
-                raise RuntimeError('mash info failed')
-        except subprocess.CalledProcessError as e:
-            sys.stderr.write("Could not get info about " + dbname + "; command " + mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
-            sys.exit(1)
+        # Make sure process executed correctly
+        if mash_info.returncode != 0:
+            raise RuntimeError('mash info failed')
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write("Could not get info about " + dbname + "; command " + mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
+        sys.exit(1)
 
     return seqs
 
@@ -247,7 +250,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
     # create kmer databases
     l = Lock()
     pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
-    pool.map(partial(runSketch,assemblyList=assemblyList, sketch=sketch, oPrefix=oPrefix, mash_exec=mash_exec), klist)
+    pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch, oPrefix=oPrefix, mash_exec=mash_exec), klist)
     pool.close()
     pool.join()
 
@@ -260,14 +263,13 @@ def init_lock(l):
 def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
     lock.acquire()
     sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
-    lock.release()
 
     dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
     if not os.path.isfile(dbname + ".msh"):
+        lock.release()
         mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
         subprocess.run(mash_cmd, shell=True, check=True)
     else:
-        lock.acquire()
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
@@ -277,30 +279,19 @@ def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
 
 def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 
-    queryList = readAssemblyList(qFile)
+    queryList = []
+    with open(qFile, 'r') as queryFile:
+        for line in queryFile:
+            queryList.append(line.rstrip())
     refList = getSeqsInDb("./" + dbPrefix + "/" + dbPrefix + "." + str(klist[0]) + ".msh", mash_exec)
 
-    # write the order which comparisons will appear in the output array
-    number_pairs = 0
-    querySeqs = []
-    refSeqs = []
-    # TODO write to disk instead of storing?
     if self:
-        number_pairs = 0.5 * len(refList) * (len(refList) - 1)
-        for i, ref in enumerate(0, refList):
-            for j in range(i + 1, len(refList)):
-                refSeqs.append(ref)
-                querySeqs.append(refList[j])
+        number_pairs = int(0.5 * len(refList) * (len(refList) - 1))
     else:
-        for query in queryList:
-            for ref in refList:
-                if ref != query:
-                    refSeqs.append(ref)
-                    querySeqs.append(query)
-                    number_pairs += 1
+        number_pairs = int(len(refList) * len(queryList))
 
     # Pre-assign array for storage
-    raw = np.zeros((number_pairs, len(klist))
+    raw = np.zeros((number_pairs, len(klist)))
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -315,7 +306,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
             else:
                 mash_cmd += " -l " + dbname + " " + qFile
             mash_cmd += " 2> " + dbPrefix + ".err.log"
-            sys.stderr.write(mash_cmd)
+            sys.stderr.write(mash_cmd + "\n")
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
@@ -333,11 +324,19 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
                     if self and mashVals[1] != prev_ref:
                         prev_ref = mashVals[1]
                         skip += 1
-                        skipped = 0
+                        skipped = 1
                     else:
                         mashMatch = mashVals[-1].split('/')
-                        raw[row][k_idx] = float(mashMatch[0])/int(mashMatch[1])
+                        raw[row, k_idx] = float(mashMatch[0])/int(mashMatch[1])
                         row += 1
+
+                # EOF
+                if line == '':
+                    break
+
+            rawOutput.wait()
+            if rawOutput.returncode != 0:
+                raise RuntimeError('mash dist failed')
         except:
             sys.stderr.write("mash dist command failed\n")
             sys.exit(1)
@@ -347,17 +346,16 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
     # run pairwise analyses across kmer lengths
     # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-    distMat = np.apply_along_axis(fitKmerCurve, axis = 0, arr = raw, klist, jacobian)
 
-    return(refSeqs, querySeqs, distMat)
+    #TODO this is neat, but should probably be threaded. See l415 of 5d1d1de2e63075b93712e26943b76be4e95425e8
+    # be careful about return - concatenate in file to avoid doubling mem usage. Can delete raw at this point
+    distMat = np.apply_along_axis(fitKmerCurve, 1, raw, klist, jacobian)
+
+    return(refList, queryList, distMat)
 
 # fit the function pr = (1-a)(1-c)^k
+# supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
 def fitKmerCurve(pairwise, klist, jacobian):
-
-    if jacobian = None:
-        jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-
-    pairwise.append(np.log(raw[query][ref][str(k)]))
     # curve fit pr = (1-a)(1-c)^k
     # log pr = log(1-a) + k*log(1-c)
     distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
@@ -369,6 +367,16 @@ def fitKmerCurve(pairwise, klist, jacobian):
 
     return(transformed_params)
 
+# Gets the ref and query ID for each row of the distance matrix
+def iterDistRows(refSeqs, querySeqs, self=True):
+    if self:
+        for i, ref in enumerate(0, refSeqs):
+            for j in range(i + 1, len(refSeqs)):
+                yield(ref, refList[j])
+    else:
+        for query in queryList:
+            for ref in refList:
+                yield(ref, query)
 
 ##############################
 # write query output to file #
