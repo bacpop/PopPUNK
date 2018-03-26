@@ -15,7 +15,7 @@ import dendropy
 # Generate files for microreact #
 #################################
 
-def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
+def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, outPrefix):
 
     sys.stderr.write("Writing Microreact output:\n")
     #sys.stderr.write("Getting unique sequences\n")
@@ -45,6 +45,7 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
                                                        is_first_row_column_names=True,
                                                        is_first_column_row_names=False)
     tree = pdm.nj_tree()
+    tree.reroot_at_midpoint(update_bipartitions=False)
     tree.write(path=outPrefix + "/" + outPrefix + "_core_NJ.nwk",
                schema="newick",
                suppress_rooting=True,
@@ -52,7 +53,7 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, outPrefix):
 
     # generate accessory genome distance representation
     sys.stderr.write("Running t-SNE\n")
-    accArray_embedded = manifold.TSNE(n_components=2, perplexity=25.0).fit_transform(np.array(accMat))
+    accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
 
     # print dot file
     #sys.stderr.write("Printing t-SNE\n")

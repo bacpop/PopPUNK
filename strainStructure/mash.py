@@ -7,6 +7,8 @@ import subprocess
 # additional
 import collections
 import pickle
+from multiprocessing import Pool, Lock
+from functools import partial
 import numpy as np
 import networkx as nx
 from scipy import optimize
@@ -239,25 +241,41 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 # construct a database #
 ########################
 
-def constructDatabase(assemblyList, klist, sketch, oPrefix, mash_exec = 'mash'):
+# Multithread wrapper around sketch
+def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash'):
 
     # create kmer databases
-    for k in klist:
-        sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
-        dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-        if not os.path.isfile(dbname + ".msh"):
-            mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
-            subprocess.run(mash_cmd, shell=True, check=True)
-        else:
-            sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
+    l = Lock()
+    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
+    pool.map(partial(runSketch,assemblyList=assemblyList, sketch=sketch, oPrefix=oPrefix, mash_exec=mash_exec), klist)
+    pool.close()
+    pool.join()
 
-    return None
+# lock on stderr
+def init_lock(l):
+    global lock
+    lock = l
+
+# create kmer databases
+def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
+    lock.acquire()
+    sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
+    lock.release()
+
+    dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
+    if not os.path.isfile(dbname + ".msh"):
+        mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        subprocess.run(mash_cmd, shell=True, check=True)
+    else:
+        lock.acquire()
+        sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
+        lock.release()
 
 ####################
 # query a database #
 ####################
 
-def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'mash', threads = 1):
+def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
 
     queryList = readAssemblyList(qFile)
     refList = getSeqsInDb("./" + dbPrefix + "/" + dbPrefix + "." + str(klist[0]) + ".msh", mash_exec)
@@ -291,12 +309,13 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'm
 
         row = 0
         try:
-            mash_cmd = mash_exec + " dist -p " + str(threads) + " -l " + dbname + " "
+            mash_cmd = mash_exec + " dist -p " + str(threads)
             if self:
-                mash_cmd += dbname
+                mash_cmd += " " + dbname + " " + dbname
             else:
-                mash_cmd += qFile
+                mash_cmd += " -l " + dbname + " " + qFile
             mash_cmd += " 2> " + dbPrefix + ".err.log"
+            sys.stderr.write(mash_cmd)
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
@@ -326,6 +345,7 @@ def queryDatabase(qFile, klist, dbPrefix, batchSize, self = True, mash_exec = 'm
         os.remove(dbPrefix + ".err.log")
 
     # run pairwise analyses across kmer lengths
+    # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
     distMat = np.apply_along_axis(fitKmerCurve, axis = 0, arr = raw, klist, jacobian)
 

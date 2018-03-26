@@ -14,7 +14,6 @@ from .__init__ import __version__
 from .mash import createDatabaseDir
 from .mash import storePickle
 from .mash import readPickle
-from .mash import readAssemblyList
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
@@ -90,6 +89,9 @@ def get_options():
     modelGroup.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
     modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
 
+    algGroup = parser.add_argument_group('Algorithm options')
+    algGroup.add_argument('--perplexity', type=float, default = 25.0, help='Perplexity used to calculate t-SNE projection (with --microreact) [default=25]')
+
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use during database querying [default = 1]')
@@ -149,8 +151,7 @@ def main():
         sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
             createDatabaseDir(args.output)
-            assemblyList = readAssemblyList(args.r_files)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.mash)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
             storePickle(refList, queryList, distMat, args.output + "/" + args.output + ".dists.pkl")
         else:
@@ -167,11 +168,11 @@ def main():
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, queryList, distMat, isolateClustering,args.output)
+                outputsForMicroreact(refList, queryList, distMat, isolateClustering, args.perplexity, args.output)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
-                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.mash)
+                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash)
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output)
         else:
@@ -196,11 +197,12 @@ def main():
             refList, queryList, distMat = readPickle(args.distances)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
-                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db, args.batch_size, args.mash)
+                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db,
+                    args.batch_size, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
             if args.update_db:
-                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.mash)
+                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.threads, args.mash)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")
