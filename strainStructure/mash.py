@@ -39,16 +39,18 @@ def createDatabaseDir(outPrefix):
 #####################################
 
 def storePickle(rlist, qlist, self, X, pklName):
-    with open(pklName, 'wb') as pickle_file:
-        pickle.dump([rlist, qlist, self, X], pickle_file)
+    with open(pklName + ".pkl", 'wb') as pickle_file:
+        pickle.dump([rlist, qlist, self], pickle_file)
+    np.save(pklName + ".npy", X)
 
 ####################################
 # Load distance matrix from pickle #
 ####################################
 
 def readPickle(pklName):
-    with open(pklName, 'rb') as pickle_file:
-        rlist, qlist, self, X = pickle.load(pickle_file)
+    with open(pklName + ".pkl", 'rb') as pickle_file:
+        rlist, qlist, self = pickle.load(pickle_file)
+    X = np.load(pklName + ".npy")
     return rlist, qlist, self, X
 
 #########################
@@ -159,17 +161,6 @@ def assignQueriesToClusters(links, G, databaseName, outPrefix):
     # additionalClusters: dict of query assignments to new clusters, if they do not match existing references
     return additionalClusters, existingHits
 
-###########################
-# read assembly file list #
-###########################
-
-def readAssemblyList(fn):
-    assemblyList = []
-    with open(fn, 'r') as iFile:
-        for line in iFile:
-            assemblyList.append(line.rstrip())
-    return assemblyList
-
 ##########################################
 # Get sketch size from existing database #
 ##########################################
@@ -218,7 +209,6 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 
     seqs = []
-
     mash_cmd = mash_exec + " info -t " + mashSketch
     try:
         mash_info = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
@@ -290,8 +280,8 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
     else:
         number_pairs = int(len(refList) * len(queryList))
 
-    # Pre-assign array for storage
-    raw = np.zeros((number_pairs, len(klist)))
+    # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
+    raw = np.zeros((number_pairs, len(klist)), dtype=np.float32)
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -343,15 +333,38 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
 
         os.remove(dbPrefix + ".err.log")
 
-    # run pairwise analyses across kmer lengths
+    # this is neat, but should probably be threaded
+    #distMat = np.apply_along_axis(fitKmerCurve, 1, raw, klist, jacobian)
+
+    # Pre-assign return (to higher precision)
+    distMat = np.zeros((number_pairs, 2), dtype=np.float64)
+
+    # Create range of rows that each thread will work with
+    rows_per_thread = int(number_pairs / threads)
+    big_threads = number_pairs % threads
+    start = 0
+    row_idx = []
+    for thread in range(threads):
+        end = start + rows_per_thread
+        if thread < big_threads:
+            end += 1
+        row_idx.append((start, end))
+        start = end
+
+    # run pairwise analyses across kmer lengths, mutating distMat
     # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-
-    #TODO this is neat, but should probably be threaded. See l415 of 5d1d1de2e63075b93712e26943b76be4e95425e8
-    # be careful about return - concatenate in file to avoid doubling mem usage. Can delete raw at this point
-    distMat = np.apply_along_axis(fitKmerCurve, 1, raw, klist, jacobian)
+    with Pool(processes=threads) as pool:
+        pool.map(partial(runFit, distMat=distMat, raw=raw, klist=klist, jacobian=jacobian), row_idx)
 
     return(refList, queryList, distMat)
+
+# Thread wrapper to fitKmerCurve
+# Like np.apply_along_axis
+def runFit(rows, distMat, raw, klist, jacobian):
+    (start, end) = rows
+    for row in range(start, end):
+        distMat[row, :] = fitKmerCurve(raw[row, :], klist, jacobian)
 
 # fit the function pr = (1-a)(1-c)^k
 # supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))

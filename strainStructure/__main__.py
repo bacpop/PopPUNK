@@ -67,7 +67,7 @@ def get_options():
     iGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
     iGroup.add_argument('--r-files', help='File listing reference input assemblies')
     iGroup.add_argument('--q-files', help='File listing query input assemblies')
-    iGroup.add_argument('--distances', help='Input pickle of pre-calculated distances')
+    iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -153,7 +153,7 @@ def main():
             createDatabaseDir(args.output)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
-            storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists.pkl")
+            storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
             sys.exit(1)
@@ -190,7 +190,7 @@ def main():
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
             if args.save_distances:
-                storePickle(refList, queryList, False, distMat, args.output + ".dists.pkl")
+                storePickle(refList, queryList, False, distMat, args.output + ".dists")
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and query list with --q-files; use --save-distances to subsequently assign queries to clusters\n")
             sys.exit(1)
