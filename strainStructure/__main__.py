@@ -73,6 +73,8 @@ def get_options():
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences', default=False, action='store_true')
+    oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances'
+                                            '[default = 0]', default=0, type=int)
     oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
@@ -90,7 +92,8 @@ def get_options():
     modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
 
     algGroup = parser.add_argument_group('Algorithm options')
-    algGroup.add_argument('--perplexity', type=float, default = 25.0, help='Perplexity used to calculate t-SNE projection (with --microreact) [default=25]')
+    algGroup.add_argument('--perplexity', type=float, default = 25.0,
+            help='Perplexity used to calculate t-SNE projection (with --microreact) [default=25]')
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
@@ -152,7 +155,7 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
             storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")

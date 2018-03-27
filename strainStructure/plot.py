@@ -11,13 +11,14 @@ from scipy import spatial
 from sklearn import manifold
 import dendropy
 
-from .mash import iterDistRows
-
 #################################
 # Generate files for microreact #
 #################################
 
 def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, outPrefix):
+
+    # Avoid recursive import
+    from .mash import iterDistRows
 
     sys.stderr.write("Writing Microreact output:\n")
     #sys.stderr.write("Getting unique sequences\n")
@@ -77,12 +78,29 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
                 sys.exit(1)
 
 # Simple scatter plot of distances
-
 def plot_scatter(X, out_prefix, title):
     plt.ioff()
     plt.title(title)
-    plt.scatter(X[:,0].flat,X[:,1].flat, s=0.8)
+    plt.scatter(X[:,0].flat, X[:,1].flat, s=0.8)
     plt.savefig(out_prefix + ".png")
+    plt.close()
+
+# Plot of a fit to k-mer sizes
+def plot_fit(klist, matching, fit, out_prefix, title):
+    k_fit = np.linspace(0, klist[-1], num = 100)
+    matching_fit = (1 - fit[0]) * np.power((1 - fit[1]), k_fit)
+
+    fig, ax = plt.subplots()
+    ax.set_yscale("log")
+    ax.set_xlabel('k-mer length')
+    ax.set_ylabel('Proportion of matches')
+
+    plt.tight_layout()
+    plt.plot(klist, matching, 'o')
+    plt.plot(k_fit, matching_fit, 'r-')
+
+    plt.title(title)
+    plt.savefig(out_prefix + ".pdf", bbox_inches='tight')
     plt.close()
 
 ###################

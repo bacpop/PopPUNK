@@ -9,9 +9,12 @@ import collections
 import pickle
 from multiprocessing import Pool, Lock
 from functools import partial
+from random import choices
 import numpy as np
 import networkx as nx
 from scipy import optimize
+
+from .plot import plot_fit
 
 #####################
 # Get database name #
@@ -271,7 +274,7 @@ def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
 # query a database #
 ####################
 
-def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threads = 1):
+def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mash_exec = 'mash', threads = 1):
 
     queryList = []
     with open(qFile, 'r') as queryFile:
@@ -337,17 +340,25 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
             sys.stderr.write("mash dist command failed\n")
             sys.exit(1)
 
-    # this is neat, but should probably be threaded
-    #distMat = np.apply_along_axis(fitKmerCurve, 1, raw, klist, jacobian)
-
     # Pre-assign return (to higher precision)
     sys.stderr.write("Calculating core and accessory distances\n")
 
-    # run pairwise analyses across kmer lengths, mutating distMat
     # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+
+    # option to plot core/accessory fits. Choose a random number from cmd line option
+    if number_plot_fits > 0:
+        examples = choices(range(0, number_pairs), k=number_plot_fits)
+        for plot_idx, plot_example in enumerate(sorted(examples)):
+            fit = fitKmerCurve(raw[plot_example, :], klist, jacobian)
+            plot_fit(klist, raw[plot_example, :], fit,
+                    dbPrefix + "/fit_example_" + str(plot_idx + 1),
+                    "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
+
+    # run pairwise analyses across kmer lengths, mutating distMat
     with Pool(processes=threads) as pool:
         distMat = pool.map(partial(fitKmerCurve, klist=klist, jacobian=jacobian), raw, chunksize = int(number_pairs / threads))
+    del raw
     distMat = np.vstack(distMat)
 
     return(refList, queryList, distMat)
