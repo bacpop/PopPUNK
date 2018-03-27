@@ -190,7 +190,9 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
                         if (sketch == oldSketch):
                             sketchdb[k] = sketch
                         else:
-                            sys.stderr.write("Problem with database; sketch size for kmer length "+str(k)+" is "+str(oldSketch)+", but smaller kmers have sketch sizes of "+str(sketch)+"\n")
+                            sys.stderr.write("Problem with database; sketch size for kmer length " +
+                                    str(k) + " is " + str(oldSketch) +
+                                    ", but smaller kmers have sketch sizes of " + str(sketch) + "\n")
                             sys.exit(1)
 
                         break
@@ -200,7 +202,9 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
             if mash_info.returncode != 0:
                 raise RuntimeError('mash info failed')
         except subprocess.CalledProcessError as e:
-            sys.stderr.write("Could not get info about " + dbname + "; command "+mash_exec + " info -t " + dbname+" returned "+str(mash_info.returncode)+": "+e.message+"\n")
+            sys.stderr.write("Could not get info about " + dbname + "; command " + mash_exec +
+                    " info -t " + dbname + " returned " + str(mash_info.returncode) +
+                    ": " + e.message + "\n")
             sys.exit(1)
 
     return sketchdb
@@ -327,44 +331,26 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, mash_exec = 'mash', threa
             rawOutput.wait()
             if rawOutput.returncode != 0:
                 raise RuntimeError('mash dist failed')
+            else:
+                os.remove(dbPrefix + ".err.log")
         except:
             sys.stderr.write("mash dist command failed\n")
             sys.exit(1)
-
-        os.remove(dbPrefix + ".err.log")
 
     # this is neat, but should probably be threaded
     #distMat = np.apply_along_axis(fitKmerCurve, 1, raw, klist, jacobian)
 
     # Pre-assign return (to higher precision)
-    distMat = np.zeros((number_pairs, 2), dtype=np.float64)
-
-    # Create range of rows that each thread will work with
-    rows_per_thread = int(number_pairs / threads)
-    big_threads = number_pairs % threads
-    start = 0
-    row_idx = []
-    for thread in range(threads):
-        end = start + rows_per_thread
-        if thread < big_threads:
-            end += 1
-        row_idx.append((start, end))
-        start = end
+    sys.stderr.write("Calculating core and accessory distances\n")
 
     # run pairwise analyses across kmer lengths, mutating distMat
     # Hessian = 0, so Jacobian for regression is a constant
     jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
     with Pool(processes=threads) as pool:
-        pool.map(partial(runFit, distMat=distMat, raw=raw, klist=klist, jacobian=jacobian), row_idx)
+        distMat = pool.map(partial(fitKmerCurve, klist=klist, jacobian=jacobian), raw, chunksize = int(number_pairs / threads))
+    distMat = np.vstack(distMat)
 
     return(refList, queryList, distMat)
-
-# Thread wrapper to fitKmerCurve
-# Like np.apply_along_axis
-def runFit(rows, distMat, raw, klist, jacobian):
-    (start, end) = rows
-    for row in range(start, end):
-        distMat[row, :] = fitKmerCurve(raw[row, :], klist, jacobian)
 
 # fit the function pr = (1-a)(1-c)^k
 # supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
@@ -383,12 +369,12 @@ def fitKmerCurve(pairwise, klist, jacobian):
 # Gets the ref and query ID for each row of the distance matrix
 def iterDistRows(refSeqs, querySeqs, self=True):
     if self:
-        for i, ref in enumerate(0, refSeqs):
+        for i, ref in enumerate(refSeqs):
             for j in range(i + 1, len(refSeqs)):
-                yield(ref, refList[j])
+                yield(ref, querySeqs[j])
     else:
-        for query in queryList:
-            for ref in refList:
+        for query in querySeqs:
+            for ref in refSeqs:
                 yield(ref, query)
 
 ##############################

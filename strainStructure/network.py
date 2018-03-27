@@ -67,12 +67,12 @@ def findWithinLabel(means, assignments):
 
 def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
 
+    within_label = findWithinLabel(means, assignments)
+
     connections = []
-    withinLabel = findWithinLabel(means, assignments)
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
-        samples.add(ref)
         if assignment == within_label:
-            connections.append(ref, query)
+            connections.append((ref, query))
 
     # build the graph
     G = nx.Graph()
