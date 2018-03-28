@@ -245,7 +245,6 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash'):
 
     # create kmer databases
-    l = Lock()
     if threads > len(klist):
         num_processes = 1
         num_threads = threads
@@ -253,6 +252,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
         num_processes = threads
         num_threads = 1
 
+    l = Lock()
     with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
         pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch,
                                     oPrefix=oPrefix, mash_exec=mash_exec, threads=num_threads),
@@ -314,6 +314,9 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
+            # Check mash output is consistent with expected order
+            expected_names = iterDistRows(refList, queryList, self=True)
+
             prev_ref = ""
             skip = 0
             skipped = 0
@@ -331,8 +334,14 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                         skipped = 1
                     else:
                         mashMatch = mashVals[-1].split('/')
-                        raw[row, k_idx] = float(mashMatch[0])/int(mashMatch[1])
-                        row += 1
+                        (e_ref, e_query) = next(expected_names)
+                        if mashVals[0] == e_query and mashVals[1] == e_ref:
+                            raw[row, k_idx] = float(mashMatch[0])/int(mashMatch[1])
+                            row += 1
+                        else:
+                            sys.stderr.write("mash dist output order:" + e_query + "," + e_ref + "\n" +
+                                             "not as expected: " + mashVals[0] + "," + mashVals[1] + "\n")
+                            sys.exit(1)
 
                 # EOF
                 if line == '':

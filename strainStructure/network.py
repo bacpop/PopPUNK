@@ -81,10 +81,12 @@ def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
         G.add_edge(*connection)
 
     # give some summaries
+    components = nx.number_connected_components(G)
     density = nx.density(G)
     transitivity = nx.transitivity(G)
     score = transitivity * (1-density)
-    sys.stderr.write("Network summary:\n" + "\n".join(["\tDensity\t" + "{:.4f}".format(density),
+    sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
+                                                       "\tDensity\t" + "{:.4f}".format(density),
                                                        "\tTransitivity\t" + "{:.4f}".format(transitivity),
                                                        "\tScore\t" + "{:.4f}".format(score)])
                                                        + "\n")
