@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import subprocess
 
-# import strainStructure package
+# import poppunk package
 from .__init__ import __version__
 
 from .mash import createDatabaseDir
@@ -41,8 +41,8 @@ def get_options():
 
     import argparse
 
-    parser = argparse.ArgumentParser(description='Strain structure analysis through mixture models',
-                                     prog='strainStructure')
+    parser = argparse.ArgumentParser(description='PopPUNK (POPulation Partitioning Using Nucleotide Kmers)',
+                                     prog='PopPUNK')
 
     modeGroup = parser.add_argument_group('Mode of operation')
     mode = modeGroup.add_mutually_exclusive_group(required=True)
