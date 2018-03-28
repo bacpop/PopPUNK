@@ -246,10 +246,17 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
 
     # create kmer databases
     l = Lock()
-    pool = Pool(processes=threads, initializer=init_lock, initargs=(l,))
-    pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch, oPrefix=oPrefix, mash_exec=mash_exec), klist)
-    pool.close()
-    pool.join()
+    if threads > len(klist):
+        num_processes = 1
+        num_threads = threads
+    else:
+        num_processes = threads
+        num_threads = 1
+
+    with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
+        pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch,
+                                    oPrefix=oPrefix, mash_exec=mash_exec, threads=num_threads),
+                 klist)
 
 # lock on stderr
 def init_lock(l):
@@ -257,14 +264,14 @@ def init_lock(l):
     lock = l
 
 # create kmer databases
-def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash'):
+def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash', threads = 1):
     lock.acquire()
     sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
 
     dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
     if not os.path.isfile(dbname + ".msh"):
         lock.release()
-        mash_cmd = mash_exec + " sketch -w 1 -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        mash_cmd = mash_exec + " sketch -w 1 -p " + str(threads) + " -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
         subprocess.run(mash_cmd, shell=True, check=True)
     else:
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
