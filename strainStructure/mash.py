@@ -9,7 +9,7 @@ import collections
 import pickle
 from multiprocessing import Pool, Lock
 from functools import partial
-from random import choices
+from random import sample
 import numpy as np
 import networkx as nx
 from scipy import optimize
@@ -379,7 +379,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
 
     # option to plot core/accessory fits. Choose a random number from cmd line option
     if number_plot_fits > 0:
-        examples = choices(range(0, number_pairs), k=number_plot_fits)
+        examples = samples(range(number_pairs), k=number_plot_fits)
         for plot_idx, plot_example in enumerate(sorted(examples)):
             fit = fitKmerCurve(raw[plot_example, :], klist, jacobian)
             plot_fit(klist, raw[plot_example, :], fit,
