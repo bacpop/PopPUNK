@@ -94,12 +94,32 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
 # modified sklearn GMM functions predicting distribution membership #
 #####################################################################
 
-def assign_samples(X, weights, means, covars):
+def assign_samples(X, weights, means, covars, values=False):
     lpr = (log_multivariate_normal_density(X, means, covars) +
            np.log(weights))
     logprob = sp_logsumexp(lpr, axis=1)
     responsibilities = np.exp(lpr - logprob[:, np.newaxis])
-    return responsibilities.argmax(axis=1)
+
+    # Default to return the most likely cluster
+    if values == False:
+        ret_vec = responsibilities.argmax(axis=1)
+    # Can return the actual responsibilities
+    else:
+        ret_vec = responsibilities
+
+    return ret_vec
+
+# Identify within-strain links (closest to origin)
+# Make sure some samples are assigned, in the case of small weighted components
+def findWithinLabel(means, assignments):
+    min_dist = None
+    for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
+        if np.any(assignments == mixture_component):
+            if min_dist is None or distance < min_dist:
+               min_dist = distance
+               within_label = mixture_component
+
+    return(within_label)
 
 #############################
 # 2D model with minibatches #
@@ -295,6 +315,7 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
             covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
         means = np.vstack(means) * scale
         covariances = scale * np.stack(covariances) * scale
+        subsampled_X *= scale
     else:
         dpgmm = dirichlet_bgmm(subsampled_X, max_components = dpgmm_max_K)
         weights = dpgmm.weights_
@@ -306,6 +327,8 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
 
     # Plot results
     y = assign_samples(X, weights, means, covariances)
+    avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, assign_samples(subsampled_X, weights, means, covariances, values=True)))
+    used_components = np.unique(y).size
 
     title = outPrefix + " " + str(len(np.unique(y)))
     if dpgmm:
@@ -313,6 +336,10 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
     else:
         title +=  "-component BGMM"
     plot_results(X, y, means, covariances, title, outPrefix + "/" + outPrefix + "_GMM_fit")
+
+    sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
+                                                   "\tNumber of components used\t" + str(used_components)])
+                                                   + "\n")
 
     # return output
     return y, weights, means, covariances

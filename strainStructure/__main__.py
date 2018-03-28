@@ -21,6 +21,7 @@ from .mash import assignQueriesToClusters
 
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assignQuery
+from .bgmm import findWithinLabel
 
 from .network import constructNetwork
 from .network import extractReferences
@@ -171,7 +172,7 @@ def main():
                 sys.exit(1)
 
             distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
-            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, fitWeights, fitMeans, fitcovariances)
+            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:

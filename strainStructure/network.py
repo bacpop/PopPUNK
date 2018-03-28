@@ -19,6 +19,7 @@ from .mash import getSketchSize
 from .mash import iterDistRows
 
 from .bgmm import assign_samples
+from .bgmm import findWithinLabel
 
 #######################################
 # extract references based on cliques #
@@ -53,21 +54,7 @@ def extractReferences(G, outPrefix):
 # Construct network from model fit #
 ####################################
 
-# Identify within-strain links (closest to origin)
-# Make sure some samples are assigned, in the case of small weighted components
-def findWithinLabel(means, assignments):
-    min_dist = None
-    for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
-        if np.any(assignments == mixture_component):
-            if min_dist is None or distance < min_dist:
-               min_dist = distance
-               within_label = mixture_component
-
-    return(within_label)
-
-def constructNetwork(rlist, qlist, assignments, weights, means, covariances):
-
-    within_label = findWithinLabel(means, assignments)
+def constructNetwork(rlist, qlist, assignments, within_label):
 
     connections = []
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
@@ -295,7 +282,7 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
 
         # build network based on connections between queries
         # store links as a network
-        G = constructNetwork(qlist1, qlist2, queryAssignation, weights, means, covariances)
+        G = constructNetwork(qlist1, qlist2, queryAssignation, findWithinLabel(means, queryAssignation))
         # not used?
         #clusters = sorted(nx.connected_components(G), key=len, reverse=True)
         #cl_id = 1
