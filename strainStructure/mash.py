@@ -244,6 +244,15 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 # Multithread wrapper around sketch
 def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash'):
 
+    # Genome length needed to calculate prob of random matches
+    genome_length = 1 # min of 1 to avoid div/0 errors
+    with open(assemblyList, 'r') as assemblyFiles:
+       exampleFile = assemblyFiles.readline()
+       with open(exampleFile.rstrip(), 'r') as exampleAssembly:
+           for line in exampleAssembly:
+               if line[0] != ">":
+                   genome_length += len(line.rstrip())
+
     # create kmer databases
     if threads > len(klist):
         num_processes = 1
@@ -254,7 +263,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
 
     l = Lock()
     with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
-        pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch,
+        pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch, genome_length=genome_length,
                                     oPrefix=oPrefix, mash_exec=mash_exec, threads=num_threads),
                  klist)
 
@@ -264,13 +273,18 @@ def init_lock(l):
     lock = l
 
 # create kmer databases
-def runSketch(k, assemblyList, sketch, oPrefix, mash_exec = 'mash', threads = 1):
+def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash', threads = 1):
     lock.acquire()
     sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
 
     dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
     if not os.path.isfile(dbname + ".msh"):
+
+        random_prob = 1/(pow(4, k)/float(genome_length) + 1)
+        sys.stderr.write("Random " + str(k) + "-mer probability: " + "{:.2f}".format(random_prob) + "\n")
         lock.release()
+
+        # Run sketch
         mash_cmd = mash_exec + " sketch -w 1 -p " + str(threads) + " -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
         subprocess.run(mash_cmd, shell=True, check=True)
     else:
@@ -315,6 +329,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
             # Check mash output is consistent with expected order
+            # This is ok in all tests, but best to check and exit in case something changes between mash versions
             expected_names = iterDistRows(refList, queryList, self=True)
 
             prev_ref = ""
