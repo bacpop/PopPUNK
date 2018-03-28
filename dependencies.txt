@@ -1,6 +1,7 @@
 certifi==2018.1.18
 cycler==0.10.0
 decorator==4.2.1
+DendroPy==4.3.0
 h5py==2.7.1
 joblib==0.11
 matplotlib==2.1.2
