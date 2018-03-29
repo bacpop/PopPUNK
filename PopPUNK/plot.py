@@ -34,7 +34,9 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
         j = uniqueSeq.index(query)
         if i != j:
             coreMat[i,j] = distMat[row, 0]
+            coreMat[j,i] = distMat[row, 0]
             accMat[i,j] = distMat[row, 1]
+            accMat[j,i] = distMat[row, 1]
 
     core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
     np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
