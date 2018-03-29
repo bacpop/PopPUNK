@@ -10,7 +10,7 @@ query sequences
 ## Quick usage
 Create the database:
 ```
-strainStructure --create-db \\
+poppunk --create-db \\
    --r-files reference_list.txt \\
    --output poppunk_db \\
    --threads 2 \\
@@ -21,7 +21,7 @@ strainStructure --create-db \\
 
 Fit the model:
 ```
-strainStructure --fit-model \\
+poppunk --fit-model \\
    --distances poppunk_db/poppunk_db.dists \\
    --output poppunk_db \\
    --full-db \\
@@ -29,5 +29,5 @@ strainStructure --fit-model \\
    --K 3
 ```
 
-If running without having installed through PyPI, run `python strainStructure-runner.py` instead of `strainStructure`.
+If running without having installed through PyPI, run `python poppunk-runner.py` instead of `poppunk`.
 
