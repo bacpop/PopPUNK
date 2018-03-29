@@ -15,26 +15,31 @@ import dendropy
 # Generate files for microreact #
 #################################
 
-def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, outPrefix):
+def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix):
 
     # Avoid recursive import
     from .mash import iterDistRows
 
     sys.stderr.write("Writing Microreact output:\n")
-    #sys.stderr.write("Getting unique sequences\n")
-    uniqueSeq = list(set(refList))
-    seqLabels = [r.split('.')[0] for r in uniqueSeq]
+    seqLabels = [r.split('.')[0] for r in refList]
 
-    #sys.stderr.write("Converting to matrix\n")
-    coreMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
-    accMat = np.zeros((len(uniqueSeq), len(uniqueSeq)))
+    coreMat = np.zeros((len(refList), len(refList)))
+    accMat = np.zeros((len(refList), len(refList)))
 
-    for row, (ref, query) in enumerate(iterDistRows(refList, queryList)):
-        i = uniqueSeq.index(ref)
-        j = uniqueSeq.index(query)
-        if i != j:
-            coreMat[i,j] = distMat[row, 0]
-            accMat[i,j] = distMat[row, 1]
+    # Fill in symmetric matrices
+    i = 0
+    j = 1
+    for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
+        coreMat[i, j] = distMat[row, 0]
+        coreMat[j, i] = coreMat[i, j]
+        accMat[i, j] = distMat[row, 1]
+        accMat[j, i] = accMat[i, j]
+
+        if j == len(refList) - 1:
+            i += 1
+            j = i + 1
+        else:
+            j += 1
 
     core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
     np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
@@ -48,7 +53,11 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
                                                        is_first_row_column_names=True,
                                                        is_first_column_row_names=False)
     tree = pdm.nj_tree()
-    tree.reroot_at_midpoint(update_bipartitions=False)
+
+    # Not sure why, but seems that this needs to be run twice to get
+    # what I would think of as a midpoint rooted tree
+    tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+    tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
     tree.write(path=outPrefix + "/" + outPrefix + "_core_NJ.nwk",
                schema="newick",
                suppress_rooting=True,
@@ -59,7 +68,6 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
     accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
 
     # print dot file
-    #sys.stderr.write("Printing t-SNE\n")
     with open(outPrefix + "/" + outPrefix + "_accessory_tsne.dot", 'w') as nFile:
         nFile.write("graph G { ")
         for s, seqLabel in enumerate(seqLabels):
@@ -67,10 +75,9 @@ def outputsForMicroreact(refList, queryList, distMat, clustering, perplexity, ou
                     '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
         nFile.write("}\n")
 
-    #sys.stderr.write("Printing clustering\n")
     with open(outPrefix + "/" + outPrefix + "_microreact_clusters.csv", 'w') as cFile:
         cFile.write("id,Cluster__autocolour\n")
-        for label, unique in zip(seqLabels, uniqueSeq):
+        for label, unique in zip(seqLabels, refList):
             if unique in clustering:
                 cFile.write(label + ',' + str(clustering[unique]) + '\n')
             else:

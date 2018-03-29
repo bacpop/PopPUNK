@@ -176,7 +176,7 @@ def main():
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, queryList, distMat, isolateClustering, args.perplexity, args.output)
+                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
