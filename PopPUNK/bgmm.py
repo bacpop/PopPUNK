@@ -90,11 +90,31 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
 
     return log_prob
 
-#####################################################################
-# modified sklearn GMM functions predicting distribution membership #
-#####################################################################
-
 def assign_samples(X, weights, means, covars, values=False):
+    """modified sklearn GMM function predicting distribution membership
+
+    Given distances and a fit will calculate responsibilities and return most
+    likely cluster assignment
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        weights (numpy.array)
+            Component weights from fit2dMultiGaussian
+        means (numpy.array)
+            Component means from fit2dMultiGaussian
+        covars (numpy.array)
+            Component covariances from fit2dMultiGaussian
+        values (bool)
+            Whether to return the responsibilities, rather than the most
+            likely assignment (used for entropy calculation).
+
+            Default is False
+    Returns:
+        ret_vec (numpy.array)
+            An n-vector with the most likely cluster memberships
+            or an n by k matrix with the component responsibilities for each sample.
+    """
     lpr = (log_multivariate_normal_density(X, means, covars) +
            np.log(weights))
     logprob = sp_logsumexp(lpr, axis=1)

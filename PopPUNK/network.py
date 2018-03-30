@@ -55,7 +55,26 @@ def extractReferences(G, outPrefix):
 ####################################
 
 def constructNetwork(rlist, qlist, assignments, within_label):
+    """Construct an unweighted, undirected network without self-loops.
+    Nodes are samples and edges where samples are within the same cluster
 
+    Will print summary statistics about the network to `STDERR`
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        assignments (numpy.array)
+            Labels of most likely cluster assignment from :func:`~PopPUNK.bgmm.assign_samples`
+        within_label (int)
+            The label for the cluster representing within-strain distances
+            from :func:`~PopPUNK.bgmm.findWithinLabel`
+
+    Returns:
+        G (networkx.Graph)
+            The resulting network
+    """
     connections = []
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
         if assignment == within_label:

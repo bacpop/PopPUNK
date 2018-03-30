@@ -1,4 +1,4 @@
-'''Plot GMM results'''
+'''Plots of GMM results, k-mer fits, and microreact output'''
 
 import sys
 
@@ -116,8 +116,17 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
                 sys.stderr.write("Cannot find " + unique + " in clustering\n")
                 sys.exit(1)
 
-# Simple scatter plot of distances
 def plot_scatter(X, out_prefix, title):
+    """Draws a 2D scatter plot of the core and accessory distances
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples.
+        out_prefix (str)
+            Prefix for output plot file (.png will be appended)
+        title (str)
+            The title to display above the plot
+    """
     plt.ioff()
     plt.title(title)
     plt.scatter(X[:,0].flat, X[:,1].flat, s=0.8)

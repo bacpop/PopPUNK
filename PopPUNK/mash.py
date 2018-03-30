@@ -317,7 +317,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
         row = 0
-        
+
         # construct mash command
         mash_cmd = mash_exec + " dist -p " + str(threads)
         if self:
@@ -325,15 +325,14 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         else:
             mash_cmd += " -l " + dbname + " " + qFile
         mash_cmd += " 2> " + dbPrefix + ".err.log"
-        
+        sys.stderr.write(mash_cmd + "\n")
+
         try:
-            print(mash_cmd)
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
             expected_names = iterDistRows(refList, queryList, self)
-#            print(str(refList)+"\n\n\n"+str(queryList))
 
             prev_ref = ""
             skip = 0
@@ -372,7 +371,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                 os.remove(dbPrefix + ".err.log")
 
         except subprocess.CalledProcessError as e:
-            sys.stderr.write("mash dist command "+mash_cmd+" failed with error "+e.message+"\n")
+            sys.stderr.write("mash dist command " + mash_cmd + " failed with error " + e.message + "\n")
             sys.exit(1)
 
     # Pre-assign return (to higher precision)
@@ -412,8 +411,27 @@ def fitKmerCurve(pairwise, klist, jacobian):
 
     return(transformed_params)
 
-# Gets the ref and query ID for each row of the distance matrix
 def iterDistRows(refSeqs, querySeqs, self=True):
+    """Gets the ref and query ID for each row of the distance matrix
+
+    Returns an iterable with ref and query ID pairs by row.
+
+    Args:
+        refSeqs (list)
+            List of reference sequence names.
+        querySeqs (list)
+            List of query sequence names.
+        self (bool)
+            Whether a self-comparison, used when constructing a database.
+
+            Requires refSeqs == querySeqs
+
+            Default is True
+    Returns:
+        ref, query (str, str)
+            Iterable of tuples with ref and query names for each distMat row.
+    """
+
     if self:
         if refSeqs != querySeqs:
             raise RuntimeError('refSeqs must equal querySeqs for db building (self = true)')
