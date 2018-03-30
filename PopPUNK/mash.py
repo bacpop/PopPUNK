@@ -317,20 +317,22 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
 
         row = 0
+        
+        # construct mash command
+        mash_cmd = mash_exec + " dist -p " + str(threads)
+        if self:
+            mash_cmd += " " + dbname + " " + dbname
+        else:
+            mash_cmd += " -l " + dbname + " " + qFile
+        mash_cmd += " 2> " + dbPrefix + ".err.log"
+        
         try:
-            mash_cmd = mash_exec + " dist -p " + str(threads)
-            if self:
-                mash_cmd += " " + dbname + " " + dbname
-            else:
-                mash_cmd += " -l " + dbname + " " + qFile
-            mash_cmd += " 2> " + dbPrefix + ".err.log"
-            sys.stderr.write(mash_cmd + "\n")
 
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
-            expected_names = iterDistRows(refList, queryList, self=True)
+            expected_names = iterDistRows(refList, queryList, self)
 
             prev_ref = ""
             skip = 0
@@ -367,8 +369,9 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                 raise RuntimeError('mash dist failed')
             else:
                 os.remove(dbPrefix + ".err.log")
-        except:
-            sys.stderr.write("mash dist command failed\n")
+
+        except subprocess.CalledProcessError as e:
+            sys.stderr.write("mash dist command "+mash_cmd+" failed with error "+e.message+"\n")
             sys.exit(1)
 
     # Pre-assign return (to higher precision)
