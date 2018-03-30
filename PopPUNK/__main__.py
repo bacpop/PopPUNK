@@ -193,7 +193,7 @@ def main():
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
             sys.stderr.write("Mode: Building new database from input sequences\n")
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.plot_fit, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output)
             # store distances in pickle if requested
             if args.save_distances:

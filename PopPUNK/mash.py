@@ -216,7 +216,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 
     seqs = []
-    mash_cmd = mash_exec + " info -t " + mashSketch
+    mash_cmd = str(mash_exec) + " info -t " + str(mashSketch)
     try:
         mash_info = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
         for line in iter(mash_info.stdout.readline, ''):
