@@ -350,7 +350,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                     else:
                         mashMatch = mashVals[-1].split('/')
                         (e_ref, e_query) = next(expected_names)
-                        if mashVals[0] == e_query and mashVals[1] == e_ref:
+                        if mashVals[0] == e_ref and mashVals[1] == e_query:
                             raw[row, k_idx] = float(mashMatch[0])/int(mashMatch[1])
                             row += 1
                         else:
@@ -411,12 +411,14 @@ def fitKmerCurve(pairwise, klist, jacobian):
 # Gets the ref and query ID for each row of the distance matrix
 def iterDistRows(refSeqs, querySeqs, self=True):
     if self:
+        if refSeqs != querySeqs:
+            raise RuntimeError('refSeqs must equal querySeqs for db building (self = true)')
         for i, ref in enumerate(refSeqs):
             for j in range(i + 1, len(refSeqs)):
-                yield(ref, querySeqs[j])
+                yield(refSeqs[j], ref)
     else:
-        for query in querySeqs:
-            for ref in refSeqs:
+        for ref in refSeqs:
+            for query in querySeqs:
                 yield(ref, query)
 
 ##############################
