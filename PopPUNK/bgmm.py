@@ -100,11 +100,11 @@ def assign_samples(X, weights, means, covars, values=False):
         X (numpy.array)
             n x 2 array of core and accessory distances for n samples
         weights (numpy.array)
-            Component weights from fit2dMultiGaussian
+            Component weights from :func:`~fit2dMultiGaussian`
         means (numpy.array)
-            Component means from fit2dMultiGaussian
+            Component means from :func:`~fit2dMultiGaussian`
         covars (numpy.array)
-            Component covariances from fit2dMultiGaussian
+            Component covariances from :func:`~fit2dMultiGaussian`
         values (bool)
             Whether to return the responsibilities, rather than the most
             likely assignment (used for entropy calculation).

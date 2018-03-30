@@ -11,16 +11,32 @@ from scipy import spatial
 from sklearn import manifold
 import dendropy
 
-#################################
-# Generate files for microreact #
-#################################
-
 def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv):
+    """Generate files for microreact
 
-    # Avoid recursive import
-    from .mash import iterDistRows
+    Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
+    of accessory distances (.dot) and cluster assignment (.csv)
 
-    sys.stderr.write("Writing Microreact output:\n")
+    Args:
+        refList (list)
+            Name of reference sequences. The part of the name before the first '.' will
+            be shown in the output
+        distMat (numpy.array)
+            n x 2 array of core and accessory distances for n samples.
+        clustering (list)
+            List of cluster assignments from :func:`~PopPUNK.network.printClusters`
+        perplexity (int)
+            Perplexity parameter passed to t-SNE
+        outPrefix (str)
+            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        epiCsv (str)
+            A CSV containing other information, to include with the CSV of clusters
+    """
+
+    # avoid recursive import
+    from .mash import iterdistrows
+
+    sys.stderr.write("writing microreact output:\n")
     seqLabels = [r.split('.')[0] for r in refList]
 
     coreMat = np.zeros((len(refList), len(refList)))
@@ -117,7 +133,7 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
                 sys.exit(1)
 
 def plot_scatter(X, out_prefix, title):
-    """Draws a 2D scatter plot of the core and accessory distances
+    """Draws a 2D scatter plot (png) of the core and accessory distances
 
     Args:
         X (numpy.array)
@@ -133,8 +149,25 @@ def plot_scatter(X, out_prefix, title):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-# Plot of a fit to k-mer sizes
 def plot_fit(klist, matching, fit, out_prefix, title):
+    """Draw a scatter plot (pdf) of k-mer sizes vs match probability, and the
+    fit used to assign core and accessory distance
+
+    K-mer sizes on x-axis, log(pr(match)) on y - expect a straight line fit
+    with intercept representing accessory distance and slope core distance
+
+    Args:
+        klist (list)
+            List of k-mer sizes
+        matching (list)
+            Proportion of matching k-mers at each klist value
+        kfit (numpy.array)
+            Fit to klist and matching from :func:`~PopPUNK.mash.fitKmerCurve`
+        out_prefix (str)
+            Prefix for output plot file (.pdf will be appended)
+        title (str)
+            The title to display above the plot
+    """
     k_fit = np.linspace(0, klist[-1], num = 100)
     matching_fit = (1 - fit[0]) * np.power((1 - fit[1]), k_fit)
 
@@ -151,11 +184,29 @@ def plot_fit(klist, matching, fit, out_prefix, title):
     plt.savefig(out_prefix + ".pdf", bbox_inches='tight')
     plt.close()
 
-###################
-# Plot model fits #
-###################
-
 def plot_results(X, Y, means, covariances, title, out_prefix):
+    """Draw a scatter plot (png) to show the BGMM model fit
+
+    A scatter plot of core and accessory distances, coloured by component
+    membership. Also shown are ellipses for each component (centre: means
+    axes: covariances).
+
+    This is based on the example in the sklearn documentation.
+
+    Args:
+        X (numpy.array)
+             n x 2 array of core and accessory distances for n samples.
+        Y (numpy.array)
+             n x 1 array of cluster assignments for n samples.
+        means (numpy.array)
+            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        out_prefix (str)
+            Prefix for output plot file (.png will be appended)
+        title (str)
+            The title to display above the plot
+    """
     color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
     fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
     splot = plt.subplot(1, 1, 1)
