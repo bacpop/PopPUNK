@@ -15,7 +15,7 @@ import dendropy
 # Generate files for microreact #
 #################################
 
-def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix):
+def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv):
 
     # Avoid recursive import
     from .mash import iterDistRows
@@ -75,11 +75,43 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix):
                     '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
         nFile.write("}\n")
 
+    # read epidemiological information if provided
+    epi = {}
+    epiHeader = []
+    if epiCsv is not None:
+        with open(epiCsv.rstrip(), 'r') as eFile:
+            for line in eFile:
+                data = line.split(',')
+                id = data.pop(0)
+                if id == "id":
+                    epiHeader = data
+                else:
+                    if len(data) == len(epiHeader):
+                        epi[id] = data
+                    else:
+                        sys.stderr.write("Incorrect number of fields in CSV for line with Id "+id)
+                        sys.exit(1)
+
+        if len(epiHeader) == 0:
+            sys.stderr.write("Unable to find header line starting with 'Id'")
+            sys.exit(1)
+        missingString = (','*len(epiHeader))[:len(epiHeader)]
+
+    # print clustering file
     with open(outPrefix + "/" + outPrefix + "_microreact_clusters.csv", 'w') as cFile:
-        cFile.write("id,Cluster__autocolour\n")
+        cFile.write("id,Cluster__autocolour")
+        if epiCsv is not None:
+            cFile.write(','+','.join(str(e) for e in epiHeader))
+        cFile.write("\n")
         for label, unique in zip(seqLabels, refList):
             if unique in clustering:
-                cFile.write(label + ',' + str(clustering[unique]) + '\n')
+                cFile.write(label + ',' + str(clustering[unique]))
+                if epiCsv is not None:
+                    if label in epi.keys():
+                        cFile.write(','+','.join(str(e) for e in epi[label]))
+                    else:
+                        cFile.write(missingString)
+                cFile.write("\n")
             else:
                 sys.stderr.write("Cannot find " + unique + " in clustering\n")
                 sys.exit(1)

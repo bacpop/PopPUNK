@@ -92,9 +92,12 @@ def get_options():
     modelGroup.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
     modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
 
-    algGroup = parser.add_argument_group('Algorithm options')
-    algGroup.add_argument('--perplexity', type=float, default = 25.0,
-            help='Perplexity used to calculate t-SNE projection (with --microreact) [default=25]')
+    mrGroup = parser.add_argument_group('Microreact options')
+    mrGroup.add_argument('--perplexity', type=float, default = 5.0,
+                         help='Perplexity used to calculate t-SNE projection (with --microreact) [default=5.0]')
+    mrGroup.add_argument('--m-csv',
+                     help='Epidemiological information CSV formatted for microreact (with --microreact)')
+
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
@@ -176,7 +179,7 @@ def main():
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output)
+                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output,args.m_csv)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
