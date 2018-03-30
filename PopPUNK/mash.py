@@ -327,12 +327,13 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         mash_cmd += " 2> " + dbPrefix + ".err.log"
         
         try:
-
+            print(mash_cmd)
             rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
 
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
             expected_names = iterDistRows(refList, queryList, self)
+#            print(str(refList)+"\n\n\n"+str(queryList))
 
             prev_ref = ""
             skip = 0
@@ -420,9 +421,10 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             for j in range(i + 1, len(refSeqs)):
                 yield(refSeqs[j], ref)
     else:
-        for ref in refSeqs:
-            for query in querySeqs:
+        for query in querySeqs:
+            for ref in refSeqs:
                 yield(ref, query)
+
 
 ##############################
 # write query output to file #
