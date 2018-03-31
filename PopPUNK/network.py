@@ -290,7 +290,7 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
-        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec, threads)
+        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec, threads, False)
         queryAssignation = assign_samples(distMat, weights, means, covariances)
 
         # identify any links between queries and store in the same links dict
@@ -319,7 +319,7 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
 # Update reference database with query information #
 ####################################################
 
-def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, threads = 1, mash_exec = 'mash'):
+def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, threads = 1, mash_exec = 'mash', overwrite = False):
 
     # append information to csv
     clusteringCsvName = "./" + dbPrefix + "/" + dbPrefix + "_clusters.csv"
@@ -352,7 +352,7 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, th
 
     # make new databases and append
     createDatabaseDir(outPrefix)
-    constructDatabase(referenceFile, klist, sketch, outPrefix, threads, mash_exec)
+    constructDatabase(referenceFile, klist, sketch, outPrefix, threads, mash_exec, overwrite)
     for k in klist:
         f1 = getDatabaseName(dbPrefix, k)
         f2 = getDatabaseName(outPrefix, k)

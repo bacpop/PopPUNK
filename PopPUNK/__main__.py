@@ -80,6 +80,7 @@ def get_options():
     oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
+    oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
@@ -151,6 +152,14 @@ def main():
         sys.stderr.write("Sketch size should be between 100 and 10^6\n")
         sys.exit(1)
 
+    # check on file paths and whether files will be appropriate overwritten
+    if not args.full_db:
+        args.overwrite = True
+    if args.output.endswith('/'):
+        args.output = args.output[:-1]
+    if args.ref_db.endswith('/'):
+        args.ref_db = args.ref_db[:-1]
+
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
 
@@ -159,7 +168,7 @@ def main():
         sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
             createDatabaseDir(args.output,kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash,args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
             storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
         else:
@@ -168,7 +177,7 @@ def main():
 
     # model fit and network construction
     elif args.fit_model:
-        if args.distances is not None:
+        if args.distances is not None and args.ref_db is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
             refList, queryList, self, distMat = readPickle(args.distances)
             if not self:
@@ -184,11 +193,12 @@ def main():
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
-                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash)
+                kmers = getKmersFromReferenceDatabase(args.ref_db)
+                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output, self)
         else:
-            sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
+            sys.stderr.write("Need to provide an input set of distances with --distances and reference database directory with --ref-db\n\n")
             sys.exit(1)
 
     elif args.create_query_db:
@@ -217,7 +227,7 @@ def main():
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
             if args.update_db:
-                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.threads, args.mash)
+                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.threads, args.mash, args.overwrite)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")

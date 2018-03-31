@@ -251,7 +251,7 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 ########################
 
 # Multithread wrapper around sketch
-def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash'):
+def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash',overwrite = False):
 
     # Genome length needed to calculate prob of random matches
     genome_length = 1 # min of 1 to avoid div/0 errors
@@ -273,7 +273,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
     l = Lock()
     with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
         pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch, genome_length=genome_length,
-                                    oPrefix=oPrefix, mash_exec=mash_exec, threads=num_threads),
+                                    oPrefix=oPrefix, mash_exec=mash_exec, threads=num_threads,overwrite=overwrite),
                  klist)
 
 # lock on stderr
@@ -282,12 +282,12 @@ def init_lock(l):
     lock = l
 
 # create kmer databases
-def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash', threads = 1):
+def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash', threads = 1,overwrite = False):
     lock.acquire()
     sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
 
     dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
-    if not os.path.isfile(dbname + ".msh"):
+    if not os.path.isfile(dbname + ".msh") or overwrite:
 
         random_prob = 1/(pow(4, k)/float(genome_length) + 1)
         sys.stderr.write("Random " + str(k) + "-mer probability: " + "{:.2f}".format(random_prob) + "\n")
