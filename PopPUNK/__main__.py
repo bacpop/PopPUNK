@@ -18,6 +18,7 @@ from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
 from .mash import assignQueriesToClusters
+from .mash import getKmersFromReferenceDatabase
 
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assignQuery
@@ -157,7 +158,7 @@ def main():
     if args.create_db:
         sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
-            createDatabaseDir(args.output)
+            createDatabaseDir(args.output,kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
             storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
@@ -194,6 +195,8 @@ def main():
         if args.ref_db is not None and args.q_files is not None:
             self = False
             sys.stderr.write("Mode: Building new database from input sequences\n")
+            kmers = getKmersFromReferenceDatabase(args.ref_db)
+            print("K: "+str(kmers))
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.plot_fit, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output, self)
             # store distances in pickle if requested

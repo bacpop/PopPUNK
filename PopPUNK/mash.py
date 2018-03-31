@@ -10,6 +10,7 @@ import pickle
 from multiprocessing import Pool, Lock
 from functools import partial
 from itertools import product
+from glob import glob
 from random import sample
 import numpy as np
 import networkx as nx
@@ -28,10 +29,17 @@ def getDatabaseName(prefix, k):
 # create database directory #
 #############################
 
-def createDatabaseDir(outPrefix):
+def createDatabaseDir(outPrefix, kmers):
     outputDir = os.getcwd() + "/" + outPrefix
     # check for writing
-    if not os.path.isdir(outputDir):
+    if os.path.isdir(outputDir):
+        # remove old database files if not needed
+        for file in glob(outputDir+"/"+outPrefix+"*.msh"):
+            knum = int(file.split('.')[-2])
+            if not (kmers==knum).any():
+                print("Removing old database "+file)
+                os.remove(file)
+    else:
         try:
             os.makedirs(outputDir)
         except:
@@ -445,11 +453,31 @@ def iterDistRows(refSeqs, querySeqs, self=True):
                 yield(ref, query)
 
 
+####################################
+# get kmers from existing database #
+####################################
+
+def getKmersFromReferenceDatabase(dbPrefix):
+    
+    # prepare
+    knum = []
+    fullDbPrefix = "./" + dbPrefix + "/" + dbPrefix + "."
+    
+    # iterate through files
+    for file in glob(fullDbPrefix+"*.msh"):
+        knum.append(int(file.split('.')[-2]))
+
+    # process kmer list
+    knum.sort()
+    kmers = np.asarray(knum)
+    return kmers
+
+
 ##############################
 # write query output to file #
 ##############################
 
-def printQueryOutput(rlist, qlist, X, outPrefix, self=True):
+def printQueryOutput(rlist, qlist, X, outPrefix, self):
 
     # check if output directory exists and generate if not
     if not os.path.isdir(outPrefix):
