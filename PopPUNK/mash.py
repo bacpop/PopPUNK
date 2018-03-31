@@ -9,6 +9,7 @@ import collections
 import pickle
 from multiprocessing import Pool, Lock
 from functools import partial
+from itertools import product
 from random import sample
 import numpy as np
 import networkx as nx
@@ -448,13 +449,19 @@ def iterDistRows(refSeqs, querySeqs, self=True):
 # write query output to file #
 ##############################
 
-def printQueryOutput(rlist, qlist, X, outPrefix):
+def printQueryOutput(rlist, qlist, X, outPrefix, self=True):
+
+    # check if output directory exists and generate if not
+    if not os.path.isdir(outPrefix):
+        os.makedirs(outPrefix)
+
+    # get names order
+    names = iterDistRows(rlist, qlist, self)
 
     # open output file
     outFileName = outPrefix + "/" + outPrefix + ".search.out"
     with open(outFileName, 'w') as oFile:
         oFile.write("\t".join(['Query', 'Reference', 'Core', 'Accessory']) + "\n")
-        # add results
-        for i, (query, ref) in enumerate(zip(qlist, rlist)):
+        for i, (ref, query) in enumerate(names):
             oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
 

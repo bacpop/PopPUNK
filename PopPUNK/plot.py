@@ -34,7 +34,7 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     """
 
     # avoid recursive import
-    from .mash import iterdistrows
+    from .mash import iterDistRows
 
     sys.stderr.write("writing microreact output:\n")
     seqLabels = [r.split('.')[0] for r in refList]

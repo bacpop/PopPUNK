@@ -162,7 +162,7 @@ def main():
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
             storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
         else:
-            sys.stderr.write("Need to provide a list of reference files with --r-files; need to use --save-distances to fit model subsequently")
+            sys.stderr.write("Need to provide a list of reference files with --r-files")
             sys.exit(1)
 
     # model fit and network construction
@@ -185,16 +185,17 @@ def main():
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
                 constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash)
                 map(os.remove, referenceGenomes) # tidy up
-            printQueryOutput(refList, queryList, distMat, args.output)
+            printQueryOutput(refList, queryList, distMat, args.output, self)
         else:
             sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
             sys.exit(1)
 
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
+            self = False
             sys.stderr.write("Mode: Building new database from input sequences\n")
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.plot_fit, args.mash, args.threads)
-            printQueryOutput(refList, queryList, distMat, args.output)
+            printQueryOutput(refList, queryList, distMat, args.output, self)
             # store distances in pickle if requested
             if args.save_distances:
                 storePickle(refList, queryList, False, distMat, args.output + ".dists")
