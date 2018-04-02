@@ -19,6 +19,7 @@ from .mash import queryDatabase
 from .mash import printQueryOutput
 from .mash import assignQueriesToClusters
 from .mash import getKmersFromReferenceDatabase
+from .mash import getSketchSize
 
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assignQuery
@@ -155,9 +156,9 @@ def main():
     # check on file paths and whether files will be appropriate overwritten
     if not args.full_db:
         args.overwrite = True
-    if args.output.endswith('/'):
+    if args.output is not None and args.output.endswith('/'):
         args.output = args.output[:-1]
-    if args.ref_db.endswith('/'):
+    if args.ref_db is not None and args.ref_db.endswith('/'):
         args.ref_db = args.ref_db[:-1]
 
     # run according to mode
@@ -180,6 +181,8 @@ def main():
         if args.distances is not None and args.ref_db is not None:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
             refList, queryList, self, distMat = readPickle(args.distances)
+            kmers = getKmersFromReferenceDatabase(args.ref_db)
+            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
             if not self:
                 sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
                 sys.exit(1)
@@ -193,7 +196,6 @@ def main():
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
-                kmers = getKmersFromReferenceDatabase(args.ref_db)
                 constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output, self)
@@ -206,7 +208,7 @@ def main():
             self = False
             sys.stderr.write("Mode: Building new database from input sequences\n")
             kmers = getKmersFromReferenceDatabase(args.ref_db)
-            print("K: "+str(kmers))
+            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.plot_fit, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output, self)
             # store distances in pickle if requested
@@ -220,6 +222,8 @@ def main():
         if args.ref_db is not None and args.distances is not None:
             sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
             refList, queryList, self, distMat = readPickle(args.distances)
+            kmers = getKmersFromReferenceDatabase(args.ref_db)
+            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
             queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db,
