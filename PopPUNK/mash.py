@@ -359,7 +359,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         sys.stderr.write(mash_cmd + "\n")
 
         try:
-            rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
+            rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
 
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
@@ -368,13 +368,13 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
             prev_ref = ""
             skip = 0
             skipped = 0
-            for line in rawOutput.stdout.readlines():
+            for line in rawOutput.stdout:
                 # Skip the first row with self and symmetric elements
                 if skipped < skip:
                     skipped += 1
                     continue
 
-                mashVals = line.decode().rstrip().split("\t")
+                mashVals = line.rstrip().split("\t")
                 if (len(mashVals) > 2):
                     if self and mashVals[1] != prev_ref:
                         prev_ref = mashVals[1]
@@ -391,12 +391,8 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                                              "not as expected: " + mashVals[0] + "," + mashVals[1] + "\n")
                             sys.exit(1)
 
-                # EOF
-                if line == '':
-                    break
 
-            rawOutput.wait()
-            if rawOutput.returncode != 0:
+            if rawOutput.poll() != 0:
                 raise RuntimeError('mash dist failed')
             else:
                 os.remove(dbPrefix + ".err.log")
