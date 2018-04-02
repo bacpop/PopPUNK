@@ -421,12 +421,30 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                     "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
 
     # run pairwise analyses across kmer lengths, mutating distMat
-    with Pool(processes=threads) as pool:
-        distMat = pool.map(partial(fitKmerCurve, klist=klist, jacobian=jacobian), raw, chunksize = int(number_pairs / threads))
+    # Create range of rows that each thread will work with
+    rows_per_thread = int(number_pairs / threads)
+    big_threads = number_pairs % threads
+    start = 0
+    mat_chunks = []
+    for thread in range(threads):
+        end = start + rows_per_thread
+        if thread < big_threads:
+            end += 1
+        mat_chunks.append(raw[start:end, :])
+        start = end
+
+    # Deleting large objects as we go
     del raw
+    with Pool(processes=threads) as pool:
+        distMat = pool.map(partial(fitKmerBlock, klist=klist, jacobian=jacobian), mat_chunks)
+    del mat_chunks
     distMat = np.vstack(distMat)
 
     return(refList, queryList, distMat)
+
+# Multirow wrapper around fitKmerCurve
+def fitKmerBlock(matBlock, klist, jacobian):
+    return np.apply_along_axis(fitKmerCurve, 1, matBlock, klist, jacobian)
 
 # fit the function pr = (1-a)(1-c)^k
 # supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
