@@ -169,7 +169,7 @@ def main():
         sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash,args.overwrite)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
             storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
         else:
@@ -187,7 +187,7 @@ def main():
                 sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
                 sys.exit(1)
 
-            distanceAssignments, fitWeights, fitMeans, fitcovariances = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
@@ -224,9 +224,9 @@ def main():
             refList, queryList, self, distMat = readPickle(args.distances)
             kmers = getKmersFromReferenceDatabase(args.ref_db)
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            queryAssignments, fitWeights, fitMeans, fitcovariances = assignQuery(distMat, args.ref_db)
+            queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
-                    queryAssignments, fitWeights, fitMeans, fitcovariances, args.output, args.ref_db,
+                    queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, args.output, args.ref_db,
                     args.batch_size, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed

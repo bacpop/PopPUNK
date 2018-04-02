@@ -184,7 +184,7 @@ def plot_fit(klist, matching, fit, out_prefix, title):
     plt.savefig(out_prefix + ".pdf", bbox_inches='tight')
     plt.close()
 
-def plot_results(X, Y, means, covariances, title, out_prefix):
+def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     """Draw a scatter plot (png) to show the BGMM model fit
 
     A scatter plot of core and accessory distances, coloured by component
@@ -202,6 +202,8 @@ def plot_results(X, Y, means, covariances, title, out_prefix):
             Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
         covars (numpy.array)
             Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        scale (numpy.array)
+            Scaling factor from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
         out_prefix (str)
             Prefix for output plot file (.png will be appended)
         title (str)
@@ -219,7 +221,7 @@ def plot_results(X, Y, means, covariances, title, out_prefix):
         # components.
         if not np.any(Y == i):
             continue
-        plt.scatter([X[Y == i, 0]], [X[Y == i, 1]], .8, color=color)
+        plt.scatter([(X/scale)[Y == i, 0]], [(X/scale)[Y == i, 1]], .8, color=color)
 
         # Plot an ellipse to show the Gaussian component
         angle = np.arctan(u[1] / u[0])

@@ -90,7 +90,7 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
 
     return log_prob
 
-def assign_samples(X, weights, means, covars, values=False):
+def assign_samples(X, weights, means, covars, scale, values=False):
     """modified sklearn GMM function predicting distribution membership
 
     Given distances and a fit will calculate responsibilities and return most
@@ -105,6 +105,8 @@ def assign_samples(X, weights, means, covars, values=False):
             Component means from :func:`~fit2dMultiGaussian`
         covars (numpy.array)
             Component covariances from :func:`~fit2dMultiGaussian`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
         values (bool)
             Whether to return the responsibilities, rather than the most
             likely assignment (used for entropy calculation).
@@ -115,7 +117,7 @@ def assign_samples(X, weights, means, covars, values=False):
             An n-vector with the most likely cluster memberships
             or an n by k matrix with the component responsibilities for each sample.
     """
-    lpr = (log_multivariate_normal_density(X, means, covars) +
+    lpr = (log_multivariate_normal_density(X/scale, means, covars) +
            np.log(weights))
     logprob = sp_logsumexp(lpr, axis=1)
     responsibilities = np.exp(lpr - logprob[:, np.newaxis])
@@ -201,7 +203,7 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
     return(trace, elbos)
 
 # Dirichlet BGMM through EM
-def dirichlet_bgmm(X, max_components = 5, number_runs = 3, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
+def dirichlet_bgmm(X, max_components = 5, number_runs = 5, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
 
     dpgmm = mixture.BayesianGaussianMixture(n_components = max_components,
                                             n_init = number_runs,
@@ -232,19 +234,20 @@ def assignQuery(X, refPrefix):
     weights = model_npz['weights']
     means = model_npz['means']
     covariances = model_npz['covariances']
+    scale = model_npz['scale']
 
     # Get assignments
-    y = assign_samples(X, weights, means, covariances)
+    y = assign_samples(X, weights, means, covariances, scale)
 
-    return y, weights, means, covariances
+    return y, weights, means, covariances, scale
 
 # Set priors from file, or provide default
-def readPriors(priorFile = None):
+def readPriors(priorFile):
     # default priors
     proportions = np.array([0.001, 0.999])
     prop_strength = 1
     positions_belief = 10**4
-    mu_prior = pm.floatX(np.array([[0, 0], [0.006, 0.25]]))
+    mu_prior = pm.floatX(np.array([[0, 0], [0.7, 0.7]]))
     dirichlet = False
 
     # Overwrite defaults if provided
@@ -307,15 +310,14 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_samples,]
     else:
         subsampled_X = np.copy(X)
+    scale = np.amax(subsampled_X, axis = 0)
+    subsampled_X /= scale
 
     # Show clustering
     plot_scatter(subsampled_X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
 
     # fit bgmm model
     if not dpgmm:
-        scale = np.amax(subsampled_X, axis = 0)
-        subsampled_X /= scale
-
         parameters = readPriors(priorFile)
         (trace, elbos) = bgmm_model(subsampled_X, parameters)
 
@@ -333,9 +335,8 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         for i in range(parameters[2].shape[0]):
             means.append(trace[:]['mu_%i' %i].mean(axis=0).T)
             covariances.append(trace[:]['cov_%i' %i].mean(axis=0))
-        means = np.vstack(means) * scale
-        covariances = scale * np.stack(covariances) * scale
-        subsampled_X *= scale
+        means = np.vstack(means)
+        covariances = np.stack(covariances)
     else:
         dpgmm = dirichlet_bgmm(subsampled_X, max_components = dpgmm_max_K)
         weights = dpgmm.weights_
@@ -343,11 +344,11 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         covariances = dpgmm.covariances_
 
     # Save model fit
-    np.savez(outPrefix + "/" + outPrefix + '_fit.npz', weights=weights, means=means, covariances=covariances)
+    np.savez(outPrefix + "/" + outPrefix + '_fit.npz', weights=weights, means=means, covariances=covariances, scale=scale)
 
     # Plot results
-    y = assign_samples(X, weights, means, covariances)
-    avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, assign_samples(subsampled_X, weights, means, covariances, values=True)))
+    y = assign_samples(X, weights, means, covariances, scale)
+    avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, assign_samples(subsampled_X, weights, means, covariances, scale, values=True)))
     used_components = np.unique(y).size
 
     title = outPrefix + " " + str(len(np.unique(y)))
@@ -355,11 +356,11 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         title += "-component DPGMM"
     else:
         title +=  "-component BGMM"
-    plot_results(X, y, means, covariances, title, outPrefix + "/" + outPrefix + "_GMM_fit")
+    plot_results(X, y, means, covariances, scale, title, outPrefix + "/" + outPrefix + "_GMM_fit")
 
     sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                    "\tNumber of components used\t" + str(used_components)])
                                                    + "\n")
 
     # return output
-    return y, weights, means, covariances
+    return y, weights, means, covariances, scale

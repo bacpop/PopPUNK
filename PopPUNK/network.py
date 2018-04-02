@@ -254,7 +254,7 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
 ##########################################
 
 def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, means,
-        covariances, outPrefix, dbPrefix, batchSize, threads = 1, mash_exec = 'mash'):
+        covariances, scale, outPrefix, dbPrefix, batchSize, threads = 1, mash_exec = 'mash'):
 
     # identify within-strain links (closest component to origin)
     within_label = findWithinLabel(means, assignments)
@@ -291,7 +291,7 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
         qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec, threads, False)
-        queryAssignation = assign_samples(distMat, weights, means, covariances)
+        queryAssignation = assign_samples(distMat, weights, means, covariances, scale)
 
         # identify any links between queries and store in the same links dict
         # links dict now contains lists of links both to original database and new queries
