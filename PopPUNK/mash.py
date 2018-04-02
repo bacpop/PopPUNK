@@ -13,6 +13,7 @@ from itertools import product
 from glob import glob
 from random import sample
 import numpy as np
+import sharedmem
 import networkx as nx
 from scipy import optimize
 
@@ -340,7 +341,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         number_pairs = int(len(refList) * len(queryList))
 
     # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
-    raw = np.zeros((number_pairs, len(klist)), dtype=np.float32)
+    raw = sharedmem.empty((number_pairs, len(klist)), dtype=np.float32)
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -430,21 +431,19 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         end = start + rows_per_thread
         if thread < big_threads:
             end += 1
-        mat_chunks.append(raw[start:end, :])
+        mat_chunks.append((start, end))
         start = end
 
-    # Deleting large objects as we go
-    del raw
+    distMat = sharedmem.empty((number_pairs, 2))
     with Pool(processes=threads) as pool:
-        distMat = pool.map(partial(fitKmerBlock, klist=klist, jacobian=jacobian), mat_chunks)
-    del mat_chunks
-    distMat = np.vstack(distMat)
+        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
 
     return(refList, queryList, distMat)
 
 # Multirow wrapper around fitKmerCurve
-def fitKmerBlock(matBlock, klist, jacobian):
-    return np.apply_along_axis(fitKmerCurve, 1, matBlock, klist, jacobian)
+def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
+    (start, end) = idxRanges
+    distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
 
 # fit the function pr = (1-a)(1-c)^k
 # supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
