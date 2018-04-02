@@ -34,11 +34,11 @@ def createDatabaseDir(outPrefix, kmers):
     # check for writing
     if os.path.isdir(outputDir):
         # remove old database files if not needed
-        for file in glob(outputDir+"/"+outPrefix+"*.msh"):
-            knum = int(file.split('.')[-2])
-            if not (kmers==knum).any():
-                print("Removing old database "+file)
-                os.remove(file)
+        for msh_file in glob(outputDir + "/" + outPrefix + "*.msh"):
+            knum = int(msh_file.split('.')[-2])
+            if not (kmers == knum).any():
+                sys.stderr.write("Removing old database " + msh_file + "\n")
+                os.remove(msh_file)
     else:
         try:
             os.makedirs(outputDir)
@@ -218,7 +218,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
                     " info -t " + dbname + " returned " + str(mash_info.returncode) +
                     ": " + e.message + "\n")
             sys.exit(1)
-    
+
     return sketchdb
 
 # Return an array with the sequences in the passed mash database
@@ -273,7 +273,9 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
     # run database construction using multiprocessing
     l = Lock()
     with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
-        pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch, genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec, overwrite=overwrite, threads=num_threads),klist)
+        pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch,
+                         genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
+                         overwrite=overwrite, threads=num_threads), klist)
 
 # lock on stderr
 def init_lock(l):
@@ -287,33 +289,36 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
     dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
     dbfilename = dbname + ".msh"
 
-    # print info
+    # calculate false positive rate
+    random_prob = 1/(pow(4, k)/float(genome_length) + 1)
+
+    # print info. Lock is released once all stderr printing is done to keep
+    # all messages from each k-mer length together
     lock.acquire()
     sys.stderr.write("Creating mash database for k = " + str(k) + "\n")
-    random_prob = 1/(pow(4, k)/float(genome_length) + 1)
-    lock.release()
+    sys.stderr.write("Random " + str(k) + "-mer probability: " + "{:.2f}".format(random_prob) + "\n")
 
     # overwrite existing file if instructed
     if os.path.isfile(dbfilename) and overwrite:
         os.remove(dbfilename)
-    
+
     # create new file or leave original intact
     if not os.path.isfile(dbfilename):
 
-        # calculate false positive rate
-        random_prob = 1/(pow(4, k)/float(genome_length) + 1)
-        lock.acquire()
-        sys.stderr.write("Random " + str(k) + "-mer probability: " + "{:.2f}".format(random_prob) + "\n")
+        # Release lock before running sketch
         lock.release()
-        
+
         # Run sketch
-        mash_cmd = mash_exec + " sketch -w 1 -p " + str(threads) + " -s " + str(sketch[k]) + " -o " + dbname + " -k " + str(k) + " -l " + assemblyList + " 2> /dev/null"
+        mash_cmd = mash_exec \
+                   + " sketch -w 1 -p " + str(threads) \
+                   + " -s " + str(sketch[k]) \
+                   + " -o " + dbname \
+                   + " -k " + str(k) \
+                   + " -l " + assemblyList \
+                   + " 2> /dev/null"
 
-        # done
         subprocess.run(mash_cmd, shell=True, check=True)
-
     else:
-        lock.acquire()
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
@@ -475,14 +480,14 @@ def iterDistRows(refSeqs, querySeqs, self=True):
 ####################################
 
 def getKmersFromReferenceDatabase(dbPrefix):
-    
+
     # prepare
     knum = []
     fullDbPrefix = "./" + dbPrefix + "/" + dbPrefix + "."
-    
+
     # iterate through files
-    for file in glob(fullDbPrefix+"*.msh"):
-        knum.append(int(file.split('.')[-2]))
+    for msh_file in glob(fullDbPrefix + "*.msh"):
+        knum.append(int(msh_file.split('.')[-2]))
 
     # process kmer list
     knum.sort()

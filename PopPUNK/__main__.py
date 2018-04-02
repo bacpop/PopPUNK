@@ -168,7 +168,7 @@ def main():
     if args.create_db:
         sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
-            createDatabaseDir(args.output,kmers)
+            createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash,args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
             storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
