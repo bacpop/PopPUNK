@@ -433,6 +433,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
 def fitKmerCurve(pairwise, klist, jacobian):
     # curve fit pr = (1-a)(1-c)^k
     # log pr = log(1-a) + k*log(1-c)
+    # a = p[0]; c = p[1] (will flip on return(
     distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                      x0=[0.0, -0.01],
                                      jac=lambda p, x, y: jacobian,
@@ -440,7 +441,8 @@ def fitKmerCurve(pairwise, klist, jacobian):
                                      bounds=([-np.inf, -np.inf], [0, 0]))
     transformed_params = 1 - np.exp(distFit.x)
 
-    return(transformed_params)
+    # Return core, accessory
+    return(np.flipud(transformed_params))
 
 def iterDistRows(refSeqs, querySeqs, self=True):
     """Gets the ref and query ID for each row of the distance matrix

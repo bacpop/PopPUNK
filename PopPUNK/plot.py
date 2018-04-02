@@ -169,7 +169,7 @@ def plot_fit(klist, matching, fit, out_prefix, title):
             The title to display above the plot
     """
     k_fit = np.linspace(0, klist[-1], num = 100)
-    matching_fit = (1 - fit[0]) * np.power((1 - fit[1]), k_fit)
+    matching_fit = (1 - fit[1]) * np.power((1 - fit[0]), k_fit)
 
     fig, ax = plt.subplots()
     ax.set_yscale("log")
