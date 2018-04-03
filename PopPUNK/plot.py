@@ -1,7 +1,7 @@
 '''Plots of GMM results, k-mer fits, and microreact output'''
 
 import sys
-
+import os
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -11,7 +11,7 @@ from scipy import spatial
 from sklearn import manifold
 import dendropy
 
-def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv):
+def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, overwrite = False):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -63,33 +63,42 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
 
     # calculate phylogeny
-    sys.stderr.write("Building phylogeny\n")
-    pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
-                                                       delimiter=",",
-                                                       is_first_row_column_names=True,
-                                                       is_first_column_row_names=False)
-    tree = pdm.nj_tree()
+    tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.nwk"
+    if overwrite or not os.path.isfile(tree_filename):
+        sys.stderr.write("Building phylogeny\n")
+        pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
+                                                           delimiter=",",
+                                                           is_first_row_column_names=True,
+                                                           is_first_column_row_names=False)
+        tree = pdm.nj_tree()
 
-    # Not sure why, but seems that this needs to be run twice to get
-    # what I would think of as a midpoint rooted tree
-    tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
-    tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
-    tree.write(path=outPrefix + "/" + outPrefix + "_core_NJ.nwk",
-               schema="newick",
-               suppress_rooting=True,
-               unquoted_underscores=True)
+        # Not sure why, but seems that this needs to be run twice to get
+        # what I would think of as a midpoint rooted tree
+        tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+        tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+        tree.write(path=tree_filename,
+                   schema="newick",
+                   suppress_rooting=True,
+                   unquoted_underscores=True)
+    else:
+       sys.stderr.write("NJ phylogeny already exists; add --overwrite to replace\n")
+
 
     # generate accessory genome distance representation
-    sys.stderr.write("Running t-SNE\n")
-    accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
+    tsne_filename = outPrefix + "/" + outPrefix + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
+    if overwrite or not os.path.isfile(tsne_filename):
+        sys.stderr.write("Running t-SNE\n")
+        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
 
-    # print dot file
-    with open(outPrefix + "/" + outPrefix + "_accessory_tsne.dot", 'w') as nFile:
-        nFile.write("graph G { ")
-        for s, seqLabel in enumerate(seqLabels):
-            nFile.write('"' + seqLabel + '"' +
-                    '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
-        nFile.write("}\n")
+        # print dot file
+        with open(tsne_filename, 'w') as nFile:
+            nFile.write("graph G { ")
+            for s, seqLabel in enumerate(seqLabels):
+                nFile.write('"' + seqLabel + '"' +
+                        '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
+            nFile.write("}\n")
+    else:
+        sys.stderr.write("t-SNE analysis already exists; add --overwrite to replace\n")
 
     # read epidemiological information if provided
     epi = {}
