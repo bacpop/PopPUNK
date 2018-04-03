@@ -13,6 +13,7 @@ from itertools import product
 from glob import glob
 from random import sample
 import numpy as np
+import sharedmem
 import networkx as nx
 from scipy import optimize
 
@@ -340,7 +341,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         number_pairs = int(len(refList) * len(queryList))
 
     # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
-    raw = np.zeros((number_pairs, len(klist)), dtype=np.float32)
+    raw = sharedmem.empty((number_pairs, len(klist)), dtype=np.float32)
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -417,19 +418,35 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                     "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
 
     # run pairwise analyses across kmer lengths, mutating distMat
+    # Create range of rows that each thread will work with
+    rows_per_thread = int(number_pairs / threads)
+    big_threads = number_pairs % threads
+    start = 0
+    mat_chunks = []
+    for thread in range(threads):
+        end = start + rows_per_thread
+        if thread < big_threads:
+            end += 1
+        mat_chunks.append((start, end))
+        start = end
+
+    distMat = sharedmem.empty((number_pairs, 2))
     with Pool(processes=threads) as pool:
-        distMat = pool.map(partial(fitKmerCurve, klist=klist, jacobian=jacobian), raw, chunksize = int(number_pairs / threads))
-    del raw
-    distMat = np.vstack(distMat)
+        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
 
     return(refList, queryList, distMat)
+
+# Multirow wrapper around fitKmerCurve
+def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
+    (start, end) = idxRanges
+    distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
 
 # fit the function pr = (1-a)(1-c)^k
 # supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
 def fitKmerCurve(pairwise, klist, jacobian):
     # curve fit pr = (1-a)(1-c)^k
     # log pr = log(1-a) + k*log(1-c)
-    # a = p[0]; c = p[1] (will flip on return(
+    # a = p[0]; c = p[1] (will flip on return)
     distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                      x0=[0.0, -0.01],
                                      jac=lambda p, x, y: jacobian,
