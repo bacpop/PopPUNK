@@ -254,7 +254,7 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
 ##########################################
 
 def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, means,
-        covariances, scale, outPrefix, dbPrefix, batchSize, threads = 1, mash_exec = 'mash'):
+        covariances, scale, outPrefix, dbPrefix, threads = 1, mash_exec = 'mash'):
 
     # identify within-strain links (closest component to origin)
     within_label = findWithinLabel(means, assignments)
@@ -282,7 +282,7 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
         # write unassigned queries to file as if a list of references
         tmpDirString = "tmp_" + outPrefix
         tmpFileName = tmpDirString + ".in"
-        createDatabaseDir(tmpDirString)
+        createDatabaseDir(tmpDirString, kmers)
         with open(tmpFileName, 'w') as tFile:
             for query in unassigned:
                 tFile.write(query + '\n')
@@ -290,12 +290,13 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
-        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec, threads, False)
+        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec = mash_exec, threads = threads)
         queryAssignation = assign_samples(distMat, weights, means, covariances, scale)
 
         # identify any links between queries and store in the same links dict
         # links dict now contains lists of links both to original database and new queries
-        for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+#        for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+        for assignment, (query1, query2) in zip(assignments, iterDistRows(qlist1, qlist2, self=True)):
             if assignment == within_label:
                 links[query].append(ref)
 
@@ -309,8 +310,10 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
 
         # remove directory
         shutil.rmtree("./" + tmpDirString)
-        os.remove(tmpFileName)
-        os.remove("tmp_" + outPrefix + ".err.log")
+        if os.path.isfile(tmpFileName):
+            os.remove(tmpFileName)
+        if os.path.isfile("tmp_" + outPrefix + ".err.log"):
+            os.remove("tmp_" + outPrefix + ".err.log")
 
     # finish by returning network and dict of query-ref and query-query link lists
     return links, G

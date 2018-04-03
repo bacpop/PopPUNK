@@ -133,7 +133,7 @@ def assignQueriesToClusters(links, G, databaseName, outPrefix):
                 # as a transitive property
                 if query in queryCluster:
                     for similarQuery in queriesInCluster[queryCluster[query]]:
-                        if len(existingHits[similarQuery].keys()) > 0:
+                        if similarQuery in existingHits and len(existingHits[similarQuery].keys()) > 0:
                             if newCluster is None:
                                 newCluster = str(';'.join(str(v) for v in existingHits[similarQuery].keys()))
                             else:
@@ -239,7 +239,7 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 
         # Make sure process executed correctly
         if mash_info.returncode != 0:
-            raise RuntimeError('mash info failed')
+            raise RuntimeError('mash command '+mash_cmd+' failed')
     except subprocess.CalledProcessError as e:
         sys.stderr.write("Could not get info about " + dbname + "; command " + mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
         sys.exit(1)
@@ -393,7 +393,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
 
 
             if rawOutput.poll() != 0:
-                raise RuntimeError('mash dist failed')
+                raise RuntimeError('mash dist command "'+mash_cmd+'" failed with raw output '+str(rawOutput.poll()))
             else:
                 os.remove(dbPrefix + ".err.log")
 

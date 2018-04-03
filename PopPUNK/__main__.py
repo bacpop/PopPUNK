@@ -227,7 +227,7 @@ def main():
             queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, args.output, args.ref_db,
-                    args.batch_size, args.threads, args.mash)
+                     args.threads, args.mash)
             newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
             if args.update_db:
