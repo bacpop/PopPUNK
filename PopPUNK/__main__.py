@@ -75,7 +75,8 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences', default=False, action='store_true')
+    oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences',
+                                            default=False, action='store_true')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances'
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
@@ -187,12 +188,13 @@ def main():
                 sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
                 sys.exit(1)
 
-            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = \
+                fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output,args.m_csv,args.overwrite)
+                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.m_csv, args.overwrite)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
@@ -200,7 +202,8 @@ def main():
                 map(os.remove, referenceGenomes) # tidy up
             printQueryOutput(refList, queryList, distMat, args.output, self)
         else:
-            sys.stderr.write("Need to provide an input set of distances with --distances and reference database directory with --ref-db\n\n")
+            sys.stderr.write("Need to provide an input set of distances with --distances "
+                             "and reference database directory with --ref-db\n\n")
             sys.exit(1)
 
     elif args.create_query_db:
@@ -209,13 +212,16 @@ def main():
             sys.stderr.write("Mode: Building new database from input sequences\n")
             kmers = getKmersFromReferenceDatabase(args.ref_db)
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False, args.plot_fit, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False,
+                                                        args.plot_fit, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output, self)
             # store distances in pickle if requested
             if args.save_distances:
                 storePickle(refList, queryList, False, distMat, args.output + ".dists")
         else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and query list with --q-files; use --save-distances to subsequently assign queries to clusters\n")
+            sys.stderr.write("Need to provide both a reference database with --ref-db and "
+                             "query list with --q-files; use --save-distances to subsequently "
+                             "assign queries to clusters\n")
             sys.exit(1)
 
     elif args.assign_query:
@@ -228,10 +234,12 @@ def main():
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, args.output, args.ref_db,
                     args.batch_size, args.threads, args.mash)
-            newClusterMembers, existingClusterMatches = assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
+            newClusterMembers, existingClusterMatches = \
+                assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
             if args.update_db:
-                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db, args.threads, args.mash, args.overwrite)
+                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db,
+                               args.threads, args.mash, args.overwrite)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")

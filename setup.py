@@ -57,6 +57,7 @@ setup(
                       'statsmodels',
                       'scikit-learn',
                       'DendroPy',
+                      'sharedmem',
                       'pymc3',
                       'theano',
                       'networkx',
