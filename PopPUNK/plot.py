@@ -23,7 +23,7 @@ def readEpiFile(epiCsv):
     # parse file
     with open(epiCsv.rstrip(), 'r') as eFile:
         for line in eFile:
-            data = line.split(',')
+            data = line.rstrip().split(',')
             id = data.pop(0)
             if id == "id":
                 epiHeader = data
@@ -31,7 +31,7 @@ def readEpiFile(epiCsv):
                 if len(data) == len(epiHeader):
                     epi[id] = data
                 else:
-                    sys.stderr.write("Incorrect number of fields in CSV for line with Id "+id)
+                    sys.stderr.write("Incorrect number of fields in CSV for line with id "+id+" - header must start with 'id'")
                     sys.exit(1)
 
     if len(epiHeader) == 0:
@@ -45,7 +45,7 @@ def readEpiFile(epiCsv):
 # Write output for Cytoscape #
 ##############################
 
-def outputsForCytoscape(G, outPrefix, epiCsv):
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
     
     # write graph file
     nx.write_graphml(G,"./"+outPrefix+"/"+outPrefix+"_cytoscape.graphml")
@@ -63,12 +63,12 @@ def outputsForCytoscape(G, outPrefix, epiCsv):
         if epiCsv is not None:
             cFile.write(','+','.join(str(e) for e in epiHeader))
         cFile.write("\n")
-        for label, unique in zip(seqLabels, refList):
+        for unique in G.nodes(data=False):
             if unique in clustering:
-                cFile.write(label + ',' + str(clustering[unique]))
+                cFile.write(unique + ',' + str(clustering[unique]))
                 if epiCsv is not None:
-                    if label in epi.keys():
-                        cFile.write(','+','.join(str(e) for e in epi[label]))
+                    if unique in epi.keys():
+                        cFile.write(','+','.join(str(e) for e in epi[unique]))
                     else:
                         cFile.write(missingString)
                 cFile.write("\n")
@@ -170,35 +170,17 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
         sys.stderr.write("t-SNE analysis already exists; add --overwrite to replace\n")
 
     # read epidemiological information if provided
-    epi = {}
+    rawepi = {}
     epiHeader = []
     missingString = ""
+    epi = {}
     if epiCsv is not None:
-        epi, epiHeader, missingString = readEpiFile(epiCsv)
+        rawepi, epiHeader, missingString = readEpiFile(epiCsv)
         # prune off suffix
-        for label in epi.keys():
+        for label in rawepi.keys():
             newlabel = label.split('.')[0]
-            epi[newlabel] = epi[label]
-            del epi[label]
-
-        # remove
-#        with open(epiCsv.rstrip(), 'r') as eFile:
-#            for line in eFile:
-#                data = line.split(',')
-#                id = data.pop(0)
-#                if id == "id":
-#                    epiHeader = data
-#                else:
-#                    if len(data) == len(epiHeader):
-#                        epi[id] = data
-#                    else:
-#                        sys.stderr.write("Incorrect number of fields in CSV for line with Id "+id)
-#                        sys.exit(1)
-        # remove - replace with stripping the suffix off the IDs
-#        if len(epiHeader) == 0:
-#            sys.stderr.write("Unable to find header line starting with 'Id'")
-#            sys.exit(1)
-#        missingString = (','*len(epiHeader))[:len(epiHeader)]
+            epi[newlabel] = rawepi[label]
+        del rawepi
 
     # print clustering file
     with open(outPrefix + "/" + outPrefix + "_microreact_clusters.csv", 'w') as cFile:

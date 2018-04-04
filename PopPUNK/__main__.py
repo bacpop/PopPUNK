@@ -199,7 +199,7 @@ def main():
                 outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.info_csv, args.overwrite)
             # generate outputs for cytoscape if asked
             if args.cytoscape:
-                outputsForCytoscape(genomeNetwork, args.output, args.info_csv)
+                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)
