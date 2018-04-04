@@ -33,6 +33,7 @@ from .network import updateClustering
 from .network import printClusters
 
 from .plot import outputsForMicroreact
+from .plot import outputsForCytoscape
 
 #################
 # run main code #
@@ -79,7 +80,6 @@ def get_options():
                                             default=False, action='store_true')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances'
                                             '[default = 0]', default=0, type=int)
-    oGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
@@ -96,11 +96,13 @@ def get_options():
     modelGroup.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
     modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
 
-    mrGroup = parser.add_argument_group('Microreact options')
-    mrGroup.add_argument('--perplexity', type=float, default = 5.0,
+    faGroup = parser.add_argument_group('Further analysis options')
+    faGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
+    faGroup.add_argument('--cytoscape', help='Generate output files for Cytoscape', default=False, action='store_true')
+    faGroup.add_argument('--perplexity', type=float, default = 5.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=5.0]')
-    mrGroup.add_argument('--m-csv',
-                     help='Epidemiological information CSV formatted for microreact (with --microreact)')
+    faGroup.add_argument('--info-csv',
+                     help='Epidemiological information CSV formatted for microreact (with --microreact or --cytoscape)')
 
 
     other = parser.add_argument_group('Other options')
@@ -194,7 +196,10 @@ def main():
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
             if args.microreact:
-                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.m_csv, args.overwrite)
+                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.info_csv, args.overwrite)
+            # generate outputs for cytoscape if asked
+            if args.cytoscape:
+                outputsForCytoscape(genomeNetwork, args.output, args.info_csv)
             # extract limited references from clique by default
             if not args.full_db:
                 referenceGenomes = extractReferences(genomeNetwork, args.output)

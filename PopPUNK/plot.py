@@ -10,6 +10,75 @@ import itertools
 from scipy import spatial
 from sklearn import manifold
 import dendropy
+import networkx as nx
+
+#####################################
+# Parse epidemiological information #
+#####################################
+
+def readEpiFile(epiCsv):
+    # data structures
+    epi = {}
+    epiHeader = []
+    # parse file
+    with open(epiCsv.rstrip(), 'r') as eFile:
+        for line in eFile:
+            data = line.split(',')
+            id = data.pop(0)
+            if id == "id":
+                epiHeader = data
+            else:
+                if len(data) == len(epiHeader):
+                    epi[id] = data
+                else:
+                    sys.stderr.write("Incorrect number of fields in CSV for line with Id "+id)
+                    sys.exit(1)
+
+    if len(epiHeader) == 0:
+        sys.stderr.write("Unable to find header line starting with 'Id'")
+        sys.exit(1)
+    missingString = (','*len(epiHeader))[:len(epiHeader)]
+
+    return epi, epiHeader, missingString
+
+##############################
+# Write output for Cytoscape #
+##############################
+
+def outputsForCytoscape(G, outPrefix, epiCsv):
+    
+    # write graph file
+    nx.write_graphml(G,"./"+outPrefix+"/"+outPrefix+"_cytoscape.graphml")
+    
+    # read epi info if provided
+    epi = {}
+    epiHeader = []
+    missingString = ""
+    if epiCsv is not None:
+        epi, epiHeader, missingString = readEpiFile(epiCsv)
+
+    # write annotation file for Cytoscape
+    with open(outPrefix + "/" + outPrefix + "_cytoscape.csv", 'w') as cFile:
+        cFile.write("id,Cluster")
+        if epiCsv is not None:
+            cFile.write(','+','.join(str(e) for e in epiHeader))
+        cFile.write("\n")
+        for label, unique in zip(seqLabels, refList):
+            if unique in clustering:
+                cFile.write(label + ',' + str(clustering[unique]))
+                if epiCsv is not None:
+                    if label in epi.keys():
+                        cFile.write(','+','.join(str(e) for e in epi[label]))
+                    else:
+                        cFile.write(missingString)
+                cFile.write("\n")
+            else:
+                sys.stderr.write("Cannot find " + unique + " in clustering\n")
+                sys.exit(1)
+
+###########################
+# Write microreact output #
+###########################
 
 def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, overwrite = False):
     """Generate files for microreact
@@ -103,24 +172,33 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     # read epidemiological information if provided
     epi = {}
     epiHeader = []
+    missingString = ""
     if epiCsv is not None:
-        with open(epiCsv.rstrip(), 'r') as eFile:
-            for line in eFile:
-                data = line.split(',')
-                id = data.pop(0)
-                if id == "id":
-                    epiHeader = data
-                else:
-                    if len(data) == len(epiHeader):
-                        epi[id] = data
-                    else:
-                        sys.stderr.write("Incorrect number of fields in CSV for line with Id "+id)
-                        sys.exit(1)
+        epi, epiHeader, missingString = readEpiFile(epiCsv)
+        # prune off suffix
+        for label in epi.keys():
+            newlabel = label.split('.')[0]
+            epi[newlabel] = epi[label]
+            del epi[label]
 
-        if len(epiHeader) == 0:
-            sys.stderr.write("Unable to find header line starting with 'Id'")
-            sys.exit(1)
-        missingString = (','*len(epiHeader))[:len(epiHeader)]
+        # remove
+#        with open(epiCsv.rstrip(), 'r') as eFile:
+#            for line in eFile:
+#                data = line.split(',')
+#                id = data.pop(0)
+#                if id == "id":
+#                    epiHeader = data
+#                else:
+#                    if len(data) == len(epiHeader):
+#                        epi[id] = data
+#                    else:
+#                        sys.stderr.write("Incorrect number of fields in CSV for line with Id "+id)
+#                        sys.exit(1)
+        # remove - replace with stripping the suffix off the IDs
+#        if len(epiHeader) == 0:
+#            sys.stderr.write("Unable to find header line starting with 'Id'")
+#            sys.exit(1)
+#        missingString = (','*len(epiHeader))[:len(epiHeader)]
 
     # print clustering file
     with open(outPrefix + "/" + outPrefix + "_microreact_clusters.csv", 'w') as cFile:
