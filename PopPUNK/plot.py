@@ -2,6 +2,7 @@
 
 import sys
 import os
+import subprocess
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -76,11 +77,50 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
                 sys.stderr.write("Cannot find " + unique + " in clustering\n")
                 sys.exit(1)
 
+############################################
+# Use rapidNJ for more rapid tree building #
+############################################
+
+def buildRapidNJ(rapidnj,refList,coreMat,outPrefix,tree_filename):
+
+    # generate phylip matrix
+    phylip_name = "./" + outPrefix + "/" + outPrefix + "_core_distances.phylip"
+    with open(phylip_name, 'w') as pFile:
+        pFile.write(str(len(refList))+"\n")
+        for r in range(len(refList)):
+            namePrefix = refList[r].split('.')[0]
+            pFile.write(namePrefix)
+            pFile.write(' '+' '.join(map(str,coreMat[r,])))
+            pFile.write("\n")
+    
+    # construct tree
+    rapidnj_cmd = rapidnj + " " + phylip_name + " -i pd -o t -x " + tree_filename + ".raw"
+    try:
+        # run command
+        subprocess.run(rapidnj_cmd, shell=True, check=True)
+
+        # remove quotation marks for microreact
+        with open(tree_filename+".raw", 'r') as f, open(tree_filename, 'w') as fo:
+            for line in f:
+                fo.write(line.replace("'", ''))
+        # tidy unnecessary files
+        os.remove(tree_filename+".raw")
+        os.remove("./" + outPrefix + "/" + outPrefix + "_core_distances.phylip")
+
+    # record errors
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write("Could not run command " + tree_info + "; returned: "+e.message+"\n")
+        sys.exit(1)
+
+    # read tree and return
+    tree = dendropy.Tree.get(path=tree_filename, schema="newick")
+    return tree
+
 ###########################
 # Write microreact output #
 ###########################
 
-def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, overwrite = False):
+def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, overwrite = False):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -132,14 +172,18 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
 
     # calculate phylogeny
-    tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.nwk"
+    tree_filename = outPrefix + "/" + outPrefix + "_core_NJ_microreact.nwk"
     if overwrite or not os.path.isfile(tree_filename):
         sys.stderr.write("Building phylogeny\n")
         pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
                                                            delimiter=",",
                                                            is_first_row_column_names=True,
                                                            is_first_column_row_names=False)
-        tree = pdm.nj_tree()
+        tree = ""
+        if rapidnj is None:
+            tree = pdm.nj_tree()
+        else:
+            tree = buildRapidNJ(rapidnj,refList,coreMat,outPrefix,tree_filename)
 
         # Not sure why, but seems that this needs to be run twice to get
         # what I would think of as a midpoint rooted tree
