@@ -32,7 +32,8 @@ def readEpiFile(epiCsv):
                 if len(data) == len(epiHeader):
                     epi[id] = data
                 else:
-                    sys.stderr.write("Incorrect number of fields in CSV for line with id "+id+" - header must start with 'id'")
+                    sys.stderr.write("Incorrect number of fields in CSV for line with id " \
+                                     + id + " - header must start with 'id'")
                     sys.exit(1)
 
     if len(epiHeader) == 0:
@@ -47,14 +48,11 @@ def readEpiFile(epiCsv):
 ##############################
 
 def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
-    
+
     # write graph file
-    nx.write_graphml(G,"./"+outPrefix+"/"+outPrefix+"_cytoscape.graphml")
-    
+    nx.write_graphml(G, "./" + outPrefix + "/" + outPrefix + "_cytoscape.graphml")
+
     # read epi info if provided
-    epi = {}
-    epiHeader = []
-    missingString = ""
     if epiCsv is not None:
         epi, epiHeader, missingString = readEpiFile(epiCsv)
 
@@ -81,7 +79,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
 # Use rapidNJ for more rapid tree building #
 ############################################
 
-def buildRapidNJ(rapidnj,refList,coreMat,outPrefix,tree_filename):
+def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
 
     # generate phylip matrix
     phylip_name = "./" + outPrefix + "/" + outPrefix + "_core_distances.phylip"
@@ -92,7 +90,7 @@ def buildRapidNJ(rapidnj,refList,coreMat,outPrefix,tree_filename):
             pFile.write(namePrefix)
             pFile.write(' '+' '.join(map(str,coreMat[r,])))
             pFile.write("\n")
-    
+
     # construct tree
     rapidnj_cmd = rapidnj + " " + phylip_name + " -i pd -o t -x " + tree_filename + ".raw"
     try:
@@ -100,25 +98,21 @@ def buildRapidNJ(rapidnj,refList,coreMat,outPrefix,tree_filename):
         subprocess.run(rapidnj_cmd, shell=True, check=True)
 
         # remove quotation marks for microreact
-        with open(tree_filename+".raw", 'r') as f, open(tree_filename, 'w') as fo:
+        with open(tree_filename + ".raw", 'r') as f, open(tree_filename, 'w') as fo:
             for line in f:
                 fo.write(line.replace("'", ''))
         # tidy unnecessary files
         os.remove(tree_filename+".raw")
-        os.remove("./" + outPrefix + "/" + outPrefix + "_core_distances.phylip")
+        os.remove(phylip_name)
 
     # record errors
     except subprocess.CalledProcessError as e:
-        sys.stderr.write("Could not run command " + tree_info + "; returned: "+e.message+"\n")
+        sys.stderr.write("Could not run command " + tree_info + "; returned: " + e.message + "\n")
         sys.exit(1)
 
     # read tree and return
     tree = dendropy.Tree.get(path=tree_filename, schema="newick")
     return tree
-
-###########################
-# Write microreact output #
-###########################
 
 def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, overwrite = False):
     """Generate files for microreact
@@ -140,6 +134,11 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
         epiCsv (str)
             A CSV containing other information, to include with the CSV of clusters
+        rapidnj (str)
+            A string with the location of the rapidnj executable for tree-building. If None, will
+            use dendropy by default
+        overwrite (bool)
+            Overwrite existing output if present (default = False)
     """
 
     # avoid recursive import
@@ -179,11 +178,10 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
                                                            delimiter=",",
                                                            is_first_row_column_names=True,
                                                            is_first_column_row_names=False)
-        tree = ""
-        if rapidnj is None:
-            tree = pdm.nj_tree()
+        if rapidnj is not None:
+            tree = buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename)
         else:
-            tree = buildRapidNJ(rapidnj,refList,coreMat,outPrefix,tree_filename)
+            tree = pdm.nj_tree()
 
         # Not sure why, but seems that this needs to be run twice to get
         # what I would think of as a midpoint rooted tree

@@ -96,7 +96,7 @@ def constructNetwork(rlist, qlist, assignments, within_label):
                                                        "\tTransitivity\t" + "{:.4f}".format(transitivity),
                                                        "\tScore\t" + "{:.4f}".format(score)])
                                                        + "\n")
-    
+
     return G
 
 #########################################

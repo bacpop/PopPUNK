@@ -97,11 +97,9 @@ def get_options():
     modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
 
     faGroup = parser.add_argument_group('Further analysis options')
-    faGroup.add_argument('--microreact', help='Generate output files for microreact', default=False, action='store_true')
-    faGroup.add_argument('--cytoscape', help='Generate output files for Cytoscape', default=False, action='store_true')
-
-    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact')
-    
+    faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
+    faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
+    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default=None)
     faGroup.add_argument('--perplexity', type=float, default = 5.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=5.0]')
     faGroup.add_argument('--info-csv',
