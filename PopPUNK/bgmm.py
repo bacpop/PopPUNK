@@ -79,10 +79,10 @@ def logp_gmix(mus, pi, tau, n_samples):
 
     return logp_
 
-def logp_tmix(nu, mus, pi, tau, n_samples):
+def logp_tmix(ts, pi, n_samples):
     def logp_(value):
-        logps = [tt.log(pi[i]) + logp_t(nu, mu, tau[i], value)
-                 for i, mu in enumerate(mus)]
+        logps = [tt.log(pi[i]) + ts[i].logp(value)
+                 for i, t in enumerate(ts)]
 
         return tt.sum(mc3_logsumexp(tt.stacklists(logps)[:, :n_samples], axis=0))
 
@@ -122,21 +122,32 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
 
     return log_prob
 
-def log_multivariate_t_density(X, nu, mu, tau):
-    # log probability of individual samples
-    k = tau.shape[0]
+def log_multivariate_t_density(X, means, covars, nu = 1):
+    n_samples, n_dim = X.shape
+    nmix = len(means)
+    log_prob = np.empty((n_samples, nmix))
+    for c, (mu, cv) in enumerate(zip(means, covars)):
+        try:
+            cv_chol = linalg.cholesky(cv, lower=True)
+        except linalg.LinAlgError:
+            # The model is most probably stuck in a component with too
+            # few observations, we need to reinitialize this components
+            try:
+                cv_chol = linalg.cholesky(cv + min_covar * np.eye(n_dim),
+                                          lower=True)
+            except linalg.LinAlgError:
+                raise ValueError("'covars' must be symmetric, "
+                                 "positive-definite")
 
-    delta = lambda mu: X - mu
-    quaddist = (np.dot(delta(mu), tau) * delta(mu)).sum(axis=1)
-    logdet = np.log(1./np.linalg.det(tau))
+        cv_log_det = 2 * np.sum(np.log(np.diagonal(cv_chol)))
+        cv_sol = linalg.solve_triangular(cv_chol, (X - mu).T, lower=True).T
 
-    norm = (sp_gammaln((nu + k) / 2.)
-                - sp_gammaln(nu / 2.)
-                - 0.5 * k * np.log(nu * np.pi))
-    inner = - (nu + k) / 2. * np.log1p(quaddist / nu)
-    logp = norm + inner - logdet
-    return logp
+        norm = (sp_gammaln((nu + n_dim) / 2.) - sp_gammaln(nu / 2.)
+                - 0.5 * n_dim * np.log(nu * np.pi))
+        inner = - (nu + n_dim) / 2. * np.log1p(np.sum(cv_sol ** 2, axis=1) / nu)
+        log_prob[:, c] = norm + inner - cv_log_det
 
+    return log_prob
 
 def assign_samples(X, weights, means, covars, scale, t_dist = False, values = False):
     """modified sklearn GMM function predicting distribution membership
@@ -166,8 +177,8 @@ def assign_samples(X, weights, means, covars, scale, t_dist = False, values = Fa
             or an n by k matrix with the component responsibilities for each sample.
     """
     if t_dist:
-        lpr = np.asarray([np.log(weights[i]) + log_multivariate_t_density(X, 1, mu, covars[i])
-                 for i, mu in enumerate(means)]).T
+        lpr = (log_multivariate_t_density(X/scale, means, covars) +
+                np.log(weights))
     else:
         lpr = (log_multivariate_normal_density(X/scale, means, covars) +
                 np.log(weights))
@@ -232,14 +243,16 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
         chol = []
         cov = []
         tau = []
+        ts = []
         sd_dist = pm.HalfCauchy.dist(beta=1, shape=2)
         for i in range(K):
             chol_packed.append(pm.LKJCholeskyCov('chol_packed_%i' %i, n=2, eta=1, sd_dist=sd_dist))
             chol.append(pm.expand_packed_triangular(2, chol_packed[i]))
             cov.append(pm.Deterministic('cov_%i' %i, tt.dot(chol[i], chol[i].T)))
             tau.append(matrix_inverse(cov[i]))
+            ts.append(pm.MvStudentT.dist(nu=nu, mu=mus[i], tau=tau[i]))
 
-        xs = pm.DensityDist('x', logp_tmix(nu, mus, pi, tau, n_samples), observed=X_mini, total_size=n_samples)
+        xs = pm.DensityDist('x', logp_tmix(ts, pi, n_samples), observed=X_mini, total_size=n_samples)
 
     # ADVI - approximate inference
     with mini_model:
