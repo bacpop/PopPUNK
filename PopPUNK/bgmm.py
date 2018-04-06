@@ -15,6 +15,8 @@ try:
     import theano
     import theano.tensor as tt
     from theano.tensor.nlinalg import det, matrix_inverse
+    from theano import scalar
+    from theano.scalar.basic_scipy import GammaLn
 except ImportError:
     sys.stderr.write("Could not import theano, likely because python was not compiled with shared libraries\n")
     sys.stderr.write("Model fit to reference will not run unless --dpgmm is used\n")
@@ -30,10 +32,27 @@ from sklearn import mixture
 from .plot import plot_scatter
 from .plot import plot_results
 
+scalar_gammaln = GammaLn(scalar.upgrade_to_float, name='scalar_gammaln')
+gammaln = tt.Elemwise(scalar_gammaln, name='gammaln')
+
 #########################################
 # Log likelihood of normal distribution #
 #########################################
 # for pymc3 fit
+
+def logp_t(nu, mu, tau, value):
+    # log probability of individual samples
+    k = tau.shape[0]
+
+    delta = lambda mu: value - mu
+    quaddist = (delta(mu).dot(tau) * delta(mu)).sum(axis=1)
+    logdet = tt.log(1./det(tau))
+
+    norm = (gammaln((nu + k) / 2.)
+                - gammaln(nu / 2.)
+                - 0.5 * k * pm.floatX(np.log(nu * np.pi)))
+    inner = - (nu + k) / 2. * tt.log1p(quaddist / nu)
+    return (norm + inner - logdet)
 
 def logp_normal(mu, tau, value):
     # log probability of individual samples
@@ -41,6 +60,7 @@ def logp_normal(mu, tau, value):
     delta = lambda mu: value - mu
     logp_ = (-1 / 2.) * (k * tt.log(2 * np.pi) + tt.log(1./det(tau)) + (delta(mu).dot(tau) * delta(mu)).sum(axis=1))
     return logp_
+
 
 ###################################################
 # Log likelihood of Gaussian mixture distribution #
@@ -50,6 +70,15 @@ def logp_normal(mu, tau, value):
 def logp_gmix(mus, pi, tau, n_samples):
     def logp_(value):
         logps = [tt.log(pi[i]) + logp_normal(mu, tau[i], value)
+                 for i, mu in enumerate(mus)]
+
+        return tt.sum(mc3_logsumexp(tt.stacklists(logps)[:, :n_samples], axis=0))
+
+    return logp_
+
+def logp_tmix(nu, mus, pi, tau, n_samples):
+    def logp_(value):
+        logps = [tt.log(pi[i]) + logp_t(nu, mu, tau[i], value)
                  for i, mu in enumerate(mus)]
 
         return tt.sum(mc3_logsumexp(tt.stacklists(logps)[:, :n_samples], axis=0))
@@ -166,6 +195,9 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
         else:
             pi = pm.Dirichlet('pi', a=pm.floatX(proportions / strength), shape=(K,))
 
+        #nu = pm.Poisson('nu', mu = 1)
+        nu = 1
+
         # Mean position prior
         mus = []
         mu_prior_strength = pm.HalfNormal('mu_strength', tau=positions_belief**2)
@@ -184,7 +216,7 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
             cov.append(pm.Deterministic('cov_%i' %i, tt.dot(chol[i], chol[i].T)))
             tau.append(matrix_inverse(cov[i]))
 
-        xs = pm.DensityDist('x', logp_gmix(mus, pi, tau, n_samples), observed=X_mini, total_size=n_samples)
+        xs = pm.DensityDist('x', logp_tmix(nu, mus, pi, tau, n_samples), observed=X_mini, total_size=n_samples)
 
     # ADVI - approximate inference
     with mini_model:
