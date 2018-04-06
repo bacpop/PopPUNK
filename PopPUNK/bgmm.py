@@ -24,21 +24,23 @@ from scipy import stats
 from scipy import linalg
 try:  # SciPy >= 0.19
     from scipy.special import logsumexp as sp_logsumexp
+    from scipy.special import gammaln as sp_gammaln
 except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
+    from scipy.misc import gammaln as sp_gammaln
 from sklearn import utils
 from sklearn import mixture
 
 from .plot import plot_scatter
 from .plot import plot_results
 
-scalar_gammaln = GammaLn(scalar.upgrade_to_float, name='scalar_gammaln')
-gammaln = tt.Elemwise(scalar_gammaln, name='gammaln')
-
 #########################################
 # Log likelihood of normal distribution #
 #########################################
 # for pymc3 fit
+
+scalar_gammaln = GammaLn(scalar.upgrade_to_float, name='scalar_gammaln')
+gammaln = tt.Elemwise(scalar_gammaln, name='gammaln')
 
 def logp_t(nu, mu, tau, value):
     # log probability of individual samples
@@ -52,7 +54,8 @@ def logp_t(nu, mu, tau, value):
                 - gammaln(nu / 2.)
                 - 0.5 * k * pm.floatX(np.log(nu * np.pi)))
     inner = - (nu + k) / 2. * tt.log1p(quaddist / nu)
-    return (norm + inner - logdet)
+    logp = norm + inner - logdet
+    return tt.switch(1 * logp, logp, -np.inf)
 
 def logp_normal(mu, tau, value):
     # log probability of individual samples
@@ -119,7 +122,23 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
 
     return log_prob
 
-def assign_samples(X, weights, means, covars, scale, values=False):
+def log_multivariate_t_density(X, nu, mu, tau):
+    # log probability of individual samples
+    k = tau.shape[0]
+
+    delta = lambda mu: X - mu
+    quaddist = (np.dot(delta(mu), tau) * delta(mu)).sum(axis=1)
+    logdet = np.log(1./np.linalg.det(tau))
+
+    norm = (sp_gammaln((nu + k) / 2.)
+                - sp_gammaln(nu / 2.)
+                - 0.5 * k * np.log(nu * np.pi))
+    inner = - (nu + k) / 2. * np.log1p(quaddist / nu)
+    logp = norm + inner - logdet
+    return logp
+
+
+def assign_samples(X, weights, means, covars, scale, t_dist = False, values = False):
     """modified sklearn GMM function predicting distribution membership
 
     Given distances and a fit will calculate responsibilities and return most
@@ -146,8 +165,12 @@ def assign_samples(X, weights, means, covars, scale, values=False):
             An n-vector with the most likely cluster memberships
             or an n by k matrix with the component responsibilities for each sample.
     """
-    lpr = (log_multivariate_normal_density(X/scale, means, covars) +
-           np.log(weights))
+    if t_dist:
+        lpr = np.asarray([np.log(weights[i]) + log_multivariate_t_density(X, 1, mu, covars[i])
+                 for i, mu in enumerate(means)]).T
+    else:
+        lpr = (log_multivariate_normal_density(X/scale, means, covars) +
+                np.log(weights))
     logprob = sp_logsumexp(lpr, axis=1)
     responsibilities = np.exp(lpr - logprob[:, np.newaxis])
 
@@ -379,8 +402,9 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
     np.savez(outPrefix + "/" + outPrefix + '_fit.npz', weights=weights, means=means, covariances=covariances, scale=scale)
 
     # Plot results
-    y = assign_samples(X, weights, means, covariances, scale)
-    avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, assign_samples(subsampled_X, weights, means, covariances, scale, values=True)))
+    y = assign_samples(X, weights, means, covariances, scale, t_dist = True)
+    avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
+        assign_samples(subsampled_X, weights, means, covariances, scale, t_dist = True, values=True)))
     used_components = np.unique(y).size
 
     title = outPrefix + " " + str(len(np.unique(y)))
