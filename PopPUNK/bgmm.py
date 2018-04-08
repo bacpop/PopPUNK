@@ -360,6 +360,80 @@ def readPriors(priorFile):
 # Fit model #
 #############
 
+import elfi
+
+# stripped down version of existing function
+# just to return score for BOLFI fitting
+def calculateNetworkScore(rlist, qlist, assignments, within_label):
+    
+    connections = []
+    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+        if assignment == within_label:
+            connections.append((ref, query))
+
+    # build the graph
+    G = nx.Graph()
+    G.add_nodes_from(rlist)
+    for connection in connections:
+        G.add_edge(*connection)
+        
+        # give some summaries
+        components = nx.number_connected_components(G)
+        density = nx.density(G)
+        transitivity = nx.transitivity(G)
+        score = transitivity * (1-density)
+        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
+                                                           "\tDensity\t" + "{:.4f}".format(density),
+                                                           "\tTransitivity\t" + "{:.4f}".format(transitivity),
+                                                           "\tScore\t" + "{:.4f}".format(score)])
+                         + "\n")
+
+    return score
+
+def fitThresholds(rlist,qlist,X):
+
+    # need a function that returns a score based on transitivity here
+    # I haven't figured out how to pass data efficiently into these types
+    # of function - ELFI passes *inputs from the priors for fitting, and
+    # fixed **kwinputs, which can't be appended as far as I can tell
+    # so I don't think X/rlist/qlist can be added here; instead, 'batch_size'
+    # gets passed from the fixed ELFI **kwinputs - see http://elfi.readthedocs.io/en/latest/usage/tutorial.html
+    def clusteringModel(c,a,X=X,rlist=rlist,qlist=qlist):
+        link_list = np.where((X[:,0] < c) & (X[:,1] < a),1,0)
+        score = calculateNetworkScore(rlist, qlist, link_list, 1)
+        print(str(score))
+        return score
+
+    # seed
+    seed = 1
+    np.random.seed(seed)
+    # set up model
+    clusteringModel_m = elfi.ElfiModel(name='clustering')
+    colMeans = X.mean(axis=0)
+    colMins = X.min(axis=0)
+    colMaxs = X.max(axis=0)
+    core_lambda = 1/colMeans[0]
+    acc_lambda = 1/colMeans[1]
+    # I want the priors to be exponential to force them to be close to the origin
+    # but no luck with the scipy.stats syntax - see http://elfi.readthedocs.io/en/latest/usage/tutorial.html#defining-the-model
+    print("means: "+str(core_lambda)+" "+str(acc_lambda)+"\nexp")
+#    elfi.Prior(stats.expon, colMeans[0], model=clusteringModel, name='core')
+#    elfi.Prior(stats.expon, colMeans[1], model=clusteringModel, name='accessory')
+    elfi.Prior('uniform', 0, 0.5*colMeans[0], model=clusteringModel_m, name='core')
+    elfi.Prior('uniform', 0, 0.5*colMeans[1], model=clusteringModel_m, name='accessory')
+
+    print("Priors: done")   # they aren't
+    # set up simulator
+    clustering_simulations = elfi.Simulator(clusteringModel, clusteringModel_m['core'],clusteringModel_m['accessory'], name='clustering',observed=1.0)
+    bolfi = elfi.BOLFI(clustering_simulations, batch_size=1, initial_evidence=10, update_interval=10,
+                       bounds={'core':(colMins[0],colMaxs[0]), 'accessory':(colMins[1],colMaxs[1])}, seed=seed)
+    # run fit
+    post = bolfi.fit(n_evidence=200)
+    print(post)
+    exit(0)
+
+                       
+
 def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_K = 2):
 
     # set output dir

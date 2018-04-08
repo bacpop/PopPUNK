@@ -24,6 +24,7 @@ from .mash import getSketchSize
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assignQuery
 from .bgmm import findWithinLabel
+from .bgmm import fitThresholds
 
 from .network import constructNetwork
 from .network import extractReferences
@@ -191,8 +192,11 @@ def main():
                 sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
                 sys.exit(1)
 
-            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = \
+#            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = \
                 fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
+            # add
+            distanceAssignments = fitThresholds(refList, queryList,distMat)
+            # add
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
