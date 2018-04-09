@@ -438,7 +438,7 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
 
     title = outPrefix + " " + str(len(np.unique(y)))
     outfile = outPrefix + "/" + outPrefix
-    if dpgmm:
+    if not bgmm:
         title += "-component DPGMM"
         outfile += "_DPGMM_fit"
     elif t_dist:
