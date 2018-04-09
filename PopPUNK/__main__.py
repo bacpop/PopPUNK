@@ -92,9 +92,11 @@ def get_options():
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
 
     modelGroup = parser.add_argument_group('Mixture model options')
+    modelGroup.add_argument('--K', help='Maximum number of mixture components (EM only) [default = 2]', type=int, default=2)
     modelGroup.add_argument('--priors', help='File specifying model priors. See documentation for help', default=None)
-    modelGroup.add_argument('--dpgmm', help='Use EM rather than ADVI to fit the mixture model', default=False, action='store_true')
-    modelGroup.add_argument('--K', help='Maximum number of mixture components (--dpgmm only) [default = 2]', type=int, default=2)
+    modelGroup.add_argument('--bgmm', help='Use ADVI rather than EM to fit the mixture model', default=False, action='store_true')
+    modelGroup.add_argument('--t-dist', help='Use a mixture of t distributions rather than Gaussians'
+                                             ' (ADVI only)', default=False, action='store_true')
 
     faGroup = parser.add_argument_group('Further analysis options')
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
@@ -191,8 +193,8 @@ def main():
                 sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
                 sys.exit(1)
 
-            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = \
-                fit2dMultiGaussian(distMat, args.output, args.priors, args.dpgmm, args.K)
+            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
+                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
             isolateClustering = printClusters(genomeNetwork, args.output)
             # generate outputs for microreact if asked
@@ -236,7 +238,7 @@ def main():
             refList, queryList, self, distMat = readPickle(args.distances)
             kmers = getKmersFromReferenceDatabase(args.ref_db)
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale = assignQuery(distMat, args.ref_db)
+            queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = assignQuery(distMat, args.ref_db)
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, args.output, args.ref_db,
                      args.threads, args.mash)

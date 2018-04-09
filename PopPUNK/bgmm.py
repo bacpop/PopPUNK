@@ -44,6 +44,7 @@ gammaln = tt.Elemwise(scalar_gammaln, name='gammaln')
 
 def logp_t(nu, mu, tau, value):
     # log probability of individual samples
+    # Not currently used, preferring logp function from pymc3 multivariate t
     k = tau.shape[0]
 
     delta = lambda mu: value - mu
@@ -122,7 +123,7 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
 
     return log_prob
 
-def log_multivariate_t_density(X, means, covars, nu = 1):
+def log_multivariate_t_density(X, means, covars, nu = 1, min_covar=1.e-7):
     n_samples, n_dim = X.shape
     nmix = len(means)
     log_prob = np.empty((n_samples, nmix))
@@ -210,7 +211,7 @@ def findWithinLabel(means, assignments):
 # 2D model with minibatches #
 #############################
 
-def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sampling_it = 10000, num_samples = 2000):
+def bgmm_model(X, model_parameters, t_dist = False, minibatch_size = 2000, burnin_it = 25000, sampling_it = 10000, num_samples = 2000):
     # Model priors
     (proportions, strength, mu_prior, positions_belief, dirichlet) = model_parameters
     K = mu_prior.shape[0]
@@ -229,8 +230,10 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
         else:
             pi = pm.Dirichlet('pi', a=pm.floatX(proportions / strength), shape=(K,))
 
-        #nu = pm.Poisson('nu', mu = 1)
-        nu = 1
+        if t_dist:
+            nu = 1
+            #nu_raw = pm.Poisson('nu_raw', mu = 0.5, shape = K)
+            #nu = pm.Deterministic('nu', nu_raw + 1)
 
         # Mean position prior
         mus = []
@@ -250,9 +253,15 @@ def bgmm_model(X, model_parameters, minibatch_size = 2000, burnin_it = 25000, sa
             chol.append(pm.expand_packed_triangular(2, chol_packed[i]))
             cov.append(pm.Deterministic('cov_%i' %i, tt.dot(chol[i], chol[i].T)))
             tau.append(matrix_inverse(cov[i]))
-            ts.append(pm.MvStudentT.dist(nu=nu, mu=mus[i], tau=tau[i]))
 
-        xs = pm.DensityDist('x', logp_tmix(ts, pi, n_samples), observed=X_mini, total_size=n_samples)
+            # likelihoods for t-distributions
+            if t_dist:
+                ts.append(pm.MvStudentT.dist(nu=nu, mu=mus[i], tau=tau[i]))
+
+        if t_dist:
+            xs = pm.DensityDist('x', logp_tmix(ts, pi, n_samples), observed=X_mini, total_size=n_samples)
+        else:
+            xs = pm.DensityDist('x', logp_gmix(mus, pi, tau, n_samples), observed=X_mini, total_size=n_samples)
 
     # ADVI - approximate inference
     with mini_model:
@@ -303,11 +312,12 @@ def assignQuery(X, refPrefix):
     means = model_npz['means']
     covariances = model_npz['covariances']
     scale = model_npz['scale']
+    t = model_npz['t']
 
     # Get assignments
-    y = assign_samples(X, weights, means, covariances, scale)
+    y = assign_samples(X, weights, means, covariances, scale, t)
 
-    return y, weights, means, covariances, scale
+    return y, weights, means, covariances, scale, t
 
 # Set priors from file, or provide default
 def readPriors(priorFile):
@@ -360,7 +370,7 @@ def readPriors(priorFile):
 # Fit model #
 #############
 
-def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_K = 2):
+def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = False, dpgmm_max_K = 2):
 
     # set output dir
     if not os.path.isdir(outPrefix):
@@ -385,9 +395,9 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
     plot_scatter(subsampled_X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
 
     # fit bgmm model
-    if not dpgmm:
+    if bgmm:
         parameters = readPriors(priorFile)
-        (trace, elbos) = bgmm_model(subsampled_X, parameters)
+        (trace, elbos) = bgmm_model(subsampled_X, parameters, t_dist)
 
         # Check convergence and parameters
         plt.plot(elbos)
@@ -410,26 +420,39 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm = False, dpgmm_max_
         weights = dpgmm.weights_
         means = dpgmm.means_
         covariances = dpgmm.covariances_
+        t_dist = False
 
     # Save model fit
-    np.savez(outPrefix + "/" + outPrefix + '_fit.npz', weights=weights, means=means, covariances=covariances, scale=scale)
+    np.savez(outPrefix + "/" + outPrefix + '_fit.npz',
+             weights=weights,
+             means=means,
+             covariances=covariances,
+             scale=scale,
+             t=np.array(t_dist, dtype=np.bool_))
 
     # Plot results
-    y = assign_samples(X, weights, means, covariances, scale, t_dist = True)
+    y = assign_samples(X, weights, means, covariances, scale, t_dist)
     avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
-        assign_samples(subsampled_X, weights, means, covariances, scale, t_dist = True, values=True)))
+        assign_samples(subsampled_X, weights, means, covariances, scale, t_dist, values=True)))
     used_components = np.unique(y).size
 
     title = outPrefix + " " + str(len(np.unique(y)))
+    outfile = outPrefix + "/" + outPrefix
     if dpgmm:
         title += "-component DPGMM"
+        outfile += "_DPGMM_fit"
+    elif t_dist:
+        title += "-component BtMM"
+        outfile += "_BtMM_fit"
     else:
         title +=  "-component BGMM"
-    plot_results(X, y, means, covariances, scale, title, outPrefix + "/" + outPrefix + "_GMM_fit")
+        outfile += "_BGMM_fit"
+    plot_results(X, y, means, covariances, scale, title, outfile)
 
     sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                    "\tNumber of components used\t" + str(used_components)])
                                                    + "\n")
 
     # return output
-    return y, weights, means, covariances, scale
+    return y, weights, means, covariances, scale, t_dist
+
