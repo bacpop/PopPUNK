@@ -34,17 +34,33 @@ from sklearn import mixture
 from .plot import plot_scatter
 from .plot import plot_results
 
-#########################################
-# Log likelihood of normal distribution #
-#########################################
 # for pymc3 fit
-
 scalar_gammaln = GammaLn(scalar.upgrade_to_float, name='scalar_gammaln')
 gammaln = tt.Elemwise(scalar_gammaln, name='gammaln')
 
 def logp_t(nu, mu, tau, value):
-    # log probability of individual samples
-    # Not currently used, preferring logp function from pymc3 multivariate t
+    """log probability of individual samples for a multivariate t-distribution
+
+    Theano compiled, used for ADVI fitting. Try to return -inf rather than NaN
+    for divergent values of logp.
+
+    Not currently used, preferring logp function from pymc3 multivariate t.
+    Would be called from :func:`~logp_tmix`
+
+    Args:
+        nu (int)
+            Degrees of freedom for t-distribution
+        mu (pm.MvNormal)
+            Position of mean mu
+        tau (pm.Matrix)
+            Precision matrix tau (inverse of Sigma)
+        value (pm.tensor)
+            Points to evaluate log- likelihood at
+
+    Returns:
+        logp (tt.tensor)
+            Log-likelihood of values
+    """
     k = tau.shape[0]
 
     delta = lambda mu: value - mu
@@ -58,29 +74,26 @@ def logp_t(nu, mu, tau, value):
     logp = norm + inner - logdet
     return tt.switch(1 * logp, logp, -np.inf)
 
-def logp_normal(mu, tau, value):
-    # log probability of individual samples
-    k = tau.shape[0]
-    delta = lambda mu: value - mu
-    logp_ = (-1 / 2.) * (k * tt.log(2 * np.pi) + tt.log(1./det(tau)) + (delta(mu).dot(tau) * delta(mu)).sum(axis=1))
-    return logp_
-
-
-###################################################
-# Log likelihood of Gaussian mixture distribution #
-###################################################
-# for pymc3 fit
-
-def logp_gmix(mus, pi, tau, n_samples):
-    def logp_(value):
-        logps = [tt.log(pi[i]) + logp_normal(mu, tau[i], value)
-                 for i, mu in enumerate(mus)]
-
-        return tt.sum(mc3_logsumexp(tt.stacklists(logps)[:, :n_samples], axis=0))
-
-    return logp_
 
 def logp_tmix(ts, pi, n_samples):
+    """log probability of a mixture of t-distributions
+
+    Theano compiled, used for ADVI fitting. Uses passed t-dists
+    to calculate logp for each point for each component
+
+    Args:
+        ts (list)
+            List of component t-distributions
+        pi (pm.Dirichlet)
+            Weights of each mixture component
+        n_samples (int)
+            Number of samples being fitted
+
+    Returns:
+        logp (tt.tensor)
+            Mixture log-likelihood with given parameters
+    """
+
     def logp_(value):
         logps = [tt.log(pi[i]) + ts[i].logp(value)
                  for i, t in enumerate(ts)]
@@ -89,17 +102,98 @@ def logp_tmix(ts, pi, n_samples):
 
     return logp_
 
-# stick breaking for Dirichlet prior
+
+def logp_normal(mu, tau, value):
+    """log probability of individual samples for a multivariate Gaussian
+
+    Theano compiled, used for ADVI fitting. Used in :func:`~logp_gmix`
+
+    Args:
+        mu (pm.MvNormal)
+            Position of mean mu
+        tau (pm.Matrix)
+            Precision matrix tau (inverse of Sigma)
+        value (pm.tensor)
+            Points to evaluate log- likelihood at
+
+    Returns:
+        logp (tt.tensor)
+            Log-likelihood of values
+    """
+    k = tau.shape[0]
+    delta = lambda mu: value - mu
+    logp_ = (-1 / 2.) * (k * tt.log(2 * np.pi) + tt.log(1./det(tau)) + (delta(mu).dot(tau) * delta(mu)).sum(axis=1))
+    return logp_
+
+
+def logp_gmix(mus, pi, tau, n_samples):
+    """log probability of a mixture of Gaussians
+
+    Theano compiled, used for ADVI fitting. Uses a closure of
+    :func:`~logp_normal` to calculate logp for each point for each component
+
+    Args:
+        mus (list)
+            List of means for each component
+        pi (pm.Dirichlet)
+            Weights of each mixture component
+        tau (list)
+            List of precision matrix tau (inverse of Sigma) for each component
+        n_samples (int)
+            Number of samples being fitted
+
+    Returns:
+        logp (tt.tensor)
+            Mixture log-likelihood with given parameters
+    """
+    def logp_(value):
+        logps = [tt.log(pi[i]) + logp_normal(mu, tau[i], value)
+                 for i, mu in enumerate(mus)]
+
+        return tt.sum(mc3_logsumexp(tt.stacklists(logps)[:, :n_samples], axis=0))
+
+    return logp_
+
 def stick_breaking(beta):
+    """stick breaking function to define Dirichlet process prior
+
+    Theano compiled, used for ADVI fitting. Used in :func:`~bgmm_model` if
+    weight prior = Dirichlet
+
+    Args:
+        beta (pm.Beta)
+            :math:`\\beta \sim \mathrm{Beta}(1, \\alpha)`.
+            Larger :math:`\\alpha` gives more concentrated weights
+
+    Returns:
+        weights (tt.tensor)
+            Weights distribution (sums to 1)
+    """
     portion_remaining = tt.concatenate([[1], tt.extra_ops.cumprod(1 - beta)[:-1]])
     return beta * portion_remaining
 
-##############################################################
-# Log likelihood of multivariate normal density distribution #
-##############################################################
-# for sample assignment below
-
 def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
+    """Log likelihood of multivariate normal density distribution
+
+    Used to calculate per component Gaussian likelihood in
+    :func:`~assign_samples`
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        means (numpy.array)
+            Component means from :func:`~fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~fit2dMultiGaussian`
+        min_covar (float)
+            Minimum covariance, added when Choleksy decomposition fails
+            due to too few observations (default = 1.e-7)
+
+    Returns:
+        log_prob (numpy.array)
+            An n-vector with the log-likelihoods for each sample being in
+            this component
+    """
     n_samples, n_dim = X.shape
     nmix = len(means)
     log_prob = np.empty((n_samples, nmix))
@@ -124,6 +218,27 @@ def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
     return log_prob
 
 def log_multivariate_t_density(X, means, covars, nu = 1, min_covar=1.e-7):
+    """Log likelihood of multivariate t-distribution
+
+    Used to calculate per component t-dist likelihood in
+    :func:`~assign_samples`
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        means (numpy.array)
+            Component means from :func:`~fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~fit2dMultiGaussian`
+        min_covar (float)
+            Minimum covariance, added when Choleksy decomposition fails
+            due to too few observations (default = 1.e-7)
+
+    Returns:
+        log_prob (numpy.array)
+            An n-vector with the log-likelihoods for each sample being in
+            this component
+    """
     n_samples, n_dim = X.shape
     nmix = len(means)
     log_prob = np.empty((n_samples, nmix))
@@ -167,6 +282,9 @@ def assign_samples(X, weights, means, covars, scale, t_dist = False, values = Fa
             Component covariances from :func:`~fit2dMultiGaussian`
         scale (numpy.array)
             Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
+        t_dist (bool)
+            Indicates the fit was with a mixture of t-distributions
+            (default = False).
         values (bool)
             Whether to return the responsibilities, rather than the most
             likely assignment (used for entropy calculation).
@@ -195,9 +313,25 @@ def assign_samples(X, weights, means, covars, scale, t_dist = False, values = Fa
 
     return ret_vec
 
-# Identify within-strain links (closest to origin)
-# Make sure some samples are assigned, in the case of small weighted components
+
 def findWithinLabel(means, assignments):
+    """Identify within-strain links
+
+    Finds the component with mean closest to the origin and also akes sure
+    some samples are assigned to it (in the case of small weighted
+    components with a Dirichlet prior some components are unused)
+
+    Args:
+        means (numpy.array)
+            K x 2 array of mixture component means from :func:`~fit2dMultiGaussian` or
+            :func:`~assignQuery`
+        assignments (numpy.array)
+            Sample cluster assignments from :func:`~assign_samples`
+
+    Returns:
+        within_label (int)
+            The cluster label for the within-strain assignments
+    """
     min_dist = None
     for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
         if np.any(assignments == mixture_component):
@@ -207,11 +341,36 @@ def findWithinLabel(means, assignments):
 
     return(within_label)
 
-#############################
-# 2D model with minibatches #
-#############################
-
 def bgmm_model(X, model_parameters, t_dist = False, minibatch_size = 2000, burnin_it = 25000, sampling_it = 10000, num_samples = 2000):
+    """Fits the 2D mixture model using ADVI with minibatches (BGMM)
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        model_parameters (np.array, float, np.array, float, np.array)
+            Priors from :func:`~readPriors`
+        t_dist (bool)
+            If True, fit a mixture of t-distributions rather than a mixture of Gaussians
+            (default = False)
+        minibatch_size (int)
+            Size of minibatch sample at each iteration
+            (default = 2000)
+        burnin_it (int)
+            Number of burn-in iterations with learning rate = 1
+            (default = 25000)
+        sampling_it (bool)
+            Number of sampling iterations with learning rate = 0
+            (default = 1000)
+        sampling_it (bool)
+            Number of posterior samples to draw from the sampling section of the chain
+            (default = 2000)
+
+    Returns:
+        trace (pm.trace)
+            Trace of the posterior sample
+        elbos (pm.history)
+            ELBO values across the entire chain (loss function)
+    """
     # Model priors
     (proportions, strength, mu_prior, positions_belief, dirichlet) = model_parameters
     K = mu_prior.shape[0]
@@ -279,9 +438,35 @@ def bgmm_model(X, model_parameters, t_dist = False, minibatch_size = 2000, burni
 
     return(trace, elbos)
 
-# Dirichlet BGMM through EM
 def dirichlet_bgmm(X, max_components = 5, number_runs = 5, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
+    """Fits the 2D mixture model using EM (DPGMM)
 
+    A wrapper to the sklearn function :func:`~sklearn.mixture.BayesianGaussianMixture`
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        max_components (int)
+            Maximum number of mixture components to fit.
+            (default = 5)
+        number_runs (int)
+            Number of runs with different starts to try. The run with the best likelihood
+            is returned.
+            (default = 5)
+        weight_conc (float)
+            Weight concentration prior (c.f. alpha in :func:`~stick_breaking`)
+            (default = 0.1)
+        mean_precision (float)
+            Mean precision prior (precision of confidence in mean_prior)
+            (default = 0.1)
+        mean_prior (np.array)
+            Prior on mean positions
+            (default = [0, 0])
+
+    Returns:
+        dpgmm (mixture.BayesianGaussianMixture)
+            sklearn BayesianGaussianMixture fitted to X
+    """
     dpgmm = mixture.BayesianGaussianMixture(n_components = max_components,
                                             n_init = number_runs,
                                             covariance_type = 'full',
@@ -290,12 +475,29 @@ def dirichlet_bgmm(X, max_components = 5, number_runs = 5, weight_conc = 0.1, me
                                             mean_prior = mean_prior).fit(X)
     return(dpgmm)
 
-##########################
-# Assign query via model #
-##########################
-
 def assignQuery(X, refPrefix):
+    """Assign component of query sequences using a previously fitted model
 
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        refPrefix (str)
+            Prefix of a saved model with '.npz' suffix
+    Returns:
+        y (numpy.array)
+            Cluster assignments for each sample in X
+        weights (numpy.array)
+            Component weights from :func:`~fit2dMultiGaussian`
+        means (numpy.array)
+            Component means from :func:`~fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~fit2dMultiGaussian`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
+        t (bool)
+            Indicates the fit was with a mixture of t-distributions
+            (default = False).
+    """
     # load model information
     weights = []
     means = []
@@ -319,8 +521,26 @@ def assignQuery(X, refPrefix):
 
     return y, weights, means, covariances, scale, t
 
-# Set priors from file, or provide default
 def readPriors(priorFile):
+    """Read priors for :func:`~bgmm_model` from file
+
+    If no file, or incorrectly formatted, will use default priors (see docs)
+
+    Args:
+        priorFile (str)
+            Location of file to read from
+    Returns:
+        proportions (numpy.array)
+            Prior on weights
+        prop_strength (float)
+            Stength of proportions prior
+        mu_prior (numpy.array)
+            Prior on means
+        positions_belief (numpy.array)
+            Strength of mu_prior
+        dirichlet (bool)
+            If True, use Dirichlet process weight prior
+    """
     # default priors
     proportions = np.array([0.001, 0.999])
     prop_strength = 1
@@ -366,11 +586,44 @@ def readPriors(priorFile):
 
     return proportions, prop_strength, mu_prior, positions_belief, dirichlet
 
-#############
-# Fit model #
-#############
-
 def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = False, dpgmm_max_K = 2):
+    """Main function to fit model, called from :func:`~__main__.main()`
+
+    Fits the mixture model specified, saves model parameters to a file, and assigns the samples to
+    a component. Write fit summary stats to STDERR.
+
+    By default, subsamples :math:`10^6` random distances to fit the model to.
+
+    Args:
+        X (np.array)
+            n x 2 array of core and accessory distances for n samples
+        outPrefix (str)
+            Prefix for output files to be saved under
+        t_dist (bool)
+            If used with bgmm, fit t-distribution mixture rather than Gaussian
+        priorFile (str)
+            Location of a prior file, used with bgmm
+        bgmm (bool)
+            Use the ADVI fit rather than EM.
+            (default = False)
+        dpgmm_max_K (int)
+            Maximum number of components to use with the EM fit.
+            (default = 2)
+    Returns:
+        y (numpy.array)
+            Cluster assignments for each sample in X
+        weights (numpy.array)
+            Component weights from :func:`~fit2dMultiGaussian`
+        means (numpy.array)
+            Component means from :func:`~fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~fit2dMultiGaussian`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
+        t (bool)
+            Indicates the fit was with a mixture of t-distributions
+            (default = False).
+    """
 
     # set output dir
     if not os.path.isdir(outPrefix):
