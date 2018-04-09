@@ -387,7 +387,7 @@ def bgmm_model(X, model_parameters, t_dist = False, minibatch_size = 2000, burni
             beta = pm.Beta('beta', 1, alpha, shape=K)
             pi = pm.Deterministic('pi', stick_breaking(beta))
         else:
-            pi = pm.Dirichlet('pi', a=pm.floatX(proportions / strength), shape=(K,))
+            pi = pm.Dirichlet('pi', a=pm.floatX(proportions * strength), shape=(K,))
 
         if t_dist:
             nu = 1
