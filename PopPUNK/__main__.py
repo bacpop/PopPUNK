@@ -78,7 +78,7 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences',
                                             default=False, action='store_true')
-    oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances'
+    oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
@@ -160,7 +160,7 @@ def main():
         sys.exit(1)
 
     # check on file paths and whether files will be appropriate overwritten
-    if not args.full_db:
+    if not args.full_db and not args.create_db:
         args.overwrite = True
     if args.output is not None and args.output.endswith('/'):
         args.output = args.output[:-1]
