@@ -5,6 +5,10 @@ explaining when to use each one. In places we refer to :doc:`troubleshooting`
 which explains how to deal with common problems when the defaults don't quite
 work.
 
+In this tutorial we will work with the Salmonella genomes reviewed by `Alikhan
+et al <https://doi.org/10.1371/journal.pgen.1007261>`_ which can be downloaded
+from `EnteroBase <https://enterobase.warwick.ac.uk/species/senterica/search_strains?query=workspace:9641>`_.
+
 .. contents::
    :local:
 
@@ -22,7 +26,7 @@ The basic command to do this is as follows::
 Where ``references.txt`` is a list of fasta assemblies to analyse, created by,
 for example::
 
-   ls assemblies/*.fa > reference_list.txt
+   ls assemblies/*.fasta > reference_list.txt
 
 The references will first be hashed at different k-mer lengths, then pairwise
 distances are calculated, which are finally converted into core and accessory
@@ -81,6 +85,8 @@ distance (the intercept) and the core distance (the slope).
    is generally recommended to inspect some of the regressions. Choice of min-k
    depends on this, and is discussed in :ref:`kmer-length`.
 
+Output files
+^^^^^^^^^^^^
 This will create two files `strain_db/strain_db.dists.npy` and `strain_db/strain_db.dists.pkl` which
 store the distances and strain names respectively. These are then used in
 :ref:`model-fit`.
@@ -121,3 +127,96 @@ The following command line options can be used in this mode:
 
 Fitting the model
 -----------------
+
+The basic command used to fit the model is as follows::
+
+   poppunk-runner.py --fit-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --K 3
+
+This will fit a mixture of up to three 2D Gaussians to the distribution of core and
+accessory distances::
+
+   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+   Mode: Fitting model to reference database
+
+   Fit summary:
+   	Avg. entropy of assignment	0.0044
+   	Number of components used	3
+   Network summary:
+   	Components	10
+   	Density	0.1874
+   	Transitivity	0.9995
+   	Score	0.8122
+
+   Done
+
+There are a number of summary statistics which you can use to assess the fit:
+
+==========================  ==============
+Statistic                   Interpretation
+==========================  ==============
+Avg. entropy of assignment  How confidently each distance is assigned to a component. Closer to zero is more confident, and indicates less overlap of componenets, which may be indicative of less recombination overall.
+Number of components used   The number of mixture components actually used, which may be less than the maximum allowed.
+Components                  The number of componenets in the network == the number of population clusters
+Density                     The proportion of edges in the network. 0 is no links, 1 is every link. Lower is better.
+Transitivity                The transitivity of the network, between 0 and 1. Higher is better
+Score                       Network score based on density and transitivity. Higher is better.
+==========================  ==============
+
+.. important::
+   This is the most important part of getting a good estimation of population
+   structure. In many cases choosing a sensible ``--K`` will get a fit with
+   a good score, but in more complex cases PopPUNK allows much more flexible
+   model fitting. See :ref:`bgmm-fit` for a discussion on how to achieve a good
+   model fit at this stage.
+
+The most useful plot is `strain_db_DPGMM_fit.png` which shows the clustering:
+
+.. image:: DPGMM_fit_K3.png
+   :alt:  2D fit to distances (K = 3)
+   :align: center
+
+This looks reasonable. The component closest to the origin is used to create a network where isolates
+determined to be within the same strain are linked by edges. The components of
+this network are then the population clusters.
+
+In this case, allowing more componenets (``--K 10``) gives a worse
+fit as more complexity is introduced arbitrarily::
+
+   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+   Mode: Fitting model to reference database
+
+   Fit summary:
+   	Avg. entropy of assignment	0.0053
+   	Number of components used	10
+   Network summary:
+   	Components	121
+   	Density	0.0534
+   	Transitivity	0.8541
+   	Score	0.8085
+
+   Done
+
+.. image:: DPGMM_fit_K10.png
+   :alt:  2D fit to distances (K = 10)
+   :align: center
+
+In this case the fit is too conservative, and the network has a high number of
+components.
+
+Once you have a good fit, run again with the ``--microreact`` option (and
+``--rapidnj`` if you have `rapidnj <http://birc.au.dk/software/rapidnj/>`_ installed).
+This will create output files which can dragged and dropped into `Microreact <https://microreact.org/>`_
+for visualisation of the results.
+
+Drag the files `strain_db_microreact_clusters.csv`, `strain_db_perplexity5.0_accessory_tsne`, and
+`strain_db_core_NJ_microreact.nwk` onto Microreact. For this example, the output is at LINK.
+TODO
+
+Output files
+^^^^^^^^^^^^
+TODO
+
+Relevant command line options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO
+

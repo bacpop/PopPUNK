@@ -37,6 +37,8 @@ Dealing with contamination
 ---------------------------
 Isolate QC
 
+.. _bgmm-fit:
+
 Fine tuning model fit
 ---------------------
 BGMM
