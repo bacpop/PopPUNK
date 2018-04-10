@@ -85,10 +85,9 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
     phylip_name = "./" + outPrefix + "/" + outPrefix + "_core_distances.phylip"
     with open(phylip_name, 'w') as pFile:
         pFile.write(str(len(refList))+"\n")
-        for r in range(len(refList)):
-            namePrefix = refList[r].split('.')[0]
-            pFile.write(namePrefix)
-            pFile.write(' '+' '.join(map(str,coreMat[r,])))
+        for coreDist, ref in zip(coreMat, refList):
+            pFile.write(ref)
+            pFile.write(' '+' '.join(map(str, coreDist)))
             pFile.write("\n")
 
     # construct tree
@@ -145,7 +144,7 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     from .mash import iterDistRows
 
     sys.stderr.write("writing microreact output:\n")
-    seqLabels = [r.split('.')[0] for r in refList]
+    seqLabels = [r.split('/')[-1].split('.')[0] for r in refList]
 
     coreMat = np.zeros((len(refList), len(refList)))
     accMat = np.zeros((len(refList), len(refList)))
@@ -174,13 +173,13 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     tree_filename = outPrefix + "/" + outPrefix + "_core_NJ_microreact.nwk"
     if overwrite or not os.path.isfile(tree_filename):
         sys.stderr.write("Building phylogeny\n")
-        pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
+        if rapidnj is not None:
+            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename)
+        else:
+            pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
                                                            delimiter=",",
                                                            is_first_row_column_names=True,
                                                            is_first_column_row_names=False)
-        if rapidnj is not None:
-            tree = buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename)
-        else:
             tree = pdm.nj_tree()
 
         # Not sure why, but seems that this needs to be run twice to get

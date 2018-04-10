@@ -130,7 +130,7 @@ Fitting the model
 
 The basic command used to fit the model is as follows::
 
-   poppunk-runner.py --fit-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --K 3
+   poppunk-runner.py --fit-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --K 2
 
 This will fit a mixture of up to three 2D Gaussians to the distribution of core and
 accessory distances::
@@ -139,24 +139,25 @@ accessory distances::
    Mode: Fitting model to reference database
 
    Fit summary:
-   	Avg. entropy of assignment	0.0044
-   	Number of components used	3
+      Avg. entropy of assignment	0.0042
+      Number of components used	2
    Network summary:
-   	Components	10
-   	Density	0.1874
-   	Transitivity	0.9995
-   	Score	0.8122
+      Components	12
+      Density	0.1852
+      Transitivity	0.9941
+      Score	0.8100
 
    Done
 
-There are a number of summary statistics which you can use to assess the fit:
+The default is to fit two components, one for between-strain and one for
+within-strain distances. There are a number of summary statistics which you can use to assess the fit:
 
 ==========================  ==============
 Statistic                   Interpretation
 ==========================  ==============
-Avg. entropy of assignment  How confidently each distance is assigned to a component. Closer to zero is more confident, and indicates less overlap of componenets, which may be indicative of less recombination overall.
+Avg. entropy of assignment  How confidently each distance is assigned to a component. Closer to zero is more confident, and indicates less overlap of components, which may be indicative of less recombination overall.
 Number of components used   The number of mixture components actually used, which may be less than the maximum allowed.
-Components                  The number of componenets in the network == the number of population clusters
+Components                  The number of components in the network == the number of population clusters
 Density                     The proportion of edges in the network. 0 is no links, 1 is every link. Lower is better.
 Transitivity                The transitivity of the network, between 0 and 1. Higher is better
 Score                       Network score based on density and transitivity. Higher is better.
@@ -171,15 +172,15 @@ Score                       Network score based on density and transitivity. Hig
 
 The most useful plot is `strain_db_DPGMM_fit.png` which shows the clustering:
 
-.. image:: DPGMM_fit_K3.png
-   :alt:  2D fit to distances (K = 3)
+.. image:: DPGMM_fit_K2.png
+   :alt:  2D fit to distances (K = 2)
    :align: center
 
 This looks reasonable. The component closest to the origin is used to create a network where isolates
-determined to be within the same strain are linked by edges. The components of
+determined to be within the same strain are linked by edges. The connected components of
 this network are then the population clusters.
 
-In this case, allowing more componenets (``--K 10``) gives a worse
+In this case, allowing more components (``--K 10``) gives a worse
 fit as more complexity is introduced arbitrarily::
 
    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
@@ -212,11 +213,95 @@ Drag the files `strain_db_microreact_clusters.csv`, `strain_db_perplexity5.0_acc
 `strain_db_core_NJ_microreact.nwk` onto Microreact. For this example, the output is at LINK.
 TODO
 
+Use of full-db
+^^^^^^^^^^^^^^
+By default the ``--full-db`` option is off. When on this will keep every sample in the
+analysis in the database for future querying.
+
+When off (the default) representative samples will be picked from each cluster
+by choosing only one reference sample from each clique (where all samples in
+a clqiue have a within-cluster link to all other samples in the clique). This
+can significantly reduce the database size for future querying without loss of
+accuracy. Representative samples are written out to a .refs file, and a new
+database is sketched for future distance comparison.
+
+In the case of the example above, this reduces from 848 to 14 representatives (one for
+each of the twelve clusters, except for 3 and 6 which have two each).
+
 Output files
 ^^^^^^^^^^^^
-TODO
+* strain_db.search.out -- the core and accessory distances between all
+  pairs.
+* strain_db.png -- scatter plot of all distances, and mixture model
+  fit and assignment.
+* strain_db.csv -- isolate names and the cluster assigned.
+* strain_db.png -- unclustered distribution of
+  distances used in the fit (subsampled from total).
+* strain_db.npz -- save fit parameters.
+* strain_db.refs -- representative references in the new database (unless
+  ``--full-db`` was used).
+
+If ``--microreact`` was used:
+
+* strain_db_core_dists.csv -- matrix of pairwise core distances.
+* strain_db_acc_dists.csv -- matrix of pairwise accessory distances.
+* strain_db_core_NJ_microreact.nwk -- neighbour joining tree using core
+  distances (for microreact).
+* strain_db_perplexity5.0_accessory_tsne.dot -- t-SNE embedding of
+  accessory distances at given perplexity (for microreact).
+* strain_db_microreact_clusters.csv -- cluster assignments plus any epi
+  data added with the ``--info-csv`` option (for microreact).
+
+If ``--cytoscape`` was used:
+
+* strain_db_cytoscape.csv -- cluster assignments plus any epi data added
+  with the ``--info-csv`` option (for cytoscape).
+* strain_db_cytoscape.graphml -- XML representation of resulting network
+  (for cytoscape).
 
 Relevant command line options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO
+The following command line options can be used in this mode:
+
+   Mode of operation:
+     --fit-model           Fit a mixture model to a reference database
+
+   Input files:
+     --ref-db REF_DB       Location of built reference database
+     --distances DISTANCES
+                           Prefix of input pickle of pre-calculated distances
+
+   Output options:
+     --output OUTPUT       Prefix for output files (required)
+     --full-db             Keep full reference database, not just representatives
+     --overwrite           Overwrite any existing database files
+
+   Mixture model options:
+     --K K                 Maximum number of mixture components (EM only)
+                           [default = 2]
+     --priors PRIORS       File specifying model priors. See documentation for
+                           help
+     --bgmm                Use ADVI rather than EM to fit the mixture model
+     --t-dist              Use a mixture of t distributions rather than Gaussians
+                           (ADVI only)
+
+   Further analysis options:
+     --microreact          Generate output files for microreact visualisation
+     --cytoscape           Generate network output files for Cytoscape
+     --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for Microreact
+     --perplexity PERPLEXITY
+                           Perplexity used to calculate t-SNE projection (with
+                           --microreact) [default=5.0]
+     --info-csv INFO_CSV   Epidemiological information CSV formatted for
+                           microreact (with --microreact or --cytoscape)
+
+   Other options:
+     --mash MASH           Location of mash executable
+     --threads THREADS     Number of threads to use during database querying
+                           [default = 1]
+
+.. note::
+   Threads will only be used if ``--full-db`` is *not* specified and sketching
+   of the representatives is performed at the end.
+
 
