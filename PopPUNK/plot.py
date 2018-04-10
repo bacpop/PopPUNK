@@ -8,40 +8,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import itertools
 # for microreact
+import pandas as pd
 from scipy import spatial
 from sklearn import manifold
 import dendropy
 import networkx as nx
-
-#####################################
-# Parse epidemiological information #
-#####################################
-
-def readEpiFile(epiCsv):
-    # data structures
-    epi = {}
-    epiHeader = []
-    # parse file
-    with open(epiCsv.rstrip(), 'r') as eFile:
-        for line in eFile:
-            data = line.rstrip().split(',')
-            id = data.pop(0)
-            if id == "id":
-                epiHeader = data
-            else:
-                if len(data) == len(epiHeader):
-                    epi[id] = data
-                else:
-                    sys.stderr.write("Incorrect number of fields in CSV for line with id " \
-                                     + id + " - header must start with 'id'")
-                    sys.exit(1)
-
-    if len(epiHeader) == 0:
-        sys.stderr.write("Unable to find header line starting with 'Id'")
-        sys.exit(1)
-    missingString = (','*len(epiHeader))[:len(epiHeader)]
-
-    return epi, epiHeader, missingString
 
 ##############################
 # Write output for Cytoscape #
@@ -52,28 +23,49 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
     # write graph file
     nx.write_graphml(G, "./" + outPrefix + "/" + outPrefix + "_cytoscape.graphml")
 
-    # read epi info if provided
-    if epiCsv is not None:
-        epi, epiHeader, missingString = readEpiFile(epiCsv)
+    refNames = G.nodes(data=False)
+    seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
+    writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
+                    refNames,
+                    seqLabels,
+                    clustering,
+                    False,
+                    epiCsv)
 
-    # write annotation file for Cytoscape
-    with open(outPrefix + "/" + outPrefix + "_cytoscape.csv", 'w') as cFile:
-        cFile.write("id,Cluster")
+# print clustering file
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = False, epiCsv = None):
+
+    if epiCsv is not None:
+        epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
+        missingString = ",NA" * len(epiData.columns)
+
+    with open(outfile, 'w') as cFile:
+        # header
+        if microreact:
+            cFile.write("id,Cluster__autocolour")
+        else:
+            cFile.write("id,Cluster")
         if epiCsv is not None:
-            cFile.write(','+','.join(str(e) for e in epiHeader))
+            cFile.write(','+','.join(str(e) for e in epiData.columns))
         cFile.write("\n")
-        for unique in G.nodes(data=False):
-            if unique in clustering:
-                cFile.write(unique + ',' + str(clustering[unique]))
+
+        for name, label in zip(nodeNames, nodeLabels):
+            if name in clustering:
+                if microreact:
+                    cFile.write(label + ',' + str(clustering[name]))
+                else:
+                    cFile.write(name + ',' + str(clustering[name]))
+
                 if epiCsv is not None:
-                    if unique in epi.keys():
-                        cFile.write(','+','.join(str(e) for e in epi[unique]))
+                    if label in epiData.index:
+                        cFile.write(','+','.join(str(e) for e in epiData.loc[label].values))
                     else:
                         cFile.write(missingString)
                 cFile.write("\n")
             else:
-                sys.stderr.write("Cannot find " + unique + " in clustering\n")
+                sys.stderr.write("Cannot find " + name + " in clustering\n")
                 sys.exit(1)
+
 
 ############################################
 # Use rapidNJ for more rapid tree building #
@@ -210,37 +202,9 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     else:
         sys.stderr.write("t-SNE analysis already exists; add --overwrite to replace\n")
 
-    # read epidemiological information if provided
-    rawepi = {}
-    epiHeader = []
-    missingString = ""
-    epi = {}
-    if epiCsv is not None:
-        rawepi, epiHeader, missingString = readEpiFile(epiCsv)
-        # prune off suffix
-        for label in rawepi.keys():
-            newlabel = label.split('.')[0]
-            epi[newlabel] = rawepi[label]
-        del rawepi
-
     # print clustering file
-    with open(outPrefix + "/" + outPrefix + "_microreact_clusters.csv", 'w') as cFile:
-        cFile.write("id,Cluster__autocolour")
-        if epiCsv is not None:
-            cFile.write(','+','.join(str(e) for e in epiHeader))
-        cFile.write("\n")
-        for label, unique in zip(seqLabels, refList):
-            if unique in clustering:
-                cFile.write(label + ',' + str(clustering[unique]))
-                if epiCsv is not None:
-                    if label in epi.keys():
-                        cFile.write(','+','.join(str(e) for e in epi[label]))
-                    else:
-                        cFile.write(missingString)
-                cFile.write("\n")
-            else:
-                sys.stderr.write("Cannot find " + unique + " in clustering\n")
-                sys.exit(1)
+    writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
+                    refList, seqLabels, clustering, True, epiCsv)
 
 def plot_scatter(X, out_prefix, title):
     """Draws a 2D scatter plot (png) of the core and accessory distances
