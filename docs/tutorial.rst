@@ -210,8 +210,18 @@ This will create output files which can dragged and dropped into `Microreact <ht
 for visualisation of the results.
 
 Drag the files `strain_db_microreact_clusters.csv`, `strain_db_perplexity5.0_accessory_tsne`, and
-`strain_db_core_NJ_microreact.nwk` onto Microreact. For this example, the output is at LINK.
-TODO
+`strain_db_core_NJ_microreact.nwk` onto Microreact. For this example, the output is at https://microreact.org/project/S1RwpK9if
+(this also includes a CSV of additional metadata downloaded from EnteroBase and supplied to
+PopPUNK with ``--info-csv``).
+
+.. image:: microreact.png
+   :alt:  Microreact plot of results
+   :align: center
+
+The left panel shows the tree from the core distances, and the right panel the
+embedding of accessory distances. Differences in clustering between the two can
+be informative of separate core and accessory evolution. Tips are coloured by
+the PopPUNK inferred cluster.
 
 Use of full-db
 ^^^^^^^^^^^^^^

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import itertools
 # for microreact
 import pandas as pd
+from collections import defaultdict
 from scipy import spatial
 from sklearn import manifold
 import dendropy
@@ -39,33 +40,31 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
         missingString = ",NA" * len(epiData.columns)
 
-    with open(outfile, 'w') as cFile:
-        # header
-        if microreact:
-            cFile.write("id,Cluster__autocolour")
-        else:
-            cFile.write("id,Cluster")
-        if epiCsv is not None:
-            cFile.write(','+','.join(str(e) for e in epiData.columns))
-        cFile.write("\n")
+    d = defaultdict(list)
+    if epiCsv is not None:
+        colnames = [str(e) for e in epiData.columns]
 
-        for name, label in zip(nodeNames, nodeLabels):
-            if name in clustering:
-                if microreact:
-                    cFile.write(label + ',' + str(clustering[name]))
-                else:
-                    cFile.write(name + ',' + str(clustering[name]))
-
-                if epiCsv is not None:
-                    if label in epiData.index:
-                        cFile.write(','+','.join(str(e) for e in epiData.loc[label].values))
-                    else:
-                        cFile.write(missingString)
-                cFile.write("\n")
+    for name, label in zip(nodeNames, nodeLabels):
+        if name in clustering:
+            if microreact:
+                d['id'].append(label)
+                d['Cluster__autocolour'].append(clustering[name])
             else:
-                sys.stderr.write("Cannot find " + name + " in clustering\n")
-                sys.exit(1)
+                d['id'].append(name)
+                d['Cluster'].append(clustering[name])
 
+            if epiCsv is not None:
+                if label in epiData.index:
+                    for col, value in zip(colnames, epiData.loc[label].values):
+                        d[col].append(str(value))
+                else:
+                    for col in colnames:
+                        d[col].append('nan')
+        else:
+            sys.stderr.write("Cannot find " + name + " in clustering\n")
+            sys.exit(1)
+
+    pd.DataFrame(data=d).to_csv(outfile, index = False)
 
 ############################################
 # Use rapidNJ for more rapid tree building #
