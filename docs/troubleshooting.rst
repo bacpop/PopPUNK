@@ -1,6 +1,9 @@
 Troubleshooting
 ===============
 
+This page deals with common issues in running the analysis. For issues with
+installing or running the software please raise an issue on github.
+
 .. _kmer-length:
 
 Choosing the right k-mer lengths
@@ -44,4 +47,41 @@ Fine tuning model fit
 BGMM
 
 Use of cytoscape
+
+
+.. _perplexity:
+
+Setting the perplexity parameter for t-SNE
+------------------------------------------
+In t-SNE an embedding of the accessory genome distances is found which
+represents local structure of the data. Isolates with similar accessory content
+will visually appear in clusters together.
+
+The perplexity sets a guess about the number of close neighbours each point
+has, and is a trade-off between local and global structure. t-SNE is reasonably
+robust to changes in the perplexity parameter (set with ``--perplexity`` when
+creating microreact output with ``--microreact`` in the``--fit-model`` mode),
+however we would recommend trying a few values to get
+a good embedding for the accessory distances.
+
+There is a good discussion of the effect of perplexity `here <https://distill.pub/2016/misread-tsne/>`_
+and the sklearn documentation shows some examples of the effect of `changing
+perplexity <http://scikit-learn.org/stable/auto_examples/manifold/plot_t_sne_perplexity.html>`_.
+
+In the :doc:`tutorial` example, a perplexity of 30 gives clear clustering of
+the accessory genome content, condordant with the core genome structure (`data <https://microreact.org/project/Skg0j9sjz>`__):
+
+.. image:: microreact.png
+   :alt:  Microreact plot of results with perplexity = 30
+   :align: center
+
+With a lower perplexity of 5, the clustering is too loose, and the strain
+structure cannot clearly be seen (`data <https://microreact.org/project/S1RwpK9if>`__):
+
+.. image:: microreact_perplexity5.png
+   :alt:  Microreact plot of results with perplexity = 5
+   :align: center
+
+30 is a good default, but you may wish to try other values, particularly with
+larger or smaller datasets.
 
