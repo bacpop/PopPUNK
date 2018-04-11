@@ -35,7 +35,7 @@ In brackets are the versions we used
 * `pandas` (0.22.0)
 * `pymc3` (3.3)
 * `scikit-learn` (0.19.1)
-* `scipy`` (1.0.0)
+* `scipy` (1.0.0)
 * `sharedmem` (0.3.5)
 * `sklearn` (0.19.1)
 * `Theano` (1.0.1)

@@ -19,18 +19,30 @@ from scipy import optimize
 
 from .plot import plot_fit
 
-#####################
-# Get database name #
-#####################
-
 def getDatabaseName(prefix, k):
+    """Gets the name for the mash database for a given k size
+
+    Args:
+        prefix (str)
+            db prefix
+        k (str)
+            k-mer size
+    Returns:
+        db_name (str)
+            Name of mash db
+    """
     return prefix + "/" + prefix + "." + k + ".msh"
 
-#############################
-# create database directory #
-#############################
 
 def createDatabaseDir(outPrefix, kmers):
+    """Creates the directory to write mash sketches to, removing old files if unnecessary
+
+    Args:
+        outPrefix (str)
+            output db prefix
+        kmers (list)
+            k-mer sizes in db
+    """
     outputDir = os.getcwd() + "/" + outPrefix
     # check for writing
     if os.path.isdir(outputDir):
@@ -47,20 +59,46 @@ def createDatabaseDir(outPrefix, kmers):
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
-#####################################
-# Store distance matrix in a pickle #
-#####################################
-
 def storePickle(rlist, qlist, self, X, pklName):
+    """Saves core and accessory distances in a .npy file, names in a .pkl
+
+    Called during ``--create-db``
+
+    Args:
+        rlist (list)
+            List of reference sequence names (for :func:`~iterDistRows`)
+        qlist (list)
+            List of query sequence names (for :func:`~iterDistRows`)
+        self (bool)
+            Whether an all-vs-all self DB (for :func:`~iterDistRows`)
+        X (numpy.array)
+            n x 2 array of core and accessory distances
+        pklName (str)
+            Prefix for output files
+    """
     with open(pklName + ".pkl", 'wb') as pickle_file:
         pickle.dump([rlist, qlist, self], pickle_file)
     np.save(pklName + ".npy", X)
 
-####################################
-# Load distance matrix from pickle #
-####################################
-
 def readPickle(pklName):
+    """Loads core and accessory distances saved by :func:`~storePickle`
+
+    Called during ``--fit-model``
+
+    Args:
+        pklName (str)
+            Prefix for saved files
+
+    Returns:
+        rlist (list)
+            List of reference sequence names (for :func:`~iterDistRows`)
+        qlist (list)
+            List of query sequence names (for :func:`~iterDistRows`)
+        self (bool)
+            Whether an all-vs-all self DB (for :func:`~iterDistRows`)
+        X (numpy.array)
+            n x 2 array of core and accessory distances
+"""
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
     X = np.load(pklName + ".npy")

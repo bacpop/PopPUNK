@@ -3,6 +3,9 @@ Reference documentation
 
 Documentation for module functions (for developers)
 
+.. contents::
+   :local:
+
 bgmm.py
 --------
 
