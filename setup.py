@@ -58,6 +58,7 @@ setup(
                       'scikit-learn',
                       'DendroPy',
                       'sharedmem',
+                      'pandas',
                       'pymc3',
                       'theano',
                       'networkx',

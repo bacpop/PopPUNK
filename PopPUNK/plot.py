@@ -15,15 +15,24 @@ from sklearn import manifold
 import dendropy
 import networkx as nx
 
-##############################
-# Write output for Cytoscape #
-##############################
-
 def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
+    """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
+    Args:
+        G (networkx.Graph)
+            The network to write from :func:`~PopPUNK.network.constructNetwork`
+        clustering (dict)
+            Dictionary of cluster assignments (keys are nodeNames).
+        outPrefix (str)
+            Prefix for files to be written
+        epiCsv (str)
+            Optional CSV of epi data to paste in the output in addition to
+            the clusters.
+    """
     # write graph file
     nx.write_graphml(G, "./" + outPrefix + "/" + outPrefix + "_cytoscape.graphml")
 
+    # Write CSV of metadata
     refNames = G.nodes(data=False)
     seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
     writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
@@ -33,9 +42,33 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
                     False,
                     epiCsv)
 
-# print clustering file
 def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = False, epiCsv = None):
+    """Print CSV file of clustering and optionally epi data
 
+    Writes CSV output of clusters which can be used as input to microreact and cytoscape.
+    Uses pandas to deal with CSV reading and writing nicely.
+
+    The epiCsv, if provided, should have the node labels in the first column.
+
+    Args:
+        outfile (str)
+            File to write the CSV to.
+        nodeNames (list)
+            Names of sequences in clustering (includes path).
+        nodeLabels (list)
+            Names of sequences to write in CSV (usually has path removed).
+        clustering (dict)
+            Dictionary of cluster assignments (keys are nodeNames).
+        microreact (bool)
+            Whether output should be formatted for microreact
+
+            (default = False).
+        epiCsv (str)
+            Optional CSV of epi data to paste in the output in addition to
+            the clusters.
+
+            (default = None).
+    """
     if epiCsv is not None:
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
         missingString = ",NA" * len(epiData.columns)
@@ -66,11 +99,30 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
 
     pd.DataFrame(data=d).to_csv(outfile, index = False)
 
-############################################
-# Use rapidNJ for more rapid tree building #
-############################################
-
 def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
+    """Use rapidNJ for more rapid tree building
+
+    Creates a phylip of core distances, system call to rapidnj executable, loads tree as
+    dendropy object (cleaning quotes in node names), removes temporary files.
+
+    Args:
+        rapidnj (str)
+            Location of rapidnj executable
+        refList (list)
+            Names of sequences in coreMat (same order)
+        coreMat (numpy.array)
+            NxN core distance matrix produced in :func:`~outputsForMicroreact`
+        outPrefix (int)
+            Output prefix for temporary files
+        outPrefix (str)
+            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        tree_filename (str)
+            Filename for output tree (saved to disk)
+
+    Returns:
+        tree (dendropy.Tree)
+            NJ tree from core distances
+    """
 
     # generate phylip matrix
     phylip_name = "./" + outPrefix + "/" + outPrefix + "_core_distances.phylip"
