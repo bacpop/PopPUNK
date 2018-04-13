@@ -98,7 +98,7 @@ def readPickle(pklName):
             Whether an all-vs-all self DB (for :func:`~iterDistRows`)
         X (numpy.array)
             n x 2 array of core and accessory distances
-"""
+    """
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
     X = np.load(pklName + ".npy")
@@ -212,13 +212,23 @@ def assignQueriesToClusters(links, G, databaseName, outPrefix):
     # additionalClusters: dict of query assignments to new clusters, if they do not match existing references
     return additionalClusters, existingHits
 
-##########################################
-# Get sketch size from existing database #
-##########################################
-
 def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
+    """Call to ``mash info`` to determine sketch size
 
-    # identify sketch lengths used to generate databases
+    ``sys.exit(1)`` is called if DBs have different sketch sizes
+
+    Args:
+        dbprefix (str)
+            Prefix for mash databases
+        klist (list)
+            List of k-mer lengths which databases were constructed at
+        mash_exec (str)
+            Location of mash executable
+
+    Returns:
+        sketchdb (dict)
+            Dict of sketch sizes indexed by k-mer size
+    """
     sketchdb = {}
     sketch = 0
     oldSketch = 0
