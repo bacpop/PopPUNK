@@ -270,9 +270,21 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
     return sketchdb
 
-# Return an array with the sequences in the passed mash database
 def getSeqsInDb(mashSketch, mash_exec = 'mash'):
+    """Return an array with the sequences in the passed mash database
 
+    Calls ``mash info -t``
+
+    Args:
+        mashSketch (str)
+            Mash sketches/database
+        mash_exec (str)
+            Location of mash executable
+
+    Returns:
+        seqs (list)
+            List of sequence names in sketch DB
+    """
     seqs = []
     mash_cmd = str(mash_exec) + " info -t " + str(mashSketch)
     try:
@@ -295,13 +307,39 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 
     return seqs
 
-########################
-# construct a database #
-########################
-
-# Multithread wrapper around sketch
 def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash', overwrite = False):
+    """Sketch the input assemblies at the requested k-mer lengths
 
+    A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
+    processes for each klist value, or increase the threads used by each ``mash sketch`` process
+    if len(klist) > threads.
+
+    Also calculates random match probability based on length of first genome
+    in assemblyList.
+
+    Args:
+        assemblyList (list)
+            Locations of assembly files to be sketched
+        klist (list)
+            List of k-mer sizes to sketch
+        sketch (int)
+            Size of sketch (``-s`` option)
+        oPrefix (str)
+            Output prefix for resulting sketch files
+        threads (int)
+            Number of threads to use
+
+            (default = 1)
+        mash_exec (str)
+            Location of mash executable
+
+            (default = 'mash')
+        overwrite (bool)
+            Whether to overwrite sketch DBs, if they already exist.
+
+            (default = False)
+
+    """
     # Genome length needed to calculate prob of random matches
     genome_length = 1 # min of 1 to avoid div/0 errors
     with open(assemblyList, 'r') as assemblyFiles:
@@ -326,14 +364,40 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
                          genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
                          overwrite=overwrite, threads=num_threads), klist)
 
-# lock on stderr
 def init_lock(l):
+    """Sets a global lock to use when writing to STDERR in :func:`~runSketch`"""
     global lock
     lock = l
 
-# create kmer databases
 def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash', overwrite = False, threads = 1):
+    """Actually run the mash sketch command
 
+    Called by :func:`~constructDatabase`
+
+    Args:
+        k (int)
+            k-mer size to sketch
+        assemblyList (list)
+            Locations of assembly files to be sketched
+        sketch (int)
+            Size of sketch (``-s`` option)
+        genome_length (int)
+            Length of genomes being sketch, for random match probability calculation
+        oPrefix (str)
+            Output prefix for resulting sketch files
+        mash_exec (str)
+            Location of mash executable
+
+            (default = 'mash')
+        overwrite (bool)
+            Whether to overwrite sketch DB, if it already exists.
+
+            (default = False)
+        threads (int)
+            Number of threads to use in the mash process
+
+            (default = 1)
+    """
     # define database name
     dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
     dbfilename = dbname + ".msh"
@@ -371,12 +435,49 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
-####################
-# query a database #
-####################
-
 def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mash_exec = 'mash', threads = 1):
+    """Calculate core and accessory distances between query sequences and a sketched database
 
+    For a reference database, runs the query against itself to find all pairwise
+    core and accessory distances.
+
+    Uses the relation :math:`pr(a, b) = (1-a)(1-c)^k`
+
+    To get the ref and query name for each row of the returned distances, call to the iterator
+    :func:`~iterDistRows` with the returned refList and queryList
+
+    Args:
+        qFile (str)
+            File with location of query sequences
+        klist (list)
+            K-mer sizes to use in the calculation
+        dbPrefix (str)
+            Prefix for mash sketch database created by :func:`~constructDatabase`
+        self (bool)
+            Set true if query = ref
+
+            (default = True)
+        number_plot_fits (int)
+            If > 0, the number of k-mer length fits to plot (saved as pdfs).
+            Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`
+        mash_exec (str)
+            Location of mash executable
+
+            (default = 'mash')
+        threads (int)
+            Number of threads to use in the mash process
+
+            (default = 1)
+
+    Returns:
+         refList (list)
+            Names of reference sequences
+         queryList (list)
+            Names of query sequences
+         distMat (numpy.array)
+            Core distances (column 0) and accessory distances (column 1) between
+            refList and queryList
+    """
     queryList = []
     with open(qFile, 'r') as queryFile:
         for line in queryFile:
@@ -484,14 +585,43 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
 
     return(refList, queryList, distMat)
 
-# Multirow wrapper around fitKmerCurve
 def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
+    """Multirow wrapper around :func:`~fitKmerCurve` to the specified rows in idxRanges
+
+    Args:
+        idxRanges (int, int)
+            Tuple of first and last row of slice to calculate
+        distMat (numpy.array)
+            sharedmem object to store core and accessory distances in(altered in place)
+        raw (numpy.array)
+            sharedmem object with proportion of k-mer matches for each query-ref pair
+            by row, columns are at k-mer lengths in klist
+        klist (list)
+            List of k-mer lengths to use
+        jacobian (numpy.array)
+            The Jacobian for the fit, sent to :func:`~fitKmerCurve`
+
+    """
     (start, end) = idxRanges
     distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
 
-# fit the function pr = (1-a)(1-c)^k
-# supply jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
 def fitKmerCurve(pairwise, klist, jacobian):
+    """Fit the function :math:`pr = (1-a)(1-c)^k`
+
+    Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``
+
+    Args:
+        pairwise (numpy.array)
+            Proportion of shared k-mers at k-mer values in klist
+        klist (list)
+            k-mer sizes used
+        jacobian (numpy.array)
+            Should be set as above (set once to try and save memory)
+
+    Returns:
+        transformed_params (numpy.array)
+            Column with core and accessory distance
+    """
     # curve fit pr = (1-a)(1-c)^k
     # log pr = log(1-a) + k*log(1-c)
     # a = p[0]; c = p[1] (will flip on return)
@@ -525,7 +655,6 @@ def iterDistRows(refSeqs, querySeqs, self=True):
         ref, query (str, str)
             Iterable of tuples with ref and query names for each distMat row.
     """
-
     if self:
         if refSeqs != querySeqs:
             raise RuntimeError('refSeqs must equal querySeqs for db building (self = true)')
@@ -537,13 +666,18 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             for ref in refSeqs:
                 yield(ref, query)
 
-
-####################################
-# get kmers from existing database #
-####################################
-
 def getKmersFromReferenceDatabase(dbPrefix):
+    """Get kmers lengths from existing database
 
+    Parses the database name to determine klist
+
+    Args:
+        dbPrefix (str)
+            Prefix for sketch DB files
+    Returns:
+        kmers (list)
+            List of k-mer lengths used in database
+    """
     # prepare
     knum = []
     fullDbPrefix = "./" + dbPrefix + "/" + dbPrefix + "."
@@ -557,13 +691,23 @@ def getKmersFromReferenceDatabase(dbPrefix):
     kmers = np.asarray(knum)
     return kmers
 
-
-##############################
-# write query output to file #
-##############################
-
 def printQueryOutput(rlist, qlist, X, outPrefix, self):
+    """Write calculated distances between query and ref to a text file
 
+    First three arguments are the return values from :func:`~queryDatabase`
+
+    Args:
+        rlist (list)
+            Names of reference sequences
+        qlist (list)
+            Names of query sequences
+        X (numpy.array)
+            Core and accessory distances
+        outPrefix (str)
+            Prefix for output file
+        self (bool)
+            Whether :func:`~queryDatabase` was run with self (rlist = qlist)
+    """
     # check if output directory exists and generate if not
     if not os.path.isdir(outPrefix):
         os.makedirs(outPrefix)

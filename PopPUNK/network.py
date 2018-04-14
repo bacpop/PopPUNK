@@ -21,12 +21,21 @@ from .mash import iterDistRows
 from .bgmm import assign_samples
 from .bgmm import findWithinLabel
 
-#######################################
-# extract references based on cliques #
-#######################################
-
 def extractReferences(G, outPrefix):
+    """Extract references for each cluster based on cliques
 
+    Writes chosen references to file
+
+    Args:
+        G (networkx.Graph)
+            A network used to define clusters from :func:`~constructNetwork`
+        outPrefix (str)
+            Prefix for output file (.refs will be appended)
+
+    Returns:
+        refFileName (str)
+            The name of the file references were written to
+    """
     # define reference list
     references = {}
     # extract cliques from network
@@ -50,15 +59,11 @@ def extractReferences(G, outPrefix):
 
     return refFileName
 
-####################################
-# Construct network from model fit #
-####################################
-
 def constructNetwork(rlist, qlist, assignments, within_label):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
-    Will print summary statistics about the network to `STDERR`
+    Will print summary statistics about the network to ``STDERR``
 
     Args:
         rlist (list)
@@ -367,12 +372,21 @@ def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, th
             sys.stderr.write("Failed to combine databases " + f1 + " and " + f2 + "\n")
             sys.exit(1)
 
-############################
-# Print network components #
-############################
-
 def printClusters(G, outPrefix):
+    """Get cluster assignments
 
+    Also writes assignments to a CSV file
+
+    Args:
+        G (networkx.Graph)
+            Network used to define clusters (from :func:`~constructNetwork`)
+        outPrefix (str)
+            Prefix for output CSV (_clusters.csv)
+
+    Returns:
+        clustering (dict)
+            Dictionary of cluster assignments (keys are sequence names)
+    """
     # data structure
     clustering = {}
 

@@ -24,7 +24,10 @@ mash.py
 network.py
 ----------
 
-Functions used to cons
+Functions used to construct the network, and update with new queries. Main
+entry point is :func:`~PopPUNK.network.constructNetwork` for new reference
+databases, and :func:`~PopPUNK.network.findQueryLinksToNetwork` for querying
+databases.
 
 .. automodule:: PopPUNK.network
    :members:
