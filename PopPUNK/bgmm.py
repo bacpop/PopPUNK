@@ -8,6 +8,7 @@ import re
 # additional
 import numpy as np
 import random
+import operator
 import matplotlib.pyplot as plt
 try:
     import pymc3 as pm
@@ -33,6 +34,7 @@ from sklearn import mixture
 
 from .plot import plot_scatter
 from .plot import plot_results
+from .plot import plot_contours
 
 # for pymc3 fit
 scalar_gammaln = GammaLn(scalar.upgrade_to_float, name='scalar_gammaln')
@@ -266,9 +268,7 @@ def log_multivariate_t_density(X, means, covars, nu = 1, min_covar=1.e-7):
     return log_prob
 
 def assign_samples(X, weights, means, covars, scale, t_dist = False, values = False):
-    """modified sklearn GMM function predicting distribution membership
-
-    Given distances and a fit will calculate responsibilities and return most
+    """Given distances and a fit will calculate responsibilities and return most
     likely cluster assignment
 
     Args:
@@ -295,13 +295,7 @@ def assign_samples(X, weights, means, covars, scale, t_dist = False, values = Fa
             An n-vector with the most likely cluster memberships
             or an n by k matrix with the component responsibilities for each sample.
     """
-    if t_dist:
-        lpr = (log_multivariate_t_density(X/scale, means, covars) +
-                np.log(weights))
-    else:
-        lpr = (log_multivariate_normal_density(X/scale, means, covars) +
-                np.log(weights))
-    logprob = sp_logsumexp(lpr, axis=1)
+    logprob, lpr = log_likelihood(X, weights, means, covars, scale, t_dist)
     responsibilities = np.exp(lpr - logprob[:, np.newaxis])
 
     # Default to return the most likely cluster
@@ -314,7 +308,44 @@ def assign_samples(X, weights, means, covars, scale, t_dist = False, values = Fa
     return ret_vec
 
 
-def findWithinLabel(means, assignments):
+def log_likelihood(X, weights, means, covars, scale, t_dist = False):
+    """modified sklearn GMM function predicting distribution membership
+
+    Returns the mixture LL for points X. Used by :func:`~assign_samples~ and
+    :func:`~PopPUNK.plot.plot_contours`
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        weights (numpy.array)
+            Component weights from :func:`~fit2dMultiGaussian`
+        means (numpy.array)
+            Component means from :func:`~fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~fit2dMultiGaussian`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
+        t_dist (bool)
+            Indicates the fit was with a mixture of t-distributions
+            (default = False).
+    Returns:
+        logprob (numpy.array)
+            The log of the probabilities under the mixture model
+        lpr (numpy.array)
+            The components of the log probability from each mixture component
+    """
+    if t_dist:
+        lpr = (log_multivariate_t_density(X/scale, means, covars) +
+                np.log(weights))
+    else:
+        lpr = (log_multivariate_normal_density(X/scale, means, covars) +
+                np.log(weights))
+    logprob = sp_logsumexp(lpr, axis=1)
+
+    return(logprob, lpr)
+
+
+def findWithinLabel(means, assignments, rank = 0):
     """Identify within-strain links
 
     Finds the component with mean closest to the origin and also akes sure
@@ -327,19 +358,22 @@ def findWithinLabel(means, assignments):
             :func:`~assignQuery`
         assignments (numpy.array)
             Sample cluster assignments from :func:`~assign_samples`
+        rank (int)
+            Which label to find, ordered by distance from origin. 0-indexed.
+
+            (default = 0)
 
     Returns:
         within_label (int)
             The cluster label for the within-strain assignments
     """
-    min_dist = None
+    min_dists = {}
     for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
         if np.any(assignments == mixture_component):
-            if min_dist is None or distance < min_dist:
-               min_dist = distance
-               within_label = mixture_component
+            min_dists[mixture_component] = distance
 
-    return(within_label)
+    sorted_dists = sorted(min_dists.items(), key=operator.itemgetter(1))
+    return(sorted_dists[rank][0])
 
 def bgmm_model(X, model_parameters, t_dist = False, minibatch_size = 2000, burnin_it = 25000, sampling_it = 10000, num_samples = 2000):
     """Fits the 2D mixture model using ADVI with minibatches (BGMM)
@@ -624,7 +658,6 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
             Indicates the fit was with a mixture of t-distributions
             (default = False).
     """
-
     # set output dir
     if not os.path.isdir(outPrefix):
         if not os.path.isfile(outPrefix):
@@ -701,6 +734,7 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
         title +=  "-component BGMM"
         outfile += "_BGMM_fit"
     plot_results(X, y, means, covariances, scale, title, outfile)
+    plot_contours(y, weights, means, covariances, title + " assignment boundary", outfile + "_contours", t_dist)
 
     sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                    "\tNumber of components used\t" + str(used_components)])

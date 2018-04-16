@@ -12,6 +12,7 @@ import pandas as pd
 from collections import defaultdict
 from scipy import spatial
 from sklearn import manifold
+from sklearn.neighbors.kde import KernelDensity
 import dendropy
 import networkx as nx
 
@@ -257,8 +258,10 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
                     refList, seqLabels, clustering, True, epiCsv)
 
-def plot_scatter(X, out_prefix, title):
+def plot_scatter(X, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
+
+    Also draws contours of kernel density estimare
 
     Args:
         X (numpy.array)
@@ -267,10 +270,29 @@ def plot_scatter(X, out_prefix, title):
             Prefix for output plot file (.png will be appended)
         title (str)
             The title to display above the plot
+        kde (bool)
+            Whether to draw kernel density estimate contours
+
+            (default = True)
     """
+    fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
+    if kde:
+        xx, yy, xy = get_grid(0, 1, 100)
+
+        # KDE estimate
+        kde = KernelDensity(bandwidth=0.04, metric='euclidean',
+                            kernel='gaussian', algorithm='ball_tree')
+        kde.fit(X)
+        z = np.exp(kde.score_samples(xy))
+        z = z.reshape(xx.shape).T
+
+        levels = np.linspace(z.min(), z.max(), 10)
+        plt.contour(xx, yy, z, levels=levels)
+
     plt.ioff()
+    plt.scatter(X[:,0].flat, X[:,1].flat, s=2)
+
     plt.title(title)
-    plt.scatter(X[:,0].flat, X[:,1].flat, s=0.8)
     plt.savefig(out_prefix + ".png")
     plt.close()
 
@@ -359,3 +381,76 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     plt.title(title)
     plt.savefig(out_prefix + ".png")
     plt.close()
+
+def plot_contours(assignments, weights, means, covariances, title, out_prefix, t_dist = False):
+    """Draw contours of mixture model assignments
+
+    Will draw the decision boundary for between/within in red
+
+    Args:
+        assignments (numpy.array)
+             n-vectors of cluster assignments for model
+        weights (numpy.array)
+            Component weights from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        means (numpy.array)
+            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        covars (numpy.array)
+            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        title (str)
+            The title to display above the plot
+        out_prefix (str)
+            Prefix for output plot file (.pdf will be appended)
+        t_dist (bool)
+            Indicates the fit was with a mixture of t-distributions
+            (default = False).
+    """
+    # avoid recursive import
+    from .bgmm import assign_samples
+    from .bgmm import log_likelihood
+    from .bgmm import findWithinLabel
+
+    xx, yy, xy = get_grid(0, 1, 100)
+
+    # for likelihood boundary
+    z = assign_samples(xy, weights, means, covariances, np.array([1,1]), t_dist, True)
+    z_diff = z[:,findWithinLabel(means, assignments, 0)] - z[:,findWithinLabel(means, assignments, 1)]
+    z = z_diff.reshape(xx.shape).T
+
+    # For full likelihood surface
+    z_ll, lpr = log_likelihood(xy, weights, means, covariances, np.array([1,1]), t_dist = False)
+    z_ll = z_ll.reshape(xx.shape).T
+
+    plt.contour(xx, yy, z_ll, levels=np.linspace(z_ll.min(), z_ll.max(), 25))
+    plt.contour(xx, yy, z, levels=[0], colors='r', linewidths=3)
+
+    plt.title(title)
+    plt.savefig(out_prefix + ".pdf")
+    plt.close()
+
+def get_grid(minimum, maximum, resolution):
+    """Get a square grid of points to evaluate a function across
+
+    Used for :func:`~plot_scatter` and :func:`~plot_contours`
+
+    Args:
+        minimum (float)
+            Minimum value for grid
+        maximum (float)
+            Maximum value for grid
+        resolution (int)
+            Number of points along each axis
+
+    Returns:
+        xx (numpy.array)
+            x values across n x n grid
+        yy (numpy.array)
+            y values across n x n grid
+        xy (numpy.array)
+            n x 2 pairs of x, y values grid is over
+    """
+    x = np.linspace(minimum, maximum, resolution)
+    y = np.linspace(minimum, maximum, resolution)
+    xx, yy = np.meshgrid(x, y)
+    xy = np.vstack([yy.ravel(), xx.ravel()]).T
+
+    return(xx, yy, xy)
