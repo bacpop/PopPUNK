@@ -20,6 +20,7 @@ Command line options:
      -h, --help            show this help message and exit
 
    Mode of operation:
+     --easy-run            Create clusters from assemblies with default settings
      --create-db           Create pairwise distances database between reference
                            sequences
      --fit-model           Fit a mixture model to a reference database

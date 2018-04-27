@@ -49,6 +49,10 @@ def get_options():
 
     modeGroup = parser.add_argument_group('Mode of operation')
     mode = modeGroup.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--easy-run',
+            help='Create clusters from assemblies with default settings',
+            default=False,
+            action='store_true')
     mode.add_argument('--create-db',
             help='Create pairwise distances database between reference sequences',
             default=False,
@@ -107,7 +111,6 @@ def get_options():
     faGroup.add_argument('--info-csv',
                      help='Epidemiological information CSV formatted for microreact (with --microreact or --cytoscape)')
 
-
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use during database querying [default = 1]')
@@ -160,7 +163,7 @@ def main():
         sys.exit(1)
 
     # check on file paths and whether files will be appropriate overwritten
-    if not args.full_db and not args.create_db:
+    if not args.full_db and not (args.create_db or args.easy_run):
         args.overwrite = True
     if args.output is not None and args.output.endswith('/'):
         args.output = args.output[:-1]
@@ -171,48 +174,61 @@ def main():
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
 
     # database construction
-    if args.create_db:
-        sys.stderr.write("Mode: Building new database from input sequences\n")
+    if args.create_db or args.easy_run:
+        if args.create_db:
+            sys.stderr.write("Mode: Building new database from input sequences\n")
+        elif args.easy_run:
+            sys.stderr.write("Mode: Creating clusters from assemblies (create_db & fit_model)\n")
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
-            storePickle(refList, queryList, True, distMat, args.output + "/" + args.output + ".dists")
+
+            dists_out = args.output + "/" + args.output + ".dists"
+            storePickle(refList, queryList, True, distMat, dists_out)
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files")
             sys.exit(1)
 
     # model fit and network construction
-    elif args.fit_model:
-        if args.distances is not None and args.ref_db is not None:
+    if args.fit_model or args.easy_run:
+        # Set up saved data from first step, if easy_run mode
+        if args.easy_run:
+            distances = dists_out
+            ref_db = args.output
+        else:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
-            refList, queryList, self, distMat = readPickle(args.distances)
-            kmers = getKmersFromReferenceDatabase(args.ref_db)
-            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            if not self:
-                sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
+            if distances is not None and ref_db is not None:
+                distances = args.distances
+                ref_db = args.ref_db
+            else:
+                sys.stderr.write("Need to provide an input set of distances with --distances "
+                                 "and reference database directory with --ref-db\n\n")
                 sys.exit(1)
 
-            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
-                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
-            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
-            isolateClustering = printClusters(genomeNetwork, args.output)
-            # generate outputs for microreact if asked
-            if args.microreact:
-                outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.info_csv, args.rapidnj, args.overwrite)
-            # generate outputs for cytoscape if asked
-            if args.cytoscape:
-                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
-            # extract limited references from clique by default
-            if not args.full_db:
-                referenceGenomes = extractReferences(genomeNetwork, args.output)
-                constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
-                map(os.remove, referenceGenomes) # tidy up
-            printQueryOutput(refList, queryList, distMat, args.output, self)
-        else:
-            sys.stderr.write("Need to provide an input set of distances with --distances "
-                             "and reference database directory with --ref-db\n\n")
+        refList, queryList, self, distMat = readPickle(distances)
+        kmers = getKmersFromReferenceDatabase(ref_db)
+        sketch_sizes = getSketchSize(ref_db, kmers, args.mash)
+        if not self:
+            sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
             sys.exit(1)
+
+        distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
+            fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
+        genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
+        isolateClustering = printClusters(genomeNetwork, args.output)
+        # generate outputs for microreact if asked
+        if args.microreact:
+            outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.info_csv, args.rapidnj, args.overwrite)
+        # generate outputs for cytoscape if asked
+        if args.cytoscape:
+            outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+        # extract limited references from clique by default
+        if not args.full_db:
+            referenceGenomes = extractReferences(genomeNetwork, args.output)
+            constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+            map(os.remove, referenceGenomes) # tidy up
+        printQueryOutput(refList, queryList, distMat, args.output, self)
 
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:

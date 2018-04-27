@@ -41,7 +41,13 @@ In brackets are the versions we used
 * `Theano` (1.0.1)
 
 ## Quick usage
-Create the database:
+Easy run mode, go from assemblies to clusters of strains:
+```
+poppunk --easy-run --r-files reference_list.txt --output poppunk_db
+
+```
+
+Or in two parts. First, create the database:
 ```
 poppunk --create-db \
    --r-files reference_list.txt \
@@ -52,7 +58,7 @@ poppunk --create-db \
    --plot-fit 5
 ```
 
-Fit the model:
+Then fit the model:
 ```
 poppunk --fit-model \
    --ref-db poppunk_db \

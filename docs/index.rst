@@ -5,16 +5,37 @@
 
 PopPUNK documentation
 ==================================
+.. image:: poppunk_v2.png
+   :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
+   :align: center
+
+In straightforward cases, usage can be as simple as::
+
+   poppunk --easy-run --r-files references.txt --output poppunk_db
+
+Where ``references.txt`` is a list of assembly fasta files, one per line. See
+the :doc:`tutorial` for full details.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   self
+   installation.rst
+   options.rst
+   tutorial.rst
+   troubleshooting.rst
+   api.rst
+   miscellaneous.rst
+
+Details
+-------
 ``PopPUNK`` uses the fast k-mer distance estimation enabled by `mash <https://mash.readthedocs.io/en/latest/>`_
 to calculate core and accessory distances between all pairs of isolates of bacteria in a collection. By clustering
 these distances into 'within-strain' and 'between-strain' distances a network
 of within-strain comparisons can be constructed. The use of a network has
 a number of convenient properties, the first being that the connected
 components represent a cluster of strains.
-
-.. image:: poppunk_v2.png
-   :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
-   :align: center
 
 As well as identifying strains, the pairwise distance distribution also helps
 with assembly quality control (particularly in the case of contaminated
@@ -43,18 +64,6 @@ The advantages of this approach are broadly that:
    This is when core and accessory distances are broadly correlated with each
    other in separate groups. This is often the case across a species, but would
    not be true within a lineage
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   self
-   installation.rst
-   options.rst
-   tutorial.rst
-   troubleshooting.rst
-   api.rst
-   miscellaneous.rst
 
 Index:
 ------

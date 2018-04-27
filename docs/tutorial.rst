@@ -247,8 +247,13 @@ Output files
 ^^^^^^^^^^^^
 * strain_db.search.out -- the core and accessory distances between all
   pairs.
-* strain_db.png -- scatter plot of all distances, and mixture model
+* strain_db_DPGMM_fit.png -- scatter plot of all distances, and mixture model
   fit and assignment.
+* strain_db_DPGMM_fit_contours.png -- contours of likelihood function fitted to
+  data (blue low -> yellow high). The thick red line is the decision boundary between
+  within- and between-strain components.
+* strain_db_distanceDistribution.png -- scatter plot of the distance
+  distribution fitted by the model, and a kernel-density estimate.
 * strain_db.csv -- isolate names and the cluster assigned.
 * strain_db.png -- unclustered distribution of
   distances used in the fit (subsampled from total).

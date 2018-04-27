@@ -287,7 +287,7 @@ def plot_scatter(X, out_prefix, title, kde = True):
         z = z.reshape(xx.shape).T
 
         levels = np.linspace(z.min(), z.max(), 10)
-        plt.contour(xx, yy, z, levels=levels, cmap=plasma)
+        plt.contour(xx, yy, z, levels=levels, cmap='plasma')
         scatter_alpha = 1
     else:
         scatter_alpha = 0.1
