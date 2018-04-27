@@ -280,17 +280,20 @@ def plot_scatter(X, out_prefix, title, kde = True):
         xx, yy, xy = get_grid(0, 1, 100)
 
         # KDE estimate
-        kde = KernelDensity(bandwidth=0.04, metric='euclidean',
-                            kernel='gaussian', algorithm='ball_tree')
+        kde = KernelDensity(bandwidth=0.03, metric='euclidean',
+                            kernel='epanechnikov', algorithm='ball_tree')
         kde.fit(X)
         z = np.exp(kde.score_samples(xy))
         z = z.reshape(xx.shape).T
 
         levels = np.linspace(z.min(), z.max(), 10)
-        plt.contour(xx, yy, z, levels=levels)
+        plt.contour(xx, yy, z, levels=levels, cmap=plasma)
+        scatter_alpha = 1
+    else:
+        scatter_alpha = 0.1
 
     plt.ioff()
-    plt.scatter(X[:,0].flat, X[:,1].flat, s=2)
+    plt.scatter(X[:,0].flat, X[:,1].flat, s=2, alpha=scatter_alpha)
 
     plt.title(title)
     plt.savefig(out_prefix + ".png")
