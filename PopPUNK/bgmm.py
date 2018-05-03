@@ -647,13 +647,13 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
         y (numpy.array)
             Cluster assignments for each sample in X
         weights (numpy.array)
-            Component weights from :func:`~fit2dMultiGaussian`
+            Component weights
         means (numpy.array)
-            Component means from :func:`~fit2dMultiGaussian`
+            Component means
         covars (numpy.array)
-            Component covariances from :func:`~fit2dMultiGaussian`
+            Component covariances
         scale (numpy.array)
-            Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
+            Scaling of core and accessory distances
         t (bool)
             Indicates the fit was with a mixture of t-distributions
             (default = False).

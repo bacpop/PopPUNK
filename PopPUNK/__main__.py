@@ -32,6 +32,8 @@ from .network import updateDatabase
 from .network import updateClustering
 from .network import printClusters
 
+from .refine import refineFit
+
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
 
@@ -59,6 +61,10 @@ def get_options():
             action='store_true')
     mode.add_argument('--fit-model',
             help='Fit a mixture model to a reference database',
+            default=False,
+            action='store_true')
+    mode.add_argument('--refine-model',
+            help='Refine the accuracy of a fitted model',
             default=False,
             action='store_true')
     mode.add_argument('--create-query-db',
@@ -229,6 +235,26 @@ def main():
             constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
             map(os.remove, referenceGenomes) # tidy up
         printQueryOutput(refList, queryList, distMat, args.output, self)
+
+    elif args.refine_model:
+        if args.ref_db is not None and args.distances is not None:
+            sys.stderr.write("Mode: Refining existing fit using network properties\n")
+
+            # Read in previous fit
+            refList, queryList, self, distMat = readPickle(args.distances)
+            if not self:
+                sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
+                sys.exit(1)
+            queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = assignQuery(distMat, args.ref_db)
+
+            # Run refinement
+            genomeNetwork = refineFit(distMat, queryList, queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt)
+
+            #TODO printing as in fit_model (probably put in post fit function or similar)
+        else:
+            sys.stderr.write("Need to provide both a reference database with --ref-db and "
+                             "distances with --distances\n")
+            sys.exit(1)
 
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
