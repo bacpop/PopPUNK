@@ -8,6 +8,7 @@ import re
 # additional
 import numpy as np
 import math
+import networkx as nx
 from scipy.optimize import brentq
 from scipy.spatial.distance import euclidean
 
@@ -36,14 +37,14 @@ def refineFit(distMat, sample_names, assignment, weights, means, covariances, sc
             Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
         scale (numpy.array)
             Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        t (bool)
+        t_dist (bool)
             Indicates the fit was with a mixture of t-distributions
     Returns:
         G (networkx.Graph)
             The resulting refined network
     """
     sys.stderr.write("Initial model-based network construction\n")
-    distMat /= scale
+    distMat /= scale # Deal with scale at start
     within_label = findWithinLabel(means, assignment)
     between_label = findWithinLabel(means, assignment, 1)
     G = constructNetwork(sample_names, sample_names, assignment, within_label)
@@ -53,7 +54,9 @@ def refineFit(distMat, sample_names, assignment, weights, means, covariances, sc
     sys.stderr.write("Initial boundary based network construction\n")
     mean0 = means[within_label, :]
     mean1 = means[between_label, :]
-    start_point = brentq(likelihoodBoundary, 0, euclidean(mean0, mean1), weights, means, covariances, t, mean0, mean1)
+    start_s = brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
+                     args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
+    start_point = transformLine(start_s, mean0, mean1)
 
     # Boundary is left on line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
@@ -72,10 +75,11 @@ def refineFit(distMat, sample_names, assignment, weights, means, covariances, sc
             change_connections.append((ref, query))
     G.add_edges_from(change_connections)
     print(len(change_connections))
-    print(G.transitivity)
-    print(G.density)
+    print(nx.density(G))
+    print(nx.transitivity(G))
 
     # backward
+    G.remove_edges_from(change_connections)
     new_intercept = transformLine(-0.05, start_point, mean1)
     x_max, y_max = decisionBoundary(new_intercept, gradient)
     updated_assignments = withinBoundary(distMat, x_max, y_max)
@@ -85,17 +89,17 @@ def refineFit(distMat, sample_names, assignment, weights, means, covariances, sc
             change_connections.append((ref, query))
     G.remove_edges_from(change_connections)
     print(len(change_connections))
-    print(G.transitivity)
-    print(G.density)
+    print(nx.density(G))
+    print(nx.transitivity(G))
 
     #Use interval bisection to maximize score
         #Need to ensure score is monotonic (try plotting first)
     #Use different save mode for boundary assignment
 
-    # TODO also return new fit
-    return G
+    # also return new fit
+    return G, x_max, y_max
 
-def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end):
+def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end, within, between):
     """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
     go into a root-finding function for probabilities between components
 
@@ -110,7 +114,7 @@ def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end):
             Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
         scale (numpy.array)
             Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        t (bool)
+        t_dist (bool)
             Indicates the fit was with a mixture of t-distributions
         start (numpy.array)
             The co-ordinates of the centre of the within-strain distribution
@@ -121,9 +125,9 @@ def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end):
             The difference between responsibilities of assignment to the within component
             and the between assignment
     """
-    X = transformLine(t, start, end)
+    X = transformLine(s, start, end).reshape(1, -1)
     responsibilities = assign_samples(X, weights, means, covars, scale, t_dist, values = True)
-    return(responsibilities[within] - responsibilities[between])
+    return(responsibilities[0, within] - responsibilities[0, between])
 
 def transformLine(s, mean0, mean1):
     """Return x and y co-ordinates for traversing along a line between mean0 and mean1, parameterised by
@@ -143,10 +147,10 @@ def transformLine(s, mean0, mean1):
             The Cartesian y-coordinate
     """
     tan_theta = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x = mean0[0] + s * (1/sqrt(1+tan_theta))
-    y = mean0[1] + s * (tan_theta/sqrt(1+tan_theta))
+    x = mean0[0] + s * (1/math.sqrt(1+tan_theta))
+    y = mean0[1] + s * (tan_theta/math.sqrt(1+tan_theta))
 
-    return (x, y)
+    return np.array([x, y])
 
 def decisionBoundary(intercept, gradient):
     # Returns the co-ordinates of the triangle the decision boundary forms
@@ -154,11 +158,11 @@ def decisionBoundary(intercept, gradient):
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
 
-def withinBoundary(dists, x_max, y_max)
+def withinBoundary(dists, x_max, y_max):
     # See https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
     # x_max and y_max from decisionBoundary
-    boundary_test = np.apply_along_axis(lambda px, py: return px*py - (x_max-px)*(y_max-py), 0, dists)
+    in_tri = lambda row: row[0]*row[1] - (x_max-row[0])*(y_max-row[1])
+    boundary_test = np.apply_along_axis(in_tri, 1, dists)
     return(np.sign(boundary_test))
 
-# Returns those edges which have been added or removed by boundary change
-def diffList
+

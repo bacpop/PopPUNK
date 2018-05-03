@@ -204,7 +204,7 @@ def main():
             ref_db = args.output
         else:
             sys.stderr.write("Mode: Fitting model to reference database\n\n")
-            if distances is not None and ref_db is not None:
+            if args.distances is not None and args.ref_db is not None:
                 distances = args.distances
                 ref_db = args.ref_db
             else:
@@ -248,7 +248,7 @@ def main():
             queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = assignQuery(distMat, args.ref_db)
 
             # Run refinement
-            genomeNetwork = refineFit(distMat, queryList, queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt)
+            genomeNetwork, x_max, y_max = refineFit(distMat, queryList, queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt)
 
             #TODO printing as in fit_model (probably put in post fit function or similar)
         else:
