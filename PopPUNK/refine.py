@@ -61,36 +61,32 @@ def refineFit(distMat, sample_names, assignment, weights, means, covariances, sc
     # Boundary is left on line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
     x_max, y_max = decisionBoundary(start_point, gradient)
-    new_assignments = withinBoundary(distMat, x_max, y_max)
-    G = constructNetwork(sample_names, sample_names, new_assignments, -1)
+    boundary_assignments = withinBoundary(distMat, x_max, y_max)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
-    # Move boundary along line (cos theta/sin theta transform for gradient)
-    # forward
-    new_intercept = transformLine(0.05, start_point, mean1)
+    # Move boundary along line
+    new_intercept = transformLine(-0.4, start_point, mean1)
     x_max, y_max = decisionBoundary(new_intercept, gradient)
     updated_assignments = withinBoundary(distMat, x_max, y_max)
     change_connections = []
-    for old, new, (ref, query) in zip(new_assignments, updated_assignments, iterDistRows(sample_names, sample_names, self=True)):
-        if new == -1 and old == 1:
-            change_connections.append((ref, query))
-    G.add_edges_from(change_connections)
-    print(len(change_connections))
-    print(nx.density(G))
-    print(nx.transitivity(G))
-
-    # backward
-    G.remove_edges_from(change_connections)
-    new_intercept = transformLine(-0.05, start_point, mean1)
-    x_max, y_max = decisionBoundary(new_intercept, gradient)
-    updated_assignments = withinBoundary(distMat, x_max, y_max)
-    change_connections = []
-    for old, new, (ref, query) in zip(new_assignments, updated_assignments, iterDistRows(sample_names, sample_names, self=True)):
+    for old, new, (ref, query) in zip(boundary_assignments, updated_assignments, iterDistRows(sample_names, sample_names, self=True)):
         if new == 1 and old == -1:
             change_connections.append((ref, query))
     G.remove_edges_from(change_connections)
-    print(len(change_connections))
-    print(nx.density(G))
-    print(nx.transitivity(G))
+
+    for s in np.linspace(-0.4, 0.1, 200):
+        new_intercept = transformLine(s, start_point, mean1)
+        x_max, y_max = decisionBoundary(new_intercept, gradient)
+        updated_assignments = withinBoundary(distMat, x_max, y_max)
+        change_connections = []
+        for old, new, (ref, query) in zip(boundary_assignments, updated_assignments, iterDistRows(sample_names, sample_names, self=True)):
+            if new == -1 and old == 1:
+                change_connections.append((ref, query))
+        G.add_edges_from(change_connections)
+        boundary_assignments = updated_assignments
+        print("\t".join([str(s), str(nx.number_connected_components(G)), str(nx.density(G)), str(nx.transitivity(G))]))
+
+    # to optimize, could just reconstruct network each time?
 
     #Use interval bisection to maximize score
         #Need to ensure score is monotonic (try plotting first)
