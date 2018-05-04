@@ -87,8 +87,9 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
 
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
+    global_grid_resolution = 40 # Seems to work
     shared_dists = sharedmem.copy(distMat)
-    s_range = np.linspace(-min_move, max_move, num = 40)
+    s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
     with sharedmem.MapReduce(np = num_processes) as pool:
         global_s = pool.map(partial(newNetwork,
             sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1, gradient=gradient),

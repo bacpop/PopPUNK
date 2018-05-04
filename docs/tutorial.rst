@@ -1,5 +1,9 @@
 Tutorial
 ========
+
+.. |nbsp| unicode:: 0xA0
+   :trim:
+
 This tutorial will guide you through the use of the four modes of PopPUNK,
 explaining when to use each one. In places we refer to :doc:`troubleshooting`
 which explains how to deal with common problems when the defaults don't quite
@@ -324,4 +328,109 @@ The following command line options can be used in this mode:
    Threads will only be used if ``--full-db`` is *not* specified and sketching
    of the representatives is performed at the end.
 
+.. _refine-model:
+
+Refining a model
+-------------------
+In species with a relatively high recombination rate the distinction between
+the within- and between-strain distributions may be blurred in core and
+accessory space. This does not give the mixture model enough information to
+draw a good boundary as the likelihood is very flat in this region.
+
+See this example of 616 *S.*\ |nbsp| \ *pneumoniae* genomes with the DPGMM fit. These genomes were collected from Massachusetts,
+first reported `here <https://www.nature.com/articles/ng.2625>`__ and can be accessed
+`here <https://www.nature.com/articles/sdata201558>`__.
+
+.. image:: pneumo_unrefined.png
+   :alt:  A bad DPGMM fit
+   :align: center
+
+Although the score of this fit looks ok (0.904), inspection of the network and
+microreact reveals that it is too liberal and clusters have been merged. This
+is because some of the blur between the origin and the central distribution has
+been included, and connected clusters together erroneously.
+
+The likelihood of the model fit and the decision boundary looks like this:
+
+.. image:: pneumo_likelihood.png
+   :alt:  The likelihood and decision boundary of the above fit
+   :align: center
+
+Using the core and accessory distributions alone does not give much information
+about exactly where to put the boundary, and the only way to fix this would be
+by specifying strong priors on the weights of the distributions. Fortunately
+the network properties give information in the region, and we can use
+``--refine-fit`` to tweak the existing fit and pick a better boundary.
+
+Run::
+
+   poppunk --refine-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --threads 4
+
+Briefly:
+
+* A line between the within- and between-strain means is constructed
+* The point on this line where samples go from being assigned as within-strain to between-strain is used as the starting point
+* A line normal to the first line, passing through this point is constructed. The triangle formed by this line and the x- and y-axes is now the decision boundary. Points within this line are within-strain.
+* The starting point is shifted by a distance along the first line, and a new decision boundary formed in the same way. The network is reconstructed.
+* The shift of the starting point is optimised, as judged by the network score. First globally by a grid search, then locally near the global optimum.
+
+The score is a function of transitivity (which is expected to be high, as
+everything within a cluster should be the same strain as everything else in the
+cluster) and density (which should be low, as there are far fewer within- than
+between-strain links).
+
+Here is the refined fit, which has a score of 0.939, and 62 rather than 32
+components:
+
+.. image:: pneumo_refined.png
+   :alt:  The refined fit
+   :align: center
+
+Which, looking at the `microreact output <https://microreact.org/project/SJxxLMcaf>`__, is much better:
+
+.. image:: refined_microreact.png
+   :alt:  The refined fit, in microreact
+   :align: center
+
+Output files
+^^^^^^^^^^^^
+TODO
+
+This will create two files `strain_db/strain_db.dists.npy` and `strain_db/strain_db.dists.pkl` which
+store the distances and strain names respectively. These are then used in
+:ref:`model-fit`.
+
+There are also databases of sketches at each k-mer length (`*.msh`) which can
+be re-used if the same data is fitted with a new range of k-mer lengths.
+Otherwise they should be recalculated by specifying ``--overwrite``.
+
+Relevant command line options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO
+
+The following command line options can be used in this mode:
+
+   Mode of operation:
+     --create-db           Create pairwise distances database between reference
+                           sequences
+   Input files:
+     --r-files R_FILES     File listing reference input assemblies
+
+   Output options:
+     --output OUTPUT       Prefix for output files (required)
+     --plot-fit PLOT_FIT   Create this many plots of some fits relating k-mer to
+                           core/accessory distances [default = 0]
+     --overwrite           Overwrite any existing database files
+
+   Kmer comparison options:
+     --min-k MIN_K         Minimum kmer length [default = 9]
+     --max-k MAX_K         Maximum kmer length [default = 29]
+     --k-step K_STEP       K-mer step size [default = 4]
+     --sketch-size SKETCH_SIZE
+                           Kmer sketch size [default = 10000]
+
+   Other options:
+     --mash MASH           Location of mash executable
+     --threads THREADS     Number of threads to use during database querying
+                           [default = 1]
 

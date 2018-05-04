@@ -24,6 +24,7 @@ Command line options:
      --create-db           Create pairwise distances database between reference
                            sequences
      --fit-model           Fit a mixture model to a reference database
+     --refine-model        Refine the accuracy of a fitted model
      --create-query-db     Create distances between query sequences and a
                            reference database
      --assign-query        Assign the cluster of query sequences without re-
@@ -61,6 +62,19 @@ Command line options:
      --bgmm                Use ADVI rather than EM to fit the mixture model
      --t-dist              Use a mixture of t distributions rather than Gaussians
                            (ADVI only)
+
+   Refine model options:
+     --pos-shift POS_SHIFT
+                           Maximum amount to move the boundary away from origin
+                           [default = 0.2]
+     --neg-shift NEG_SHIFT
+                           Maximum amount to move the boundary towards the origin
+                           [default = 0.4]
+     --manual-start MANUAL_START
+                           A file containing information for a start point. See
+                           documentation for help.
+     --no-local            Do not perform the local optimization step (speed up
+                           on very large datasets)
 
    Further analysis options:
      --microreact          Generate output files for microreact visualisation
