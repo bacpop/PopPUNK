@@ -7,7 +7,8 @@ import argparse
 import re
 # additional
 import numpy as np
-import math
+import sharedmem
+from functools import partial
 import networkx as nx
 import scipy.optimize
 from scipy.spatial.distance import euclidean
@@ -19,7 +20,8 @@ from .network import constructNetwork
 from .network import networkSummary
 from .plot import plot_refined_results
 
-def refineFit(distMat, outPrefix, sample_names, assignment, weights, means, covariances, scale, t_dist, max_move, min_move):
+def refineFit(distMat, outPrefix, sample_names, assignment, weights, means,
+        covariances, scale, t_dist, max_move, min_move, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -68,11 +70,33 @@ def refineFit(distMat, outPrefix, sample_names, assignment, weights, means, cova
     boundary_assignments = withinBoundary(distMat, x_max, y_max)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
-    # Optimize boundary
-    sys.stderr.write("Trying to optimise score\n")
-    optimised_s = scipy.optimize.brute(newNetwork, ranges=((-min_move, max_move),), Ns=40, finish = scipy.optimize.fmin, disp = True,
+    # Optimize boundary - grid search for global minimum
+    sys.stderr.write("Trying to optimise score globally\n")
+    shared_dists = sharedmem.copy(distMat)
+    s_range = np.linspace(-min_move, max_move, num = 40)
+    with sharedmem.MapReduce(np = num_processes) as pool:
+        global_s = pool.map(partial(newNetwork,
+            sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1, gradient=gradient),
+            s_range)
+
+    # Local optimisation around global optimum
+    min_idx = np.argmin(np.array(global_s))
+    if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
+        sys.stderr.write("Trying to optimise score locally\n")
+        local_s = scipy.optimize.minimize_scalar(newNetwork,
+                        bounds=[s_range[min_idx-1], s_range[min_idx+1]],
+                        method='Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient))
-    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s[0], start_point, mean1), gradient)
+        optimised_s = local_s.x
+    else:
+        optimised_s = s_range[min_idx]
+
+    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
+    if optimal_x <= 0 or optimal_x >= 1 or optimal_y <= 0 or optimal_y >= 1:
+        sys.stderr.write("Optimisation failed: produced a boundary outside of allowed range\n")
+        sys.exit(1)
+
+    # Make network from new optimal boundary
     boundary_assignments = withinBoundary(distMat, optimal_x, optimal_y)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
@@ -144,8 +168,8 @@ def transformLine(s, mean0, mean1):
             The Cartesian y-coordinate
     """
     tan_theta = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x = mean0[0] + s * (1/math.sqrt(1+tan_theta))
-    y = mean0[1] + s * (tan_theta/math.sqrt(1+tan_theta))
+    x = mean0[0] + s * (1/np.sqrt(1+tan_theta))
+    y = mean0[1] + s * (tan_theta/np.sqrt(1+tan_theta))
 
     return np.array([x, y])
 

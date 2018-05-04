@@ -113,6 +113,8 @@ def get_options():
             type=float, default=0.2)
     refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary towards the origin [default = 0.4]',
             type=float, default=0.4)
+    refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
+            default=False, action='store_true')
 
     faGroup = parser.add_argument_group('Further analysis options')
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
@@ -239,7 +241,8 @@ def main():
 
             (fitscale, fitWeights, fitMeans, fitcovariances, fitt) = model
             genomeNetwork = refineFit(distMat, args.output, queryList, queryAssignments,
-                    fitWeights, fitMeans, fitcovariances, fitscale, fitt, args.pos_shift, args.neg_shift)
+                    fitWeights, fitMeans, fitcovariances, fitscale, fitt, args.pos_shift, args.neg_shift,
+                    args.no_local, args.threads)
         # Run model
         else:
             distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \

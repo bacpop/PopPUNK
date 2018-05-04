@@ -412,7 +412,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, scale, title, out_prefix)
     fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
     plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .8, color='navy')
     plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .8, color='c')
-    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2)
+    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--')
 
     plt.title(title)
     plt.savefig(out_prefix + ".png")
