@@ -580,7 +580,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         start = end
 
     distMat = sharedmem.empty((number_pairs, 2))
-    with Pool(processes=threads) as pool:
+    with sharedmem.MapReduce(np = threads) as pool:
         pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
 
     return(refList, queryList, distMat)
