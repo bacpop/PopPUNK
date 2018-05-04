@@ -20,8 +20,8 @@ from .network import constructNetwork
 from .network import networkSummary
 from .plot import plot_refined_results
 
-def refineFit(distMat, outPrefix, sample_names, assignment, weights, means,
-        covariances, scale, t_dist, max_move, min_move, no_local = False, num_processes = 1):
+def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move,
+        manual_start = None, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -31,35 +31,32 @@ def refineFit(distMat, outPrefix, sample_names, assignment, weights, means,
             n x 2 array of core and accessory distances for n samples
         sample_names (list)
             List of query sequence labels
-        assignment (numpy.array)
-            Labels of most likely cluster assignment from :func:`~PopPUNK.bgmm.assign_samples`
-        weights (numpy.array)
-            Component weights from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        means (numpy.array)
-            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        covariances (numpy.array)
-            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        scale (numpy.array)
-            Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        model (tuple)
+            Model returned from :func:`~PopPUNK.bgmm.assignQuery`
         t_dist (bool)
             Indicates the fit was with a mixture of t-distributions
     Returns:
         G (networkx.Graph)
             The resulting refined network
     """
-    sys.stderr.write("Initial model-based network construction\n")
+    (scale, weights, means, covariances, t_dist) = model
     distMat /= scale # Deal with scale at start
-    within_label = findWithinLabel(means, assignment)
-    between_label = findWithinLabel(means, assignment, 1)
-    G = constructNetwork(sample_names, sample_names, assignment, within_label)
+    if manual_start:
+        mean0, mean1, start_s = readManualStart(startFile)
+    else:
+        sys.stderr.write("Initial model-based network construction\n")
+        within_label = findWithinLabel(means, assignment)
+        between_label = findWithinLabel(means, assignment, 1)
+        G = constructNetwork(sample_names, sample_names, assignment, within_label)
 
-    # Straight line between dist 0 centre and dist 1 centre
-    # Optimize to find point of decision boundary along this line as starting point
+        # Straight line between dist 0 centre and dist 1 centre
+        # Optimize to find point of decision boundary along this line as starting point
+        mean0 = means[within_label, :]
+        mean1 = means[between_label, :]
+        start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
+                         args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
+
     sys.stderr.write("Initial boundary based network construction\n")
-    mean0 = means[within_label, :]
-    mean1 = means[between_label, :]
-    start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
-                     args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
     start_point = transformLine(start_s, mean0, mean1)
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
                       + "," + "{:.2f}".format(start_point[1]) + ")\n")
@@ -193,3 +190,33 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
     (components, density, transitivity, score) = networkSummary(G)
     return(-score)
+
+def readManualStart(startFile):
+    with open(startFile, 'r') as start:
+        for line in start:
+            (param, value) = line.rstrip().split()
+            if param == 'mean0':
+                mean_read = []
+                for mean_val in value.split(','):
+                    mean_read.append(float(mean_val))
+                mean0 = np.array(mean_read)
+            elif param == 'mean1':
+                mean_read = []
+                for mean_val in value.split(','):
+                    mean_read.append(float(mean_val))
+                mean1 = np.array(mean_read)
+            elif param == 'start_point':
+                start_s = float(value)
+    try:
+        if mean0.shape != (2,) or mean1.shape != (2,):
+            raise RuntimeError('Wrong size for values')
+        check_vals = np.concatenate([mean0, mean1, start_point])
+        for val in np.nditer(check_vals):
+            if val > 1 or val < 0:
+                raise RuntimeError('Value out of range (between 0 and 1)')
+    except e:
+        sys.stderr.write("Could not read manual start file " + startFile + "\n")
+        sys.stderr.write(e)
+        sys.exit(1)
+
+    return mean0, mean1, start_s

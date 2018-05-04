@@ -113,6 +113,8 @@ def get_options():
             type=float, default=0.2)
     refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary towards the origin [default = 0.4]',
             type=float, default=0.4)
+    refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
+            'See documentation for help.', default=None)
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
 
@@ -233,16 +235,14 @@ def main():
             sys.exit(1)
 
         # Run refinement
-        if args.refine_model or args.easy_run:
+        if args.refine_model:
             queryAssignments, model, boundary = assignQuery(distMat, args.ref_db)
             if boundary:
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
 
-            (fitscale, fitWeights, fitMeans, fitcovariances, fitt) = model
             genomeNetwork = refineFit(distMat, args.output, queryList, queryAssignments,
-                    fitWeights, fitMeans, fitcovariances, fitscale, fitt, args.pos_shift, args.neg_shift,
-                    args.no_local, args.threads)
+                    model, args.pos_shift, args.neg_shift, args.manual_start, args.no_local, args.threads)
         # Run model
         else:
             distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
