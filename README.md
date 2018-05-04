@@ -44,7 +44,6 @@ In brackets are the versions we used
 Easy run mode, go from assemblies to clusters of strains:
 ```
 poppunk --easy-run --r-files reference_list.txt --output poppunk_db
-
 ```
 
 Or in two parts. First, create the database:

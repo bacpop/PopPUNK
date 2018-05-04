@@ -32,6 +32,14 @@ databases.
 .. automodule:: PopPUNK.network
    :members:
 
+refine.py
+---------
+
+Main entry point :func:`~PopPUNK.refine.refineFit`.
+
+.. automodule:: PopPUNK.refine
+   :members:
+
 plot.py
 --------
 

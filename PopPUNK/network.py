@@ -121,7 +121,7 @@ def networkSummary(G):
         transitivity (float)
             Network transitivity (triads/triangles)
         score (float)
-            A score of network fit, given by :math:`\mathrm{transitivity} \times (1-\mathrm{density})`
+            A score of network fit, given by :math:`\mathrm{transitivity} * (1-\mathrm{density})`
     """
     components = nx.number_connected_components(G)
     density = nx.density(G)

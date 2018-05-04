@@ -21,7 +21,7 @@ from .network import networkSummary
 from .plot import plot_refined_results
 
 def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move,
-        manual_start = None, no_local = False, num_processes = 1):
+    manual_start = None, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -29,12 +29,30 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     Args:
         distMat (numpy.array)
             n x 2 array of core and accessory distances for n samples
+        outPrefix (str)
+            The prefix for the output directory to save fit and plot in
         sample_names (list)
             List of query sequence labels
+        assignment (numpy.array)
+            Assignment of samples from :func:`~PopPUNK.bgmm.assign_samples`
         model (tuple)
             Model returned from :func:`~PopPUNK.bgmm.assignQuery`
-        t_dist (bool)
-            Indicates the fit was with a mixture of t-distributions
+        max_move (float)
+            Maximum distance to move away from start point
+        min_move (float)
+            Minimum distance to move away from start point
+        manual_start (str)
+            A file defining an initial fit, rather than one from ``--fit-model``.
+            See documentation for format.
+
+            (default = None).
+        no_local (bool)
+            Turn off the local optimisation step.
+            Quicker, but may be less well refined.
+        num_processes (int)
+            Number of threads to use in the global optimisation step.
+
+            (default = 1)
     Returns:
         G (networkx.Graph)
             The resulting refined network
@@ -138,6 +156,10 @@ def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end, wit
             The co-ordinates of the centre of the within-strain distribution
         end (numpy.array)
             The co-ordinates of the centre of the between-strain distribution
+        within (int)
+            Label of the within-strain distribution
+        between (int)
+            Label of the between-strain distribution
     Returns:
         responsibility (float)
             The difference between responsibilities of assignment to the within component
@@ -171,12 +193,42 @@ def transformLine(s, mean0, mean1):
     return np.array([x, y])
 
 def decisionBoundary(intercept, gradient):
-    # Returns the co-ordinates of the triangle the decision boundary forms
+    """Returns the co-ordinates where the triangle the decision boundary forms
+    meets the x- and y-axes.
+
+    Args:
+        intercept (numpy.array)
+            Cartesian co-ordinates of point along line (:func:`~transformLine`)
+            which intercepts the boundary
+        gradient (float)
+            Gradient of the line
+    Returns:
+        x (float)
+            The x-axis intercept
+        y (float)
+            The y-axis intercept
+    """
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
 
 def withinBoundary(dists, x_max, y_max):
+    """Classifies points as within or outside of a refined boundary
+
+    ``refine.py`` analog of :func:`~PopPUNK.bgmm.assign_samples`
+
+    Args:
+        dists (numpy.array)
+            Core and accessory distances to classify
+        x (float)
+            The x-axis intercept from :func:`~decisionBoundary`
+        y (float)
+            The y-axis intercept from :func:`~decisionBoundary`
+    Returns:
+        signs (numpy.array)
+            For each sample in dists, -1 if within-strain and 1 if between-strain.
+            0 if exactly on boundary.
+    """
     # See https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
     # x_max and y_max from decisionBoundary
     in_tri = lambda row: row[0]*row[1] - (x_max-row[0])*(y_max-row[1])
@@ -184,14 +236,57 @@ def withinBoundary(dists, x_max, y_max):
     return(np.sign(boundary_test))
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
+    """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
+    by optimisation functions moving a triangular decision boundary.
+
+    Given the boundary parameterisation, constructs the network and returns
+    its score, to be minimised.
+
+    Args:
+        s (float)
+            Distance along line between start_point and mean1 from start_point
+        sample_names (list)
+            Sample names corresponding to distMat (accessed by iterator)
+        distMat (numpy.array)
+            Core and accessory distances
+        start_point (numpy.array)
+            Initial boundary cutoff
+        mean1 (numpy.array)
+            Defines line direction from start_point
+        gradient (float)
+            Gradient of line to move along
+    Returns:
+        score (float)
+            -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
+    """
+    # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
     x_max, y_max = decisionBoundary(new_intercept, gradient)
+
+    # Make network
     boundary_assignments = withinBoundary(distMat, x_max, y_max)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
+
+    # Return score
     (components, density, transitivity, score) = networkSummary(G)
     return(-score)
 
 def readManualStart(startFile):
+    """Reads a file to define a manual start point, rather than using ``--fit-model``
+
+    Throws and exits if incorrectly formatted.
+
+    Args:
+        startFile (str)
+            Name of file with values to read
+    Returns:
+        mean0 (numpy.array)
+            Centre of within-strain distribution
+        mean1 (numpy.array)
+            Centre of between-strain distribution
+        start_s (float)
+            Distance along line between mean0 and mean1 to start at
+    """
     with open(startFile, 'r') as start:
         for line in start:
             (param, value) = line.rstrip().split()
