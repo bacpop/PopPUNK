@@ -59,7 +59,7 @@ def extractReferences(G, outPrefix):
 
     return refFileName
 
-def constructNetwork(rlist, qlist, assignments, within_label):
+def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -75,6 +75,10 @@ def constructNetwork(rlist, qlist, assignments, within_label):
         within_label (int)
             The label for the cluster representing within-strain distances
             from :func:`~PopPUNK.bgmm.findWithinLabel`
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+
+            (default = True)
 
     Returns:
         G (networkx.Graph)
@@ -92,17 +96,39 @@ def constructNetwork(rlist, qlist, assignments, within_label):
         G.add_edge(*connection)
 
     # give some summaries
-    components = nx.number_connected_components(G)
-    density = nx.density(G)
-    transitivity = nx.transitivity(G)
-    score = transitivity * (1-density)
-    sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
+    if summarise:
+        (components, density, transitivity, score) = networkSummary(G)
+        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
                                                        "\tDensity\t" + "{:.4f}".format(density),
                                                        "\tTransitivity\t" + "{:.4f}".format(transitivity),
                                                        "\tScore\t" + "{:.4f}".format(score)])
                                                        + "\n")
 
     return G
+
+def networkSummary(G):
+    """Provides summary values about the network
+
+    Args:
+        G (networkx.Graph)
+            The network of strains from :func:`~constructNetwork`
+
+    Returns:
+        components (int)
+            The number of connected components (and clusters)
+        density (float)
+            The proportion of possible edges used
+        transitivity (float)
+            Network transitivity (triads/triangles)
+        score (float)
+            A score of network fit, given by :math:`\mathrm{transitivity} \times (1-\mathrm{density})`
+    """
+    components = nx.number_connected_components(G)
+    density = nx.density(G)
+    transitivity = nx.transitivity(G)
+    score = transitivity * (1-density)
+
+    return(components, density, transitivity, score)
 
 #########################################
 # Update clustering CSV following query #

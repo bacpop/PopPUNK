@@ -9,15 +9,17 @@ import re
 import numpy as np
 import math
 import networkx as nx
-from scipy.optimize import brentq
+import scipy.optimize
 from scipy.spatial.distance import euclidean
 
 from .mash import iterDistRows
 from .bgmm import assign_samples
 from .bgmm import findWithinLabel
 from .network import constructNetwork
+from .network import networkSummary
+from .plot import plot_refined_results
 
-def refineFit(distMat, sample_names, assignment, weights, means, covariances, scale, t_dist):
+def refineFit(distMat, outPrefix, sample_names, assignment, weights, means, covariances, scale, t_dist, max_move, min_move):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -54,46 +56,45 @@ def refineFit(distMat, sample_names, assignment, weights, means, covariances, sc
     sys.stderr.write("Initial boundary based network construction\n")
     mean0 = means[within_label, :]
     mean1 = means[between_label, :]
-    start_s = brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
+    start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
                      args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
     start_point = transformLine(start_s, mean0, mean1)
+    sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
+                      + "," + "{:.2f}".format(start_point[1]) + ")\n")
 
-    # Boundary is left on line normal to this point and first line
+    # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
     x_max, y_max = decisionBoundary(start_point, gradient)
     boundary_assignments = withinBoundary(distMat, x_max, y_max)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
-    # Move boundary along line
-    new_intercept = transformLine(-0.4, start_point, mean1)
-    x_max, y_max = decisionBoundary(new_intercept, gradient)
-    updated_assignments = withinBoundary(distMat, x_max, y_max)
-    change_connections = []
-    for old, new, (ref, query) in zip(boundary_assignments, updated_assignments, iterDistRows(sample_names, sample_names, self=True)):
-        if new == 1 and old == -1:
-            change_connections.append((ref, query))
-    G.remove_edges_from(change_connections)
+    # Optimize boundary
+    sys.stderr.write("Trying to optimise score\n")
+    optimised_s = scipy.optimize.brute(newNetwork, ranges=((-min_move, max_move),), Ns=40, finish = scipy.optimize.fmin, disp = True,
+                        args = (sample_names, distMat, start_point, mean1, gradient))
+    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s[0], start_point, mean1), gradient)
+    boundary_assignments = withinBoundary(distMat, optimal_x, optimal_y)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
-    for s in np.linspace(-0.4, 0.1, 200):
-        new_intercept = transformLine(s, start_point, mean1)
-        x_max, y_max = decisionBoundary(new_intercept, gradient)
-        updated_assignments = withinBoundary(distMat, x_max, y_max)
-        change_connections = []
-        for old, new, (ref, query) in zip(boundary_assignments, updated_assignments, iterDistRows(sample_names, sample_names, self=True)):
-            if new == -1 and old == 1:
-                change_connections.append((ref, query))
-        G.add_edges_from(change_connections)
-        boundary_assignments = updated_assignments
-        print("\t".join([str(s), str(nx.number_connected_components(G)), str(nx.density(G)), str(nx.transitivity(G))]))
+    # ALTERNATIVE - use a single network
+    # Move boundary along in steps, and find those samples which have changed
+    # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
+    # https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+    # i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    # j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
 
-    # to optimize, could just reconstruct network each time?
+    # Save new fit
+    if not os.path.isdir(outPrefix):
+        os.makedirs(outPrefix)
+    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y, [1, 1],
+            "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
+    np.savez(outPrefix + "/" + outPrefix + '_refined_fit.npz',
+             intercept=np.array([optimal_x, optimal_y]),
+             scale=scale,
+             boundary=np.array(True, dtype=np.bool_))
 
-    #Use interval bisection to maximize score
-        #Need to ensure score is monotonic (try plotting first)
-    #Use different save mode for boundary assignment
-
-    # also return new fit
-    return G, x_max, y_max
+    # return new network
+    return G
 
 def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end, within, between):
     """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
@@ -161,4 +162,10 @@ def withinBoundary(dists, x_max, y_max):
     boundary_test = np.apply_along_axis(in_tri, 1, dists)
     return(np.sign(boundary_test))
 
-
+def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
+    new_intercept = transformLine(s, start_point, mean1)
+    x_max, y_max = decisionBoundary(new_intercept, gradient)
+    boundary_assignments = withinBoundary(distMat, x_max, y_max)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
+    (components, density, transitivity, score) = networkSummary(G)
+    return(-score)

@@ -108,6 +108,12 @@ def get_options():
     modelGroup.add_argument('--t-dist', help='Use a mixture of t distributions rather than Gaussians'
                                              ' (ADVI only)', default=False, action='store_true')
 
+    refinementGroup = parser.add_argument_group('Refine model options')
+    refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',
+            type=float, default=0.2)
+    refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary towards the origin [default = 0.4]',
+            type=float, default=0.4)
+
     faGroup = parser.add_argument_group('Further analysis options')
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
@@ -197,13 +203,18 @@ def main():
             sys.exit(1)
 
     # model fit and network construction
-    if args.fit_model or args.easy_run:
+    # refine model also needs to run all model steps
+    if args.fit_model or args.refine_model or args.easy_run:
         # Set up saved data from first step, if easy_run mode
         if args.easy_run:
             distances = dists_out
             ref_db = args.output
         else:
-            sys.stderr.write("Mode: Fitting model to reference database\n\n")
+            if args.fit_model:
+                sys.stderr.write("Mode: Fitting model to reference database\n\n")
+            else:
+                sys.stderr.write("Mode: Refining model fit using network properties\n\n")
+
             if args.distances is not None and args.ref_db is not None:
                 distances = args.distances
                 ref_db = args.ref_db
@@ -219,9 +230,22 @@ def main():
             sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
             sys.exit(1)
 
-        distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
-            fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
-        genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
+        # Run refinement
+        if args.refine_model or args.easy_run:
+            queryAssignments, model, boundary = assignQuery(distMat, args.ref_db)
+            if boundary:
+                sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
+                sys.exit(1)
+
+            (fitscale, fitWeights, fitMeans, fitcovariances, fitt) = model
+            genomeNetwork = refineFit(distMat, args.output, queryList, queryAssignments,
+                    fitWeights, fitMeans, fitcovariances, fitscale, fitt, args.pos_shift, args.neg_shift)
+        # Run model
+        else:
+            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
+                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
+            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
+
         isolateClustering = printClusters(genomeNetwork, args.output)
         # generate outputs for microreact if asked
         if args.microreact:
@@ -235,26 +259,6 @@ def main():
             constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
             map(os.remove, referenceGenomes) # tidy up
         printQueryOutput(refList, queryList, distMat, args.output, self)
-
-    elif args.refine_model:
-        if args.ref_db is not None and args.distances is not None:
-            sys.stderr.write("Mode: Refining existing fit using network properties\n")
-
-            # Read in previous fit
-            refList, queryList, self, distMat = readPickle(args.distances)
-            if not self:
-                sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
-                sys.exit(1)
-            queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = assignQuery(distMat, args.ref_db)
-
-            # Run refinement
-            genomeNetwork, x_max, y_max = refineFit(distMat, queryList, queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt)
-
-            #TODO printing as in fit_model (probably put in post fit function or similar)
-        else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and "
-                             "distances with --distances\n")
-            sys.exit(1)
 
     elif args.create_query_db:
         if args.ref_db is not None and args.q_files is not None:
@@ -280,7 +284,14 @@ def main():
             refList, queryList, self, distMat = readPickle(args.distances)
             kmers = getKmersFromReferenceDatabase(args.ref_db)
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = assignQuery(distMat, args.ref_db)
+            queryAssignments, model, boundary = assignQuery(distMat, args.ref_db)
+            if boundary:
+                (scale, boundary) = model
+                raise NotImplementedError("Not yet implemented query with boundary model")
+            else:
+                (fitscale, fitWeights, fitMeans, fitcovariances, fitt) = model
+
+            #TODO update this function to take model, rather than using the above if statement
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
                     queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, args.output, args.ref_db,
                      args.threads, args.mash)

@@ -6,6 +6,7 @@ import subprocess
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.lines as lines
 import itertools
 # for microreact
 import pandas as pd
@@ -380,6 +381,38 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
         ell.set_clip_box(splot.bbox)
         ell.set_alpha(0.5)
         splot.add_artist(ell)
+
+    plt.title(title)
+    plt.savefig(out_prefix + ".png")
+    plt.close()
+
+def plot_refined_results(X, Y, x_boundary, y_boundary, scale, title, out_prefix):
+    """Draw a scatter plot (png) to show the refined model fit
+
+    A scatter plot of core and accessory distances, coloured by component
+    membership. The triangular decision boundary is also shown
+
+    Args:
+        X (numpy.array)
+            n x 2 array of core and accessory distances for n samples.
+        Y (numpy.array)
+            n x 1 array of cluster assignments for n samples.
+        x_boundary (float)
+            Intercept of boundary with x-axis, from :func:`~PopPUNK.refine.decisionBoundary`
+        y_boundary (float)
+            Intercept of boundary with y-axis, from :func:`~PopPUNK.refine.decisionBoundary`
+        scale (numpy.array)
+            Scaling factor from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        out_prefix (str)
+            Prefix for output plot file (.png will be appended)
+        title (str)
+            The title to display above the plot
+    """
+    color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
+    fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
+    plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .8, color='navy')
+    plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .8, color='c')
+    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2)
 
     plt.title(title)
     plt.savefig(out_prefix + ".png")

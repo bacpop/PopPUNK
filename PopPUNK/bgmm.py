@@ -32,6 +32,8 @@ except ImportError:
 from sklearn import utils
 from sklearn import mixture
 
+
+
 from .plot import plot_scatter
 from .plot import plot_results
 from .plot import plot_contours
@@ -532,28 +534,41 @@ def assignQuery(X, refPrefix):
             Indicates the fit was with a mixture of t-distributions
             (default = False).
     """
+    from .refine import withinBoundary
+
     # load model information
     weights = []
     means = []
     covariances = []
-    modelFileName = refPrefix + "/" + refPrefix + '_fit.npz'
+    modelFileName = refPrefix + "/" + refPrefix + '_refined_fit.npz'
+    refinedModelFileName = refPrefix + "/" + refPrefix + '_fit.npz'
     try:
-        model_npz = np.load(modelFileName)
+        if os.path.isfile(refinedModelFileName):
+            model_npz = np.load(refinedModelFileName)
+        else:
+            model_npz = np.load(modelFileName)
     except:
         sys.stderr.write("Cannot load model information file " + modelFileName + "\n")
         sys.exit(1)
 
     # extract information
-    weights = model_npz['weights']
-    means = model_npz['means']
-    covariances = model_npz['covariances']
     scale = model_npz['scale']
-    t = model_npz['t']
+    if model_npz['boundary']:
+        boundary = model_npz['intercept']
+        model = (scale, boundary)
 
-    # Get assignments
-    y = assign_samples(X, weights, means, covariances, scale, t)
+        y = withinBoundary(X/scale, boundary[0], boundary[1])
+    else:
+        weights = model_npz['weights']
+        means = model_npz['means']
+        covariances = model_npz['covariances']
+        t = model_npz['t']
+        model = (scale, weights, means, covariances, t)
 
-    return y, weights, means, covariances, scale, t
+        # Get assignments
+        y = assign_samples(X, weights, means, covariances, scale, t)
+
+    return y, model, model_npz['boundary']
 
 def readPriors(priorFile):
     """Read priors for :func:`~bgmm_model` from file
@@ -714,7 +729,8 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
              means=means,
              covariances=covariances,
              scale=scale,
-             t=np.array(t_dist, dtype=np.bool_))
+             t=np.array(t_dist, dtype=np.bool_),
+             boundary=np.array(False, dtype=np.bool_))
 
     # Plot results
     y = assign_samples(X, weights, means, covariances, scale, t_dist)
