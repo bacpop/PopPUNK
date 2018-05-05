@@ -237,31 +237,32 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
     for k in klist:
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
         try:
-            mash_info = subprocess.Popen(mash_exec + " info -t " + dbname, shell=True, stdout=subprocess.PIPE)
-            for line in iter(mash_info.stdout.readline, ''):
-                line = line.rstrip().decode()
-                if (line.startswith("#") is False):
-                    sketchValues = line.split("\t")
-                    if len(sketchValues[0]) > 0:
-                        if oldSketch == 0:
-                            oldSketch = int(sketchValues[0])
-                        else:
-                            oldSketch = sketch
-                        sketch = int(sketchValues[0])
-                        if (sketch == oldSketch):
-                            sketchdb[k] = sketch
-                        else:
-                            sys.stderr.write("Problem with database; sketch size for kmer length " +
-                                    str(k) + " is " + str(oldSketch) +
-                                    ", but smaller kmers have sketch sizes of " + str(sketch) + "\n")
-                            sys.exit(1)
+            mash_info = subprocess.Popen(mash_exec + " info -t " + dbname, bufsize = 0, shell=True, stdout=subprocess.PIPE)
+            try:
+                mash_out, mash_err = mash_info.communicate(timeout = 30)
+                for line in iter(mash_out.splitlines()):
+                    line = line.decode()
+                    if (line.startswith("#") is False):
+                        sketchValues = line.split("\t")
+                        if len(sketchValues[0]) > 0:
+                            if oldSketch == 0:
+                                oldSketch = int(sketchValues[0])
+                            else:
+                                oldSketch = sketch
+                            sketch = int(sketchValues[0])
+                            if (sketch == oldSketch):
+                                sketchdb[k] = sketch
+                            else:
+                                sys.stderr.write("Problem with database; sketch size for kmer length " +
+                                        str(k) + " is " + str(oldSketch) +
+                                        ", but smaller kmers have sketch sizes of " + str(sketch) + "\n")
+                                sys.exit(1)
 
-                        break
-
-            # Make sure process executed correctly
-            mash_info.wait()
-            if mash_info.returncode != 0:
-                raise RuntimeError('mash info failed')
+                            break
+            except:
+                mash_info.kill()
+                # Make sure process executed correctly
+                raise RuntimeError('mash command "'+mash_exec + " info -t " + dbname+'" failed')
         except subprocess.CalledProcessError as e:
             sys.stderr.write("Could not get info about " + dbname + "; command " + mash_exec +
                     " info -t " + dbname + " returned " + str(mash_info.returncode) +
