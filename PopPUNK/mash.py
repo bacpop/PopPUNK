@@ -237,32 +237,30 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
     for k in klist:
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
         try:
-            mash_info = subprocess.Popen(mash_exec + " info -t " + dbname, bufsize = 0, shell=True, stdout=subprocess.PIPE)
-            try:
-                mash_out, mash_err = mash_info.communicate(timeout = 30)
-                for line in iter(mash_out.splitlines()):
-                    line = line.decode()
-                    if (line.startswith("#") is False):
-                        sketchValues = line.split("\t")
-                        if len(sketchValues[0]) > 0:
-                            if oldSketch == 0:
-                                oldSketch = int(sketchValues[0])
-                            else:
-                                oldSketch = sketch
-                            sketch = int(sketchValues[0])
-                            if (sketch == oldSketch):
-                                sketchdb[k] = sketch
-                            else:
-                                sys.stderr.write("Problem with database; sketch size for kmer length " +
-                                        str(k) + " is " + str(oldSketch) +
-                                        ", but smaller kmers have sketch sizes of " + str(sketch) + "\n")
-                                sys.exit(1)
+            mash_cmd = mash_exec + " info -t " + dbname
+            mash_info = subprocess.Popen(mash_cmd, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+            for line in mash_info.stdout:
+                if (line.startswith("#") is False):
+                    sketchValues = line.split("\t")
+                    if len(sketchValues[0]) > 0:
+                        if oldSketch == 0:
+                            oldSketch = int(sketchValues[0])
+                        else:
+                            oldSketch = sketch
+                        sketch = int(sketchValues[0])
+                        if (sketch == oldSketch):
+                            sketchdb[k] = sketch
+                        else:
+                            sys.stderr.write("Problem with database; sketch size for kmer length " +
+                                    str(k) + " is " + str(oldSketch) +
+                                    ", but smaller kmers have sketch sizes of " + str(sketch) + "\n")
+                            sys.exit(1)
 
-                            break
-            except:
-                mash_info.kill()
-                # Make sure process executed correctly
-                raise RuntimeError('mash command "'+mash_exec + " info -t " + dbname+'" failed')
+                        break
+
+            if rawOutput.poll() != 0:
+                raise RuntimeError('mash info command "'+mash_cmd+'" failed with raw output '+str(rawOutput.poll()))
+
         except subprocess.CalledProcessError as e:
             sys.stderr.write("Could not get info about " + dbname + "; command " + mash_exec +
                     " info -t " + dbname + " returned " + str(mash_info.returncode) +
@@ -289,21 +287,19 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
     seqs = []
     mash_cmd = str(mash_exec) + " info -t " + str(mashSketch)
     try:
-        mash_info = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE)
-        for line in iter(mash_info.stdout.readline, ''):
-            line = line.rstrip().decode()
+        mash_info = subprocess.Popen(mash_cmd, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+        for line in mash_info.stdout:
+            line = line.rstrip()
             if line != '':
                 if line.startswith("#") is False:
                     seqs.append(line.split("\t")[2])
-            else:
-                mash_info.wait()
-                break
 
         # Make sure process executed correctly
         if mash_info.returncode != 0:
-            raise RuntimeError('mash command '+mash_cmd+' failed')
+            raise RuntimeError('mash command "' + mash_cmd + '" failed')
     except subprocess.CalledProcessError as e:
-        sys.stderr.write("Could not get info about " + dbname + "; command " + mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
+        sys.stderr.write("Could not get info about " + dbname + "; command " +
+                mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
         sys.exit(1)
 
     return seqs
