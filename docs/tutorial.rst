@@ -247,6 +247,8 @@ database is sketched for future distance comparison.
 In the case of the example above, this reduces from 848 to 14 representatives (one for
 each of the twelve clusters, except for 3 and 6 which have two each).
 
+.. _fit-files:
+
 Output files
 ^^^^^^^^^^^^
 * strain_db.search.out -- the core and accessory distances between all
@@ -374,6 +376,10 @@ Briefly:
 * The starting point is shifted by a distance along the first line, and a new decision boundary formed in the same way. The network is reconstructed.
 * The shift of the starting point is optimised, as judged by the network score. First globally by a grid search, then locally near the global optimum.
 
+If the mixture model does not give any sort of reasonable fit to the points,
+see :ref:`manual-start` for details about how to set the starting parameters
+for this mode manually.
+
 The score is a function of transitivity (which is expected to be high, as
 everything within a cluster should be the same strain as everything else in the
 cluster) and density (which should be low, as there are far fewer within- than
@@ -394,43 +400,58 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
 
 Output files
 ^^^^^^^^^^^^
-TODO
+The files are as for ``--fit-model`` (:ref:`fit-files`), and also include:
 
-This will create two files `strain_db/strain_db.dists.npy` and `strain_db/strain_db.dists.pkl` which
-store the distances and strain names respectively. These are then used in
-:ref:`model-fit`.
-
-There are also databases of sketches at each k-mer length (`*.msh`) which can
-be re-used if the same data is fitted with a new range of k-mer lengths.
-Otherwise they should be recalculated by specifying ``--overwrite``.
+* strain_db_refined_fit.png -- A plot of the new linear boundary, and core and
+  accessory distances coloured by assignment to either side of this boundary.
+* strain_db_refined_fit.npz -- The saved parameters of the refined fit.
 
 Relevant command line options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TODO
-
 The following command line options can be used in this mode:
 
    Mode of operation:
-     --create-db           Create pairwise distances database between reference
-                           sequences
+     --refine-model           Fit a mixture model to a reference database
+
    Input files:
-     --r-files R_FILES     File listing reference input assemblies
+     --ref-db REF_DB       Location of built reference database
+     --distances DISTANCES
+                           Prefix of input pickle of pre-calculated distances
 
    Output options:
      --output OUTPUT       Prefix for output files (required)
-     --plot-fit PLOT_FIT   Create this many plots of some fits relating k-mer to
-                           core/accessory distances [default = 0]
+     --full-db             Keep full reference database, not just representatives
      --overwrite           Overwrite any existing database files
 
-   Kmer comparison options:
-     --min-k MIN_K         Minimum kmer length [default = 9]
-     --max-k MAX_K         Maximum kmer length [default = 29]
-     --k-step K_STEP       K-mer step size [default = 4]
-     --sketch-size SKETCH_SIZE
-                           Kmer sketch size [default = 10000]
+   Refine model options:
+     --pos-shift POS_SHIFT
+                           Maximum amount to move the boundary away from origin
+                           [default = 0.2]
+     --neg-shift NEG_SHIFT
+                           Maximum amount to move the boundary towards the origin
+                           [default = 0.4]
+     --manual-start MANUAL_START
+                           A file containing information for a start point. See
+                           documentation for help.
+     --no-local            Do not perform the local optimization step (speed up
+                           on very large datasets)
+
+   Further analysis options:
+     --microreact          Generate output files for microreact visualisation
+     --cytoscape           Generate network output files for Cytoscape
+     --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for Microreact
+     --perplexity PERPLEXITY
+                           Perplexity used to calculate t-SNE projection (with
+                           --microreact) [default=5.0]
+     --info-csv INFO_CSV   Epidemiological information CSV formatted for
+                           microreact (with --microreact or --cytoscape)
 
    Other options:
      --mash MASH           Location of mash executable
      --threads THREADS     Number of threads to use during database querying
                            [default = 1]
+
+.. note::
+   Threads are used for the global optimisation step only. If the local
+   optimisation step is slow, turn it off with ``--no-local``.
 
