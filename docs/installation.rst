@@ -32,6 +32,7 @@ We tested PopPUNK with the following packages:
 * ``matplotlib`` (2.1.2)
 * ``networkx`` (2.1)
 * ``numpy`` (1.14.1)
+* ``numba`` (0.36.2)
 * ``pandas`` (0.22.0)
 * ``pymc3`` (3.3)
 * ``scikit-learn`` (0.19.1)

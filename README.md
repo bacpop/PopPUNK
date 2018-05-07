@@ -31,6 +31,7 @@ In brackets are the versions we used
 * `DendroPy` (4.3.0)
 * `matplotlib` (2.1.2)
 * `networkx` (2.1)
+* `numba` (0.36.2)
 * `numpy` (1.14.1)
 * `pandas` (0.22.0)
 * `pymc3` (3.3)

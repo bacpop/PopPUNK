@@ -8,6 +8,7 @@ import re
 # additional
 import numpy as np
 import sharedmem
+from numba import jit
 from functools import partial
 import networkx as nx
 import scipy.optimize
@@ -213,8 +214,10 @@ def decisionBoundary(intercept, gradient):
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
 
+@jit(nopython=True)
 def withinBoundary(dists, x_max, y_max):
-    """Classifies points as within or outside of a refined boundary
+    """Classifies points as within or outside of a refined boundary.
+    Numba JIT compiled for speed
 
     ``refine.py`` analog of :func:`~PopPUNK.bgmm.assign_samples`
 
@@ -232,9 +235,14 @@ def withinBoundary(dists, x_max, y_max):
     """
     # See https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
     # x_max and y_max from decisionBoundary
-    in_tri = lambda row: row[0]*row[1] - (x_max-row[0])*(y_max-row[1])
-    boundary_test = np.apply_along_axis(in_tri, 1, dists)
-    return(np.sign(boundary_test))
+    boundary_test = np.ones((dists.shape[0]))
+    for row in range(boundary_test.size):
+        in_tri = dists[row, 0]*dists[row, 1] - (x_max-dists[row, 0])*(y_max-dists[row, 1])
+        if in_tri < 0:
+            boundary_test[row] = -1
+        elif in_tri == 0:
+            boundary_test[row] = 0
+    return(boundary_test)
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
