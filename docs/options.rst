@@ -90,6 +90,8 @@ Command line options:
      --mash MASH           Location of mash executable
      --threads THREADS     Number of threads to use during database querying
                            [default = 1]
+     --no-stream           Use temporary files for mash dist interfacing. Reduce
+                           memory use/increase disk use for large datasets
      --version             show program's version number and exit
 
 

@@ -130,6 +130,7 @@ def get_options():
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use during database querying [default = 1]')
+    other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -198,7 +199,7 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.no_stream, args.mash, args.threads)
 
             dists_out = args.output + "/" + args.output + ".dists"
             storePickle(refList, queryList, True, distMat, dists_out)

@@ -7,6 +7,7 @@ import subprocess
 # additional
 import collections
 import pickle
+from tempfile import mkstemp
 from multiprocessing import Pool, Lock
 from functools import partial
 from itertools import product
@@ -295,7 +296,7 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
                     seqs.append(line.split("\t")[2])
 
         # Make sure process executed correctly
-        if mash_info.returncode != 0:
+        if mash_info.poll() != 0:
             raise RuntimeError('mash command "' + mash_cmd + '" failed')
     except subprocess.CalledProcessError as e:
         sys.stderr.write("Could not get info about " + dbname + "; command " +
@@ -432,7 +433,7 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
-def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mash_exec = 'mash', threads = 1):
+def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, no_stream = False, mash_exec = 'mash', threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
     For a reference database, runs the query against itself to find all pairwise
@@ -457,6 +458,13 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
         number_plot_fits (int)
             If > 0, the number of k-mer length fits to plot (saved as pdfs).
             Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`
+
+            (default = 0)
+        no_stream (bool)
+            Rather than streaming mash dist input directly into parser, will write
+            through an intermediate temporary file
+
+            (default = False)
         mash_exec (str)
             Location of mash executable
 
@@ -502,11 +510,20 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
             mash_cmd += " " + dbname + " " + dbname
         else:
             mash_cmd += " -l " + dbname + " " + qFile
+
+        if no_stream:
+            tmpHandle, tmpName = mkstemp(prefix="dbPrefix", suffix=".tmp", dir="./" + dbPrefix)
+            mash_cmd += " > " + tmpName
         mash_cmd += " 2> " + dbPrefix + ".err.log"
         sys.stderr.write(mash_cmd + "\n")
 
         try:
-            rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+            if no_stream:
+                subprocess.run(mash_cmd, shell=True, check=True)
+                mashOut = open(tmpName, 'r')
+            else:
+                rawOutput = subprocess.Popen(mash_cmd, shell=True, stdout=subprocess.PIPE, universal_newlines=True)
+                mashOut = rawOutput.stdout
 
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
@@ -515,7 +532,7 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
             prev_ref = ""
             skip = 0
             skipped = 0
-            for line in rawOutput.stdout:
+            for line in mashOut:
                 # Skip the first row with self and symmetric elements
                 if skipped < skip:
                     skipped += 1
@@ -539,10 +556,13 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, mas
                             sys.exit(1)
 
 
-            if rawOutput.poll() != 0:
-                raise RuntimeError('mash dist command "'+mash_cmd+'" failed with raw output '+str(rawOutput.poll()))
+            if no_stream:
+                os.remove(tmpName)
             else:
-                os.remove(dbPrefix + ".err.log")
+                if rawOutput.poll() != 0:
+                    raise RuntimeError('mash dist command "'+mash_cmd+'" failed with raw output '+str(rawOutput.poll()))
+                else:
+                    os.remove(dbPrefix + ".err.log")
 
         except subprocess.CalledProcessError as e:
             sys.stderr.write("mash dist command " + mash_cmd + " failed with error " + e.message + "\n")

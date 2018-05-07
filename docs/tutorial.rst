@@ -126,6 +126,8 @@ The following command line options can be used in this mode:
      --mash MASH           Location of mash executable
      --threads THREADS     Number of threads to use during database querying
                            [default = 1]
+     --no-stream           Use temporary files for mash dist interfacing. Reduce
+                           memory use/increase disk use for large datasets
 
 .. _model-fit:
 
