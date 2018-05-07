@@ -127,7 +127,8 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     # Save new fit
     if not os.path.isdir(outPrefix):
         os.makedirs(outPrefix)
-    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y, [1, 1],
+    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y, 
+            mean0, mean1, start_point, [1, 1],
             "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
     np.savez(outPrefix + "/" + outPrefix + '_refined_fit.npz',
              intercept=np.array([optimal_x, optimal_y]),

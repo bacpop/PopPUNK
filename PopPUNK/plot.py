@@ -386,7 +386,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_refined_results(X, Y, x_boundary, y_boundary, scale, title, out_prefix):
+def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point, scale, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
     A scatter plot of core and accessory distances, coloured by component
@@ -401,6 +401,12 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, scale, title, out_prefix)
             Intercept of boundary with x-axis, from :func:`~PopPUNK.refine.decisionBoundary`
         y_boundary (float)
             Intercept of boundary with y-axis, from :func:`~PopPUNK.refine.decisionBoundary`
+        mean0 (numpy.array)
+            Centre of within-strain distribution
+        mean1 (numpy.array)
+            Centre of between-strain distribution
+        start_s (float)
+            Distance along line between mean0 and mean1 started boundary at
         scale (numpy.array)
             Scaling factor from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
         out_prefix (str)
@@ -408,11 +414,16 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, scale, title, out_prefix)
         title (str)
             The title to display above the plot
     """
-    color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
     fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
-    plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .8, color='navy')
+
+    # Draw points
+    plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .8, color='cornflowerblue')
     plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .8, color='c')
+
+    # Draw fit lines
     plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--')
+    plt.plot([mean0[0], mean1[0]], [mean0[1], mean1[1]], color='k', linewidth=1, linestyle=':')
+    plt.plot(start_point[0], start_point[1], 'rx')
 
     plt.title(title)
     plt.savefig(out_prefix + ".png")
