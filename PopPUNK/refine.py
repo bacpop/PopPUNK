@@ -109,7 +109,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         optimised_s = s_range[min_idx]
 
     optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
-    if optimal_x <= 0 or optimal_x >= 1 or optimal_y <= 0 or optimal_y >= 1:
+    if optimal_x <= 0 or optimal_y <= 0:
         sys.stderr.write("Optimisation failed: produced a boundary outside of allowed range\n")
         sys.exit(1)
 
