@@ -386,7 +386,8 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point, scale, title, out_prefix):
+def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point,
+        min_move, max_move, scale, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
     A scatter plot of core and accessory distances, coloured by component
@@ -405,6 +406,10 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
             Centre of within-strain distribution
         mean1 (numpy.array)
             Centre of between-strain distribution
+        min_move (float)
+            Minimum s range
+        max_move (float)
+            Maximum s range
         start_s (float)
             Distance along line between mean0 and mean1 started boundary at
         scale (numpy.array)
@@ -414,6 +419,8 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
         title (str)
             The title to display above the plot
     """
+    from .refine import transformLine
+
     fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
 
     # Draw points
@@ -421,10 +428,18 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
     plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .8, color='c')
 
     # Draw fit lines
-    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--')
-    plt.plot([mean0[0], mean1[0]], [mean0[1], mean1[1]], color='k', linewidth=1, linestyle=':')
-    plt.plot(start_point[0], start_point[1], 'rx')
+    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Decision boundary')
 
+    minimum_xy = transformLine(-min_move, start_point, mean1)
+    maximum_xy = transformLine(max_move, start_point, mean1)
+    plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
+              color='k', linewidth=1, linestyle=':', label='Search range')
+    plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
+
+    plt.plot(mean0[0], mean0[1], 'rx', label='Within-strain mean')
+    plt.plot(mean1[0], mean1[1], 'r+', label='Between-strain mean')
+
+    plt.legend()
     plt.title(title)
     plt.savefig(out_prefix + ".png")
     plt.close()

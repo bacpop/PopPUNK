@@ -22,7 +22,7 @@ from .network import networkSummary
 from .plot import plot_refined_results
 
 def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move,
-    manual_start = None, no_local = False, num_processes = 1):
+    startFile = None, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -42,7 +42,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
             Maximum distance to move away from start point
         min_move (float)
             Minimum distance to move away from start point
-        manual_start (str)
+        startFile (str)
             A file defining an initial fit, rather than one from ``--fit-model``.
             See documentation for format.
 
@@ -60,7 +60,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     """
     (scale, weights, means, covariances, t_dist) = model
     distMat /= scale # Deal with scale at start
-    if manual_start:
+    if startFile:
         mean0, mean1, start_s = readManualStart(startFile)
     else:
         sys.stderr.write("Initial model-based network construction\n")
@@ -127,8 +127,8 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     # Save new fit
     if not os.path.isdir(outPrefix):
         os.makedirs(outPrefix)
-    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y, 
-            mean0, mean1, start_point, [1, 1],
+    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y,
+            mean0, mean1, start_point, min_move, max_move, [1, 1],
             "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
     np.savez(outPrefix + "/" + outPrefix + '_refined_fit.npz',
              intercept=np.array([optimal_x, optimal_y]),
@@ -315,11 +315,11 @@ def readManualStart(startFile):
     try:
         if mean0.shape != (2,) or mean1.shape != (2,):
             raise RuntimeError('Wrong size for values')
-        check_vals = np.concatenate([mean0, mean1, start_point])
+        check_vals = np.hstack([mean0, mean1, start_s])
         for val in np.nditer(check_vals):
             if val > 1 or val < 0:
                 raise RuntimeError('Value out of range (between 0 and 1)')
-    except e:
+    except RuntimeError as e:
         sys.stderr.write("Could not read manual start file " + startFile + "\n")
         sys.stderr.write(e)
         sys.exit(1)
