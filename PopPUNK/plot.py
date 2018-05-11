@@ -5,6 +5,7 @@ import os
 import subprocess
 import numpy as np
 import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import itertools
@@ -276,8 +277,7 @@ def plot_scatter(X, out_prefix, title, kde = True):
 
             (default = True)
     """
-    plt.ioff()
-    fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
+    fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     if kde:
         xx, yy, xy = get_grid(0, 1, 100)
 
@@ -294,7 +294,7 @@ def plot_scatter(X, out_prefix, title, kde = True):
     else:
         scatter_alpha = 0.1
 
-    plt.scatter(X[:,0].flat, X[:,1].flat, s=2, alpha=scatter_alpha)
+    plt.scatter(X[:,0].flat, X[:,1].flat, s=1, alpha=scatter_alpha)
 
     plt.title(title)
     plt.savefig(out_prefix + ".png")
@@ -322,7 +322,6 @@ def plot_fit(klist, matching, fit, out_prefix, title):
     k_fit = np.linspace(0, klist[-1], num = 100)
     matching_fit = (1 - fit[1]) * np.power((1 - fit[0]), k_fit)
 
-    plt.ioff()
     fig, ax = plt.subplots()
     ax.set_yscale("log")
     ax.set_xlabel('k-mer length')
@@ -363,8 +362,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     """
     color_iter = itertools.cycle(['navy', 'c', 'cornflowerblue', 'gold','darkorange'])
 
-    plt.ioff()
-    fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
+    fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     splot = plt.subplot(1, 1, 1)
     for i, (mean, covar, color) in enumerate(zip(means, covariances, color_iter)):
         v, w = np.linalg.eigh(covar)
@@ -375,7 +373,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
         # components.
         if not np.any(Y == i):
             continue
-        plt.scatter([(X/scale)[Y == i, 0]], [(X/scale)[Y == i, 1]], .8, color=color)
+        plt.scatter([(X/scale)[Y == i, 0]], [(X/scale)[Y == i, 1]], .4, color=color)
 
         # Plot an ellipse to show the Gaussian component
         angle = np.arctan(u[1] / u[0])
@@ -424,12 +422,11 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
     """
     from .refine import transformLine
 
-    plt.ioff()
-    fig=plt.figure(figsize=(22, 16), dpi= 160, facecolor='w', edgecolor='k')
+    fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
 
     # Draw points
-    plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .8, color='cornflowerblue')
-    plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .8, color='c')
+    plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .4, color='cornflowerblue')
+    plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .4, color='c')
 
     # Draw fit lines
     plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Decision boundary')
@@ -486,7 +483,6 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix, t
     z_ll, lpr = log_likelihood(xy, weights, means, covariances, np.array([1,1]), t_dist = False)
     z_ll = z_ll.reshape(xx.shape).T
 
-    plt.ioff()
     plt.contour(xx, yy, z_ll, levels=np.linspace(z_ll.min(), z_ll.max(), 25))
     plt.contour(xx, yy, z, levels=[0], colors='r', linewidths=3)
 
