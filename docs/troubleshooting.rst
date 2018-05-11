@@ -324,3 +324,22 @@ The second largest cluster is also suspicious, where there are few triangles
 (low transitivity) and the nodes involved have high Stress. This is indicative
 of a bad fit overall, rather than a single problem sample.
 
+Memory/run-time issues
+----------------------
+For larger datasets resource use may be challenging. So far the largest dataset
+we've analysed was around 12000 genomes, which used modest computational
+resources. Here are some tips based on these experiences:
+
+- Add ``--threads`` -- they are used fairly efficiently throughout.
+- When running ``--create-db`` with many threads, add the ``--no-stream`` option.
+  This will trade-off memory for disk usage, as it seems that many threaded
+  ``mash dist`` output cannot be processed as fast as it is produced.
+- In ``--refine-model`` set ``--pos-shift 0`` to avoid creating huge networks
+  with close to :math:`N^2` edges. Mixture models normally need to be pruned.
+- In ``--refine-model`` you may add the ``--no-local`` option to skip that step
+  and decrease run-time, though gains are likely marginal.
+- Use ``--rapid-nj``, if producing MicroReact output.
+
+Another option for scaling is to run ``--create-db`` with a smaller initial set (not
+using the ``--full-db`` command), then use ``--assign-query`` to add to this.
+

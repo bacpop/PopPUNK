@@ -4,15 +4,17 @@ Options
 Usage::
 
    usage: PopPUNK [-h]
-               (--create-db | --fit-model | --create-query-db | --assign-query)
+               (--easy-run | --create-db | --fit-model | --refine-model | --create-query-db | --assign-query)
                [--ref-db REF_DB] [--r-files R_FILES] [--q-files Q_FILES]
                [--distances DISTANCES] --output OUTPUT [--save-distances]
                [--plot-fit PLOT_FIT] [--full-db] [--update-db] [--overwrite]
                [--min-k MIN_K] [--max-k MAX_K] [--k-step K_STEP]
                [--sketch-size SKETCH_SIZE] [--K K] [--priors PRIORS] [--bgmm]
-               [--t-dist] [--microreact] [--cytoscape] [--rapidnj RAPIDNJ]
-               [--perplexity PERPLEXITY] [--info-csv INFO_CSV] [--mash MASH]
-               [--threads THREADS] [--version]
+               [--t-dist] [--pos-shift POS_SHIFT] [--neg-shift NEG_SHIFT]
+               [--manual-start MANUAL_START] [--no-local] [--microreact]
+               [--cytoscape] [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
+               [--info-csv INFO_CSV] [--mash MASH] [--threads THREADS]
+               [--no-stream] [--version]
 
 Command line options:
 
