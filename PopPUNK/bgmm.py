@@ -31,8 +31,12 @@ except ImportError:
     from scipy.misc import gammaln as sp_gammaln
 from sklearn import utils
 from sklearn import mixture
-
-
+# DBSCAN
+from sklearn.cluster import DBSCAN
+from sklearn import metrics
+from sklearn.datasets.samples_generator import make_blobs
+from sklearn.preprocessing import StandardScaler
+import hdbscan
 
 from .plot import plot_scatter
 from .plot import plot_results
@@ -759,3 +763,68 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
     # return output
     return y, weights, means, covariances, scale, t_dist
 
+
+def fitDbScan(X, outPrefix, t_dist = False, priorFile = None, bgmm = False, dpgmm_max_K = 2):
+    
+    # set output dir
+    if not os.path.isdir(outPrefix):
+        if not os.path.isfile(outPrefix):
+            os.makedirs(outPrefix)
+        else:
+            sys.stderr.write(outPrefix + " already exists as a file! Use a different --output\n")
+            sys.exit(1)
+
+    # set the maximum sampling size
+    max_samples = 100000
+
+    # preprocess scaling
+    if X.shape[0] > max_samples:
+        subsampled_X = utils.shuffle(X, random_state=random.randint(1,max_samples))[0:max_samples,]
+    else:
+        subsampled_X = np.copy(X)
+    scale = np.amax(subsampled_X, axis = 0)
+    subsampled_X /= scale
+
+    # set DBSCAN clustering parameters
+    cache_out = "./" + outPrefix + "_cache"
+    min_samples = int(0.0001*subsampled_X.shape[0])
+    min_cluster_size = int(0.001*subsampled_X.shape[0])
+    db = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
+                        min_samples=min_samples,
+                        core_dist_n_jobs=4,
+                        memory = cache_out,
+                        min_cluster_size=min_cluster_size).fit(subsampled_X)
+    labels = db.labels_
+    core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
+    
+    # Number of clusters in labels, ignoring noise if present.
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    
+    print("N clusters:"+str(n_clusters_))
+    print("N datapoints: "+str(subsampled_X.shape[0])+" N assignments: "+str(len(labels)))
+    with open("dbscan_assignments.txt", 'w') as dbFile:
+        for label in labels:
+            dbFile.write(str(label)+"\n")
+
+    # Black removed and is used for noise instead.
+    unique_labels = set(labels)
+    colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+    black_col = [0, 0, 0, 1]
+
+    for k, col in zip(unique_labels, colors):
+        if k == -1:
+            # Black used for noise.
+            col = [0, 0, 0, 1]
+            
+        class_member_mask = (labels == k)
+
+        #        xy = subsampled_X[class_member_mask & core_samples_mask]
+        xy = subsampled_X[class_member_mask]
+        plt.plot(xy[:, 0], xy[:, 1], '.', markerfacecolor=tuple(col),markersize=2)
+
+    # plot output
+    plt.title('Estimated number of clusters: %d' % n_clusters_)
+    plt.savefig("dbscan.png")
+    plt.close()
+
+    exit(0)

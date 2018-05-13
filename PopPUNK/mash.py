@@ -238,7 +238,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
     for k in klist:
         dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
         try:
-            mash_cmd = mash_exec + " info -t " + dbname
+            mash_cmd = mash_exec + " info -t " + dbname + "| head -n 100"
             mash_info = subprocess.Popen(mash_cmd, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
             for line in mash_info.stdout:
                 if (line.startswith("#") is False):

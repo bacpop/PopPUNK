@@ -24,6 +24,7 @@ from .mash import getSketchSize
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assignQuery
 from .bgmm import findWithinLabel
+from .bgmm import fitDbScan
 
 from .network import constructNetwork
 from .network import extractReferences
@@ -246,8 +247,10 @@ def main():
                     model, args.pos_shift, args.neg_shift, args.manual_start, args.no_local, args.threads)
         # Run model
         else:
-            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
-                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
+            fitDbScan(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
+            exit(0)
+#            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
+#                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
 
         isolateClustering = printClusters(genomeNetwork, args.output)
