@@ -775,7 +775,7 @@ def fitDbScan(X, outPrefix, threads = 1):
             sys.exit(1)
 
     # set the maximum sampling size
-    max_samples = 100000
+    max_samples = 1000000
 
     # preprocess scaling
     scale = np.amax(X, axis = 0)
