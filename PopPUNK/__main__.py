@@ -34,6 +34,7 @@ from .network import updateClustering
 from .network import printClusters
 
 from .refine import refineFit
+from .refine import refineDbScanFit
 
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
@@ -247,11 +248,14 @@ def main():
                     model, args.pos_shift, args.neg_shift, args.manual_start, args.no_local, args.threads)
         # Run model
         else:
-            fitDbScan(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
-            exit(0)
+            distanceAssignments, dbscan_model, fitMeans, fitMins, fitMaxs, fitscale = fitDbScan(distMat, args.output, args.threads)
+            print("scale: "+str(fitscale))
 #            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
 #                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
+            # refine DBSCAN fit - replaced queryAssignments with distanceAssignments - is this right?
+            genomeNetwork = refineDbScanFit(distMat, args.output, queryList, distanceAssignments,
+                                      dbscan_model, fitMeans, fitMins, fitMaxs, fitscale, args.pos_shift, args.neg_shift, args.manual_start, args.no_local, args.threads)
 
         isolateClustering = printClusters(genomeNetwork, args.output)
         # generate outputs for microreact if asked

@@ -764,7 +764,7 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
     return y, weights, means, covariances, scale, t_dist
 
 
-def fitDbScan(X, outPrefix, t_dist = False, priorFile = None, bgmm = False, dpgmm_max_K = 2):
+def fitDbScan(X, outPrefix, threads = 1):
     
     # set output dir
     if not os.path.isdir(outPrefix):
@@ -778,22 +778,25 @@ def fitDbScan(X, outPrefix, t_dist = False, priorFile = None, bgmm = False, dpgm
     max_samples = 100000
 
     # preprocess scaling
+    scale = np.amax(X, axis = 0)
+    scaled_X = np.copy(X)
+    scaled_X /= scale
     if X.shape[0] > max_samples:
-        subsampled_X = utils.shuffle(X, random_state=random.randint(1,max_samples))[0:max_samples,]
+        subsampled_X = utils.shuffle(scaled_X, random_state=random.randint(1,max_samples))[0:max_samples,]
     else:
-        subsampled_X = np.copy(X)
-    scale = np.amax(subsampled_X, axis = 0)
-    subsampled_X /= scale
+        subsampled_X = np.copy(scaled_X)
 
     # set DBSCAN clustering parameters
     cache_out = "./" + outPrefix + "_cache"
     min_samples = int(0.0001*subsampled_X.shape[0])
-    min_cluster_size = int(0.001*subsampled_X.shape[0])
+    min_cluster_size = int(0.01*subsampled_X.shape[0])
     db = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
-                        min_samples=min_samples,
-                        core_dist_n_jobs=4,
+                        min_samples = min_samples,
+                        core_dist_n_jobs = threads,
                         memory = cache_out,
-                        min_cluster_size=min_cluster_size).fit(subsampled_X)
+                        prediction_data = True,
+                        min_cluster_size = min_cluster_size
+                        ).fit(subsampled_X)
     labels = db.labels_
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     
@@ -827,4 +830,19 @@ def fitDbScan(X, outPrefix, t_dist = False, priorFile = None, bgmm = False, dpgm
     plt.savefig("dbscan.png")
     plt.close()
 
-    exit(0)
+    # get within strain cluster
+    max_cluster_num = db.labels_.max()
+    cluster_means = np.full((n_clusters_,2),0.0,dtype=float)
+    cluster_mins = np.full((n_clusters_,2),0.0,dtype=float)
+    cluster_maxs = np.full((n_clusters_,2),0.0,dtype=float)
+
+    for i in range(max_cluster_num+1):
+        cluster_means[i,] = [np.mean(subsampled_X[db.labels_==i,0]),np.mean(subsampled_X[db.labels_==i,1])]
+        cluster_mins[i,] = [np.min(subsampled_X[db.labels_==i,0]),np.min(subsampled_X[db.labels_==i,1])]
+        cluster_maxs[i,] = [np.max(subsampled_X[db.labels_==i,0]),np.max(subsampled_X[db.labels_==i,1])]
+
+    # assign all samples
+    y, strengths = hdbscan.approximate_predict(db, scaled_X)
+
+    # return output
+    return y, db, cluster_means, cluster_mins, cluster_maxs, scale

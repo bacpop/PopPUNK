@@ -325,3 +325,292 @@ def readManualStart(startFile):
         sys.exit(1)
 
     return mean0, mean1, start_s
+
+#########################
+
+def refineDbScanFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move,
+              startFile = None, no_local = False, num_processes = 1):
+    """Try to refine a fit by maximising a network score based on transitivity and density.
+        
+        Iteratively move the decision boundary to do this, using starting point from existing model.
+        
+        Args:
+        distMat (numpy.array)
+        n x 2 array of core and accessory distances for n samples
+        outPrefix (str)
+        The prefix for the output directory to save fit and plot in
+        sample_names (list)
+        List of query sequence labels
+        assignment (numpy.array)
+        Assignment of samples from :func:`~PopPUNK.bgmm.assign_samples`
+        model (tuple)
+        Model returned from :func:`~PopPUNK.bgmm.assignQuery`
+        max_move (float)
+        Maximum distance to move away from start point
+        min_move (float)
+        Minimum distance to move away from start point
+        startFile (str)
+        A file defining an initial fit, rather than one from ``--fit-model``.
+        See documentation for format.
+        
+        (default = None).
+        no_local (bool)
+        Turn off the local optimisation step.
+        Quicker, but may be less well refined.
+        num_processes (int)
+        Number of threads to use in the global optimisation step.
+        
+        (default = 1)
+        Returns:
+        G (networkx.Graph)
+        The resulting refined network
+        """
+    (scale, weights, means, covariances, t_dist) = model
+    distMat /= scale # Deal with scale at start
+    if startFile:
+        mean0, mean1, start_s = readManualStart(startFile)
+    else:
+        sys.stderr.write("Initial model-based network construction\n")
+        within_label = findWithinLabel(means, assignment)
+        between_label = findWithinLabel(means, assignment, 1)
+        G = constructNetwork(sample_names, sample_names, assignment, within_label)
+        
+        # Straight line between dist 0 centre and dist 1 centre
+        # Optimize to find point of decision boundary along this line as starting point
+        mean0 = means[within_label, :]
+        mean1 = means[between_label, :]
+        start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
+                                        args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
+
+    sys.stderr.write("Initial boundary based network construction\n")
+    start_point = transformLine(start_s, mean0, mean1)
+    sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
+                     + "," + "{:.2f}".format(start_point[1]) + ")\n")
+
+    # Boundary is left of line normal to this point and first line
+    gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
+    x_max, y_max = decisionBoundary(start_point, gradient)
+    boundary_assignments = withinBoundary(distMat, x_max, y_max)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
+    
+    # Optimize boundary - grid search for global minimum
+    sys.stderr.write("Trying to optimise score globally\n")
+    global_grid_resolution = 40 # Seems to work
+    shared_dists = sharedmem.copy(distMat)
+    s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
+    with sharedmem.MapReduce(np = num_processes) as pool:
+        global_s = pool.map(partial(newNetwork,
+                                    sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1, gradient=gradient),
+                            s_range)
+    
+    # Local optimisation around global optimum
+    min_idx = np.argmin(np.array(global_s))
+    if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
+        sys.stderr.write("Trying to optimise score locally\n")
+        local_s = scipy.optimize.minimize_scalar(newNetwork,
+                                                 bounds=[s_range[min_idx-1], s_range[min_idx+1]],
+                                                 method='Bounded', options={'disp': True},
+                                                 args = (sample_names, distMat, start_point, mean1, gradient))
+        optimised_s = local_s.x
+    else:
+        optimised_s = s_range[min_idx]
+    
+    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
+    if optimal_x <= 0 or optimal_y <= 0:
+        sys.stderr.write("Optimisation failed: produced a boundary outside of allowed range\n")
+        sys.exit(1)
+
+    # Make network from new optimal boundary
+    boundary_assignments = withinBoundary(distMat, optimal_x, optimal_y)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
+
+    # ALTERNATIVE - use a single network
+    # Move boundary along in steps, and find those samples which have changed
+    # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
+    # https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+    # i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    # j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+
+    # Save new fit
+    if not os.path.isdir(outPrefix):
+        os.makedirs(outPrefix)
+    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y,
+                             mean0, mean1, start_point, min_move, max_move, [1, 1],
+                             "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
+    np.savez(outPrefix + "/" + outPrefix + '_refined_fit.npz',
+              intercept=np.array([optimal_x, optimal_y]),
+              scale=scale,
+              boundary=np.array(True, dtype=np.bool_))
+
+    # return new network
+    return G
+
+###################################
+
+def refineDbScanFit(distMat, outPrefix, sample_names, assignment, model, means, mins, maxs, scale, max_move, min_move,
+              startFile = None, no_local = False, num_processes = 1):
+    """Try to refine a fit by maximising a network score based on transitivity and density.
+        
+        Iteratively move the decision boundary to do this, using starting point from existing model.
+        
+        Args:
+        distMat (numpy.array)
+        n x 2 array of core and accessory distances for n samples
+        outPrefix (str)
+        The prefix for the output directory to save fit and plot in
+        sample_names (list)
+        List of query sequence labels
+        assignment (numpy.array)
+        Assignment of samples from :func:`~PopPUNK.bgmm.assign_samples`
+        model (tuple)
+        Model returned from :func:`~PopPUNK.bgmm.assignQuery`
+        max_move (float)
+        Maximum distance to move away from start point
+        min_move (float)
+        Minimum distance to move away from start point
+        startFile (str)
+        A file defining an initial fit, rather than one from ``--fit-model``.
+        See documentation for format.
+        
+        (default = None).
+        no_local (bool)
+        Turn off the local optimisation step.
+        Quicker, but may be less well refined.
+        num_processes (int)
+        Number of threads to use in the global optimisation step.
+        
+        (default = 1)
+        Returns:
+        G (networkx.Graph)
+        The resulting refined network
+        """
+    #    (scale, weights, means, covariances, t_dist) = model # this is going
+    distMat /= scale # Deal with scale at start
+
+    if startFile:
+        mean0, mean1, start_s = readManualStart(startFile)
+    else:
+        sys.stderr.write("Initial model-based network construction\n")
+        within_label = findWithinLabel(means, assignment)
+#        between_label = findWithinLabel(means, assignment, 1)
+        between_label = findBetweenLabel(means, assignment, within_label)
+        G = constructNetwork(sample_names, sample_names, assignment, within_label)
+        
+        # Straight line between dist 0 centre and dist 1 centre
+        # Optimize to find point of decision boundary along this line as starting point
+        mean0 = means[within_label, :]
+        mean1 = means[between_label, :]
+        print("mean0 "+str(mean0)+" mean1 "+str(mean1))
+        max0 = maxs[within_label, :]
+        min1 = mins[between_label, :]
+        print("max0 "+str(max0)+" min1 "+str(min1))
+        core_s = (max(max0[0],min1[0]) - mean0[0]) / mean1[0]
+        acc_s = (max(max0[1],min1[1]) - mean0[1]) / mean1[1]
+        start_s = 0.5*(core_s+acc_s)
+        print("core "+str(core_s)+" acc "+str(acc_s)+"\tstart_s: "+str(start_s))
+#        start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
+#                                        args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
+
+    sys.stderr.write("Initial boundary based network construction\n")
+    start_point = transformLine(start_s, mean0, mean1)
+    sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
+                     + "," + "{:.2f}".format(start_point[1]) + ")\n")
+
+    # Boundary is left of line normal to this point and first line
+    gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
+    x_max, y_max = decisionBoundary(start_point, gradient)
+    boundary_assignments = withinBoundary(distMat, x_max, y_max)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
+    
+    # Optimize boundary - grid search for global minimum
+    sys.stderr.write("Trying to optimise score globally\n")
+    global_grid_resolution = 40 # Seems to work
+    shared_dists = sharedmem.copy(distMat)
+    s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
+    with sharedmem.MapReduce(np = num_processes) as pool:
+        global_s = pool.map(partial(newNetwork,
+                                    sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1, gradient=gradient),
+                            s_range)
+    
+    # Local optimisation around global optimum
+    min_idx = np.argmin(np.array(global_s))
+    if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
+        sys.stderr.write("Trying to optimise score locally\n")
+        local_s = scipy.optimize.minimize_scalar(newNetwork,
+                                                 bounds=[s_range[min_idx-1], s_range[min_idx+1]],
+                                                 method='Bounded', options={'disp': True},
+                                                 args = (sample_names, distMat, start_point, mean1, gradient))
+        optimised_s = local_s.x
+    else:
+        optimised_s = s_range[min_idx]
+    
+    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
+    if optimal_x <= 0 or optimal_y <= 0:
+        sys.stderr.write("Optimisation failed: produced a boundary outside of allowed range\n")
+        sys.exit(1)
+
+    # Make network from new optimal boundary
+    boundary_assignments = withinBoundary(distMat, optimal_x, optimal_y)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
+
+    # ALTERNATIVE - use a single network
+    # Move boundary along in steps, and find those samples which have changed
+    # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
+    # https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+    # i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    # j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
+
+    # Save new fit
+    if not os.path.isdir(outPrefix):
+        os.makedirs(outPrefix)
+    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y,
+                     mean0, mean1, start_point, min_move, max_move, [1, 1],
+                     "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
+    np.savez(outPrefix + "/" + outPrefix + '_refined_fit.npz',
+          intercept=np.array([optimal_x, optimal_y]),
+          scale=scale,
+          boundary=np.array(True, dtype=np.bool_))
+
+    # return new network
+    return G
+
+def findBetweenLabel(means, assignments, within_cluster):
+    
+    # remove noise and within-strain distance cluster
+    assignments = list(filter((within_cluster).__ne__, assignments)) # remove within-cluster
+    assignments = list(filter((-1).__ne__, assignments)) # remove noise
+
+    # identify non-within cluster with most members
+    between_cluster = max(set(assignments), key=assignments.count)
+
+    return between_cluster
+
+#def findWithinLabel(means, assignments, rank = 0):
+#    """Identify within-strain links
+#
+#        Finds the component with mean closest to the origin and also akes sure
+#        some samples are assigned to it (in the case of small weighted
+#        components with a Dirichlet prior some components are unused)
+#
+#        Args:
+#        means (numpy.array)
+#        K x 2 array of mixture component means from :func:`~fit2dMultiGaussian` or
+#        :func:`~assignQuery`
+#        assignments (numpy.array)
+#        Sample cluster assignments from :func:`~assign_samples`
+#        rank (int)
+#        Which label to find, ordered by distance from origin. 0-indexed.
+#
+#        (default = 0)
+#
+#        Returns:
+#        within_label (int)
+#        The cluster label for the within-strain assignments
+#        """
+#    min_dists = {}
+#    for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
+#        if np.any(assignments == mixture_component):
+#            min_dists[mixture_component] = distance
+#
+#    sorted_dists = sorted(min_dists.items(), key=operator.itemgetter(1))
+#    return(sorted_dists[rank][0])
