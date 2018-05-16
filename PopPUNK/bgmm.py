@@ -536,7 +536,7 @@ def assignQuery(X, refPrefix, dbscan):
             (default = False).
     """
     #### THIS DOCUMENTATION NEEDS UPDATING IF THIS ALTERATION IS KEPT
-    
+
     from .refine import withinBoundary
 
     # load model information
@@ -589,8 +589,8 @@ def assignQuery(X, refPrefix, dbscan):
             with open(dbscan_pickleFileName, 'rb') as pickle_file:
                 db = pickle.load(pickle_file)
         else:
-            sys.stderr.write("Cannot find DBSCAN model file name "+dbscan_pickleFileName)
-            exit(1)
+            sys.stderr.write("Cannot find DBSCAN model file name " + dbscan_pickleFileName + "\n")
+            sys.exit(1)
         model = (db, scale, means, mins, maxs)
 
         # Get assignments using DBSCAN

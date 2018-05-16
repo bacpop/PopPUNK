@@ -387,6 +387,39 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
+def plot_dbscan_results(X, y, n_clusters, out_prefix)
+    """Draw a scatter plot (png) to show the DBSCAN model fit
+
+    A scatter plot of core and accessory distances, coloured by component
+    membership. Black is noise
+
+    Args:
+        X (numpy.array)
+             n x 2 array of core and accessory distances for n samples.
+        Y (numpy.array)
+             n x 1 array of cluster assignments for n samples.
+        n_clusters (int)
+            Number of clusters used (excluding noise)
+    """
+    # Black removed and is used for noise instead.
+    unique_labels = set(y)
+    colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+    black_col = [0, 0, 0, 1]
+
+    for k, col in zip(unique_labels, colors):
+        if k == -1:
+            # Black used for noise.
+            col = [0, 0, 0, 1]
+        class_member_mask = (y == k)
+        xy = X[class_member_mask]
+        plt.plot(xy[:, 0], xy[:, 1], '.', markerfacecolor=tuple(col),markersize=2)
+
+    # plot output
+    plt_filename = outPrefix + "/" + outPrefix + "_dbscan.png"
+    plt.title('Estimated number of clusters: %d' % n_clusters)
+    plt.savefig(out_prefix + ".png")
+    plt.close()
+
 def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point,
         min_move, max_move, scale, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
