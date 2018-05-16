@@ -387,7 +387,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_dbscan_results(X, y, n_clusters, out_prefix)
+def plot_dbscan_results(X, y, n_clusters, out_prefix):
     """Draw a scatter plot (png) to show the DBSCAN model fit
 
     A scatter plot of core and accessory distances, coloured by component

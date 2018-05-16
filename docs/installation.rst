@@ -29,6 +29,7 @@ Dependencies
 We tested PopPUNK with the following packages:
 
 * ``DendroPy`` (4.3.0)
+* ``hdbscan`` (0.8.13)
 * ``matplotlib`` (2.1.2)
 * ``networkx`` (2.1)
 * ``numpy`` (1.14.1)

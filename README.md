@@ -29,6 +29,7 @@ In brackets are the versions we used
 
 * python3
 * `DendroPy` (4.3.0)
+* `hdbscan` (0.8.13)
 * `matplotlib` (2.1.2)
 * `networkx` (2.1)
 * `numba` (0.36.2)
