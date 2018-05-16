@@ -60,8 +60,6 @@ setup(
                       'sharedmem',
                       'numba',
                       'pandas',
-                      'pymc3',
-                      'theano',
                       'networkx',
                       'matplotlib',
                       'hdbscan'],

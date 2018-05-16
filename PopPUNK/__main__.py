@@ -105,10 +105,6 @@ def get_options():
 
     modelGroup = parser.add_argument_group('Mixture model options')
     modelGroup.add_argument('--K', help='Maximum number of mixture components (EM only) [default = 2]', type=int, default=2)
-    modelGroup.add_argument('--priors', help='File specifying model priors. See documentation for help', default=None)
-    modelGroup.add_argument('--bgmm', help='Use ADVI rather than EM to fit the mixture model', default=False, action='store_true')
-    modelGroup.add_argument('--t-dist', help='Use a mixture of t distributions rather than Gaussians'
-                                             ' (ADVI only)', default=False, action='store_true')
 
     scanGroup = parser.add_argument_group('DBSCAN model options')
     scanGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model (fitting and refinement)', default=False, action='store_true')
@@ -242,8 +238,8 @@ def main():
 
         # Run refinement
         if args.refine_model:
-            queryAssignments, model, type = assignQuery(distMat, args.ref_db, args.dbscan)
-            if type == 'refined':
+            queryAssignments, model, model_type = assignQuery(distMat, args.ref_db, args.dbscan)
+            if model_type == 'refined':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
 
@@ -256,8 +252,8 @@ def main():
                     fitDbScan(distMat, args.output, threads = args.threads)
             else:
                 # Run Gaussian model
-                distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
-                    fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
+                distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = \
+                    fit2dMultiGaussian(distMat, args.output, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
 
         isolateClustering = printClusters(genomeNetwork, args.output)

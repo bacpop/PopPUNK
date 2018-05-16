@@ -478,7 +478,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_contours(assignments, weights, means, covariances, title, out_prefix, t_dist = False):
+def plot_contours(assignments, weights, means, covariances, title, out_prefix):
     """Draw contours of mixture model assignments
 
     Will draw the decision boundary for between/within in red
@@ -496,9 +496,6 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix, t
             The title to display above the plot
         out_prefix (str)
             Prefix for output plot file (.pdf will be appended)
-        t_dist (bool)
-            Indicates the fit was with a mixture of t-distributions
-            (default = False).
     """
     # avoid recursive import
     from .bgmm import assign_samples
@@ -508,12 +505,12 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix, t
     xx, yy, xy = get_grid(0, 1, 100)
 
     # for likelihood boundary
-    z = assign_samples(xy, weights, means, covariances, np.array([1,1]), t_dist, True)
+    z = assign_samples(xy, weights, means, covariances, np.array([1,1]), True)
     z_diff = z[:,findWithinLabel(means, assignments, 0)] - z[:,findWithinLabel(means, assignments, 1)]
     z = z_diff.reshape(xx.shape).T
 
     # For full likelihood surface
-    z_ll, lpr = log_likelihood(xy, weights, means, covariances, np.array([1,1]), t_dist = False)
+    z_ll, lpr = log_likelihood(xy, weights, means, covariances, np.array([1,1]))
     z_ll = z_ll.reshape(xx.shape).T
 
     plt.contour(xx, yy, z_ll, levels=np.linspace(z_ll.min(), z_ll.max(), 25))

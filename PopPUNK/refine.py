@@ -81,7 +81,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         acc_s = (max(max0[1],min1[1]) - mean0[1]) / mean1[1]
         start_s = 0.5*(core_s+acc_s)
     else:
-        (scale, weights, means, covariances, t_dist) = model
+        (scale, weights, means, covariances) = model
         sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
         within_label = findWithinLabel(means, assignment)
         between_label = findWithinLabel(means, assignment, 1)
@@ -92,7 +92,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         mean0 = means[within_label, :]
         mean1 = means[between_label, :]
         start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
-                         args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
+                         args = (weights, means, covariances, np.array([1, 1]), mean0, mean1, within_label, between_label))
 
     distMat /= scale # Deal with scale at start
     sys.stderr.write("Initial boundary based network construction\n")
@@ -158,7 +158,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     # return new network
     return G
 
-def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end, within, between):
+def likelihoodBoundary(s, weights, means, covars, scale, start, end, within, between):
     """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
     go into a root-finding function for probabilities between components
 
@@ -173,8 +173,6 @@ def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end, wit
             Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
         scale (numpy.array)
             Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        t_dist (bool)
-            Indicates the fit was with a mixture of t-distributions
         start (numpy.array)
             The co-ordinates of the centre of the within-strain distribution
         end (numpy.array)
@@ -189,7 +187,7 @@ def likelihoodBoundary(s, weights, means, covars, scale, t_dist, start, end, wit
             and the between assignment
     """
     X = transformLine(s, start, end).reshape(1, -1)
-    responsibilities = assign_samples(X, weights, means, covars, scale, t_dist, values = True)
+    responsibilities = assign_samples(X, weights, means, covars, scale, values = True)
     return(responsibilities[0, within] - responsibilities[0, between])
 
 def transformLine(s, mean0, mean1):

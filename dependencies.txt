@@ -11,7 +11,6 @@ networkx==2.1
 numpy==1.14.1
 pandas==0.22.0
 patsy==0.5.0
-pymc3==3.3
 pyparsing==2.2.0
 python-dateutil==2.6.1
 pytz==2018.3
@@ -20,5 +19,4 @@ scipy==1.0.0
 sharedmem==0.3.5
 six==1.11.0
 sklearn==0.0
-Theano==1.0.1
 tqdm==4.19.5

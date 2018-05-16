@@ -35,13 +35,9 @@ We tested PopPUNK with the following packages:
 * ``numpy`` (1.14.1)
 * ``numba`` (0.36.2)
 * ``pandas`` (0.22.0)
-* ``pymc3`` (3.3)
 * ``scikit-learn`` (0.19.1)
 * ``scipy`` (1.0.0)
 * ``sharedmem`` (0.3.5)
 * ``sklearn`` (0.19.1)
-* ``Theano`` (1.0.1)
 
-In particular, we would note the version of ``pymc3`` and ``Theano`` may need
-to be updated for all functions to work correctly.
 

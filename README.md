@@ -35,12 +35,10 @@ In brackets are the versions we used
 * `numba` (0.36.2)
 * `numpy` (1.14.1)
 * `pandas` (0.22.0)
-* `pymc3` (3.3)
 * `scikit-learn` (0.19.1)
 * `scipy` (1.0.0)
 * `sharedmem` (0.3.5)
 * `sklearn` (0.19.1)
-* `Theano` (1.0.1)
 
 ## Quick usage
 Easy run mode, go from assemblies to clusters of strains:
