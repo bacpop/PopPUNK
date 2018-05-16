@@ -9,7 +9,6 @@ import re
 import numpy as np
 import random
 import operator
-import matplotlib.pyplot as plt
 try:
     import pymc3 as pm
     from pymc3.math import logsumexp as mc3_logsumexp
@@ -739,12 +738,12 @@ def fit2dMultiGaussian(X, outPrefix, t_dist = False, priorFile = None, bgmm = Fa
         (trace, elbos) = bgmm_model(subsampled_X, parameters, t_dist)
 
         # Check convergence and parameters
-        plt.plot(elbos)
-        plt.savefig(outPrefix + "/" + outPrefix + "_elbos.png")
-        plt.close()
-        pm.plot_posterior(trace, color='LightSeaGreen')
-        plt.savefig(outPrefix + "/" + outPrefix + "_posterior.png")
-        plt.close()
+        #plt.plot(elbos)
+        #plt.savefig(outPrefix + "/" + outPrefix + "_elbos.png")
+        #plt.close()
+        #pm.plot_posterior(trace, color='LightSeaGreen')
+        #plt.savefig(outPrefix + "/" + outPrefix + "_posterior.png")
+        #plt.close()
 
         weights = trace[:]['pi'].mean(axis=0)
         means = []

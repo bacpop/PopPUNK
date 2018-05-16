@@ -9,7 +9,6 @@ import re
 import numpy as np
 import random
 import operator
-import matplotlib.pyplot as plt
 import pickle
 # hdbscan
 import hdbscan

@@ -63,6 +63,7 @@ setup(
                       'pymc3',
                       'theano',
                       'networkx',
-                      'matplotlib'],
+                      'matplotlib',
+                      'hdbscan'],
     test_suite="test",
 )
