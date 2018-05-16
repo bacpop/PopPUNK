@@ -3,7 +3,6 @@
 # universal
 import os
 import sys
-import argparse
 import re
 # additional
 import numpy as np
@@ -19,7 +18,6 @@ try:  # SciPy >= 0.19
 except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
     from scipy.misc import gammaln as sp_gammaln
-from sklearn import utils
 from sklearn import mixture
 
 from .dbscan import assign_samples_dbscan
@@ -172,42 +170,6 @@ def findWithinLabel(means, assignments, rank = 0):
     sorted_dists = sorted(min_dists.items(), key=operator.itemgetter(1))
     return(sorted_dists[rank][0])
 
-def dirichlet_bgmm(X, max_components = 5, number_runs = 5, weight_conc = 0.1, mean_precision = 0.1, mean_prior = np.array([0,0])):
-    """Fits the 2D mixture model using EM (DPGMM)
-
-    A wrapper to the sklearn function :func:`~sklearn.mixture.BayesianGaussianMixture`
-
-    Args:
-        X (numpy.array)
-            n x 2 array of core and accessory distances for n samples
-        max_components (int)
-            Maximum number of mixture components to fit.
-            (default = 5)
-        number_runs (int)
-            Number of runs with different starts to try. The run with the best likelihood
-            is returned.
-            (default = 5)
-        weight_conc (float)
-            Weight concentration prior (c.f. alpha in :func:`~stick_breaking`)
-            (default = 0.1)
-        mean_precision (float)
-            Mean precision prior (precision of confidence in mean_prior)
-            (default = 0.1)
-        mean_prior (np.array)
-            Prior on mean positions
-            (default = [0, 0])
-
-    Returns:
-        dpgmm (mixture.BayesianGaussianMixture)
-            sklearn BayesianGaussianMixture fitted to X
-    """
-    dpgmm = mixture.BayesianGaussianMixture(n_components = max_components,
-                                            n_init = number_runs,
-                                            covariance_type = 'full',
-                                            weight_concentration_prior = weight_conc,
-                                            mean_precision_prior = mean_precision,
-                                            mean_prior = mean_prior).fit(X)
-    return(dpgmm)
 
 def assignQuery(X, refPrefix, dbscan):
     """Assign component of query sequences using a previously fitted model
@@ -228,9 +190,6 @@ def assignQuery(X, refPrefix, dbscan):
             Component covariances from :func:`~fit2dMultiGaussian`
         scale (numpy.array)
             Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
-        t (bool)
-            Indicates the fit was with a mixture of t-distributions
-            (default = False).
     """
     #### THIS DOCUMENTATION NEEDS UPDATING IF THIS ALTERATION IS KEPT
 
@@ -306,7 +265,7 @@ def assignQuery(X, refPrefix, dbscan):
     return y, model, model_type
 
 
-def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm_max_K = 2):
+def fit2dMultiGaussian(X, outPrefix, dpgmm_max_K = 2):
     """Main function to fit model, called from :func:`~__main__.main()`
 
     Fits the mixture model specified, saves model parameters to a file, and assigns the samples to
@@ -319,8 +278,6 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm_max_K = 2):
             n x 2 array of core and accessory distances for n samples
         outPrefix (str)
             Prefix for output files to be saved under
-        priorFile (str)
-            Location of a prior file, used with bgmm
         dpgmm_max_K (int)
             Maximum number of components to use with the EM fit.
             (default = 2)
@@ -336,58 +293,19 @@ def fit2dMultiGaussian(X, outPrefix, priorFile = None, dpgmm_max_K = 2):
         scale (numpy.array)
             Scaling of core and accessory distances
     """
-    # set output dir
-    if not os.path.isdir(outPrefix):
-        if not os.path.isfile(outPrefix):
-            os.makedirs(outPrefix)
-        else:
-            sys.stderr.write(outPrefix + " already exists as a file! Use a different --output\n")
-            sys.exit(1)
-
-    # set the maximum sampling size
-    max_samples = 100000
-
-    # preprocess scaling
-    if X.shape[0] > max_samples:
-        subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_samples,]
-    else:
-        subsampled_X = np.copy(X)
-    scale = np.amax(subsampled_X, axis = 0)
-    subsampled_X /= scale
-
     # Show clustering
-    plot_scatter(subsampled_X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
+    plot_scatter(X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
 
     # fit bgmm model
-    dpgmm = dirichlet_bgmm(subsampled_X, max_components = dpgmm_max_K)
-    weights = dpgmm.weights_
-    means = dpgmm.means_
-    covariances = dpgmm.covariances_
+    dpgmm = mixture.BayesianGaussianMixture(n_components = dpgmm_max_K,
+                                                n_init = 5,
+                                                covariance_type = 'full',
+                                                weight_concentration_prior = 0.1,
+                                                mean_precision_prior = 0.1,
+                                                mean_prior = np.array([0,0])).fit(X)
 
-    # Save model fit
-    np.savez(outPrefix + "/" + outPrefix + '_fit.npz',
-             weights=weights,
-             means=means,
-             covariances=covariances,
-             scale=scale,
-             boundary=np.array(False, dtype=np.bool_))
-
-    # Plot results
-    y = assign_samples(X, weights, means, covariances, scale)
     avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
-        assign_samples(subsampled_X, weights, means, covariances, scale, values=True)))
-    used_components = np.unique(y).size
+        assign_samples(X, weights, means, covariances, scale, values=True)))
 
-    title = outPrefix + " " + str(len(np.unique(y))) + "-component DPGMM"
-    outfile = outPrefix + "/" + outPrefix + "_DPGMM_fit"
-
-    plot_results(X, y, means, covariances, scale, title, outfile)
-    plot_contours(y, weights, means, covariances, title + " assignment boundary", outfile + "_contours")
-
-    sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
-                                                   "\tNumber of components used\t" + str(used_components)])
-                                                   + "\n")
-
-    # return output
-    return y, weights, means, covariances, scale
+    return dpgmm, scale, avg_entropy
 
