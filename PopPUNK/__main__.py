@@ -111,7 +111,7 @@ def get_options():
                                              ' (ADVI only)', default=False, action='store_true')
 
     scanGroup = parser.add_argument_group('DBSCAN model options')
-    scanGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model', default=False, action='store_true')
+    scanGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model (fitting and refinement)', default=False, action='store_true')
 
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',
@@ -242,17 +242,22 @@ def main():
 
         # Run refinement
         if args.refine_model:
-            queryAssignments, model, boundary = assignQuery(distMat, args.ref_db)
-            if boundary:
+            queryAssignments, model, type = assignQuery(distMat, args.ref_db, args.dbscan)
+            if type == 'refined':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
 
             genomeNetwork = refineFit(distMat, args.output, queryList, queryAssignments,
-                    model, args.pos_shift, args.neg_shift, args.manual_start, args.no_local, args.threads)
-        # Run model
+                    model, args.pos_shift, args.neg_shift, args.dbscan, args.manual_start, args.no_local, args.threads)
         else:
-            distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
-                fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
+            if args.dbscan:
+                # Run DBSCAN model
+                distanceAssignments, dbscan_model, fitMeans, fitMins, fitMaxs, fitscale = \
+                    fitDbScan(distMat, args.output, threads = args.threads)
+            else:
+                # Run Gaussian model
+                distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale, fitt = \
+                    fit2dMultiGaussian(distMat, args.output, args.t_dist, args.priors, args.bgmm, args.K)
             genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
 
         isolateClustering = printClusters(genomeNetwork, args.output)
@@ -293,9 +298,8 @@ def main():
             refList, queryList, self, distMat = readPickle(args.distances)
             kmers = getKmersFromReferenceDatabase(args.ref_db)
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            queryAssignments, model, boundary = assignQuery(distMat, args.ref_db)
-            if boundary:
-                (scale, boundary) = model
+            queryAssignments, model, type = assignQuery(distMat, args.ref_db, args.dbscan)
+            if type == 'refined':
                 raise NotImplementedError("Not yet implemented query with boundary model")
             else:
                 (fitscale, fitWeights, fitMeans, fitcovariances, fitt) = model

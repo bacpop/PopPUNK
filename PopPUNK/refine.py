@@ -22,7 +22,7 @@ from .network import constructNetwork
 from .network import networkSummary
 from .plot import plot_refined_results
 
-def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move,
+def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move, dbscan, 
     startFile = None, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
@@ -59,6 +59,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         G (networkx.Graph)
             The resulting refined network
     """
+    # UPDATE DOCUMENTATION
     
     # initialise data structure
     mean0 = numpy.empty()
@@ -66,11 +67,10 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     start_s = 0.0
     
     # calculate starting point
-    dbscan = False # change this
     if startFile:
         mean0, mean1, start_s = readManualStart(startFile)
     elif dbscan:
-        (scale, means, mins, maxs) = model
+        (db, scale, means, mins, maxs) = model
         sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
         within_label = findWithinLabel(means, assignment)
         between_label = findBetweenLabel(means, assignment, within_label)

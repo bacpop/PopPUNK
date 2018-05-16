@@ -33,6 +33,7 @@ from sklearn import utils
 from sklearn import mixture
 
 
+from .dbscan import assign_samples_dbscan
 
 from .plot import plot_scatter
 from .plot import plot_results
@@ -511,7 +512,7 @@ def dirichlet_bgmm(X, max_components = 5, number_runs = 5, weight_conc = 0.1, me
                                             mean_prior = mean_prior).fit(X)
     return(dpgmm)
 
-def assignQuery(X, refPrefix):
+def assignQuery(X, refPrefix, dbscan):
     """Assign component of query sequences using a previously fitted model
 
     Args:
@@ -534,31 +535,61 @@ def assignQuery(X, refPrefix):
             Indicates the fit was with a mixture of t-distributions
             (default = False).
     """
+    #### THIS DOCUMENTATION NEEDS UPDATING IF THIS ALTERATION IS KEPT
+    
     from .refine import withinBoundary
 
     # load model information
     weights = []
     means = []
     covariances = []
-    modelFileName = refPrefix + "/" + refPrefix + '_refined_fit.npz'
-    refinedModelFileName = refPrefix + "/" + refPrefix + '_fit.npz'
+    type = ""
+    refinedModelFileName = refPrefix + "/" + refPrefix + '_refined_fit.npz'
+    bgmm_modelFileName = refPrefix + "/" + refPrefix + '_fit.npz'
+    dbscan_refinedModelFileName = refPrefix + "/" + refPrefix + '_dbscan_refined_fit.npz'
+    dbscan_modelFileName = refPrefix + "/" + refPrefix + '_dbscan_fit.npz'
     try:
-        if os.path.isfile(refinedModelFileName):
+        # structure this to use whatever file is available unless
+        if os.path.isfile(refinedModelFileName) and dbscan is False:
+            model_npz = np.load(dbscan_modelFileName)
+            type = 'refined'
+            print("Loaded refined BGMM model",file=sys.stderr)
+        elif os.path.isfile(bgmm_modelFileName) and dbscan is False:
+            model_npz = np.load(bgmm_modelFileName)
+            type = 'bgmm'
+            print("Loaded BGMM model",file=sys.stderr)
+        elif os.path.isfile(dbscan_refinedModelFileName):
             model_npz = np.load(refinedModelFileName)
-        else:
-            model_npz = np.load(modelFileName)
+            type = 'refined'
+            print("Loaded refined DBSCAN model",file=sys.stderr)
+        elif os.path.isfile(dbscan_modelFileName):
+            model_npz = np.load(dbscan_modelFileName)
+            type = 'dbscan'
+            print("Loaded DBSCAN model",file=sys.stderr)
+
     except:
-        sys.stderr.write("Cannot load model information file " + modelFileName + "\n")
+        sys.stderr.write("Cannot load model from possible information files " + bgmm_modelFileName + ", " + dbscan_modelFileName + ", or " + refinedModelFileName + "\n")
         sys.exit(1)
 
     # extract information
     scale = model_npz['scale']
-    if model_npz['boundary']:
+    if type == 'refined':
         boundary = model_npz['intercept']
         model = (scale, boundary)
 
         y = withinBoundary(X/scale, boundary[0], boundary[1])
-    else:
+
+    elif type == 'dbscan':
+        means = model_npz['means'],
+        mins = model_npz['mins'],
+        maxs = model_npz['maxs'],
+        db = model_npz['model']
+        model = (db, scale, means, mins, maxs)
+
+        # Get assignments using DBSCAN
+        y = assign_samples_dbscan(X, db, scale)
+
+    elif type == 'bgmm':
         weights = model_npz['weights']
         means = model_npz['means']
         covariances = model_npz['covariances']
@@ -568,7 +599,7 @@ def assignQuery(X, refPrefix):
         # Get assignments
         y = assign_samples(X, weights, means, covariances, scale, t)
 
-    return y, model, model_npz['boundary']
+    return y, model, type
 
 def readPriors(priorFile):
     """Read priors for :func:`~bgmm_model` from file

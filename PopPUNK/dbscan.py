@@ -85,7 +85,7 @@ def fitDbScan(X, outPrefix, threads = 1):
         plt.plot(xy[:, 0], xy[:, 1], '.', markerfacecolor=tuple(col),markersize=2)
 
     # plot output
-    plt_filename = outPrefix + "_dbscan.png"
+    plt_filename = outPrefix + "/" + outPrefix + "_dbscan.png"
     plt.title('Estimated number of clusters: %d' % n_clusters_)
     plt.savefig(plt_filename)
     plt.close()
@@ -103,6 +103,14 @@ def fitDbScan(X, outPrefix, threads = 1):
         
     # assign all samples
     y, strengths = hdbscan.approximate_predict(db, scaled_X)
+
+    # Save model fit
+    np.savez(outPrefix + "/" + outPrefix + '_dbscan_fit.npz',
+             means=cluster_means,
+             mins=cluster_mins,
+             maxs=cluster_maxs,
+             scale=scale,
+             model=db)
 
     # return output
     return y, db, cluster_means, cluster_mins, cluster_maxs, scale
@@ -137,3 +145,12 @@ def findBetweenLabel(means, assignments, within_cluster):
     between_cluster = max(set(assignments), key=assignments.count)
     
     return between_cluster
+
+def assign_samples_dbscan(X, db, scale):
+
+    scaled_X = np.copy(X)
+    scaled_X /= scale
+    
+    y, strengths = hdbscan.approximate_predict(db, scaled_X)
+
+    return y
