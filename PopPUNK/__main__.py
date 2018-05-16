@@ -25,6 +25,8 @@ from .bgmm import fit2dMultiGaussian
 from .bgmm import assignQuery
 from .bgmm import findWithinLabel
 
+from .dbscan import fitDbScan
+
 from .network import constructNetwork
 from .network import extractReferences
 from .network import findQueryLinksToNetwork
@@ -107,6 +109,9 @@ def get_options():
     modelGroup.add_argument('--bgmm', help='Use ADVI rather than EM to fit the mixture model', default=False, action='store_true')
     modelGroup.add_argument('--t-dist', help='Use a mixture of t distributions rather than Gaussians'
                                              ' (ADVI only)', default=False, action='store_true')
+
+    scanGroup = parser.add_argument_group('DBSCAN model options')
+    scanGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model', default=False, action='store_true')
 
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',

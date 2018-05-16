@@ -17,6 +17,7 @@ from scipy.spatial.distance import euclidean
 from .mash import iterDistRows
 from .bgmm import assign_samples
 from .bgmm import findWithinLabel
+from .dbscan import findBetweenLabel
 from .network import constructNetwork
 from .network import networkSummary
 from .plot import plot_refined_results
@@ -58,12 +59,35 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         G (networkx.Graph)
             The resulting refined network
     """
-    (scale, weights, means, covariances, t_dist) = model
-    distMat /= scale # Deal with scale at start
+    
+    # initialise data structure
+    mean0 = numpy.empty()
+    mean1 = numpy.empty()
+    start_s = 0.0
+    
+    # calculate starting point
+    dbscan = False # change this
     if startFile:
         mean0, mean1, start_s = readManualStart(startFile)
+    elif dbscan:
+        (scale, means, mins, maxs) = model
+        sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
+        within_label = findWithinLabel(means, assignment)
+        between_label = findBetweenLabel(means, assignment, within_label)
+        G = constructNetwork(sample_names, sample_names, assignment, within_label)
+        
+        # Straight line between dist 0 centre and dist 1 centre
+        # Optimize to find point of decision boundary along this line as starting point
+        mean0 = means[within_label, :]
+        mean1 = means[between_label, :]
+        max0 = maxs[within_label, :]
+        min1 = mins[between_label, :]
+        core_s = (max(max0[0],min1[0]) - mean0[0]) / mean1[0]
+        acc_s = (max(max0[1],min1[1]) - mean0[1]) / mean1[1]
+        start_s = 0.5*(core_s+acc_s)
     else:
-        sys.stderr.write("Initial model-based network construction\n")
+        (scale, weights, means, covariances, t_dist) = model
+        sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
         within_label = findWithinLabel(means, assignment)
         between_label = findWithinLabel(means, assignment, 1)
         G = constructNetwork(sample_names, sample_names, assignment, within_label)
@@ -75,6 +99,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
                          args = (weights, means, covariances, np.array([1, 1]), t_dist, mean0, mean1, within_label, between_label))
 
+    distMat /= scale # Deal with scale at start
     sys.stderr.write("Initial boundary based network construction\n")
     start_point = transformLine(start_s, mean0, mean1)
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
@@ -325,3 +350,5 @@ def readManualStart(startFile):
         sys.exit(1)
 
     return mean0, mean1, start_s
+
+
