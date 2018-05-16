@@ -10,6 +10,7 @@ import numpy as np
 import random
 import operator
 import matplotlib.pyplot as plt
+import pickle
 # hdbscan
 import hdbscan
 
@@ -109,8 +110,10 @@ def fitDbScan(X, outPrefix, threads = 1):
              means=cluster_means,
              mins=cluster_mins,
              maxs=cluster_maxs,
-             scale=scale,
-             model=db)
+             scale=scale)
+    pickle_file_name = outPrefix + "/" + outPrefix + '_dbscan_fit.pkl'
+    with open(pickle_file_name, 'wb') as pickle_file:
+        pickle.dump(db, pickle_file)
 
     # return output
     return y, db, cluster_means, cluster_mins, cluster_maxs, scale

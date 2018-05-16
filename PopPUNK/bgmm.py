@@ -31,7 +31,7 @@ except ImportError:
     from scipy.misc import gammaln as sp_gammaln
 from sklearn import utils
 from sklearn import mixture
-
+import pickle
 
 from .dbscan import assign_samples_dbscan
 
@@ -580,10 +580,17 @@ def assignQuery(X, refPrefix, dbscan):
         y = withinBoundary(X/scale, boundary[0], boundary[1])
 
     elif type == 'dbscan':
-        means = model_npz['means'],
-        mins = model_npz['mins'],
-        maxs = model_npz['maxs'],
-        db = model_npz['model']
+        means = model_npz['means']
+        mins = model_npz['mins']
+        maxs = model_npz['maxs']
+        # load non-numpy model file
+        dbscan_pickleFileName = refPrefix + "/" + refPrefix + '_dbscan_fit.pkl'
+        if os.path.isfile(dbscan_pickleFileName):
+            with open(dbscan_pickleFileName, 'rb') as pickle_file:
+                db = pickle.load(pickle_file)
+        else:
+            sys.stderr.write("Cannot find DBSCAN model file name "+dbscan_pickleFileName)
+            exit(1)
         model = (db, scale, means, mins, maxs)
 
         # Get assignments using DBSCAN

@@ -62,9 +62,6 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     # UPDATE DOCUMENTATION
     
     # initialise data structure
-    mean0 = numpy.empty()
-    mean1 = numpy.empty()
-    start_s = 0.0
     
     # calculate starting point
     if startFile:
