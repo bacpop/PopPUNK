@@ -22,10 +22,6 @@ from sklearn import mixture
 
 from .dbscan import assign_samples_dbscan
 
-from .plot import plot_scatter
-from .plot import plot_results
-from .plot import plot_contours
-
 def log_multivariate_normal_density(X, means, covars, min_covar=1.e-7):
     """Log likelihood of multivariate normal density distribution
 
@@ -265,7 +261,7 @@ def assignQuery(X, refPrefix, dbscan):
     return y, model, model_type
 
 
-def fit2dMultiGaussian(X, outPrefix, dpgmm_max_K = 2):
+def fit2dMultiGaussian(X, outPrefix, scale, dpgmm_max_K = 2):
     """Main function to fit model, called from :func:`~__main__.main()`
 
     Fits the mixture model specified, saves model parameters to a file, and assigns the samples to
@@ -293,9 +289,6 @@ def fit2dMultiGaussian(X, outPrefix, dpgmm_max_K = 2):
         scale (numpy.array)
             Scaling of core and accessory distances
     """
-    # Show clustering
-    plot_scatter(X, outPrefix + "/" + outPrefix + "_distanceDistribution", outPrefix + " distances")
-
     # fit bgmm model
     dpgmm = mixture.BayesianGaussianMixture(n_components = dpgmm_max_K,
                                                 n_init = 5,

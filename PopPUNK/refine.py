@@ -11,17 +11,12 @@ from numba import jit
 from functools import partial
 import networkx as nx
 import scipy.optimize
-from scipy.spatial.distance import euclidean
 
 from .mash import iterDistRows
-from .bgmm import assign_samples
-from .bgmm import findWithinLabel
-from .dbscan import findBetweenLabel
 from .network import constructNetwork
 from .network import networkSummary
-from .plot import plot_refined_results
 
-def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min_move, dbscan,
+def refineFit(distMat, sample_names, assignment, model, max_move, min_move, dbscan,
     startFile = None, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
@@ -60,39 +55,7 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     """
     # UPDATE DOCUMENTATION
 
-    # calculate starting point
-    if startFile:
-        mean0, mean1, start_s = readManualStart(startFile)
-    elif dbscan:
-        (db, scale, means, mins, maxs) = model
-        sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
-        within_label = findWithinLabel(means, assignment)
-        between_label = findBetweenLabel(means, assignment, within_label)
-        G = constructNetwork(sample_names, sample_names, assignment, within_label)
-
-        # Straight line between dist 0 centre and dist 1 centre
-        # Optimize to find point of decision boundary along this line as starting point
-        mean0 = means[within_label, :]
-        mean1 = means[between_label, :]
-        max0 = maxs[within_label, :]
-        min1 = mins[between_label, :]
-        core_s = (max(max0[0],min1[0]) - mean0[0]) / mean1[0]
-        acc_s = (max(max0[1],min1[1]) - mean0[1]) / mean1[1]
-        start_s = 0.5*(core_s+acc_s)
-    else:
-        (scale, weights, means, covariances) = model
-        sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
-        within_label = findWithinLabel(means, assignment)
-        between_label = findWithinLabel(means, assignment, 1)
-        G = constructNetwork(sample_names, sample_names, assignment, within_label)
-
-        # Straight line between dist 0 centre and dist 1 centre
-        # Optimize to find point of decision boundary along this line as starting point
-        mean0 = means[within_label, :]
-        mean1 = means[between_label, :]
-        start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(mean0, mean1),
-                         args = (weights, means, covariances, np.array([1, 1]), mean0, mean1, within_label, between_label))
-
+    G = constructNetwork(sample_names, sample_names, assignment, within_label)
     distMat /= scale # Deal with scale at start
     sys.stderr.write("Initial boundary based network construction\n")
     start_point = transformLine(start_s, mean0, mean1)
@@ -104,6 +67,13 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
     x_max, y_max = decisionBoundary(start_point, gradient)
     boundary_assignments = withinBoundary(distMat, x_max, y_max)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
+
+    # ALTERNATIVE - use a single network
+    # Move boundary along in steps, and find those samples which have changed
+    # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
+    # https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
+    # i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
+    # j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
 
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
@@ -132,32 +102,10 @@ def refineFit(distMat, outPrefix, sample_names, assignment, model, max_move, min
         sys.stderr.write("Optimisation failed: produced a boundary outside of allowed range\n")
         sys.exit(1)
 
-    # Make network from new optimal boundary
-    boundary_assignments = withinBoundary(distMat, optimal_x, optimal_y)
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
+    return start_point, optimal_x, optimal_y
 
-    # ALTERNATIVE - use a single network
-    # Move boundary along in steps, and find those samples which have changed
-    # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
-    # https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
-    # i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
-    # j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
 
-    # Save new fit
-    if not os.path.isdir(outPrefix):
-        os.makedirs(outPrefix)
-    plot_refined_results(distMat, boundary_assignments, optimal_x, optimal_y,
-            mean0, mean1, start_point, min_move, max_move, [1, 1],
-            "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
-    np.savez(outPrefix + "/" + outPrefix + '_refined_fit.npz',
-             intercept=np.array([optimal_x, optimal_y]),
-             scale=scale,
-             boundary=np.array(True, dtype=np.bool_))
-
-    # return new network
-    return G
-
-def likelihoodBoundary(s, weights, means, covars, scale, start, end, within, between):
+def likelihoodBoundary(s, model, start, end, within, between):
     """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
     go into a root-finding function for probabilities between components
 
@@ -186,7 +134,7 @@ def likelihoodBoundary(s, weights, means, covars, scale, start, end, within, bet
             and the between assignment
     """
     X = transformLine(s, start, end).reshape(1, -1)
-    responsibilities = assign_samples(X, weights, means, covars, scale, values = True)
+    responsibilities = model.assign(X, values = True)
     return(responsibilities[0, within] - responsibilities[0, between])
 
 def transformLine(s, mean0, mean1):
