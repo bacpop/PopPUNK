@@ -3,7 +3,6 @@
 # universal
 import os
 import sys
-import re
 # additional
 import numpy as np
 import sharedmem

@@ -1,7 +1,6 @@
 # universal
 import os
 import sys
-import re
 # additional
 import numpy as np
 import random
@@ -77,7 +76,7 @@ class ClusterFit:
 
 
 class BGMMFit(ClusterFit):
-    def __init__(self, outPrefix, max_components, max_samples = 100000)
+    def __init__(self, outPrefix, max_samples = 100000)
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
@@ -92,6 +91,7 @@ class BGMMFit(ClusterFit):
         self.covariances = self.dpgmm.covariances_
 
         y = self.assign(X)
+        self.within_label = findWithinLabel(self.means, y)
 
         self.fitted = True
         return y
@@ -105,6 +105,7 @@ class BGMMFit(ClusterFit):
              weights=self.weights,
              means=self.means,
              covariances=self.covariances,
+             within=self.within_label,
              scale=self.scale)
             pickle.dump((self.dpgmm, self.type), self.outPrefix + "/" + self.outPrefix + '_fit.pkl')
 
@@ -115,6 +116,7 @@ class BGMMFit(ClusterFit):
         self.means = fit_npz['means']
         self.covariances = fit_npz['covariances']
         self.scale = fit_npz['scale']
+        self.within_label = np.asscalar(fit_npz['within'])
         self.fitted = True
 
 
@@ -148,6 +150,7 @@ class DBSCANFit(ClusterFit):
         self.type = 'dbscan'
         self.preprocess = True
         self.max_samples_ = max_samples
+        self.within_label = -1
 
 
     def fit(self, X, threads):
@@ -166,6 +169,7 @@ class DBSCANFit(ClusterFit):
         else:
             np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
              n_clusters=self.n_clusters,
+             within=self.within_label,
              scale=self.scale)
             pickle.dump((self.hdb, self.type), self.outPrefix + "/" + self.outPrefix + '_fit.pkl')
 
@@ -175,6 +179,7 @@ class DBSCANFit(ClusterFit):
         self.labels = self.hdb.labels_
         self.n_clusters = fit_npz['n_clusters']
         self.scale = fit_npz['scale']
+        self.within_label = np.asscalar(fit_npz['within'])
         self.fitted = True
 
 
@@ -275,8 +280,8 @@ class RefineFit(ClusterFit):
 
 
     def load(self, fit_npz, fit_obj):
-        self.optimal_x = fit_npz['intercept'][0]
-        self.optimal_y = fit_npz['intercept'][1]
+        self.optimal_x = np.asscalar(fit_npz['intercept'][0])
+        self.optimal_y = np.asscalar(fit_npz['intercept'][1])
         self.scale = fit_npz['scale']
         self.fitted = True
 

@@ -18,9 +18,6 @@ from .mash import getDatabaseName
 from .mash import getSketchSize
 from .mash import iterDistRows
 
-from .bgmm import assign_samples
-from .bgmm import findWithinLabel
-
 def extractReferences(G, outPrefix):
     """Extract references for each cluster based on cliques
 

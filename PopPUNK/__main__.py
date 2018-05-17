@@ -21,11 +21,7 @@ from .mash import assignQueriesToClusters
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
 
-from .bgmm import fit2dMultiGaussian
-from .bgmm import assignQuery
-from .bgmm import findWithinLabel
-
-from .dbscan import fitDbScan
+import .models
 
 from .network import constructNetwork
 from .network import extractReferences
@@ -33,8 +29,6 @@ from .network import findQueryLinksToNetwork
 from .network import updateDatabase
 from .network import updateClustering
 from .network import printClusters
-
-from .refine import refineFit
 
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
@@ -103,11 +97,9 @@ def get_options():
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
 
-    modelGroup = parser.add_argument_group('Mixture model options')
-    modelGroup.add_argument('--K', help='Maximum number of mixture components (EM only) [default = 2]', type=int, default=2)
-
-    scanGroup = parser.add_argument_group('DBSCAN model options')
-    scanGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model (fitting and refinement)', default=False, action='store_true')
+    modelGroup = parser.add_argument_group('Model fit options')
+    modelGroup.add_argument('--K', help='Maximum number of mixture components [default = 2]', type=int, default=2)
+    modelGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model', default=False, action='store_true')
 
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',
@@ -123,14 +115,14 @@ def get_options():
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default=None)
-    faGroup.add_argument('--perplexity', type=float, default = 5.0,
-                         help='Perplexity used to calculate t-SNE projection (with --microreact) [default=5.0]')
+    faGroup.add_argument('--perplexity', type=float, default = 20.0,
+                         help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
     faGroup.add_argument('--info-csv',
                      help='Epidemiological information CSV formatted for microreact (with --microreact or --cytoscape)')
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
-    other.add_argument('--threads', default=1, type=int, help='Number of threads to use during database querying [default = 1]')
+    other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
 
     other.add_argument('--version', action='version',
@@ -238,23 +230,30 @@ def main():
 
         # Run refinement
         if args.refine_model:
-            queryAssignments, model, model_type = assignQuery(distMat, args.ref_db, args.dbscan)
-            if model_type == 'refined':
+            old_model = loadClusterFit(args.ref_db + "/" + args.ref_db + '_fit.pkl',
+                                       args.ref_db + "/" + args.ref_db + '_fit.npz')
+            if old_model.type == 'refine':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
 
-            genomeNetwork = refineFit(distMat, args.output, queryList, queryAssignments,
-                    model, args.pos_shift, args.neg_shift, args.dbscan, args.manual_start, args.no_local, args.threads)
+            model = RefineFit(args.output)
+            assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift, args.manual_start,
+                    args.no_local, args.threads)
+            model.plot(distMat)
+
+        # Run DBSCAN model
+        elif args.dbscan:
+            model = DBSCANFit(args.output)
+            assignments = model.fit(distMat, args.threads)
+            model.plot()
+        # Run Gaussian model
         else:
-            if args.dbscan:
-                # Run DBSCAN model
-                distanceAssignments, dbscan_model, fitMeans, fitMins, fitMaxs, fitscale = \
-                    fitDbScan(distMat, args.output, threads = args.threads)
-            else:
-                # Run Gaussian model
-                distanceAssignments, fitWeights, fitMeans, fitcovariances, fitscale = \
-                    fit2dMultiGaussian(distMat, args.output, args.K)
-            genomeNetwork = constructNetwork(refList, queryList, distanceAssignments, findWithinLabel(fitMeans, distanceAssignments))
+            model = BGMMFit(args.output)
+            assignments = model.fit(distMat, args.K)
+            model.plot(distMat, assignments)
+
+        model.save()
+        genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
 
         isolateClustering = printClusters(genomeNetwork, args.output)
         # generate outputs for microreact if asked
