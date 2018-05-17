@@ -21,7 +21,7 @@ from .mash import assignQueriesToClusters
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
 
-import .models
+from .models import *
 
 from .network import constructNetwork
 from .network import extractReferences

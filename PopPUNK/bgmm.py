@@ -58,7 +58,7 @@ def fit2dMultiGaussian(X, outPrefix, scale, dpgmm_max_K = 2):
                                                 mean_prior = np.array([0,0])).fit(X)
 
     avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
-        assign_samples(X, weights, means, covariances, scale, values=True)))
+        assign_samples(X, dpgmm.weights_, dpgmm.means_, dpgmm.covariances_, scale, values=True)))
 
     return dpgmm, scale, avg_entropy
 

@@ -45,15 +45,15 @@ def fitDbScan(X, outPrefix, threads = 1):
     """
     # set DBSCAN clustering parameters
     cache_out = "./" + outPrefix + "_cache"
-    min_samples = int(0.0001*subsampled_X.shape[0])
-    min_cluster_size = int(0.01*subsampled_X.shape[0])
+    min_samples = max(int(0.0001 * X.shape[0]), 10)
+    min_cluster_size = max(int(0.01 * X.shape[0]), 10)
     hdb = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
                          min_samples = min_samples,
                          core_dist_n_jobs = threads,
                          memory = cache_out,
                          prediction_data = True,
                          min_cluster_size = min_cluster_size
-                         ).fit(subsampled_X)
+                         ).fit(X)
     labels = hdb.labels_
     # not used
     #core_samples_mask = np.zeros_like(hdb.labels_, dtype=bool)

@@ -10,15 +10,19 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 
+from .plot import plot_scatter
+
 # BGMM
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assign_samples
+from .bgmm import findWithinLabel
 from .plot import plot_results
 from .plot import plot_contours
 
 # DBSCAN
 from .dbscan import fitDbScan
 from .dbscan import assign_samples_dbscan
+from .dbscan import findBetweenLabel
 from .plot import plot_dbscan_results
 
 # refine
@@ -33,13 +37,13 @@ def loadClusterFit(pkl_file, npz_file):
     fit_type, fit_object = pickle.load(pkl_file)
     fit_data = np.loadz(npz_file)
     if fit_type == "bgmm":
-        load_obj = BGMMFit(".")
+        load_obj = BGMMFit("")
         load_obj.load(fit_data, fit_object)
-    elif fit_type = "dbscan":
-        load_obj = DBSCANFit(".")
+    elif fit_type == "dbscan":
+        load_obj = DBSCANFit("")
         load_obj.load(fit_data, fit_object)
-    elif fit_type = "refine":
-        load_obj = RefineFit(".")
+    elif fit_type == "refine":
+        load_obj = RefineFit("")
         load_obj.load(fit_data)
 
     return load_obj
@@ -52,7 +56,7 @@ class ClusterFit:
         self.fitted = False
 
 
-    def fit(self):
+    def fit(self, X = None):
         # set output dir
         if not os.path.isdir(self.outPrefix):
             if not os.path.isfile(self.outPrefix):
@@ -76,24 +80,23 @@ class ClusterFit:
 
 
 class BGMMFit(ClusterFit):
-    def __init__(self, outPrefix, max_samples = 100000)
+    def __init__(self, outPrefix, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
-        self.max_samples_ = max_samples
+        self.max_samples = max_samples
 
 
     def fit(self, X, max_components):
-        ClusterFit.fit(self)
-        self.dpgmm, self.scale, self.entropy = fit2dMultiGaussian(subsampled_X, self.outPrefix_, self.scale, max_components)
+        ClusterFit.fit(self, X)
+        self.dpgmm, self.scale, self.entropy = fit2dMultiGaussian(self.subsampled_X, self.outPrefix, self.scale, max_components)
         self.weights = self.dpgmm.weights_
         self.means = self.dpgmm.means_
         self.covariances = self.dpgmm.covariances_
+        self.fitted = True
 
         y = self.assign(X)
         self.within_label = findWithinLabel(self.means, y)
-
-        self.fitted = True
         return y
 
 
@@ -107,7 +110,8 @@ class BGMMFit(ClusterFit):
              covariances=self.covariances,
              within=self.within_label,
              scale=self.scale)
-            pickle.dump((self.dpgmm, self.type), self.outPrefix + "/" + self.outPrefix + '_fit.pkl')
+            with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
+                pickle.dump([self.dpgmm, self.type], pickle_file)
 
 
     def load(self, fit_npz, fit_obj):
@@ -145,21 +149,31 @@ class BGMMFit(ClusterFit):
 
 
 class DBSCANFit(ClusterFit):
-    def __init__(self, outPrefix, max_samples = 1000000)
+    def __init__(self, outPrefix, max_samples = 1000000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
         self.preprocess = True
-        self.max_samples_ = max_samples
-        self.within_label = -1
+        self.max_samples = max_samples
 
 
     def fit(self, X, threads):
-        ClusterFit.fit(self)
-        self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix_, threads)
+        ClusterFit.fit(self, X)
+        self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, threads)
+        self.fitted = True
+
+        # get within strain cluster
+        self.max_cluster_num = self.labels.max()
+        self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
+        self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
+        self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+
+        for i in range(self.max_cluster_num+1):
+            self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
+            self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
+            self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
         y = self.assign(X)
-
-        self.fitted = True
+        self.within_label = findWithinLabel(self.cluster_means, y)
         return y
 
 
@@ -170,8 +184,12 @@ class DBSCANFit(ClusterFit):
             np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
              n_clusters=self.n_clusters,
              within=self.within_label,
+             means=self.cluster_means,
+             maxs=self.cluster_maxs,
+             mins=self.cluster_mins,
              scale=self.scale)
-            pickle.dump((self.hdb, self.type), self.outPrefix + "/" + self.outPrefix + '_fit.pkl')
+            with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
+                pickle.dump([self.hdb, self.type], pickle_file)
 
 
     def load(self, fit_npz, fit_obj):
@@ -180,6 +198,9 @@ class DBSCANFit(ClusterFit):
         self.n_clusters = fit_npz['n_clusters']
         self.scale = fit_npz['scale']
         self.within_label = np.asscalar(fit_npz['within'])
+        self.cluster_means = fit_npz['means']
+        self.cluster_maxs = fit_npz['maxs']
+        self.cluster_mins = fit_npz['mins']
         self.fitted = True
 
 
@@ -187,9 +208,9 @@ class DBSCANFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
         else:
-            sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" +  + str(self.n_clusters_),
+            sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" + str(self.n_clusters),
                                                            "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
-                                                           "\tNumber of assignments\t" + str(len(self.labels)])+ "\n")
+                                                           "\tNumber of assignments\t" + str(len(self.labels))]) + "\n")
 
             plot_dbscan_results(self. subsampled_X, self. labels, self.n_clusters,
                 self.outPrefix + "/" + self.outPrefix + "_dbscan")
@@ -205,11 +226,11 @@ class DBSCANFit(ClusterFit):
 
 
 class RefineFit(ClusterFit):
-    def __init__(self, outPrefix)
+    def __init__(self, outPrefix):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'refine'
         self.preprocess = False
-
+        self.within_label = -1
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, no_local = False, threads = 1):
         ClusterFit.fit(self)
@@ -224,29 +245,18 @@ class RefineFit(ClusterFit):
         elif self.type == 'dbscan':
             sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
 
-            # get within strain cluster
-            max_cluster_num = self.labels.max()
-            cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
-            cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
-            cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+            within_label = findWithinLabel(self.cluster_means, assignment)
+            between_label = findBetweenLabel(self.cluster_means, assignment, within_label)
 
-            for i in range(self.max_cluster_num+1):
-                cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
-                cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
-                cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
-
-            within_label = findWithinLabel(cluster_means, assignment)
-            between_label = findBetweenLabel(cluster_means, assignment, within_label)
-
-            self.mean0 = cluster_means[within_label, :]
-            self.mean1 = cluster_means[between_label, :]
-            max0 = cluster_maxs[within_label, :]
-            min1 = cluster_mins[between_label, :]
+            self.mean0 = self.cluster_means[within_label, :]
+            self.mean1 = self.cluster_means[between_label, :]
+            max0 = self.cluster_maxs[within_label, :]
+            min1 = self.cluster_mins[between_label, :]
             core_s = (max(max0[0],min1[0]) - self.mean0[0]) / self.mean1[0]
             acc_s = (max(max0[1],min1[1]) - self.mean0[1]) / self.mean1[1]
             start_s = 0.5*(core_s+acc_s)
 
-        elif self.type ='bgmm':
+        elif self.type == 'bgmm':
             sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
 
             within_label = findWithinLabel(self.means, assignment)
@@ -261,11 +271,11 @@ class RefineFit(ClusterFit):
         else:
             raise RuntimeError("Unrecognised model type")
 
-        self.start_point, self.optimal_x, self.optimal_y =
-            refineFit(X, sample_names, model.assign(X), self.max_move, self.min_move, no_local, threads)
-        y = self.assign(X)
-
+        self.start_point, self.optimal_x, self.optimal_y = refineFit(X,
+                sample_names, model.assign(X), self.max_move, self.min_move, no_local, threads)
         self.fitted = True
+
+        y = self.assign(X)
         return y
 
 
@@ -276,7 +286,8 @@ class RefineFit(ClusterFit):
             np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
              intercept=np.array([optimal_x, optimal_y]),
              scale=self.scale)
-            pickle.dump((None, self.type), self.outPrefix + "/" + self.outPrefix + '_fit.pkl')
+            with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
+                pickle.dump([None, self.type], pickle_file)
 
 
     def load(self, fit_npz, fit_obj):

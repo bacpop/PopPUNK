@@ -403,19 +403,22 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     """
     # Black removed and is used for noise instead.
     unique_labels = set(y)
-    colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
-    black_col = [0, 0, 0, 1]
+    colours = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels) - 1)]
 
-    for k, col in zip(unique_labels, colors):
+    fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
+    for k in unique_labels:
         if k == -1:
-            # Black used for noise.
-            col = [0, 0, 0, 1]
+            ptsize = 1
+            col = 'k'
+        else:
+            ptsize = 2
+            col = tuple(colours.pop())
         class_member_mask = (y == k)
         xy = X[class_member_mask]
-        plt.plot(xy[:, 0], xy[:, 1], '.', markerfacecolor=tuple(col),markersize=2)
+        plt.plot(xy[:, 0], xy[:, 1], '.', color=col, markersize=ptsize)
 
     # plot output
-    plt_filename = outPrefix + "/" + outPrefix + "_dbscan.png"
+    plt_filename = out_prefix + ".png"
     plt.title('Estimated number of clusters: %d' % n_clusters)
     plt.savefig(out_prefix + ".png")
     plt.close()
