@@ -34,8 +34,9 @@ from .plot import plot_refined_results
 #TODO write docstrings
 
 def loadClusterFit(pkl_file, npz_file):
-    fit_type, fit_object = pickle.load(pkl_file)
-    fit_data = np.loadz(npz_file)
+    with open(pkl_file, 'rb') as pickle_obj:
+        fit_object, fit_type = pickle.load(pickle_obj)
+    fit_data = np.load(npz_file)
     if fit_type == "bgmm":
         load_obj = BGMMFit("")
         load_obj.load(fit_data, fit_object)
@@ -45,6 +46,8 @@ def loadClusterFit(pkl_file, npz_file):
     elif fit_type == "refine":
         load_obj = RefineFit("")
         load_obj.load(fit_data)
+    else:
+        raise RuntimeError("Undefined model type: " + str(fit_type))
 
     return load_obj
 
@@ -241,22 +244,22 @@ class RefineFit(ClusterFit):
         # Get starting point
         assignment = model.assign(X)
         if startFile:
-            mean0, mean1, start_s = readManualStart(startFile)
-        elif self.type == 'dbscan':
+            self.mean0, self.mean1, self.start_s = readManualStart(startFile)
+        elif model.type == 'dbscan':
             sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
 
-            within_label = findWithinLabel(self.cluster_means, assignment)
-            between_label = findBetweenLabel(self.cluster_means, assignment, within_label)
+            within_label = findWithinLabel(model.cluster_means, assignment)
+            between_label = findBetweenLabel(model.cluster_means, assignment, within_label)
 
-            self.mean0 = self.cluster_means[within_label, :]
-            self.mean1 = self.cluster_means[between_label, :]
-            max0 = self.cluster_maxs[within_label, :]
-            min1 = self.cluster_mins[between_label, :]
+            self.mean0 = model.cluster_means[within_label, :]
+            self.mean1 = model.cluster_means[between_label, :]
+            max0 = model.cluster_maxs[within_label, :]
+            min1 = model.cluster_mins[between_label, :]
             core_s = (max(max0[0],min1[0]) - self.mean0[0]) / self.mean1[0]
             acc_s = (max(max0[1],min1[1]) - self.mean0[1]) / self.mean1[1]
-            start_s = 0.5*(core_s+acc_s)
+            self.start_s = 0.5*(core_s+acc_s)
 
-        elif self.type == 'bgmm':
+        elif model.type == 'bgmm':
             sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
 
             within_label = findWithinLabel(self.means, assignment)
@@ -266,13 +269,14 @@ class RefineFit(ClusterFit):
             # Optimize to find point of decision boundary along this line as starting point
             self.mean0 = means[within_label, :]
             self.mean1 = means[between_label, :]
-            start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(self.mean0, self.mean1),
+            self.start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(self.mean0, self.mean1),
                              args = (model, mean0, mean1, within_label, between_label))
         else:
             raise RuntimeError("Unrecognised model type")
 
         self.start_point, self.optimal_x, self.optimal_y = refineFit(X,
-                sample_names, model.assign(X), self.max_move, self.min_move, no_local, threads)
+                sample_names, model.assign(X), model, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                no_local, threads)
         self.fitted = True
 
         y = self.assign(X)
@@ -284,7 +288,7 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to save unfitted model")
         else:
             np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
-             intercept=np.array([optimal_x, optimal_y]),
+             intercept=np.array([self.optimal_x, self.optimal_y]),
              scale=self.scale)
             with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([None, self.type], pickle_file)
@@ -303,7 +307,7 @@ class RefineFit(ClusterFit):
         else:
             plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y,
                 self.mean0, self.mean1, self.start_point, self.min_move, self.max_move, self.scale,
-                "Refined fit boundary", outPrefix + "/" + outPrefix + "_refined_fit")
+                "Refined fit boundary", self.outPrefix + "/" + self.outPrefix + "_refined_fit")
 
 
     def assign(self, X):
