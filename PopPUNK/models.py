@@ -76,10 +76,6 @@ class ClusterFit:
                     self.outPrefix + " distances")
 
 
-    def assignQuery(self):
-        # See assignQuery in bgmm.py
-
-
 class BGMMFit(ClusterFit):
     def __init__(self, outPrefix, max_components, max_samples = 100000)
         ClusterFit.__init__(self, outPrefix)

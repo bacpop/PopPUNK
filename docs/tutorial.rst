@@ -172,9 +172,9 @@ Score                       Network score based on density and transitivity. Hig
 .. important::
    This is the most important part of getting a good estimation of population
    structure. In many cases choosing a sensible ``--K`` will get a fit with
-   a good score, but in more complex cases PopPUNK allows much more flexible
-   model fitting. See :ref:`bgmm-fit` for a discussion on how to achieve a good
-   model fit at this stage.
+   a good score, but in more complex cases PopPUNK allows alternative
+   model fitting. See :ref:`refine-model:` for a discussion on how to improve
+   the model fit.
 
 The most useful plot is `strain_db_DPGMM_fit.png` which shows the clustering:
 

@@ -12,6 +12,7 @@ import pickle
 # hdbscan
 import hdbscan
 
+
 def fitDbScan(X, outPrefix, threads = 1):
     """Function to fit DBSCAN model as an alternative to the Gaussian, called from :func:`~PopPUNK.__main__.main()`
 
@@ -63,6 +64,25 @@ def fitDbScan(X, outPrefix, threads = 1):
     return hdb, labels, n_clusters_
 
 
+def assign_samples_dbscan(X, hdb, scale):
+    """Use a fitted dbscan model to assign new samples to a cluster
+
+        Args:
+            X (numpy.array)
+                N x 2 array of core and accessory distances
+            hdb (hdbscan.HDBSCAN)
+                Fitted DBSCAN from hdbscan package
+            scale (numpy.array)
+                Scale factor of model object
+
+        Returns:
+            between_cluster (int)
+                The cluster label for the between-strain assignments
+    """
+    y, strengths = hdbscan.approximate_predict(hdb, X/scale)
+    return y
+
+
 def findBetweenLabel(means, assignments, within_cluster):
     """Identify between-strain links
 
@@ -92,8 +112,4 @@ def findBetweenLabel(means, assignments, within_cluster):
 
     return between_cluster
 
-def assign_samples_dbscan(X, hdb, scale):
 
-    y, strengths = hdbscan.approximate_predict(hdb, X/scale)
-
-    return y

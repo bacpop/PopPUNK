@@ -105,81 +105,6 @@ def refineFit(distMat, sample_names, assignment, model, max_move, min_move, dbsc
     return start_point, optimal_x, optimal_y
 
 
-def likelihoodBoundary(s, model, start, end, within, between):
-    """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
-    go into a root-finding function for probabilities between components
-
-    Args:
-        s (float)
-            Distance along line from mean0
-        weights (numpy.array)
-            Component weights from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        means (numpy.array)
-            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        covariances (numpy.array)
-            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        scale (numpy.array)
-            Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        start (numpy.array)
-            The co-ordinates of the centre of the within-strain distribution
-        end (numpy.array)
-            The co-ordinates of the centre of the between-strain distribution
-        within (int)
-            Label of the within-strain distribution
-        between (int)
-            Label of the between-strain distribution
-    Returns:
-        responsibility (float)
-            The difference between responsibilities of assignment to the within component
-            and the between assignment
-    """
-    X = transformLine(s, start, end).reshape(1, -1)
-    responsibilities = model.assign(X, values = True)
-    return(responsibilities[0, within] - responsibilities[0, between])
-
-def transformLine(s, mean0, mean1):
-    """Return x and y co-ordinates for traversing along a line between mean0 and mean1, parameterised by
-    a single scalar distance s from the start point mean0.
-
-    Args:
-        s (float)
-            Distance along line from mean0
-        mean0 (numpy.array)
-            Start position of line (x0, y0)
-        mean1 (numpy.array)
-            End position of line (x1, y1)
-    Returns:
-        x (float)
-            The Cartesian x-coordinate
-        y (float)
-            The Cartesian y-coordinate
-    """
-    tan_theta = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x = mean0[0] + s * (1/np.sqrt(1+tan_theta))
-    y = mean0[1] + s * (tan_theta/np.sqrt(1+tan_theta))
-
-    return np.array([x, y])
-
-def decisionBoundary(intercept, gradient):
-    """Returns the co-ordinates where the triangle the decision boundary forms
-    meets the x- and y-axes.
-
-    Args:
-        intercept (numpy.array)
-            Cartesian co-ordinates of point along line (:func:`~transformLine`)
-            which intercepts the boundary
-        gradient (float)
-            Gradient of the line
-    Returns:
-        x (float)
-            The x-axis intercept
-        y (float)
-            The y-axis intercept
-    """
-    x = intercept[0] + intercept[1] * gradient
-    y = intercept[1] + intercept[0] / gradient
-    return(x, y)
-
 @jit(nopython=True)
 def withinBoundary(dists, x_max, y_max):
     """Classifies points as within or outside of a refined boundary.
@@ -209,6 +134,7 @@ def withinBoundary(dists, x_max, y_max):
         elif in_tri == 0:
             boundary_test[row] = 0
     return(boundary_test)
+
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
@@ -290,5 +216,83 @@ def readManualStart(startFile):
         sys.exit(1)
 
     return mean0, mean1, start_s
+
+
+def likelihoodBoundary(s, model, start, end, within, between):
+    """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
+    go into a root-finding function for probabilities between components
+
+    Args:
+        s (float)
+            Distance along line from mean0
+        weights (numpy.array)
+            Component weights from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        means (numpy.array)
+            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        covariances (numpy.array)
+            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        start (numpy.array)
+            The co-ordinates of the centre of the within-strain distribution
+        end (numpy.array)
+            The co-ordinates of the centre of the between-strain distribution
+        within (int)
+            Label of the within-strain distribution
+        between (int)
+            Label of the between-strain distribution
+    Returns:
+        responsibility (float)
+            The difference between responsibilities of assignment to the within component
+            and the between assignment
+    """
+    X = transformLine(s, start, end).reshape(1, -1)
+    responsibilities = model.assign(X, values = True)
+    return(responsibilities[0, within] - responsibilities[0, between])
+
+
+def transformLine(s, mean0, mean1):
+    """Return x and y co-ordinates for traversing along a line between mean0 and mean1, parameterised by
+    a single scalar distance s from the start point mean0.
+
+    Args:
+        s (float)
+            Distance along line from mean0
+        mean0 (numpy.array)
+            Start position of line (x0, y0)
+        mean1 (numpy.array)
+            End position of line (x1, y1)
+    Returns:
+        x (float)
+            The Cartesian x-coordinate
+        y (float)
+            The Cartesian y-coordinate
+    """
+    tan_theta = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
+    x = mean0[0] + s * (1/np.sqrt(1+tan_theta))
+    y = mean0[1] + s * (tan_theta/np.sqrt(1+tan_theta))
+
+    return np.array([x, y])
+
+
+def decisionBoundary(intercept, gradient):
+    """Returns the co-ordinates where the triangle the decision boundary forms
+    meets the x- and y-axes.
+
+    Args:
+        intercept (numpy.array)
+            Cartesian co-ordinates of point along line (:func:`~transformLine`)
+            which intercepts the boundary
+        gradient (float)
+            Gradient of the line
+    Returns:
+        x (float)
+            The x-axis intercept
+        y (float)
+            The y-axis intercept
+    """
+    x = intercept[0] + intercept[1] * gradient
+    y = intercept[1] + intercept[0] / gradient
+    return(x, y)
 
 
