@@ -350,11 +350,11 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
         Y (numpy.array)
              n x 1 array of cluster assignments for n samples.
         means (numpy.array)
-            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+            Component means from :class:`~PopPUNK.models.BGMMFit`
         covars (numpy.array)
-            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+            Component covariances from :class:`~PopPUNK.models.BGMMFit`
         scale (numpy.array)
-            Scaling factor from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+            Scaling factor from :class:`~PopPUNK.models.BGMMFit`
         out_prefix (str)
             Prefix for output plot file (.png will be appended)
         title (str)
@@ -400,6 +400,8 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
              n x 1 array of cluster assignments for n samples.
         n_clusters (int)
             Number of clusters used (excluding noise)
+        out_prefix (str)
+            Prefix for output file (.png will be appended)
     """
     # Black removed and is used for noise instead.
     unique_labels = set(y)
@@ -436,25 +438,25 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
         Y (numpy.array)
             n x 1 array of cluster assignments for n samples.
         x_boundary (float)
-            Intercept of boundary with x-axis, from :func:`~PopPUNK.refine.decisionBoundary`
+            Intercept of boundary with x-axis, from :class:`~PopPUNK.models.RefineFit`
         y_boundary (float)
-            Intercept of boundary with y-axis, from :func:`~PopPUNK.refine.decisionBoundary`
+            Intercept of boundary with y-axis, from :class:`~PopPUNK.models.RefineFit`
         mean0 (numpy.array)
             Centre of within-strain distribution
         mean1 (numpy.array)
             Centre of between-strain distribution
+        start_point (numpy.array)
+            Start point of optimisation
         min_move (float)
             Minimum s range
         max_move (float)
             Maximum s range
-        start_s (float)
-            Distance along line between mean0 and mean1 started boundary at
         scale (numpy.array)
-            Scaling factor from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        out_prefix (str)
-            Prefix for output plot file (.png will be appended)
+            Scaling factor from :class:`~PopPUNK.models.RefineFit`
         title (str)
             The title to display above the plot
+        out_prefix (str)
+            Prefix for output plot file (.png will be appended)
     """
     from .refine import transformLine
 
@@ -490,11 +492,11 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix):
         assignments (numpy.array)
              n-vectors of cluster assignments for model
         weights (numpy.array)
-            Component weights from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+            Component weights from :class:`~PopPUNK.models.BGMMFit`
         means (numpy.array)
-            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+            Component means from :class:`~PopPUNK.models.BGMMFit`
         covars (numpy.array)
-            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+            Component covariances from :class:`~PopPUNK.models.BGMMFit`
         title (str)
             The title to display above the plot
         out_prefix (str)

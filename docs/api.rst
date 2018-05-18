@@ -9,16 +9,31 @@ Documentation for module functions (for developers)
 bgmm.py
 --------
 
-Functions used to fit the mixture model to a database. Main entry point is
-:func:`~PopPUNK.bgmm.fit2dMultiGaussian`.
+Functions used to fit the mixture model to a database. Access using
+:class:`~PopPUNK.models.BGMMFit`.
 
 .. automodule:: PopPUNK.bgmm
+   :members:
+
+dbscan.py
+---------
+
+Functions used to fit DBSCAN to a database. Access using
+:class:`~PopPUNK.models.DBSCANFit`.
+
+.. automodule:: PopPUNK.dbscan
    :members:
 
 mash.py
 --------
 
 .. automodule:: PopPUNK.mash
+   :members:
+
+models.py
+---------
+
+.. automodule:: PopPUNK.models
    :members:
 
 network.py
@@ -35,7 +50,8 @@ databases.
 refine.py
 ---------
 
-Main entry point :func:`~PopPUNK.refine.refineFit`.
+Functions used to refine an existing model. Access using
+:class:`~PopPUNK.models.RefineFit`.
 
 .. automodule:: PopPUNK.refine
    :members:

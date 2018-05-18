@@ -14,12 +14,9 @@ import hdbscan
 
 
 def fitDbScan(X, outPrefix, threads = 1):
-    """Function to fit DBSCAN model as an alternative to the Gaussian, called from :func:`~PopPUNK.__main__.main()`
+    """Function to fit DBSCAN model as an alternative to the Gaussian
 
-    Fits the DBSCAN model to the distances, saves model parameters to a file,
-    and assigns the samples to a component. Write fit summary stats to STDERR.
-
-    By default, subsamples :math:`10^5` random distances to fit the model to.
+    Fits the DBSCAN model to the distances using hdbscan
 
     Args:
         X (np.array)
@@ -30,18 +27,12 @@ def fitDbScan(X, outPrefix, threads = 1):
             Number of threads to use in parallelisation of dbscan model fitting
 
     Returns:
-        y (np.array)
-            Cluster assignment for each sample
-        db (hdbscan.HDBSCAN)
+        hdb (hdbscan.HDBSCAN)
             Fitted HDBSCAN to subsampled data
-        cluster_means (numpy.array)
-            Mean positions (x, y) of each cluster
-        cluster_mins (numpy.array)
-            Minimum values (x, y) assigned to each cluster
-        cluster_maxs
-            Maximum values (x, y) assigned to each cluster
-        scale (numpy.array)
-            Scaling of core and accessory distances
+        labels (list)
+            Cluster assignments of each sample
+        n_clusters (int)
+            Number of clusters used
     """
     # set DBSCAN clustering parameters
     cache_out = "./" + outPrefix + "_cache"
@@ -59,49 +50,49 @@ def fitDbScan(X, outPrefix, threads = 1):
     #core_samples_mask = np.zeros_like(hdb.labels_, dtype=bool)
 
     # Number of clusters in labels, ignoring noise if present.
-    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
 
-    return hdb, labels, n_clusters_
+    return hdb, labels, n_clusters
 
 
 def assign_samples_dbscan(X, hdb, scale):
     """Use a fitted dbscan model to assign new samples to a cluster
 
-        Args:
-            X (numpy.array)
-                N x 2 array of core and accessory distances
-            hdb (hdbscan.HDBSCAN)
-                Fitted DBSCAN from hdbscan package
-            scale (numpy.array)
-                Scale factor of model object
+    Args:
+        X (numpy.array)
+            N x 2 array of core and accessory distances
+        hdb (hdbscan.HDBSCAN)
+            Fitted DBSCAN from hdbscan package
+        scale (numpy.array)
+            Scale factor of model object
 
-        Returns:
-            between_cluster (int)
-                The cluster label for the between-strain assignments
+    Returns:
+        y (numpy.array)
+            Cluster assignments by sample
     """
     y, strengths = hdbscan.approximate_predict(hdb, X/scale)
     return y
 
 
 def findBetweenLabel(means, assignments, within_cluster):
-    """Identify between-strain links
+    """Identify between-strain links from a DBSCAN model
 
     Finds the component containing the largest number of between-strain
     links, excluding the cluster identified as containing within-strain
     links.
 
-        Args:
-            means (numpy.array)
-                K x 2 array of mixture component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian` or
-                :func:`~PopPUNK.bgmm.assignQuery` or :func:`~fitDbScan`
-            assignments (numpy.array)
-                Sample cluster assignments from :func:`~PopPUNK.bgmm.assign_samples` or :func:`~fitDbScan`
-            within_cluster (int)
-                Cluster assigned to within-strain assignments
+    Args:
+        means (numpy.array)
+            K x 2 array of component means from :class:`~PopPUNK.model.BGMMFit` or
+            :class:`~PopPUNK.model.DBSCANFit`
+        assignments (numpy.array)
+            Sample cluster assignments
+        within_cluster (int)
+            Cluster ID assigned to within-strain assignments, from :func:`~PopPUNK.bgmm.findWithinLabel`
 
-        Returns:
-            between_cluster (int)
-                The cluster label for the between-strain assignments
+    Returns:
+        between_cluster (int)
+            The cluster label for the between-strain assignments
     """
     # remove noise and within-strain distance cluster
     assignments = list(filter((within_cluster).__ne__, assignments)) # remove within-cluster

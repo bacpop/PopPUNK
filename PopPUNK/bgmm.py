@@ -21,33 +21,24 @@ except ImportError:
 from sklearn import mixture
 
 
-def fit2dMultiGaussian(X, outPrefix, scale, dpgmm_max_K = 2):
-    """Main function to fit model, called from :func:`~__main__.main()`
+def fit2dMultiGaussian(X, outPrefix, dpgmm_max_K = 2):
+    """Main function to fit BGMM model, called from :func:`~PopPUNK.models.BGMMFit.fit`
 
     Fits the mixture model specified, saves model parameters to a file, and assigns the samples to
     a component. Write fit summary stats to STDERR.
 
-    By default, subsamples :math:`10^5` random distances to fit the model to.
-
     Args:
         X (np.array)
-            n x 2 array of core and accessory distances for n samples
+            n x 2 array of core and accessory distances for n samples.
+            This should be subsampled to 100000 samples.
         outPrefix (str)
             Prefix for output files to be saved under
         dpgmm_max_K (int)
             Maximum number of components to use with the EM fit.
             (default = 2)
     Returns:
-        y (numpy.array)
-            Cluster assignments for each sample in X
-        weights (numpy.array)
-            Component weights
-        means (numpy.array)
-            Component means
-        covars (numpy.array)
-            Component covariances
-        scale (numpy.array)
-            Scaling of core and accessory distances
+        dpgmm (sklearn.mixture.BayesianGaussianMixture)
+            Fitted bgmm model
     """
     # fit bgmm model
     dpgmm = mixture.BayesianGaussianMixture(n_components = dpgmm_max_K,
@@ -57,10 +48,7 @@ def fit2dMultiGaussian(X, outPrefix, scale, dpgmm_max_K = 2):
                                                 mean_precision_prior = 0.1,
                                                 mean_prior = np.array([0,0])).fit(X)
 
-    avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
-        assign_samples(X, dpgmm.weights_, dpgmm.means_, dpgmm.covariances_, scale, values=True)))
-
-    return dpgmm, scale, avg_entropy
+    return dpgmm
 
 
 def assign_samples(X, weights, means, covars, scale, values = False):
@@ -71,13 +59,13 @@ def assign_samples(X, weights, means, covars, scale, values = False):
         X (numpy.array)
             n x 2 array of core and accessory distances for n samples
         weights (numpy.array)
-            Component weights from :func:`~fit2dMultiGaussian`
+            Component weights from :class:`~PopPUNK.models.BGMMFit`
         means (numpy.array)
-            Component means from :func:`~fit2dMultiGaussian`
+            Component means from :class:`~PopPUNK.models.BGMMFit`
         covars (numpy.array)
-            Component covariances from :func:`~fit2dMultiGaussian`
+            Component covariances from :class:`~PopPUNK.models.BGMMFit`
         scale (numpy.array)
-            Scaling of core and accessory distances from :func:`~fit2dMultiGaussian`
+            Scaling of core and accessory distances from :class:`~PopPUNK.models.BGMMFit`
         values (bool)
             Whether to return the responsibilities, rather than the most
             likely assignment (used for entropy calculation).
@@ -110,10 +98,9 @@ def findWithinLabel(means, assignments, rank = 0):
 
     Args:
         means (numpy.array)
-            K x 2 array of mixture component means from :func:`~fit2dMultiGaussian` or
-            :func:`~assignQuery`
+            K x 2 array of mixture component means
         assignments (numpy.array)
-            Sample cluster assignments from :func:`~assign_samples`
+            Sample cluster assignments
         rank (int)
             Which label to find, ordered by distance from origin. 0-indexed.
 
@@ -135,7 +122,7 @@ def findWithinLabel(means, assignments, rank = 0):
 def log_likelihood(X, weights, means, covars, scale):
     """modified sklearn GMM function predicting distribution membership
 
-    Returns the mixture LL for points X. Used by :func:`~assign_samples~ and
+    Returns the mixture LL for points X. Used by :func:`~assign_samples` and
     :func:`~PopPUNK.plot.plot_contours`
 
     Args:

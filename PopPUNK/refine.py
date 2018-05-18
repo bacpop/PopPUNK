@@ -24,14 +24,18 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
     Args:
         distMat (numpy.array)
             n x 2 array of core and accessory distances for n samples
-        outPrefix (str)
-            The prefix for the output directory to save fit and plot in
         sample_names (list)
             List of query sequence labels
         assignment (numpy.array)
-            Assignment of samples from :func:`~PopPUNK.bgmm.assign_samples`
-        model (tuple)
-            Model returned from :func:`~PopPUNK.bgmm.assignQuery`
+            Assignment of samples from ``model.assign(distMat)``
+        model (ClusterFit)
+            Fitted model
+        start_s (float)
+            Point along line to start search
+        mean0 (numpy.array)
+            Start point to define search line
+        mean1 (numpy.array)
+            End point to define search line
         max_move (float)
             Maximum distance to move away from start point
         min_move (float)
@@ -49,11 +53,13 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
 
             (default = 1)
     Returns:
-        G (networkx.Graph)
-            The resulting refined network
+        start_point (tuple)
+            (x, y) co-ordinates of starting point
+        optimal_x (float)
+            x-coordinate of refined fit
+        optimal_y (float)
+            y-coordinate of refined fit
     """
-    # UPDATE DOCUMENTATION
-
     G = constructNetwork(sample_names, sample_names, assignment, model.within_label)
     sys.stderr.write("Initial boundary based network construction\n")
     start_point = transformLine(start_s, mean0, mean1)
@@ -106,16 +112,16 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
 @jit(nopython=True)
 def withinBoundary(dists, x_max, y_max):
     """Classifies points as within or outside of a refined boundary.
-    Numba JIT compiled for speed
+    Numba JIT compiled for speed.
 
-    ``refine.py`` analog of :func:`~PopPUNK.bgmm.assign_samples`
+    Also used to assign new points in :func:`~PopPUNK.models.RefineFit.assign`
 
     Args:
         dists (numpy.array)
             Core and accessory distances to classify
-        x (float)
+        x_max (float)
             The x-axis intercept from :func:`~decisionBoundary`
-        y (float)
+        y_max (float)
             The y-axis intercept from :func:`~decisionBoundary`
     Returns:
         signs (numpy.array)
@@ -223,14 +229,8 @@ def likelihoodBoundary(s, model, start, end, within, between):
     Args:
         s (float)
             Distance along line from mean0
-        weights (numpy.array)
-            Component weights from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        means (numpy.array)
-            Component means from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        covariances (numpy.array)
-            Component covariances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
-        scale (numpy.array)
-            Scaling of core and accessory distances from :func:`~PopPUNK.bgmm.fit2dMultiGaussian`
+        model (BGMMFit)
+            Fitted mixture model
         start (numpy.array)
             The co-ordinates of the centre of the within-strain distribution
         end (numpy.array)

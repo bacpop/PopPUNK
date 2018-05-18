@@ -1,3 +1,5 @@
+'''Classes used for model fits'''
+
 # universal
 import os
 import sys
@@ -35,9 +37,18 @@ from .plot import plot_refined_results
 #TODO write docstrings
 
 def loadClusterFit(pkl_file, npz_file):
+    '''Call this to load a fitted model
+
+    Args:
+        pkl_file (str)
+            Location of saved .pkl file on disk
+        npz_file (str)
+            Location of saved .npz file on disk
+    '''
     with open(pkl_file, 'rb') as pickle_obj:
         fit_object, fit_type = pickle.load(pickle_obj)
     fit_data = np.load(npz_file)
+
     if fit_type == "bgmm":
         load_obj = BGMMFit("")
         load_obj.load(fit_data, fit_object)
@@ -53,14 +64,31 @@ def loadClusterFit(pkl_file, npz_file):
     return load_obj
 
 class ClusterFit:
-    '''all clustering methods'''
+    '''Parent class for all models used to cluster distances
 
-    def __init__(self, outPrefix_):
-        self.outPrefix = outPrefix_
+    Args:
+        outPrefix (str)
+            The output prefix used for reading/writing
+    '''
+
+    def __init__(self, outPrefix):
+        self.outPrefix = outPrefix
         self.fitted = False
 
 
     def fit(self, X = None):
+        '''Initial steps for all fit functions.
+
+        Creates output directory. If preprocess is set then subsamples passed X
+        and draws a scatter plot from result using :func:`~PopPUNK.plot.plot_scatter`.
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to cluster. Must be set if
+                preprocess is set.
+
+                (default = None)
+        '''
         # set output dir
         if not os.path.isdir(self.outPrefix):
             if not os.path.isfile(self.outPrefix):
@@ -82,13 +110,28 @@ class ClusterFit:
             plot_scatter(self.subsampled_X, self.outPrefix + "/" + self.outPrefix + "_distanceDistribution",
                     self.outPrefix + " distances")
 
-    # turn off scaling (useful for refine, where optimization is done in the
-    # scaled space)
     def no_scale(self):
+        '''Turn off scaling (useful for refine, where optimization
+        is done in the scaled space).
+        '''
         self.scale = np.array([1, 1])
 
 
 class BGMMFit(ClusterFit):
+    '''Class for fits using the Gaussian mixture model. Inherits from :class:`ClusterFit`.
+
+    Must first run either :func:`~BGMMFit.fit` or :func:`~BGMMFit.load` before calling
+    other functions
+
+    Args:
+        outPrefix (str)
+            The output prefix used for reading/writing
+        max_samples (int)
+            The number of subsamples to fit the model to
+
+            (default = 100000)
+    '''
+
     def __init__(self, outPrefix, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
@@ -97,8 +140,26 @@ class BGMMFit(ClusterFit):
 
 
     def fit(self, X, max_components):
+        '''Extends :func:`~ClusterFit.fit`
+
+        Fits the BGMM and returns assignments by calling
+        :func:`~PopPUNK.bgmm.fit2dMultiGaussian`.
+
+        Fitted parameters are stored in the object.
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to cluster. Must be set if
+                preprocess is set.
+            max_components (int)
+                Maximum number of mixture components to use.
+
+        Returns:
+            y (numpy.array)
+                Cluster assignments of samples in X
+        '''
         ClusterFit.fit(self, X)
-        self.dpgmm, self.scale, self.entropy = fit2dMultiGaussian(self.subsampled_X, self.outPrefix, self.scale, max_components)
+        self.dpgmm = fit2dMultiGaussian(self.subsampled_X, self.outPrefix, max_components)
         self.weights = self.dpgmm.weights_
         self.means = self.dpgmm.means_
         self.covariances = self.dpgmm.covariances_
@@ -111,6 +172,7 @@ class BGMMFit(ClusterFit):
 
 
     def save(self):
+        '''Save the model to disk, as an npz and pkl (using outPrefix).'''
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
@@ -126,6 +188,14 @@ class BGMMFit(ClusterFit):
 
 
     def load(self, fit_npz, fit_obj):
+        '''Load the model from disk. Called from :func:`~loadClusterFit`
+
+        Args:
+            fit_npz (dict)
+                Fit npz opened with :func:`numpy.load`
+            fit_obj (sklearn.mixture.BayesianGaussianMixture)
+                The saved fit object
+        '''
         self.dpgmm = fit_obj
         self.weights = fit_npz['weights']
         self.means = fit_npz['means']
@@ -137,11 +207,21 @@ class BGMMFit(ClusterFit):
 
 
     def plot(self, X, y):
+        '''Write a summary of the fit, and plot the results using
+        :func:`PopPUNK.plot.plot_results` and :func:`PopPUNK.plot.plot_contours`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+            y (numpy.array)
+                Cluster assignments from :func:`~BGMMFit.assign`
+        '''
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
         else:
+            avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
             used_components = np.unique(y).size
-            sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(self.entropy),
+            sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                            "\tNumber of components used\t" + str(used_components)]) + "\n")
 
             title = self.outPrefix + " " + str(len(np.unique(y))) + "-component DPGMM"
@@ -152,6 +232,17 @@ class BGMMFit(ClusterFit):
 
 
     def assign(self, X, values = False):
+        '''Assign the clustering of new samples using :func:`~PopPUNK.bgmm.assign_samples`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+            values (bool)
+                Return the responsibilities of assignment rather than most likely cluster
+        Returns:
+            y (numpy.array)
+                Cluster assignments or values by samples
+        '''
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
@@ -161,6 +252,20 @@ class BGMMFit(ClusterFit):
 
 
 class DBSCANFit(ClusterFit):
+    '''Class for fits using HDBSCAN. Inherits from :class:`ClusterFit`.
+
+    Must first run either :func:`~DBSCANFit.fit` or :func:`~DBSCANFit.load` before calling
+    other functions
+
+    Args:
+        outPrefix (str)
+            The output prefix used for reading/writing
+        max_samples (int)
+            The number of subsamples to fit the model to
+
+            (default = 100000)
+    '''
+
     def __init__(self, outPrefix, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
@@ -169,6 +274,24 @@ class DBSCANFit(ClusterFit):
 
 
     def fit(self, X, threads):
+        '''Extends :func:`~ClusterFit.fit`
+
+        Fits the distances with HDBSCAN and returns assignments by calling
+        :func:`~PopPUNK.dbscan.fitDbScan`.
+
+        Fitted parameters are stored in the object.
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to cluster. Must be set if
+                preprocess is set.
+            threads (int)
+                Number of cores to use while fitting
+
+        Returns:
+            y (numpy.array)
+                Cluster assignments of samples in X
+        '''
         ClusterFit.fit(self, X)
         self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, threads)
         self.fitted = True
@@ -191,6 +314,7 @@ class DBSCANFit(ClusterFit):
 
 
     def save(self):
+        '''Save the model to disk, as an npz and pkl (using outPrefix).'''
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
@@ -207,6 +331,14 @@ class DBSCANFit(ClusterFit):
 
 
     def load(self, fit_npz, fit_obj):
+        '''Load the model from disk. Called from :func:`~loadClusterFit`
+
+        Args:
+            fit_npz (dict)
+                Fit npz opened with :func:`numpy.load`
+            fit_obj (hdbscan.HDBSCAN)
+                The saved fit object
+        '''
         self.hdb = fit_obj
         self.labels = self.hdb.labels_
         self.n_clusters = fit_npz['n_clusters']
@@ -220,6 +352,15 @@ class DBSCANFit(ClusterFit):
 
 
     def plot(self):
+        '''Write a summary of the fit, and plot the results using
+        :func:`PopPUNK.plot.plot_dbscan_results`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+            y (numpy.array)
+                Cluster assignments from :func:`~BGMMFit.assign`
+        '''
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
         else:
@@ -232,6 +373,15 @@ class DBSCANFit(ClusterFit):
 
 
     def assign(self, X):
+        '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+        Returns:
+            y (numpy.array)
+                Cluster assignments by samples
+        '''
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
@@ -241,6 +391,20 @@ class DBSCANFit(ClusterFit):
 
 
 class RefineFit(ClusterFit):
+    '''Class for fits using a triangular boundary and network properties. Inherits from :class:`ClusterFit`.
+
+    Must first run either :func:`~RefineFit.fit` or :func:`~RefineFit.load` before calling
+    other functions
+
+    Args:
+        outPrefix (str)
+            The output prefix used for reading/writing
+        max_samples (int)
+            The number of subsamples to fit the model to
+
+            (default = 100000)
+    '''
+
     def __init__(self, outPrefix):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'refine'
@@ -248,6 +412,42 @@ class RefineFit(ClusterFit):
         self.within_label = -1
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, no_local = False, threads = 1):
+        '''Extends :func:`~ClusterFit.fit`
+
+        Fits the distances by optimising network score, by calling
+        :func:`~PopPUNK.refine.refineFit`.
+
+        Fitted parameters are stored in the object.
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to cluster. Must be set if
+                preprocess is set.
+            sample_names (list)
+                Sample names in X (accessed by :func:`~PopPUNK.mash.iterDistRows`)
+            model (ClusterFit)
+                The model fit to refine
+            max_move (float)
+                Maximum distance to move away from start point
+            min_move (float)
+                Minimum distance to move away from start point
+            startFile (str)
+                A file defining an initial fit, rather than one from ``--fit-model``.
+                See documentation for format.
+
+                (default = None).
+            no_local (bool)
+                Turn off the local optimisation step.
+                Quicker, but may be less well refined.
+            num_processes (int)
+                Number of threads to use in the global optimisation step.
+
+                (default = 1)
+        Returns:
+            y (numpy.array)
+                Cluster assignments of samples in X
+        '''
+
         ClusterFit.fit(self)
         self.scale = np.copy(model.scale)
         self.max_move = max_move
@@ -291,6 +491,7 @@ class RefineFit(ClusterFit):
 
 
     def save(self):
+        '''Save the model to disk, as an npz and pkl (using outPrefix).'''
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
@@ -302,6 +503,14 @@ class RefineFit(ClusterFit):
 
 
     def load(self, fit_npz, fit_obj):
+        '''Load the model from disk. Called from :func:`~loadClusterFit`
+
+        Args:
+            fit_npz (dict)
+                Fit npz opened with :func:`numpy.load`
+            fit_obj (None)
+                The saved fit object (not used)
+        '''
         self.optimal_x = np.asscalar(fit_npz['intercept'][0])
         self.optimal_y = np.asscalar(fit_npz['intercept'][1])
         self.scale = fit_npz['scale']
@@ -309,6 +518,13 @@ class RefineFit(ClusterFit):
 
 
     def plot(self, X):
+        '''Write a summary of the fit, and plot the results using
+        :func:`PopPUNK.plot.plot_refined_results`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+        '''
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
         else:
@@ -318,6 +534,15 @@ class RefineFit(ClusterFit):
 
 
     def assign(self, X):
+        '''Assign the clustering of new samples using :func:`~PopPUNK.refine.withinBoundary`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+        Returns:
+            y (numpy.array)
+                Cluster assignments by samples
+        '''
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
