@@ -19,7 +19,7 @@ def fitDbScan(X, outPrefix, threads = 1):
     Fits the DBSCAN model to the distances, saves model parameters to a file,
     and assigns the samples to a component. Write fit summary stats to STDERR.
 
-    By default, subsamples :math:`10^6` random distances to fit the model to.
+    By default, subsamples :math:`10^5` random distances to fit the model to.
 
     Args:
         X (np.array)

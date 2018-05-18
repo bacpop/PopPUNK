@@ -29,6 +29,7 @@ from .plot import plot_dbscan_results
 from .refine import refineFit
 from .refine import likelihoodBoundary
 from .refine import withinBoundary
+from .refine import readManualStart
 from .plot import plot_refined_results
 
 #TODO write docstrings
@@ -81,6 +82,11 @@ class ClusterFit:
             plot_scatter(self.subsampled_X, self.outPrefix + "/" + self.outPrefix + "_distanceDistribution",
                     self.outPrefix + " distances")
 
+    # turn off scaling (useful for refine, where optimization is done in the
+    # scaled space)
+    def no_scale(self):
+        self.scale = np.array([1, 1])
+
 
 class BGMMFit(ClusterFit):
     def __init__(self, outPrefix, max_samples = 100000):
@@ -100,6 +106,7 @@ class BGMMFit(ClusterFit):
 
         y = self.assign(X)
         self.within_label = findWithinLabel(self.means, y)
+        self.between_label = findWithinLabel(self.means, y, 1)
         return y
 
 
@@ -112,6 +119,7 @@ class BGMMFit(ClusterFit):
              means=self.means,
              covariances=self.covariances,
              within=self.within_label,
+             between=self.between_label,
              scale=self.scale)
             with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.dpgmm, self.type], pickle_file)
@@ -124,6 +132,7 @@ class BGMMFit(ClusterFit):
         self.covariances = fit_npz['covariances']
         self.scale = fit_npz['scale']
         self.within_label = np.asscalar(fit_npz['within'])
+        self.between_label = np.asscalar(fit_npz['between'])
         self.fitted = True
 
 
@@ -152,7 +161,7 @@ class BGMMFit(ClusterFit):
 
 
 class DBSCANFit(ClusterFit):
-    def __init__(self, outPrefix, max_samples = 1000000):
+    def __init__(self, outPrefix, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
         self.preprocess = True
@@ -177,6 +186,7 @@ class DBSCANFit(ClusterFit):
 
         y = self.assign(X)
         self.within_label = findWithinLabel(self.cluster_means, y)
+        self.between_label = findBetweenLabel(self.cluster_means, y, self.within_label)
         return y
 
 
@@ -187,6 +197,7 @@ class DBSCANFit(ClusterFit):
             np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
              n_clusters=self.n_clusters,
              within=self.within_label,
+             between=self.between_label,
              means=self.cluster_means,
              maxs=self.cluster_maxs,
              mins=self.cluster_mins,
@@ -201,6 +212,7 @@ class DBSCANFit(ClusterFit):
         self.n_clusters = fit_npz['n_clusters']
         self.scale = fit_npz['scale']
         self.within_label = np.asscalar(fit_npz['within'])
+        self.between_label = np.asscalar(fit_npz['between'])
         self.cluster_means = fit_npz['means']
         self.cluster_maxs = fit_npz['maxs']
         self.cluster_mins = fit_npz['mins']
@@ -237,24 +249,22 @@ class RefineFit(ClusterFit):
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, no_local = False, threads = 1):
         ClusterFit.fit(self)
-        self.scale = model.scale
+        self.scale = np.copy(model.scale)
         self.max_move = max_move
         self.min_move = min_move
 
         # Get starting point
         assignment = model.assign(X)
+        model.no_scale()
         if startFile:
             self.mean0, self.mean1, self.start_s = readManualStart(startFile)
         elif model.type == 'dbscan':
             sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
 
-            within_label = findWithinLabel(model.cluster_means, assignment)
-            between_label = findBetweenLabel(model.cluster_means, assignment, within_label)
-
-            self.mean0 = model.cluster_means[within_label, :]
-            self.mean1 = model.cluster_means[between_label, :]
-            max0 = model.cluster_maxs[within_label, :]
-            min1 = model.cluster_mins[between_label, :]
+            self.mean0 = model.cluster_means[model.within_label, :]
+            self.mean1 = model.cluster_means[model.between_label, :]
+            max0 = model.cluster_maxs[model.within_label, :]
+            min1 = model.cluster_mins[model.between_label, :]
             core_s = (max(max0[0],min1[0]) - self.mean0[0]) / self.mean1[0]
             acc_s = (max(max0[1],min1[1]) - self.mean0[1]) / self.mean1[1]
             self.start_s = 0.5*(core_s+acc_s)
@@ -262,20 +272,17 @@ class RefineFit(ClusterFit):
         elif model.type == 'bgmm':
             sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
 
-            within_label = findWithinLabel(self.means, assignment)
-            between_label = findWithinLabel(self.means, assignment, 1)
-
             # Straight line between dist 0 centre and dist 1 centre
             # Optimize to find point of decision boundary along this line as starting point
-            self.mean0 = means[within_label, :]
-            self.mean1 = means[between_label, :]
+            self.mean0 = model.means[model.within_label, :]
+            self.mean1 = model.means[model.between_label, :]
             self.start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(self.mean0, self.mean1),
-                             args = (model, mean0, mean1, within_label, between_label))
+                             args = (model, self.mean0, self.mean1, model.within_label, model.between_label))
         else:
             raise RuntimeError("Unrecognised model type")
 
-        self.start_point, self.optimal_x, self.optimal_y = refineFit(X,
-                sample_names, model.assign(X), model, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+        self.start_point, self.optimal_x, self.optimal_y = refineFit(X/self.scale,
+                sample_names, assignment, model, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                 no_local, threads)
         self.fitted = True
 
@@ -314,7 +321,7 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            y = withinBoundary(X, self.optimal_x, self.optimal_y)
+            y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
 
         return y
 

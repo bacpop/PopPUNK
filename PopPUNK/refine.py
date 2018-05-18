@@ -16,7 +16,7 @@ from .network import constructNetwork
 from .network import networkSummary
 
 def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
-        max_move, min_move, dbscan, no_local = False, num_processes = 1):
+        max_move, min_move, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -55,7 +55,6 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
     # UPDATE DOCUMENTATION
 
     G = constructNetwork(sample_names, sample_names, assignment, model.within_label)
-    distMat /= model.scale # Deal with scale at start
     sys.stderr.write("Initial boundary based network construction\n")
     start_point = transformLine(start_s, mean0, mean1)
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
