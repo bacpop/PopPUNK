@@ -411,7 +411,8 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
     sys.stderr.write("Random " + str(k) + "-mer probability: " + "{:.2f}".format(random_prob) + "\n")
 
     # overwrite existing file if instructed
-    if os.path.isfile(dbfilename) and overwrite:
+    if os.path.isfile(dbfilename) and overwrite == True:
+        sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
 
     # create new file or leave original intact

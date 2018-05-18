@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import networkx as nx
 import numpy as np
+from collections import defaultdict
+from tempfile import mkstemp, mkdtemp
 
 from .mash import createDatabaseDir
 from .mash import constructDatabase
@@ -281,25 +283,45 @@ def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTra
 
     return assignation
 
-##########################################
-# Identify links to network from queries #
-##########################################
 
-def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, means,
-        covariances, scale, outPrefix, dbPrefix, threads = 1, mash_exec = 'mash'):
+def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, model,
+        dbPrefix, threads = 1, mash_exec = 'mash'):
+    """Finds edges between queries and items in the reference database
 
-    # identify within-strain links (closest component to origin)
-    within_label = findWithinLabel(means, assignments)
+    Args:
+        rlist (list)
+            List of reference names
+        qlist (list)
+            List of query names
+        kmers (list)
+            List of k-mer sizes
+        assignments (numpy.array)
+            Cluster assignment of items in qlist
+        model (ClusterModel)
+            Model fitted to reference database
+        threads (int)
+            Number of threads to use if new db created
+
+            (default = 1)
+        mash_exec (str)
+            Location of the mash executable
+
+            (default = 'mash')
+
+    Returns:
+        links (dict)
+            Dictionary of lists of links to within-cluster matches.
+            Keys are qlist
+        G (networkx.Graph)
+            A network with any new corrections between queries with no existing match.
+    """
 
     # initialise links data structure
-    links = {}
-    for query in qlist:
-        if query not in links:
-            links[query] = []
+    links = defaultdict(list)
 
     # store links for each query in a dict of lists: links[query] => list of hits
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
-        if assignment == within_label:
+        if assignment == model.within_label:
             links[query].append(ref)
 
     # identify potentially new lineages in list: unassigned is a list of queries with no hits
@@ -309,43 +331,35 @@ def findQueryLinksToNetwork(rlist, qlist, self, kmers, assignments, weights, mea
             unassigned.append(query)
 
     # process unassigned query sequences, if there are any
+    G = None
     if len(unassigned) > 0:
 
         # write unassigned queries to file as if a list of references
-        tmpDirString = "tmp_" + outPrefix
-        tmpFileName = tmpDirString + ".in"
-        createDatabaseDir(tmpDirString, kmers)
-        with open(tmpFileName, 'w') as tFile:
+        tmpDirName = mkdtemp(prefix=dbPrefix, suffix="_tmp", dir="./")
+        tmpHandle, tmpFile = mkstemp(prefix=dbPrefix, suffix="_tmp", dir=tmpDirName)
+        with tmpHandle as tFile:
             for query in unassigned:
                 tFile.write(query + '\n')
 
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
-        qlist1, qlist2, distMat = queryDatabase(tmpFileName, kmers, tmpDirString, True, mash_exec = mash_exec, threads = threads)
-        queryAssignation = assign_samples(distMat, weights, means, covariances, scale)
+        qlist1, qlist2, distMat = queryDatabase(tmpHandle, kmers, tmpDirName, tmpDirName, True,
+                0, False, mash_exec = mash_exec, threads = threads)
+        queryAssignation = model.assign(distMat)
 
         # identify any links between queries and store in the same links dict
         # links dict now contains lists of links both to original database and new queries
-#        for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
         for assignment, (query1, query2) in zip(assignments, iterDistRows(qlist1, qlist2, self=True)):
             if assignment == within_label:
-                links[query].append(ref)
+                links[query1].append(query2)
 
         # build network based on connections between queries
         # store links as a network
-        G = constructNetwork(qlist1, qlist2, queryAssignation, findWithinLabel(means, queryAssignation))
-        # not used?
-        #clusters = sorted(nx.connected_components(G), key=len, reverse=True)
-        #cl_id = 1
-        #outFileName = "tmp_" + outPrefix + "_clusters.csv"
+        G = constructNetwork(qlist1, qlist2, queryAssignation, model.within_label)
 
         # remove directory
-        shutil.rmtree("./" + tmpDirString)
-        if os.path.isfile(tmpFileName):
-            os.remove(tmpFileName)
-        if os.path.isfile("tmp_" + outPrefix + ".err.log"):
-            os.remove("tmp_" + outPrefix + ".err.log")
+        shutil.rmtree(tmpDirName)
 
     # finish by returning network and dict of query-ref and query-query link lists
     return links, G

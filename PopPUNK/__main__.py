@@ -166,9 +166,10 @@ def main():
         sys.stderr.write("Sketch size should be between 100 and 10^6\n")
         sys.exit(1)
 
-    # check on file paths and whether files will be appropriate overwritten
-    if not args.full_db and not (args.create_db or args.easy_run):
-        args.overwrite = True
+    # check on file paths and whether files will be overwritten
+    # confusing to overwrite command line parameter
+    #if not args.full_db and not (args.create_db or args.easy_run or args.assign_query):
+    #    args.overwrite = True
     if args.output is not None and args.output.endswith('/'):
         args.output = args.output[:-1]
     if args.ref_db is not None and args.ref_db.endswith('/'):
@@ -287,10 +288,8 @@ def main():
                                    args.ref_db + "/" + args.ref_db + '_fit.npz')
             queryAssignments = model.assign(distMat)
 
-            sys.exit(0)
-
             # Assign clustering by adding to network
-            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
+            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
                     queryAssignments, model, args.output, args.ref_db, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = \
                 assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
