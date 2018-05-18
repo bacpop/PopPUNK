@@ -434,7 +434,8 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
-def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, no_stream = False, mash_exec = 'mash', threads = 1):
+def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_fits = 0,
+        no_stream = False, mash_exec = 'mash', threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
     For a reference database, runs the query against itself to find all pairwise
@@ -451,7 +452,9 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, no_
         klist (list)
             K-mer sizes to use in the calculation
         dbPrefix (str)
-            Prefix for mash sketch database created by :func:`~constructDatabase`
+            Prefix for reference mash sketch database created by :func:`~constructDatabase`
+        queryPrefix (str)
+            Prefix for query mash sketch database created by :func:`~constructDatabase`
         self (bool)
             Set true if query = ref
 
@@ -491,6 +494,8 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, no_
     refList = getSeqsInDb("./" + dbPrefix + "/" + dbPrefix + "." + str(klist[0]) + ".msh", mash_exec)
 
     if self:
+        if dbPrefix != queryPrefix:
+            raise RuntimeError("Must use same db for self query")
         number_pairs = int(0.5 * len(refList) * (len(refList) - 1))
     else:
         number_pairs = int(len(refList) * len(queryList))
@@ -500,20 +505,16 @@ def queryDatabase(qFile, klist, dbPrefix, self = True, number_plot_fits = 0, no_
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
-        # run mash distance query based on current file
-        dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
-
         row = 0
 
+        # run mash distance query based on current file
+        ref_dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
+        query_dbname = "./" + queryPrefix + "/" + queryPrefix + "." + str(k) + ".msh"
         # construct mash command
-        mash_cmd = mash_exec + " dist -p " + str(threads)
-        if self:
-            mash_cmd += " " + dbname + " " + dbname
-        else:
-            mash_cmd += " -l " + dbname + " " + qFile
+        mash_cmd = mash_exec + " dist -p " + str(threads) + " " + ref_dbname + " " + query_dbname
 
         if no_stream:
-            tmpHandle, tmpName = mkstemp(prefix="dbPrefix", suffix=".tmp", dir="./" + dbPrefix)
+            tmpHandle, tmpName = mkstemp(prefix=dbPrefix, suffix=".tmp", dir="./" + dbPrefix)
             mash_cmd += " > " + tmpName
         mash_cmd += " 2> " + dbPrefix + ".err.log"
         sys.stderr.write(mash_cmd + "\n")

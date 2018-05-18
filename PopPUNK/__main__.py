@@ -63,10 +63,6 @@ def get_options():
             help='Refine the accuracy of a fitted model',
             default=False,
             action='store_true')
-    mode.add_argument('--create-query-db',
-            help='Create distances between query sequences and a reference database',
-            default=False,
-            action='store_true')
     mode.add_argument('--assign-query',
             help='Assign the cluster of query sequences without re-running the whole mixture model',
             default=False,
@@ -82,8 +78,6 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--save-distances', help='Store pickle of calculated distances for query sequences',
-                                            default=False, action='store_true')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
@@ -192,7 +186,8 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, True, args.plot_fit, args.no_stream, args.mash, args.threads)
+            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.output, True,
+                    args.plot_fit, args.no_stream, args.mash, args.threads)
 
             dists_out = args.output + "/" + args.output + ".dists"
             storePickle(refList, queryList, True, distMat, dists_out)
@@ -240,7 +235,6 @@ def main():
             assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift, args.manual_start,
                     args.no_local, args.threads)
             model.plot(distMat)
-
         # Run DBSCAN model
         elif args.dbscan:
             model = DBSCANFit(args.output)
@@ -258,7 +252,8 @@ def main():
         isolateClustering = printClusters(genomeNetwork, args.output)
         # generate outputs for microreact if asked
         if args.microreact:
-            outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity, args.output, args.info_csv, args.rapidnj, args.overwrite)
+            outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity,
+                    args.output, args.info_csv, args.rapidnj, args.overwrite)
         # generate outputs for cytoscape if asked
         if args.cytoscape:
             outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
@@ -269,40 +264,34 @@ def main():
             map(os.remove, referenceGenomes) # tidy up
         printQueryOutput(refList, queryList, distMat, args.output, self)
 
-    elif args.create_query_db:
-        if args.ref_db is not None and args.q_files is not None:
-            self = False
-            sys.stderr.write("Mode: Building new database from input sequences\n")
-            kmers = getKmersFromReferenceDatabase(args.ref_db)
-            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, False,
-                                                        args.plot_fit, args.mash, args.threads)
-            printQueryOutput(refList, queryList, distMat, args.output, self)
-            # store distances in pickle if requested
-            if args.save_distances:
-                storePickle(refList, queryList, False, distMat, args.output + ".dists")
-        else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and "
-                             "query list with --q-files; use --save-distances to subsequently "
-                             "assign queries to clusters\n")
-            sys.exit(1)
-
     elif args.assign_query:
-        if args.ref_db is not None and args.distances is not None:
+        if args.ref_db is not None and args.q_files is not None:
             sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
-            refList, queryList, self, distMat = readPickle(args.distances)
+            self = False
+            if args.ref_db == args.output:
+                sys.stderr.write("--output and --ref-db must be different to "
+                                 "prevent overwrite.\n")
+
+            # Find distances to reference db
             kmers = getKmersFromReferenceDatabase(args.ref_db)
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-            queryAssignments, model, type = assignQuery(distMat, args.ref_db, args.dbscan)
-            if type == 'refined':
-                raise NotImplementedError("Not yet implemented query with boundary model")
-            else:
-                (fitscale, fitWeights, fitMeans, fitcovariances, fitt) = model
 
-            #TODO update this function to take model, rather than using the above if statement
+            createDatabaseDir(args.output, kmers)
+            constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+            refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.output, False, args.plot_fit,
+                                                        args.no_stream, args.mash, args.threads)
+            printQueryOutput(refList, queryList, distMat, args.output, self)
+
+            # Assign these distances as within or between
+            model = loadClusterFit(args.ref_db + "/" + args.ref_db + '_fit.pkl',
+                                   args.ref_db + "/" + args.ref_db + '_fit.npz')
+            queryAssignments = model.assign(distMat)
+
+            sys.exit(0)
+
+            # Assign clustering by adding to network
             querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, self, kmers,
-                    queryAssignments, fitWeights, fitMeans, fitcovariances, fitscale, args.output, args.ref_db,
-                     args.threads, args.mash)
+                    queryAssignments, model, args.output, args.ref_db, args.threads, args.mash)
             newClusterMembers, existingClusterMatches = \
                 assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
             # update databases if so instructed
@@ -311,8 +300,10 @@ def main():
                                args.threads, args.mash, args.overwrite)
                 updateClustering(args.ref_db, existingClusterMatches)
         else:
-            sys.stderr.write("Need to provide both a reference database with --ref-db and calculated distances with --distances\n\n")
+            sys.stderr.write("Need to provide both a reference database with --ref-db and "
+                             "query list with --q-files\n")
             sys.exit(1)
+
 
     sys.stderr.write("\nDone\n")
 
