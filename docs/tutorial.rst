@@ -173,7 +173,7 @@ Score                       Network score based on density and transitivity. Hig
    This is the most important part of getting a good estimation of population
    structure. In many cases choosing a sensible ``--K`` will get a fit with
    a good score, but in more complex cases PopPUNK allows alternative
-   model fitting. See :ref:`refine-model:` for a discussion on how to improve
+   model fitting. See :ref:`refine-model` for a discussion on how to improve
    the model fit.
 
 The most useful plot is `strain_db_DPGMM_fit.png` which shows the clustering:
@@ -234,6 +234,40 @@ are correlated as expected for strains. Tips are coloured by the PopPUNK inferre
    be re-run as necessary by changing the parameter value. Use a value between
    5 and 50, but see :ref:`perplexity` for further discussion.
 
+Using DBSCAN
+^^^^^^^^^^^^
+Clustering can also be performed by using DBSCAN, which uses the
+`HDBSCAN* library <http://hdbscan.readthedocs.io/en/latest/>`__. Run the same
+``fit-model`` command as above, but add the ``--dbscan`` option::
+
+   poppunk-runner.py --fit-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --dbscan --threads 4
+
+The output is as follows::
+
+   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+   Mode: Fitting model to reference database
+
+   Fit summary:
+   	Number of clusters	5
+   	Number of datapoints	100000
+   	Number of assignments	100000
+   Network summary:
+   	Components	9
+   	Density	0.1906
+   	Transitivity	0.9979
+   	Score	0.8077
+
+   Done
+
+In this case the fit is quite similar to the mixture model:
+
+.. image:: dbscan_fit.png
+   :alt:  Data fitted with HDBSCAN
+   :align: center
+
+The small black points are classified as noise, and are not used in the network
+construction.
+
 Use of full-db
 ^^^^^^^^^^^^^^
 By default the ``--full-db`` option is off. When on this will keep every sample in the
@@ -268,6 +302,11 @@ Output files
 * strain_db.npz -- save fit parameters.
 * strain_db.refs -- representative references in the new database (unless
   ``--full-db`` was used).
+
+If ``--dbscan`` was used:
+
+* strain_db_dbscan.png -- scatter plot of all distances, and DBSCAN
+  assignment.
 
 If ``--microreact`` was used:
 
@@ -304,14 +343,9 @@ The following command line options can be used in this mode:
      --full-db             Keep full reference database, not just representatives
      --overwrite           Overwrite any existing database files
 
-   Mixture model options:
-     --K K                 Maximum number of mixture components (EM only)
-                           [default = 2]
-     --priors PRIORS       File specifying model priors. See documentation for
-                           help
-     --bgmm                Use ADVI rather than EM to fit the mixture model
-     --t-dist              Use a mixture of t distributions rather than Gaussians
-                           (ADVI only)
+   Model fit options:
+     --K K                 Maximum number of mixture components [default = 2]
+     --dbscan              Use DBSCAN rather than mixture model
 
    Further analysis options:
      --microreact          Generate output files for microreact visualisation
@@ -329,8 +363,9 @@ The following command line options can be used in this mode:
                            [default = 1]
 
 .. note::
-   Threads will only be used if ``--full-db`` is *not* specified and sketching
-   of the representatives is performed at the end.
+   If using the default mixture model threads will only be used if ``--full-db``
+   is *not* specified and sketching of the representatives is performed at the end.
+   Threads are used for ``--dbscan``.
 
 .. _refine-model:
 

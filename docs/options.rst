@@ -9,14 +9,16 @@ Usage::
                [--distances DISTANCES] --output OUTPUT [--save-distances]
                [--plot-fit PLOT_FIT] [--full-db] [--update-db] [--overwrite]
                [--min-k MIN_K] [--max-k MAX_K] [--k-step K_STEP]
-               [--sketch-size SKETCH_SIZE] [--K K] [--priors PRIORS] [--bgmm]
-               [--t-dist] [--pos-shift POS_SHIFT] [--neg-shift NEG_SHIFT]
+               [--sketch-size SKETCH_SIZE] [--K K] [--dbscan]
+               [--pos-shift POS_SHIFT] [--neg-shift NEG_SHIFT]
                [--manual-start MANUAL_START] [--no-local] [--microreact]
                [--cytoscape] [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
                [--info-csv INFO_CSV] [--mash MASH] [--threads THREADS]
                [--no-stream] [--version]
 
-Command line options:
+   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+
+Command line options
 
    optional arguments:
      -h, --help            show this help message and exit
@@ -44,7 +46,7 @@ Command line options:
      --save-distances      Store pickle of calculated distances for query
                            sequences
      --plot-fit PLOT_FIT   Create this many plots of some fits relating k-mer to
-                           core/accessory distances[default = 0]
+                           core/accessory distances [default = 0]
      --full-db             Keep full reference database, not just representatives
      --update-db           Update reference database with query sequences
      --overwrite           Overwrite any existing database files
@@ -56,14 +58,9 @@ Command line options:
      --sketch-size SKETCH_SIZE
                            Kmer sketch size [default = 10000]
 
-   Mixture model options:
-     --K K                 Maximum number of mixture components (EM only)
-                           [default = 2]
-     --priors PRIORS       File specifying model priors. See documentation for
-                           help
-     --bgmm                Use ADVI rather than EM to fit the mixture model
-     --t-dist              Use a mixture of t distributions rather than Gaussians
-                           (ADVI only)
+   Model fit options:
+     --K K                 Maximum number of mixture components [default = 2]
+     --dbscan              Use DBSCAN rather than mixture model
 
    Refine model options:
      --pos-shift POS_SHIFT
@@ -84,16 +81,13 @@ Command line options:
      --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for Microreact
      --perplexity PERPLEXITY
                            Perplexity used to calculate t-SNE projection (with
-                           --microreact) [default=5.0]
+                           --microreact) [default=20.0]
      --info-csv INFO_CSV   Epidemiological information CSV formatted for
                            microreact (with --microreact or --cytoscape)
 
    Other options:
      --mash MASH           Location of mash executable
-     --threads THREADS     Number of threads to use during database querying
-                           [default = 1]
+     --threads THREADS     Number of threads to use [default = 1]
      --no-stream           Use temporary files for mash dist interfacing. Reduce
                            memory use/increase disk use for large datasets
      --version             show program's version number and exit
-
-

@@ -13,11 +13,8 @@ You can also clone the github to run the latest version, which is executed by::
 Python installation
 -------------------
 
-If you are having trouble with your version of python and theano, it is likely
-because python has not been compiled with the ``-fPIC`` parameter. You can
-either recompile python yourself from source with the ``--enable-shared`` flag
-(not recommended) or use the `miniconda <https://conda.io/miniconda.html>`_
-installation (recommended).
+We recommend the use of a `miniconda <https://conda.io/miniconda.html>`_
+installation.
 
 Using the miniconda installation will also allow the use of faster linear
 algebra functions by installing dependencies as follows::
