@@ -6,6 +6,7 @@ import os
 import sys
 # additional
 import numpy as np
+import networkx as nx
 import subprocess
 
 # import poppunk package
@@ -25,9 +26,7 @@ from .models import *
 
 from .network import constructNetwork
 from .network import extractReferences
-from .network import findQueryLinksToNetwork
-from .network import updateDatabase
-from .network import updateClustering
+from .network import addQueryToNetwork
 from .network import printClusters
 
 from .plot import outputsForMicroreact
@@ -260,10 +259,12 @@ def main():
             outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
         # extract limited references from clique by default
         if not args.full_db:
-            referenceGenomes = extractReferences(genomeNetwork, args.output)
-            constructDatabase(referenceGenomes, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
-            map(os.remove, referenceGenomes) # tidy up
+            newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
+            genomeNetwork.remove_nodes_from(set(refList).difference(referenceNames))
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+
         printQueryOutput(refList, queryList, distMat, args.output, self)
+        nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
     elif args.assign_query:
         if args.ref_db is not None and args.q_files is not None:
@@ -287,17 +288,20 @@ def main():
             model = loadClusterFit(args.ref_db + "/" + args.ref_db + '_fit.pkl',
                                    args.ref_db + "/" + args.ref_db + '_fit.npz')
             queryAssignments = model.assign(distMat)
+            genomeNetwork = nx.read_gpickle(args.ref_db + "/" + args.ref_db + '_graph.gpickle')
 
             # Assign clustering by adding to network
-            querySearchResults, queryNetwork = findQueryLinksToNetwork(refList, queryList, kmers,
-                    queryAssignments, model, args.output, args.ref_db, args.threads, args.mash)
-            newClusterMembers, existingClusterMatches = \
-                assignQueriesToClusters(querySearchResults, queryNetwork, args.ref_db, args.output)
-            # update databases if so instructed
+            addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
+                    queryAssignments, model, args.ref_db, args.threads, args.mash)
+            isolateClustering = printClusters(genomeNetwork, args.output)
+
+            # update_db like no full_db
             if args.update_db:
-                updateDatabase(args.ref_db, newClusterMembers, queryNetwork, args.output, args.full_db,
-                               args.threads, args.mash, args.overwrite)
-                updateClustering(args.ref_db, existingClusterMatches)
+                newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
+                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes()).difference(referenceNames))
+                constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+                nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
+
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and "
                              "query list with --q-files\n")

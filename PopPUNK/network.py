@@ -34,9 +34,11 @@ def extractReferences(G, outPrefix):
     Returns:
         refFileName (str)
             The name of the file references were written to
+        references (list)
+            A list of the reference names
     """
     # define reference list
-    references = {}
+    references = []
     # extract cliques from network
     cliques = list(nx.find_cliques(G))
     # order list by size of clique
@@ -48,7 +50,7 @@ def extractReferences(G, outPrefix):
             if node in references:
                 alreadyRepresented = 1
         if alreadyRepresented == 0:
-            references[clique[0]] = 1
+            references.append[clique[0]]
 
     # write references to file
     refFileName = "./" + outPrefix + "/" + outPrefix + ".refs"
@@ -56,7 +58,7 @@ def extractReferences(G, outPrefix):
         for ref in references:
             rFile.write(ref + '\n')
 
-    return refFileName
+    return references, refFileName
 
 def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
     """Construct an unweighted, undirected network without self-loops.
@@ -133,166 +135,18 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-#########################################
-# Update clustering CSV following query #
-#########################################
-
-def updateClustering(dbPrefix, existingHits):
-
-    # identify whether there are any clusters to be merged
-    # use existingHits => dict (per query) of dict of hits to clusters (full, decimalised)
-    groups = 0
-    # forMerging: dict of lists; group => list of clusters assigned to it, which are to be merged
-    forMerging = {}
-    # beingMerged: dict of lists; cluster => groups to which it has been assigned
-    beingMerged = {}
-
-    for query in existingHits:
-        newList = {}
-        # find queries that match multiple clusters
-        # BUT these could be diff
-        if len(existingHits[query].keys()) > 1:
-            # store multiple hits just as leading integers
-            for hit in existingHits[query]:
-                # list all the clusters to which a query matches
-                # as the dict newList
-                #                newList[hit.split('.')[0]] = 1
-                newList[hit] = 1
-        # if query matches multiple integer clusters
-        if len(newList.keys()) > 1:
-            groups += 1
-            # make a dict of lists; each list is a group of clusters
-            # to be merged into a supergroup
-            forMerging[groups] = newList.keys()
-            for cluster in newList:
-                # list all groups to which the clusters have been
-                # assigned in "beingMerged" in case of multiple links
-                if cluster not in beingMerged:
-                    beingMerged[cluster] = []
-                beingMerged[cluster].append(groups)
-
-    # stop function early if no merging required
-    superGroups = {}
-    if groups > 0:
-        # recursively build supergroups based on the lists of cross-linked clusters
-        # processed dict stores those groups that have already been looked at
-        processed = {}
-        for group in range(1, groups):
-            if group not in processed:
-                # iterate over each cluster in group and assign to common supergroup
-                for cluster in forMerging[group]:
-                    superGroups[cluster] = group
-                    sys.stderr.write("cluster " + str(cluster) + " group " + str(group) + '\n')
-                # newLinks stores the clusters being added to supergroup i
-                newLinks = []
-                newLinks.append(group)
-                # iterative search until no new clusters in newLinks to be appended to supergroup
-                while len(newLinks) > 0:
-                    # nextLevel looks at the groups associated with the clusters in beingMerged
-                    # then appends all the clusters in any new groups using the forMerging dict
-                    additionalLinks, processed = nextLevel(group, newLinks, beingMerged, forMerging, processed)
-                    newLinks = additionalLinks
-                    # append the new finds to our supergroup
-                    if len(newLinks) > 0:
-                        for cluster in newLinks:
-                            superGroups[cluster] = group
-                            sys.stderr.write("cluster " + str(cluster) + " group " + str(group) + '\n')
-
-        # change indexing of superGroups to keep things minimal
-        newClusterTranslation = {}
-        for cluster in superGroups:
-            sys.stderr.write("cluster " + str(cluster) + " supergroup " + str(superGroups[cluster]) + '\n')
-            if superGroups[cluster] not in newClusterTranslation or newClusterTranslation[superGroups[cluster]] > cluster:
-                newClusterTranslation[superGroups[cluster]] = cluster
-                sys.stderr.write("cluster " + str(cluster) + " supergroup " + str(superGroups[cluster]) +
-                        " translate " + str(newClusterTranslation[superGroups[cluster]]) + '\n')
-
-        # parse original clustering
-        maxCluster = 0
-        oldClustering = {}
-        oldClusteringCsvName = "./" + dbPrefix + "/" + dbPrefix + "_clusters.csv"
-        with open(oldClusteringCsvName, 'r') as oldFile:
-            for line in oldFile:
-                clusteringVals = line.strip().split(',')
-                if clusteringVals[0] != "Taxon":
-                    oldClustering[clusteringVals[0]] = clusteringVals[1]
-                    if int(clusteringVals[1].split('.')[0]) > maxCluster:
-                        maxCluster = int(clusteringVals[1].split('.')[0])
-
-        maxCluster += 1
-
-        # print new clustering file
-        newClusteringCsvName = "./" + dbPrefix + "/new." + dbPrefix + "_clusters.csv"
-        newFile = ""
-        with open(oldClusteringCsvName, 'r') as oldFile, open(newClusteringCsvName, 'w') as newFile:
-            newFile.write("Taxon,Cluster\n")
-            # update original clustering
-            for line in oldFile:
-                clusteringVals = line.rstrip().split(',')
-                if clusteringVals[0] != "Taxon":
-                    intCluster = int(clusteringVals[1].split('.')[0])
-                    if intCluster in superGroups:
-                        if superGroups[intCluster] in newClusterTranslation:
-                            newFile.write(clusteringVals[0] + ',' +
-                                    str(newClusterTranslation[superGroups[intCluster]]) +
-                                    "." + str(clusteringVals[1]) + '\n')
-                        else:
-                            sys.stderr.write("Problem with supergroup " + superGroups[intCluster] + '\n')
-                            sys.exit(1)
-                    else:
-                        newFile.write(line)
-            # now add new query hits
-            for query in existingHits:
-                # if the query hit multiple groups and now matches a supergroup
-                if len(existingHits[query].keys()) >= 1:
-                    assignation = getAssignation(query, existingHits[query], superGroups, newClusterTranslation)
-                    newFile.write(q + ',' + str(assignation) + '\n')
-
-        # now update the cluster assignation file
-        os.rename(newClusteringCsvName, oldClusteringCsvName)
-
-######################################################################
-# Iterative link search function for clustering non-matching queries #
-######################################################################
-def nextLevel(group, newLinks, beingMerged, forMerging, processed):
-
-    newAdditions = []
-    for cluster in beingMerged:
-        if len(beingMerged[cluster]) > 1:
-            for merge_group in beingMerged[cluster]:
-                if group != merge_group and merge_group not in processed:
-                    for cluster in forMerging[merge_group]:
-                        newAdditions.append(cluster)
-                processed[merge_group] = True
-
-    return newAdditions, processed
-
-############################################
-# Get cluster to which query is assigned   #
-############################################
-def getAssignation(query, existingQueryHits, newFile, superGroups, newClusterTranslation):
-    for exstingHit in existingQueryHits:
-        if existingHit in superGroups:
-            if superGroups[existingHit] in newClusterTranslation:
-                assignation = newClusterTranslation[superGroups[existingHit]]
-            else:
-                sys.stderr.write("Problem with supergroup " + superGroups[existingHit] + '\n')
-                sys.exit(1)
-        else:
-            assignation = existingHit
-
-    return assignation
-
-
-def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, model,
+def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
         dbPrefix, threads = 1, mash_exec = 'mash'):
-    """Finds edges between queries and items in the reference database
+    """Finds edges between queries and items in the reference database,
+    and modifies the network to include them.
 
     Args:
         rlist (list)
             List of reference names
         qlist (list)
             List of query names
+        G (networkx.Graph)
+            Network to add to (mutated)
         kmers (list)
             List of k-mer sizes
         assignments (numpy.array)
@@ -307,32 +161,24 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, model,
             Location of the mash executable
 
             (default = 'mash')
-
-    Returns:
-        links (dict)
-            Dictionary of lists of links to within-cluster matches.
-            Keys are qlist
-        G (networkx.Graph)
-            A network with any new corrections between queries with no existing match.
     """
-
     # initialise links data structure
-    links = defaultdict(list)
+    new_edges = []
+    assigned = set()
 
-    # store links for each query in a dict of lists: links[query] => list of hits
+    # store links for each query in a list of edge tuples
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
         if assignment == model.within_label:
-            links[query].append(ref)
+            new_edges.append((ref, query))
+            assigned.add(query)
+
 
     # identify potentially new lineages in list: unassigned is a list of queries with no hits
-    unassigned = []
-    for query in links:
-        if len(links[query]) == 0:
-            unassigned.append(query)
+    unassigned = set(query).difference(assigned)
 
     # process unassigned query sequences, if there are any
-    G = None
     if len(unassigned) > 0:
+        sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
 
         # write unassigned queries to file as if a list of references
         tmpDirName = mkdtemp(prefix=dbPrefix, suffix="_tmp", dir="./")
@@ -352,66 +198,15 @@ def findQueryLinksToNetwork(rlist, qlist, kmers, assignments, model,
         # links dict now contains lists of links both to original database and new queries
         for assignment, (query1, query2) in zip(assignments, iterDistRows(qlist1, qlist2, self=True)):
             if assignment == within_label:
-                links[query1].append(query2)
-
-        # build network based on connections between queries
-        # store links as a network
-        G = constructNetwork(qlist1, qlist2, queryAssignation, model.within_label)
+                new_edges.append((query1, query2))
 
         # remove directory
         shutil.rmtree(tmpDirName)
 
-    # finish by returning network and dict of query-ref and query-query link lists
-    return links, G
+    # finish by updating the network
+    G.add_nodes_from(qlist)
+    G.add_edges_from(new_edges)
 
-####################################################
-# Update reference database with query information #
-####################################################
-
-def updateDatabase(dbPrefix, additionalIsolates, G, outPrefix, full_db=False, threads = 1, mash_exec = 'mash', overwrite = False):
-
-    # append information to csv
-    clusteringCsvName = "./" + dbPrefix + "/" + dbPrefix + "_clusters.csv"
-    with open(clusteringCsvName, 'a') as cFile:
-        for genome in additionalIsolates:
-            cFile.write(genome + "," + str(additionalIsolates[genome]) + '\n')
-
-    # network is composed of links between queries that do not match
-    # any existing references
-    # extract cliques from network
-    # identify new reference sequences
-    if not full_db:
-        referenceFile = extractReferences(G,outPrefix)
-    else:
-        referenceFile = "./" + outPrefix + "/" + outPrefix + ".refs"
-        with open(referenceFile, 'w') as rFile:
-            for ref in G.nodes():
-                rFile.write(ref + '\n')
-
-    # identify kmers used to construct original database
-    dbFileList = glob.glob(dbPrefix + "/" + dbPrefix + ".*.msh")
-    klist = []
-    for filename in dbFileList:
-        k = re.search(r'\d+', filename)
-        if k:
-            klist.append(k.group(0))
-
-    # identify sketch lengths used to generate databases
-    sketch = getSketchSize(dbPrefix, klist)
-
-    # make new databases and append
-    createDatabaseDir(outPrefix)
-    constructDatabase(referenceFile, klist, sketch, outPrefix, threads, mash_exec, overwrite)
-    for k in klist:
-        f1 = getDatabaseName(dbPrefix, k)
-        f2 = getDatabaseName(outPrefix, k)
-        try:
-            subprocess.run("mash paste tmp." + dbPrefix + "." + k + " " + f1 + " " + f2 + " > /dev/null 2> /dev/null",
-                shell=True, check=True)
-            os.rename("tmp." + dbPrefix + "." + k + ".msh", f1)
-        except:
-            sys.stderr.write("Failed to combine databases " + f1 + " and " + f2 + "\n")
-            sys.exit(1)
 
 def printClusters(G, outPrefix):
     """Get cluster assignments
