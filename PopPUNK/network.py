@@ -50,7 +50,7 @@ def extractReferences(G, outPrefix):
             if node in references:
                 alreadyRepresented = 1
         if alreadyRepresented == 0:
-            references.append[clique[0]]
+            references.append(clique[0])
 
     # write references to file
     refFileName = "./" + outPrefix + "/" + outPrefix + ".refs"
@@ -174,30 +174,30 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
 
 
     # identify potentially new lineages in list: unassigned is a list of queries with no hits
-    unassigned = set(query).difference(assigned)
+    unassigned = set(qlist).difference(assigned)
 
     # process unassigned query sequences, if there are any
-    if len(unassigned) > 0:
+    if len(unassigned) > 1:
         sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
 
         # write unassigned queries to file as if a list of references
         tmpDirName = mkdtemp(prefix=dbPrefix, suffix="_tmp", dir="./")
         tmpHandle, tmpFile = mkstemp(prefix=dbPrefix, suffix="_tmp", dir=tmpDirName)
-        with tmpHandle as tFile:
+        with open(tmpFile, 'w') as tFile:
             for query in unassigned:
                 tFile.write(query + '\n')
 
         # use database construction methods to find links between unassigned queries
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
-        constructDatabase(tmpFileName, kmers, sketchSize, tmpDirString, threads, mash_exec)
+        constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, threads, mash_exec)
         qlist1, qlist2, distMat = queryDatabase(tmpHandle, kmers, tmpDirName, tmpDirName, True,
                 0, False, mash_exec = mash_exec, threads = threads)
         queryAssignation = model.assign(distMat)
 
         # identify any links between queries and store in the same links dict
         # links dict now contains lists of links both to original database and new queries
-        for assignment, (query1, query2) in zip(assignments, iterDistRows(qlist1, qlist2, self=True)):
-            if assignment == within_label:
+        for assignment, (query1, query2) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
+            if assignment == model.within_label:
                 new_edges.append((query1, query2))
 
         # remove directory
@@ -208,7 +208,7 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     G.add_edges_from(new_edges)
 
 
-def printClusters(G, outPrefix):
+def printClusters(G, outPrefix, toPrint = None):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -218,6 +218,8 @@ def printClusters(G, outPrefix):
             Network used to define clusters (from :func:`~constructNetwork`)
         outPrefix (str)
             Prefix for output CSV (_clusters.csv)
+        toPrint (list)
+            If passed, print only IDs from this list
 
     Returns:
         clustering (dict)
@@ -228,7 +230,6 @@ def printClusters(G, outPrefix):
 
     # identify network components
     clusters = sorted(nx.connected_components(G), key=len, reverse=True)
-    cl_id = 1
     outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
 
     # print clustering to file
@@ -236,8 +237,9 @@ def printClusters(G, outPrefix):
         cluster_file.write("Taxon,Cluster\n")
         for cl_id, cluster in enumerate(clusters):
             for cluster_member in cluster:
-                cluster_file.write(",".join((cluster_member,str(cl_id))) + "\n")
                 clustering[cluster_member] = cl_id
+                if toPrint != None and cluster_member in toPrint:
+                    cluster_file.write(",".join((cluster_member,str(cl_id))) + "\n")
 
     return clustering
 

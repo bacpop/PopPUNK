@@ -18,7 +18,6 @@ from .mash import readPickle
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
-from .mash import assignQueriesToClusters
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
 
@@ -260,8 +259,8 @@ def main():
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
-            genomeNetwork.remove_nodes_from(set(refList).difference(referenceNames))
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+            genomeNetwork.remove_nodes_from(set(refList).difference(newReferencesNames))
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
 
         printQueryOutput(refList, queryList, distMat, args.output, self)
         nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
@@ -293,13 +292,13 @@ def main():
             # Assign clustering by adding to network
             addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
                     queryAssignments, model, args.ref_db, args.threads, args.mash)
-            isolateClustering = printClusters(genomeNetwork, args.output)
+            isolateClustering = printClusters(genomeNetwork, args.output, queryList)
 
             # update_db like no full_db
             if args.update_db:
                 newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes()).difference(referenceNames))
-                constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes()).difference(newReferencesNames))
+                constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True)
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
         else:
