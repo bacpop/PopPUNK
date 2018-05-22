@@ -89,10 +89,14 @@ def get_options():
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
 
+    # model fitting
     modelGroup = parser.add_argument_group('Model fit options')
     modelGroup.add_argument('--K', help='Maximum number of mixture components [default = 2]', type=int, default=2)
     modelGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model', default=False, action='store_true')
-
+    modelGroup.add_argument('--D', help='Maximum number of clusters in DBSCAN fitting [default = 100]', type=int, default=100)
+    modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
+    
+    # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',
             type=float, default=0.2)
@@ -103,6 +107,7 @@ def get_options():
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
 
+    # model output
     faGroup = parser.add_argument_group('Further analysis options')
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
@@ -112,6 +117,7 @@ def get_options():
     faGroup.add_argument('--info-csv',
                      help='Epidemiological information CSV formatted for microreact (with --microreact or --cytoscape)')
 
+    # processing
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
@@ -237,7 +243,7 @@ def main():
         # Run DBSCAN model
         elif args.dbscan:
             model = DBSCANFit(args.output)
-            assignments = model.fit(distMat, args.threads)
+            assignments = model.fit(distMat, args.threads, args.D, args.min_cluster_prop)
             model.plot()
         # Run Gaussian model
         else:

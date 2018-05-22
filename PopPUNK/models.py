@@ -11,6 +11,7 @@ import pickle
 from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
+from scipy import stats
 
 from .plot import plot_scatter
 
@@ -50,14 +51,17 @@ def loadClusterFit(pkl_file, npz_file):
     fit_data = np.load(npz_file)
 
     if fit_type == "bgmm":
+        print("Loading BGMM 2D Gaussian model",file=sys.stderr)
         load_obj = BGMMFit("")
         load_obj.load(fit_data, fit_object)
     elif fit_type == "dbscan":
+        print("Loading DBSCAN model",file=sys.stderr)
         load_obj = DBSCANFit("")
         load_obj.load(fit_data, fit_object)
     elif fit_type == "refine":
+        print("Loading previously refined model",file=sys.stderr)
         load_obj = RefineFit("")
-        load_obj.load(fit_data)
+        load_obj.load(fit_data, fit_object)
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
@@ -273,7 +277,7 @@ class DBSCANFit(ClusterFit):
         self.max_samples = max_samples
 
 
-    def fit(self, X, threads):
+    def fit(self, X, threads, D, min_cluster_prop):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances with HDBSCAN and returns assignments by calling
@@ -293,7 +297,7 @@ class DBSCANFit(ClusterFit):
                 Cluster assignments of samples in X
         '''
         ClusterFit.fit(self, X)
-        self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, threads)
+        self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, D, min_cluster_prop, threads)
         self.fitted = True
 
         # get within strain cluster
@@ -309,7 +313,7 @@ class DBSCANFit(ClusterFit):
 
         y = self.assign(X)
         self.within_label = findWithinLabel(self.cluster_means, y)
-        self.between_label = findBetweenLabel(self.cluster_means, y, self.within_label)
+        self.between_label = findBetweenLabel(y, self.within_label)
         return y
 
 
