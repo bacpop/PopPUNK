@@ -94,8 +94,9 @@ def get_options():
     modelGroup.add_argument('--K', help='Maximum number of mixture components [default = 2]', type=int, default=2)
     modelGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model', default=False, action='store_true')
     modelGroup.add_argument('--D', help='Maximum number of clusters in DBSCAN fitting [default = 100]', type=int, default=100)
-    modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
-    
+    modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
+                                                        'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
+
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',
@@ -243,7 +244,7 @@ def main():
         # Run DBSCAN model
         elif args.dbscan:
             model = DBSCANFit(args.output)
-            assignments = model.fit(distMat, args.threads, args.D, args.min_cluster_prop)
+            assignments = model.fit(distMat, args.D, args.min_cluster_prop, args.threads)
             model.plot()
         # Run Gaussian model
         else:

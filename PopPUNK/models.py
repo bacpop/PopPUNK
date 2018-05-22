@@ -8,6 +8,7 @@ import numpy as np
 import random
 import operator
 import pickle
+import shutil
 from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
@@ -277,7 +278,7 @@ class DBSCANFit(ClusterFit):
         self.max_samples = max_samples
 
 
-    def fit(self, X, threads, D, min_cluster_prop):
+    def fit(self, X, max_num_clusters, min_cluster_prop, threads = 1):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances with HDBSCAN and returns assignments by calling
@@ -289,31 +290,61 @@ class DBSCANFit(ClusterFit):
             X (numpy.array)
                 The core and accessory distances to cluster. Must be set if
                 preprocess is set.
+            max_num_clusters (int)
+                Maximum number of clusters in DBSCAN fitting
+            min_cluster_prop (float)
+                Minimum proportion of points in a cluster in DBSCAN fitting
             threads (int)
                 Number of cores to use while fitting
+
+                Default = 1
 
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
         '''
         ClusterFit.fit(self, X)
-        self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, D, min_cluster_prop, threads)
-        self.fitted = True
 
-        # get within strain cluster
-        self.max_cluster_num = self.labels.max()
-        self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
-        self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
-        self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+        # DBSCAN parameters
+        cache_out = "./" + outPrefix + "_cache"
+        min_samples = max(int(min_cluster_prop * X.shape[0]), 10)
+        min_cluster_size = max(int(0.01 * X.shape[0]), 10)
 
-        for i in range(self.max_cluster_num+1):
-            self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
-            self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
-            self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
+        indistinct_clustering = True
+        while indistinct_clustering and min_cluster_size >= min_samples:
+            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, min_samples, min_cluster_size, cache_out, threads)
+            self.fitted = True # needed for predict
 
-        y = self.assign(X)
-        self.within_label = findWithinLabel(self.cluster_means, y)
-        self.between_label = findBetweenLabel(y, self.within_label)
+            # Test whether model fit contains distinct clusters
+            if self.n_clusters > 1 and self.n_clusters <= max_num_clusters:
+                # get within strain cluster
+                self.max_cluster_num = self.labels.max()
+                self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
+                self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
+                self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+
+                for i in range(self.max_cluster_num+1):
+                    self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
+                    self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
+                    self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
+
+                y = self.assign(X)
+                self.within_label = findWithinLabel(self.cluster_means, y)
+                self.between_label = findBetweenLabel(y, self.within_label)
+
+                indistinct_clustering = evaluate_dbscan_clusters(self)
+
+            # Alter minimum cluster size criterion
+            min_cluster_size = int(min_cluster_size / 2)
+
+        # Report failure where it happens
+        if indistinct_clustering:
+            self.fitted = False
+            sys.stderr.write("Failed to find distinct clusters in this dataset\n")
+            sys.exit(1)
+        else:
+            shutil.rmtree(cache_out)
+
         return y
 
 
