@@ -108,6 +108,10 @@ def get_options():
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
 
+    # sequence querying
+    queryingGroup = parser.add_argument_group('Database querying options')
+    queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
+
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
@@ -291,10 +295,13 @@ def main():
             printQueryOutput(refList, queryList, distMat, args.output, self)
 
             # Assign these distances as within or between
-            model = loadClusterFit(args.ref_db + "/" + args.ref_db + '_fit.pkl',
-                                   args.ref_db + "/" + args.ref_db + '_fit.npz')
+            model_prefix = args.ref_db
+            if args.model_dir is not None:
+                model_prefix = args.model_dir
+            model = loadClusterFit(model_prefix + "/" + model_prefix + '_fit.pkl',
+                                   model_prefix + "/" + model_prefix + '_fit.npz')
             queryAssignments = model.assign(distMat)
-            genomeNetwork = nx.read_gpickle(args.ref_db + "/" + args.ref_db + '_graph.gpickle')
+            genomeNetwork = nx.read_gpickle(model_prefix + "/" + model_prefix + '_graph.gpickle')
 
             # Assign clustering by adding to network
             addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
