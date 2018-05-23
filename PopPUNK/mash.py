@@ -443,6 +443,7 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
                     else:
                         mashMatch = mashVals[-1].split('/')
                         (e_ref, e_query) = next(expected_names)
+                        print("test_match: "+str(mashVals[0])+"|"+str(e_ref)+" - "+str(mashVals[0] == e_ref)+"\t"+str(mashVals[1])+"|"+str(e_query)+" - "+str(mashVals[1] == e_query))
                         if mashVals[0] == e_ref and mashVals[1] == e_query:
                             raw[row, k_idx] = float(mashMatch[0])/int(mashMatch[1])
                             row += 1

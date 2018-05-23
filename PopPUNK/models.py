@@ -27,6 +27,7 @@ from .plot import plot_contours
 from .dbscan import fitDbScan
 from .dbscan import assign_samples_dbscan
 from .dbscan import findBetweenLabel
+from .dbscan import evaluate_dbscan_clusters
 from .plot import plot_dbscan_results
 
 # refine
@@ -306,7 +307,7 @@ class DBSCANFit(ClusterFit):
         ClusterFit.fit(self, X)
 
         # DBSCAN parameters
-        cache_out = "./" + outPrefix + "_cache"
+        cache_out = "./" + self.outPrefix + "_cache"
         min_samples = max(int(min_cluster_prop * X.shape[0]), 10)
         min_cluster_size = max(int(0.01 * X.shape[0]), 10)
 

@@ -72,10 +72,10 @@ def evaluate_dbscan_clusters(model):
     indistinct = True
 
     # calculate ranges of minima and maxima
-    core_minimum_of_between = model.cluster_mins[model.between_cluster,0]
-    core_maximum_of_within = model.cluster_maxs[model.within_cluster,0]
-    accessory_minimum_of_between = model.cluster_mins[model.between_cluster,1]
-    accessory_maximum_of_within = model.cluster_maxs[model.within_cluster,1]
+    core_minimum_of_between = model.cluster_mins[model.between_label,0]
+    core_maximum_of_within = model.cluster_maxs[model.within_label,0]
+    accessory_minimum_of_between = model.cluster_mins[model.between_label,1]
+    accessory_maximum_of_within = model.cluster_maxs[model.within_label,1]
 
     # evaluate whether maxima of cluster nearest origin do not
     # overlap with minima of cluster furthest from origin
