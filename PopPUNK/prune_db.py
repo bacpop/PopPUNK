@@ -16,6 +16,7 @@ from .mash import checkMashVersion
 from .mash import createDatabaseDir
 from .mash import storePickle
 from .mash import readPickle
+from .mash import iterDistRows
 from .mash import constructDatabase
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
@@ -56,9 +57,12 @@ def get_options():
 
 def main():
 
+    # Check input ok
     args = get_options()
-
     checkMashVersion(args.mash)
+    if args.resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
+        sys.stderr.write("Must provide original --ref-db if using --resketch\n")
+        sys.exit(1)
 
     # Read in old distances
     refList, queryList, self, distMat = readPickle(args.distances)
@@ -71,8 +75,7 @@ def main():
         for line in remove_file:
             remove_seqs_in.append(line.rstrip())
 
-    # First, sort lists in the same way
-    # Double loop could be sped up by sorting first, but assuming small number of removals
+    # Find list items to remove
     remove_seqs = []
     removal_indices = []
     for to_remove in remove_seqs_in:
@@ -87,14 +90,23 @@ def main():
             sys.stderr.write("Couldn't find " + to_remove + " in database\n")
 
     if len(remove_seqs) > 0:
-        sys.stderr.write("Removing " + int(len(remove_seqs)) + " sequences\n")
+        sys.stderr.write("Removing " + str(len(remove_seqs)) + " sequences\n")
 
         numNew = len(refList) - len(remove_seqs)
-        newDistMat = np.zeros((0.5 * numNew * (numNew - 1), 2))
+        newDistMat = np.zeros((int(0.5 * numNew * (numNew - 1)), 2))
 
         # Create new reference list iterator
-        newRefList = list(refList)
-        del newRefList[removal_indices]
+        removal_indices.sort()
+        removal_indices.reverse()
+        next_remove = removal_indices.pop()
+        newRefList = []
+        for idx, seq in enumerate(refList):
+            if idx == next_remove:
+                if len(removal_indices) > 0:
+                    next_remove = removal_indices.pop()
+            else:
+                newRefList.append(seq)
+
         newRowNames = iter(iterDistRows(newRefList, newRefList, self=True))
 
         # Copy over rows which don't have an excluded sequence
@@ -115,7 +127,7 @@ def main():
             sys.stderr.write("Resketching sequences\n")
 
             # Write names to file
-            tmpHandle, tmpName = mkstemp(prefix=args.output, suffix=".tmp", dir="./" + args.output)
+            tmpHandle, tmpName = mkstemp(prefix=args.output, suffix=".tmp", dir=".")
             with open(tmpName, 'w') as tmpRefFile:
                 for newRefSeq in newRefList:
                     tmpRefFile.write(newRefSeq + "\n")
@@ -127,6 +139,9 @@ def main():
             # Resketch all
             createDatabaseDir(args.output, kmers)
             constructDatabase(tmpName, kmers, sketch_sizes, args.output, args.threads, args.mash, True)
+
+            os.rename(args.output + ".pkl", args.output + "/" + args.output + ".pkl")
+            os.rename(args.output + ".npy", args.output + "/" + args.output + ".npy")
             os.remove(tmpName)
     else:
         sys.stderr.write("No sequences to remove\n")
