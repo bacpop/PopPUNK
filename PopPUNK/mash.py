@@ -636,3 +636,29 @@ def printQueryOutput(rlist, qlist, X, outPrefix, self):
         for i, (ref, query) in enumerate(names):
             oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
 
+def readFilteringList(fn):
+    """Read a list of assemblies that should be removed from the dataset
+        
+        Passes argument of filename, returns a list
+        
+        Args:
+            fn (string)
+                Name of newline-delimited list of sequences to be removed
+                
+        Returns:
+            flist (list)
+                List of strings of assemblies to be removed
+    """
+
+    # open and parse
+    flist = []
+    with open(fn, 'r') as filteringFile:
+        for line in filteringFile:
+            if len(line) > 1:
+                flist.append(line.rstrip())
+
+    return flist
+
+def filterData(rlist, qlist, self, X):
+
+    return rlist, qlist, self, X

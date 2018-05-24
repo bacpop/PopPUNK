@@ -20,6 +20,8 @@ from .mash import queryDatabase
 from .mash import printQueryOutput
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
+from .mash import readFilteringList
+from .mash import filterData
 
 from .models import *
 
@@ -51,6 +53,10 @@ def get_options():
             action='store_true')
     mode.add_argument('--create-db',
             help='Create pairwise distances database between reference sequences',
+            default=False,
+            action='store_true')
+    mode.add_argument('--filter-database',
+            help='Remove isolates from dataset following calculation of distances',
             default=False,
             action='store_true')
     mode.add_argument('--fit-model',
@@ -96,6 +102,10 @@ def get_options():
     modelGroup.add_argument('--D', help='Maximum number of clusters in DBSCAN fitting [default = 100]', type=int, default=100)
     modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
                                                         'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
+
+    # sequence filtering
+    filteringGroup = parser.add_argument_group('Sequence filtering options')
+    filteringGroup.add_argument('--f-files', help='File listing assemblies to remove from distance estimation')
 
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
@@ -320,6 +330,35 @@ def main():
                              "query list with --q-files\n")
             sys.exit(1)
 
+
+    elif args.filter_database:
+        
+        # check on command line input
+        if args.distances is not None and args.ref_db is not None and args.f_files is not None:
+            distances = args.distances
+            ref_db = args.ref_db
+            filter_file = args.f_files
+        else:
+            sys.stderr.write("Need to provide an input set of distances with --distances "
+                             "and reference database directory with --ref-db\n\n")
+            sys.exit(1)
+        
+        # load list of isolates to be removed
+        filterList = readFilteringList(filter_file)
+        print(str(filterList))
+        exit(0)
+            
+        # load original data
+        refList, queryList, self, distMat = readPickle(distances)
+
+        # get filtered lists with unwanted sequences removed
+        filtered_refList, filtered_queryList, self, filtered_distMat = filterData(refList, queryList, self, distMat)
+
+        # resketch the remaining sequences
+        # should look for a more efficient way of extracting individual sketches
+        # from hash files
+
+        # save output to pickle
 
     sys.stderr.write("\nDone\n")
 
