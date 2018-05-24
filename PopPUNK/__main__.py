@@ -12,6 +12,7 @@ import subprocess
 # import poppunk package
 from .__init__ import __version__
 
+from .mash import checkMashVersion
 from .mash import createDatabaseDir
 from .mash import storePickle
 from .mash import readPickle
@@ -20,8 +21,6 @@ from .mash import queryDatabase
 from .mash import printQueryOutput
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
-from .mash import readFilteringList
-from .mash import filterData
 
 from .models import *
 
@@ -103,10 +102,6 @@ def get_options():
     modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
                                                         'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
 
-    # sequence filtering
-    filteringGroup = parser.add_argument_group('Sequence filtering options')
-    filteringGroup.add_argument('--f-files', help='File listing assemblies to remove from distance estimation')
-
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = 0.2]',
@@ -148,15 +143,7 @@ def main():
     args = get_options()
 
     # check mash is installed
-    p = subprocess.Popen([args.mash + ' --version'], shell=True, stdout=subprocess.PIPE)
-    version = 0
-    for line in iter(p.stdout.readline, ''):
-        if line != '':
-            version = line.rstrip().decode().split(".")[0]
-            break
-    if not version.isdigit() or int(version) < 2:
-        sys.stderr.write("Need mash v2 or higher\n")
-        sys.exit(0)
+    checkMashVersion(args.mash)
 
     # identify kmer properties
     minkmer = 9
@@ -330,35 +317,6 @@ def main():
                              "query list with --q-files\n")
             sys.exit(1)
 
-
-    elif args.filter_database:
-        
-        # check on command line input
-        if args.distances is not None and args.ref_db is not None and args.f_files is not None:
-            distances = args.distances
-            ref_db = args.ref_db
-            filter_file = args.f_files
-        else:
-            sys.stderr.write("Need to provide an input set of distances with --distances "
-                             "and reference database directory with --ref-db\n\n")
-            sys.exit(1)
-        
-        # load list of isolates to be removed
-        filterList = readFilteringList(filter_file)
-        print(str(filterList))
-        exit(0)
-            
-        # load original data
-        refList, queryList, self, distMat = readPickle(distances)
-
-        # get filtered lists with unwanted sequences removed
-        filtered_refList, filtered_queryList, self, filtered_distMat = filterData(refList, queryList, self, distMat)
-
-        # resketch the remaining sequences
-        # should look for a more efficient way of extracting individual sketches
-        # from hash files
-
-        # save output to pickle
 
     sys.stderr.write("\nDone\n")
 

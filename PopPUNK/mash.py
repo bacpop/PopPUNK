@@ -20,6 +20,24 @@ from scipy import optimize
 
 from .plot import plot_fit
 
+def checkMashVersion(mash_exec):
+    """Checks that mash can be run, and is version 2 or higher.
+    Exits if version < 2.
+
+    Args:
+        mash_exec (str)
+            Location of mash executable
+    """
+    p = subprocess.Popen([mash_exec + ' --version'], shell=True, stdout=subprocess.PIPE)
+    version = 0
+    for line in iter(p.stdout.readline, ''):
+        if line != '':
+            version = line.rstrip().decode().split(".")[0]
+            break
+    if not version.isdigit() or int(version) < 2:
+        sys.stderr.write("Need mash v2 or higher\n")
+        sys.exit(1)
+
 def getDatabaseName(prefix, k):
     """Gets the name for the mash database for a given k size
 
@@ -443,7 +461,6 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
                     else:
                         mashMatch = mashVals[-1].split('/')
                         (e_ref, e_query) = next(expected_names)
-                        print("test_match: "+str(mashVals[0])+"|"+str(e_ref)+" - "+str(mashVals[0] == e_ref)+"\t"+str(mashVals[1])+"|"+str(e_query)+" - "+str(mashVals[1] == e_query))
                         if mashVals[0] == e_ref and mashVals[1] == e_query:
                             raw[row, k_idx] = float(mashMatch[0])/int(mashMatch[1])
                             row += 1
@@ -636,29 +653,3 @@ def printQueryOutput(rlist, qlist, X, outPrefix, self):
         for i, (ref, query) in enumerate(names):
             oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
 
-def readFilteringList(fn):
-    """Read a list of assemblies that should be removed from the dataset
-        
-        Passes argument of filename, returns a list
-        
-        Args:
-            fn (string)
-                Name of newline-delimited list of sequences to be removed
-                
-        Returns:
-            flist (list)
-                List of strings of assemblies to be removed
-    """
-
-    # open and parse
-    flist = []
-    with open(fn, 'r') as filteringFile:
-        for line in filteringFile:
-            if len(line) > 1:
-                flist.append(line.rstrip())
-
-    return flist
-
-def filterData(rlist, qlist, self, X):
-
-    return rlist, qlist, self, X
