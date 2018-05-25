@@ -12,7 +12,7 @@ import pickle
 # hdbscan
 import hdbscan
 
-def fitDbScan(X, outPrefix, min_samples, min_cluster_size, cache_out, threads = 1):
+def fitDbScan(X, outPrefix, min_samples, min_cluster_size, cache_out):
     """Function to fit DBSCAN model as an alternative to the Gaussian
 
     Fits the DBSCAN model to the distances using hdbscan
@@ -28,10 +28,6 @@ def fitDbScan(X, outPrefix, min_samples, min_cluster_size, cache_out, threads = 
             Minimum number of points in a cluster for HDBSCAN
         cache_out (str)
             Prefix for DBSCAN cache used for refitting
-        threads (int)
-            Number of threads to use in parallelisation of dbscan model fitting
-
-            Default = 1
 
     Returns:
         hdb (hdbscan.HDBSCAN)
@@ -44,7 +40,7 @@ def fitDbScan(X, outPrefix, min_samples, min_cluster_size, cache_out, threads = 
     # set DBSCAN clustering parameters
     hdb = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
                      min_samples = min_samples,
-                     core_dist_n_jobs = threads,
+                     #core_dist_n_jobs = threads, # may cause error, see #19
                      memory = cache_out,
                      prediction_data = True,
                      min_cluster_size = min_cluster_size

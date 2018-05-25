@@ -240,7 +240,7 @@ Clustering can also be performed by using DBSCAN, which uses the
 `HDBSCAN* library <http://hdbscan.readthedocs.io/en/latest/>`__. Run the same
 ``fit-model`` command as above, but add the ``--dbscan`` option::
 
-   poppunk-runner.py --fit-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --dbscan --threads 4
+   poppunk-runner.py --fit-model --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db --dbscan
 
 The output is as follows::
 
@@ -359,13 +359,10 @@ The following command line options can be used in this mode:
 
    Other options:
      --mash MASH           Location of mash executable
-     --threads THREADS     Number of threads to use during database querying
-                           [default = 1]
 
 .. note::
    If using the default mixture model threads will only be used if ``--full-db``
    is *not* specified and sketching of the representatives is performed at the end.
-   Threads are used for ``--dbscan``.
 
 .. _refine-model:
 

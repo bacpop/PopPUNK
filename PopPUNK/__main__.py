@@ -245,7 +245,7 @@ def main():
         # Run DBSCAN model
         elif args.dbscan:
             model = DBSCANFit(args.output)
-            assignments = model.fit(distMat, args.D, args.min_cluster_prop, args.threads)
+            assignments = model.fit(distMat, args.D, args.min_cluster_prop)
             model.plot()
         # Run Gaussian model
         else:

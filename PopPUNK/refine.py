@@ -192,6 +192,10 @@ def readManualStart(startFile):
         start_s (float)
             Distance along line between mean0 and mean1 to start at
     """
+    start_s = None
+    mean0 = None
+    mean1 = None
+
     with open(startFile, 'r') as start:
         for line in start:
             (param, value) = line.rstrip().split()
@@ -208,6 +212,8 @@ def readManualStart(startFile):
             elif param == 'start_point':
                 start_s = float(value)
     try:
+        if mean0 == None or mean1 == None or start_s == None:
+            raise RuntimeError('All of mean0, mean1 and start_s must all be set')
         if mean0.shape != (2,) or mean1.shape != (2,):
             raise RuntimeError('Wrong size for values')
         check_vals = np.hstack([mean0, mean1, start_s])

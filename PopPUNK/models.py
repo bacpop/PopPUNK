@@ -279,7 +279,7 @@ class DBSCANFit(ClusterFit):
         self.max_samples = max_samples
 
 
-    def fit(self, X, max_num_clusters, min_cluster_prop, threads = 1):
+    def fit(self, X, max_num_clusters, min_cluster_prop):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances with HDBSCAN and returns assignments by calling
@@ -295,10 +295,6 @@ class DBSCANFit(ClusterFit):
                 Maximum number of clusters in DBSCAN fitting
             min_cluster_prop (float)
                 Minimum proportion of points in a cluster in DBSCAN fitting
-            threads (int)
-                Number of cores to use while fitting
-
-                Default = 1
 
         Returns:
             y (numpy.array)
@@ -313,7 +309,7 @@ class DBSCANFit(ClusterFit):
 
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples:
-            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, min_samples, min_cluster_size, cache_out, threads)
+            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, min_samples, min_cluster_size, cache_out)
             self.fitted = True # needed for predict
 
             # Test whether model fit contains distinct clusters
