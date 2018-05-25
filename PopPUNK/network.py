@@ -238,7 +238,7 @@ def printClusters(G, outPrefix, toPrint = None):
         for cl_id, cluster in enumerate(clusters):
             for cluster_member in cluster:
                 clustering[cluster_member] = cl_id
-                if toPrint != None and cluster_member in toPrint:
+                if toPrint == None or cluster_member in toPrint:
                     cluster_file.write(",".join((cluster_member,str(cl_id))) + "\n")
 
     return clustering
