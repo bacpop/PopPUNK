@@ -483,7 +483,6 @@ class RefineFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments of samples in X
         '''
-
         ClusterFit.fit(self)
         self.scale = np.copy(model.scale)
         self.max_move = max_move
@@ -512,8 +511,13 @@ class RefineFit(ClusterFit):
             # Optimize to find point of decision boundary along this line as starting point
             self.mean0 = model.means[model.within_label, :]
             self.mean1 = model.means[model.between_label, :]
-            self.start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(self.mean0, self.mean1),
+            try:
+                self.start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(self.mean0, self.mean1),
                              args = (model, self.mean0, self.mean1, model.within_label, model.between_label))
+            except ValueError:
+                sys.stderr.write("Could not find start point for refinement; intial model fit likely bad\n"
+                                 "Try using --manual-start\n")
+                sys.exit(1)
         else:
             raise RuntimeError("Unrecognised model type")
 
