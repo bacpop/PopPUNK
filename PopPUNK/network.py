@@ -208,39 +208,112 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     G.add_edges_from(new_edges)
 
 
-def printClusters(G, outPrefix, toPrint = None):
+def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
 
     Args:
         G (networkx.Graph)
-            Network used to define clusters (from :func:`~constructNetwork`)
+            Network used to define clusters (from :func:`~constructNetwork` or
+            :func:`~addQueryToNetwork`)
         outPrefix (str)
             Prefix for output CSV (_clusters.csv)
-        toPrint (list)
-            If passed, print only IDs from this list
+        oldClusterFile (str)
+            CSV with previous cluster assignments.
+            Pass to ensure consistency in cluster assignment name.
+
+            Default = None
+        printRef (bool)
+            If false, print only query sequences in the output
+
+            Default = True
 
     Returns:
         clustering (dict)
             Dictionary of cluster assignments (keys are sequence names)
+        new_ref_db (list)
+            Sequence names which need to be added if using ``--update-db``
     """
-    # data structure
-    clustering = {}
+    if oldClusterFile == None and printRef == False:
+        raise RuntimeError("Trying to print query clusters with no query sequences")
 
-    # identify network components
-    clusters = sorted(nx.connected_components(G), key=len, reverse=True)
-    outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
+    newClusters = sorted(nx.connected_components(G), key=len, reverse=True)
+
+    if oldClusterFile != None:
+        oldClusters = readClusters(oldClusterFile)
+        new_id = len(oldClusters)
+
+        # Samples in previous clustering
+        oldNames = set(oldClusters.values()) # TODO need to collapse the sets
+
+    # Assign each cluster a name
+    clustering = {}
+    new_ref_db = []
+    for newClsIdx, newCluster in enumerate(newClusters):
+        # Ensure consistency with previous labelling
+        if oldClusterFile != None:
+            cls_id = None
+
+            # Samples in this cluster that are not queries
+            ref_only = oldNames.intersect(newCluster)
+
+            # A cluster with no previous observations
+            if len(ref_match) == 0:
+                cls_id = new_id
+                new_id += 1
+                new_ref_db.append(newCluster[0])
+            else:
+                # Search through old cluster IDs to find a match
+                for oldClusterName, oldClusterMembers in oldClusters:
+                    join = ref_only.intersect(oldClusterMembers)
+                    if len(join) > 0:
+                        # Query has merged clusters
+                        if len(join) < len(ref_only):
+                            if cls_id == None:
+                                cls_id = oldClusterName
+                            else:
+                                cls_id += "_" + oldClusterName
+                        elif len(join) == len(ref_only):
+                            assert cls_id == None # should not have already been part of a merge
+                            cls_id == oldClusterName
+                            break
+
+        # Otherwise just number sequentially
+        else:
+            cls_id = newClsIdx
+
+        for cluster_member in newCluster:
+            clustering[cluster_member] = cls_id
 
     # print clustering to file
+    outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
-        for cl_id, cluster in enumerate(clusters):
-            for cluster_member in cluster:
-                clustering[cluster_member] = cl_id
-                if toPrint == None or cluster_member in toPrint:
-                    cluster_file.write(",".join((cluster_member,str(cl_id))) + "\n")
+        for cl_id, cluster_member in sorted(clustering, key=len, reverse=True):
+            if printRef or cluster_member in oldNames:
+                cluster_file.write(",".join((cluster_member, cl_id)) + "\n")
 
-    return clustering
+    return clustering, new_ref_db
 
+def readClusters(clustCSV)
+    """Read a previous reference clustering from CSV
 
+    Args:
+        clustCSV (str)
+            File name of CSV with previous cluster assingments
+
+    Returns:
+        clusters (dict)
+            Dictionary of cluster assignments (keys are cluster names, values are
+            sets containing samples in the cluster)
+    """
+    clusters = defaultdict(set)
+
+    with open(clustCSV, 'r') as csv_file:
+        header = csv_file.readline()
+        for line in csv_file:
+            (clust_id, sample) = line.rstrip().split(",")
+            clusters[clust_id].add(sample)
+
+    return clusters
