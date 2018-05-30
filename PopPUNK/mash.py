@@ -217,6 +217,52 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 
     return seqs
 
+def joinDBs(db1, db2, klist, mash_exec = 'mash'):
+    """Join two mash sketch databases with ``mash paste``
+
+    Args:
+        db1 (str)
+            Prefix for db1. Used for new joined database
+        db2 (str)
+            Prefix for db2
+        klist (list)
+            List of k-mer sizes to sketch
+        mash_exec (str)
+            Location of mash executable
+
+            (default = 'mash')
+    """
+    for kmer in klist:
+        try:
+            join_name = db1 + "/" + db1 + "." + str(kmer) + ".joined"
+            db1_name = db1 + "/" + db1 + "." + str(kmer) + ".msh"
+            db2_name = db2 + "/" + db2 + "." + str(kmer) + ".msh"
+
+            mash_cmd = mash_exec + " paste " + join_name + " " + db1_name + " " + db2_name
+            subprocess.run(mash_cmd, shell=True, check=True)
+            os.rename(join_name + ".msh", db1_name)
+        except subprocess.CalledProcessError as e:
+            sys.stderr.write("Could not run command " + mash_cmd + "; returned: " + e.message + "\n")
+            sys.exit(1)
+
+def writeTmpFile(fileList):
+    """Writes a list to a temporary file. Used for turning variable into mash
+    input.
+
+    Args:
+        fileList (list)
+            List of files to write to file
+    Returns:
+        tmpName (str)
+            Name of temp file list written to
+    """
+    tmpHandle, tmpName = mkstemp(suffix=".tmp", dir=".")
+    with open(tmpName, 'w') as tmpFile:
+        for fileName in fileList:
+            tmpFile.write(fileName + "\n")
+
+    return tmpName
+
 def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash', overwrite = False):
     """Sketch the input assemblies at the requested k-mer lengths
 
@@ -228,8 +274,8 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
     in assemblyList.
 
     Args:
-        assemblyList (list)
-            Locations of assembly files to be sketched
+        assemblyList (str)
+            File with locations of assembly files to be sketched
         klist (list)
             List of k-mer sizes to sketch
         sketch (int)
@@ -473,8 +519,9 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
             if no_stream:
                 os.remove(tmpName)
             else:
+                rawOutput.wait(timeout=1)
                 if rawOutput.poll() != 0:
-                    raise RuntimeError('mash dist command "'+mash_cmd+'" failed with raw output '+str(rawOutput.poll()))
+                    raise RuntimeError('mash dist command "' + mash_cmd + '" failed with raw output ' + str(rawOutput.poll()))
                 else:
                     os.remove(dbPrefix + ".err.log")
 
