@@ -308,7 +308,7 @@ class DBSCANFit(ClusterFit):
         min_cluster_size = max(int(0.01 * X.shape[0]), 10)
 
         indistinct_clustering = True
-        while indistinct_clustering and min_cluster_size >= min_samples:
+        while indistinct_clustering and min_cluster_size >= min_samples and min_samples > 10:
             self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, min_samples, min_cluster_size, cache_out)
             self.fitted = True # needed for predict
 
@@ -332,6 +332,8 @@ class DBSCANFit(ClusterFit):
                 indistinct_clustering = evaluate_dbscan_clusters(self)
 
             # Alter minimum cluster size criterion
+            if min_cluster_size < min_samples / 2:
+                min_samples = min_samples // 10
             min_cluster_size = int(min_cluster_size / 2)
 
         # Report failure where it happens
