@@ -6,6 +6,7 @@ import sys
 import re
 # additional
 import glob
+import operator
 import shutil
 import subprocess
 import networkx as nx
@@ -245,7 +246,10 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
         new_id = len(oldClusters)
 
         # Samples in previous clustering
-        oldNames = set(oldClusters.values()) # TODO need to collapse the sets
+        oldNames = set()
+        for prev_cluster in oldClusters.values():
+            for prev_sample in prev_cluster:
+                oldNames.add(prev_sample)
 
     # Assign each cluster a name
     clustering = {}
@@ -256,17 +260,17 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
             cls_id = None
 
             # Samples in this cluster that are not queries
-            ref_only = oldNames.intersect(newCluster)
+            ref_only = oldNames.intersection(newCluster)
 
             # A cluster with no previous observations
-            if len(ref_match) == 0:
+            if len(ref_only) == 0:
                 cls_id = new_id
                 new_id += 1
-                new_ref_db.append(newCluster[0])
+                new_ref_db.append(list(newCluster)[0])
             else:
                 # Search through old cluster IDs to find a match
-                for oldClusterName, oldClusterMembers in oldClusters:
-                    join = ref_only.intersect(oldClusterMembers)
+                for oldClusterName, oldClusterMembers in oldClusters.items():
+                    join = ref_only.intersection(oldClusterMembers)
                     if len(join) > 0:
                         # Query has merged clusters
                         if len(join) < len(ref_only):
@@ -274,9 +278,10 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
                                 cls_id = oldClusterName
                             else:
                                 cls_id += "_" + oldClusterName
+                        # Exact match -> same name as before
                         elif len(join) == len(ref_only):
                             assert cls_id == None # should not have already been part of a merge
-                            cls_id == oldClusterName
+                            cls_id = oldClusterName
                             break
 
         # Otherwise just number sequentially
@@ -290,13 +295,13 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
     outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
-        for cl_id, cluster_member in sorted(clustering, key=len, reverse=True):
+        for cluster_member in sorted(clustering, key=operator.itemgetter(0)):
             if printRef or cluster_member in oldNames:
-                cluster_file.write(",".join((cluster_member, cl_id)) + "\n")
+                cluster_file.write(",".join((cluster_member, str(clustering[cluster_member]))) + "\n")
 
-    return clustering, new_ref_db
+    return(clustering, new_ref_db)
 
-def readClusters(clustCSV)
+def readClusters(clustCSV):
     """Read a previous reference clustering from CSV
 
     Args:
@@ -313,7 +318,7 @@ def readClusters(clustCSV)
     with open(clustCSV, 'r') as csv_file:
         header = csv_file.readline()
         for line in csv_file:
-            (clust_id, sample) = line.rstrip().split(",")
+            (sample, clust_id) = line.rstrip().split(",")
             clusters[clust_id].add(sample)
 
     return clusters

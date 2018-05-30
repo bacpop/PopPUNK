@@ -17,6 +17,7 @@ from .mash import createDatabaseDir
 from .mash import storePickle
 from .mash import readPickle
 from .mash import joinDBs
+from .mash import writeTmpFile
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
@@ -305,14 +306,17 @@ def main():
             addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
                     queryAssignments, model, args.ref_db, args.threads, args.mash)
             isolateClustering, newRefs = printClusters(genomeNetwork, args.output,
-                    model_prefix + "/" + model_prefix + '_distances.csv')
+                    model_prefix + "/" + model_prefix + '_clusters.csv', False)
 
             # update_db like no full_db
             if args.update_db:
                 genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
-                constructDatabase(newRefs, kmers, sketch_sizes, args.output, args.threads, args.mash, False)
-                joinDBs(args.ref_db, args.output)
+
+                tmpRefFile = writeTmpFile(newRefs)
+                constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
+                joinDBs(args.output, args.ref_db, kmers)
+                os.remove(tmpRefFile)
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and "
                              "query list with --q-files\n")
