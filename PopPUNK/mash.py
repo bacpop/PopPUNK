@@ -170,9 +170,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
                         break
 
-            mash_info.wait(timeout=15)
-            if mash_info.poll() != 0:
-                raise RuntimeError('mash info command "'+mash_cmd+'" failed with raw output '+str(mash_info.poll()))
+            mash_info.kill()
 
         except subprocess.CalledProcessError as e:
             sys.stderr.write("Could not get info about " + dbname + "; command " + mash_exec +
