@@ -9,6 +9,9 @@ explaining when to use each one. In places we refer to :doc:`troubleshooting`
 which explains how to deal with common problems when the defaults don't quite
 work.
 
+The first two steps can be run together in a single command using ``--easy-run``,
+which in many cases will work without need for further modification.
+
 In this tutorial we will work with the Salmonella genomes reviewed by `Alikhan
 et al <https://doi.org/10.1371/journal.pgen.1007261>`_ which can be downloaded
 from `EnteroBase <https://enterobase.warwick.ac.uk/species/senterica/search_strains?query=workspace:9641>`_.
@@ -289,6 +292,7 @@ Output files
 ^^^^^^^^^^^^
 * strain_db.search.out -- the core and accessory distances between all
   pairs.
+* strain_db_graph.gpickle -- the network used to predict clusters.
 * strain_db_DPGMM_fit.png -- scatter plot of all distances, and mixture model
   fit and assignment.
 * strain_db_DPGMM_fit_contours.png -- contours of likelihood function fitted to
@@ -346,6 +350,11 @@ The following command line options can be used in this mode:
    Model fit options:
      --K K                 Maximum number of mixture components [default = 2]
      --dbscan              Use DBSCAN rather than mixture model
+     --D D                 Maximum number of clusters in DBSCAN fitting [default
+                           = 100]
+     --min-cluster-prop MIN_CLUSTER_PROP
+                           Minimum proportion of points in a cluster in DBSCAN
+                           fitting [default = 0.0001]
 
    Further analysis options:
      --microreact          Generate output files for microreact visualisation
@@ -445,7 +454,7 @@ Relevant command line options
 The following command line options can be used in this mode:
 
    Mode of operation:
-     --refine-model           Fit a mixture model to a reference database
+     --refine-model        Refine the accuracy of a fitted model
 
    Input files:
      --ref-db REF_DB       Location of built reference database
@@ -488,4 +497,182 @@ The following command line options can be used in this mode:
 .. note::
    Threads are used for the global optimisation step only. If the local
    optimisation step is slow, turn it off with ``--no-local``.
+
+Assigning queries
+-----------------
+Once a database has been built and a model fitted (either in one step with
+``--easy-run``, or having run both steps separately) new sequences can be
+assigned to a cluster using ``--assign-queries``. This process is much quicker
+than building a database of all sequences from scratch, and will use the same model fit as
+before. Cluster names will not change, unless queries cause clusters to be
+merged (in which case they will be the previous cluster names, underscore separated).
+
+Having created a file listing the new sequences to assign ``query_list.txt``,
+the command to assign a cluster to new sequences is::
+
+   poppunk --assign-query --ref-db strain_db --q-files query_list.txt --output strain_query --threads 3 --update-db
+
+Where *strain_db* is the output of the previous ``PopPUNK`` commands,
+containing the model fit and distances.
+
+.. note::
+   It is possible to specify a model fit in a separate directory from the
+   distance sketches using ``--model-dir``.
+
+First, distances between queries and
+sequences in the reference database will be calculated. The model fit (whether mixture model,
+DBSCAN or refined) will be loaded and used to determine matches to existing
+clusters::
+
+   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+   Mode: Assigning clusters of query sequences
+
+   Creating mash database for k = 15
+   Random 15-mer probability: 0.00
+   Creating mash database for k = 13
+   Random 13-mer probability: 0.04
+   Creating mash database for k = 17
+   Random 17-mer probability: 0.00
+   Creating mash database for k = 19
+   Random 19-mer probability: 0.00
+   Creating mash database for k = 21
+   Random 21-mer probability: 0.00
+   Creating mash database for k = 23
+   Random 23-mer probability: 0.00
+   Creating mash database for k = 25
+   Random 25-mer probability: 0.00
+   Creating mash database for k = 27
+   Random 27-mer probability: 0.00
+   Creating mash database for k = 29
+   Random 29-mer probability: 0.00
+   mash dist -p 3 ./strain_db/strain_db.13.msh ./strain_query/strain_query.13.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.15.msh ./strain_query/strain_query.15.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.17.msh ./strain_query/strain_query.17.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.19.msh ./strain_query/strain_query.19.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.21.msh ./strain_query/strain_query.21.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.23.msh ./strain_query/strain_query.23.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.25.msh ./strain_query/strain_query.25.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.27.msh ./strain_query/strain_query.27.msh 2> strain_db.err.log
+   mash dist -p 3 ./strain_db/strain_db.29.msh ./strain_query/strain_query.29.msh 2> strain_db.err.log
+   Calculating core and accessory distances
+   Loading DBSCAN model
+
+If query sequences were found which didn't match an existing cluster they will
+start a new cluster. ``PopPUNK`` will check whether any of these novel clusters
+should be merged, based on the model fit::
+
+   Found novel query clusters. Calculating distances between them:
+   Creating mash database for k = 13
+   Random 13-mer probability: 0.04
+   Creating mash database for k = 15
+   Random 15-mer probability: 0.00
+   Creating mash database for k = 17
+   Random 17-mer probability: 0.00
+   Creating mash database for k = 19
+   Random 19-mer probability: 0.00
+   Creating mash database for k = 21
+   Random 21-mer probability: 0.00
+   Creating mash database for k = 23
+   Random 23-mer probability: 0.00
+   Creating mash database for k = 25
+   Random 25-mer probability: 0.00
+   Creating mash database for k = 27
+   Random 27-mer probability: 0.00
+   Creating mash database for k = 29
+   Random 29-mer probability: 0.00
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.13.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.13.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.15.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.15.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.17.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.17.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.19.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.19.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.21.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.21.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.23.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.23.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.25.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.25.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.27.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.27.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   mash dist -p 3 ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.29.msh ././strain_dbij_sqnjr_tmp/./strain_dbij_sqnjr_tmp.29.msh 2> ./strain_dbij_sqnjr_tmp.err.log
+   Calculating core and accessory distances
+
+At this point, cluster assignments for the query sequences are written to a CSV
+file. Finally, if new clusters were created due to the queries, the database
+will be updated to reflect this if ``--update-db`` was used::
+
+   Creating mash database for k = 13
+   Random 13-mer probability: 0.04
+   Overwriting db: ./strain_query/strain_query.13.msh
+   Creating mash database for k = 15
+   Random 15-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.15.msh
+   Creating mash database for k = 17
+   Random 17-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.17.msh
+   Creating mash database for k = 19
+   Random 19-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.19.msh
+   Creating mash database for k = 21
+   Random 21-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.21.msh
+   Creating mash database for k = 23
+   Random 23-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.23.msh
+   Creating mash database for k = 25
+   Random 25-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.25.msh
+   Creating mash database for k = 27
+   Random 27-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.27.msh
+   Creating mash database for k = 29
+   Random 29-mer probability: 0.00
+   Overwriting db: ./strain_query/strain_query.29.msh
+   Writing strain_query/strain_query.13.joined.msh...
+   Writing strain_query/strain_query.15.joined.msh...
+   Writing strain_query/strain_query.17.joined.msh...
+   Writing strain_query/strain_query.19.joined.msh...
+   Writing strain_query/strain_query.21.joined.msh...
+   Writing strain_query/strain_query.23.joined.msh...
+   Writing strain_query/strain_query.25.joined.msh...
+   Writing strain_query/strain_query.27.joined.msh...
+   Writing strain_query/strain_query.29.joined.msh...
+
+   Done
+
+.. note::
+   For future uses of ``--assign-query``, the database now stored in
+   ``strain-query`` should be used as the ``--ref-db`` argument.
+
+Output files
+^^^^^^^^^^^^
+The main output is *strain_query/strain_query_clusters.csv*, which contains the
+cluster assignments of the query sequences, ordered by frequency.
+
+If ``--update-db`` was used a full updated database will be written to
+``--output``, which consists of sketches at each k-mer length (*\*.msh*),
+a *search.out* file of distances, and a *.gpickle* of the network.
+
+Relevant command line options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The following command line options can be used in this mode:
+
+   Mode of operation:
+     --assign-query        Assign the cluster of query sequences without re-
+                           running the whole mixture model
+
+   Input files:
+     --ref-db REF_DB       Location of built reference database
+     --q-files Q_FILES     File listing query input assemblies
+
+   Output options:
+     --output OUTPUT       Prefix for output files (required)
+     --update-db           Update reference database with query sequences
+
+   Database querying options:
+     --model-dir MODEL_DIR
+                           Directory containing model to use for assigning
+                           queries to clusters [default = reference database
+                           directory]
+
+   Other options:
+     --mash MASH           Location of mash executable
+     --threads THREADS     Number of threads to use [default = 1]
+     --no-stream           Use temporary files for mash dist interfacing. Reduce
+                           memory use/increase disk use for large datasets
+     --version             show program's version number and exit
 

@@ -56,10 +56,6 @@ def get_options():
             help='Create pairwise distances database between reference sequences',
             default=False,
             action='store_true')
-    mode.add_argument('--filter-database',
-            help='Remove isolates from dataset following calculation of distances',
-            default=False,
-            action='store_true')
     mode.add_argument('--fit-model',
             help='Fit a mixture model to a reference database',
             default=False,
@@ -309,7 +305,7 @@ def main():
                     model_prefix + "/" + model_prefix + '_clusters.csv', False)
 
             # update_db like no full_db
-            if args.update_db:
+            if args.update_db and len(new_refs) > 0:
                 genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 

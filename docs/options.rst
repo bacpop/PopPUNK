@@ -4,18 +4,18 @@ Options
 Usage::
 
    usage: PopPUNK [-h]
-               (--easy-run | --create-db | --fit-model | --refine-model | --create-query-db | --assign-query)
+               (--easy-run | --create-db | --fit-model | --refine-model | --assign-query)
                [--ref-db REF_DB] [--r-files R_FILES] [--q-files Q_FILES]
-               [--distances DISTANCES] --output OUTPUT [--save-distances]
-               [--plot-fit PLOT_FIT] [--full-db] [--update-db] [--overwrite]
-               [--min-k MIN_K] [--max-k MAX_K] [--k-step K_STEP]
-               [--sketch-size SKETCH_SIZE] [--K K] [--dbscan]
-               [--pos-shift POS_SHIFT] [--neg-shift NEG_SHIFT]
-               [--manual-start MANUAL_START] [--no-local] [--microreact]
+               [--distances DISTANCES] --output OUTPUT [--plot-fit PLOT_FIT]
+               [--full-db] [--update-db] [--overwrite] [--min-k MIN_K]
+               [--max-k MAX_K] [--k-step K_STEP] [--sketch-size SKETCH_SIZE]
+               [--K K] [--dbscan] [--D D]
+               [--min-cluster-prop MIN_CLUSTER_PROP] [--pos-shift POS_SHIFT]
+               [--neg-shift NEG_SHIFT] [--manual-start MANUAL_START]
+               [--no-local] [--model-dir MODEL_DIR] [--microreact]
                [--cytoscape] [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
                [--info-csv INFO_CSV] [--mash MASH] [--threads THREADS]
                [--no-stream] [--version]
-
    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
 
 Command line options
@@ -29,8 +29,6 @@ Command line options
                            sequences
      --fit-model           Fit a mixture model to a reference database
      --refine-model        Refine the accuracy of a fitted model
-     --create-query-db     Create distances between query sequences and a
-                           reference database
      --assign-query        Assign the cluster of query sequences without re-
                            running the whole mixture model
 
@@ -43,8 +41,6 @@ Command line options
 
    Output options:
      --output OUTPUT       Prefix for output files (required)
-     --save-distances      Store pickle of calculated distances for query
-                           sequences
      --plot-fit PLOT_FIT   Create this many plots of some fits relating k-mer to
                            core/accessory distances [default = 0]
      --full-db             Keep full reference database, not just representatives
@@ -61,6 +57,11 @@ Command line options
    Model fit options:
      --K K                 Maximum number of mixture components [default = 2]
      --dbscan              Use DBSCAN rather than mixture model
+     --D D                 Maximum number of clusters in DBSCAN fitting [default
+                           = 100]
+     --min-cluster-prop MIN_CLUSTER_PROP
+                           Minimum proportion of points in a cluster in DBSCAN
+                           fitting [default = 0.0001]
 
    Refine model options:
      --pos-shift POS_SHIFT
@@ -74,6 +75,12 @@ Command line options
                            documentation for help.
      --no-local            Do not perform the local optimization step (speed up
                            on very large datasets)
+
+   Database querying options:
+     --model-dir MODEL_DIR
+                           Directory containing model to use for assigning
+                           queries to clusters [default = reference database
+                           directory]
 
    Further analysis options:
      --microreact          Generate output files for microreact visualisation
@@ -91,3 +98,4 @@ Command line options
      --no-stream           Use temporary files for mash dist interfacing. Reduce
                            memory use/increase disk use for large datasets
      --version             show program's version number and exit
+

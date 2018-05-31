@@ -10,10 +10,13 @@ You can also clone the github to run the latest version, which is executed by::
 
    python poppunk-runner.py
 
+You will also need `mash <http://mash.readthedocs.io/en/latest/>`__ (v2 or higher)
+installed.
+
 Python installation
 -------------------
 
-We recommend the use of a `miniconda <https://conda.io/miniconda.html>`_
+We recommend the use of a `miniconda <https://conda.io/miniconda.html>`__
 installation.
 
 Using the miniconda installation will also allow the use of faster linear
@@ -37,4 +40,7 @@ We tested PopPUNK with the following packages:
 * ``sharedmem`` (0.3.5)
 * ``sklearn`` (0.19.1)
 
+Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
+if producing output with ``--microreact`` and ``--rapidnj`` options. We used
+v2.3.2.
 

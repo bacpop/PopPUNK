@@ -132,6 +132,8 @@ structure cannot clearly be seen (`data <https://microreact.org/project/S1RwpK9i
 30 is a good default, but you may wish to try other values, particularly with
 larger or smaller datasets.
 
+.. _qc:
+
 Dealing with poor quality data
 ------------------------------
 In this example we analyse 76 *Haemophilus influenzae* isolates. One isolate, 14412_4_15,
@@ -193,6 +195,24 @@ cytoscape directly, though removal from the PopPUNK database is best.
 The second largest cluster is also suspicious, where there are few triangles
 (low transitivity) and the nodes involved have high Stress. This is indicative
 of a bad fit overall, rather than a single problem sample.
+
+Removing samples from a database
+--------------------------------
+You can use the ``prune_poppunk`` command to remove samples from a database,
+for example those found to be of poor quality (see :ref:`qc`). Create a file
+``remove.txt`` with the names of the samples you wish to remove, one per line,
+and run::
+
+   prune_poppunk --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db
+
+This will remove the samples from the ``strain_db.dists`` files, from which
+``--model-fit`` can be run again.
+
+If you would like to create the mash sketches again, which is recommended if
+you plan to use ``--full-db`` and/or assign future query sequences, add the
+``--resketch`` argument::
+
+   prune_poppunk --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db --resketch --ref-db strain_db --threads 4
 
 Memory/run-time issues
 ----------------------
