@@ -38,7 +38,6 @@ We tested PopPUNK with the following packages:
 * ``scikit-learn`` (0.19.1)
 * ``scipy`` (1.0.0)
 * ``sharedmem`` (0.3.5)
-* ``sklearn`` (0.19.1)
 
 Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
 if producing output with ``--microreact`` and ``--rapidnj`` options. We used

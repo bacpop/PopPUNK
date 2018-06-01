@@ -1,4 +1,0 @@
-proportions 0.001,0.999
-prop_strength 1
-positions 0,0;0.006,0.25
-pos_strength 10000

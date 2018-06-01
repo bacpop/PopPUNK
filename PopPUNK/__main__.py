@@ -281,7 +281,7 @@ def main():
                                  "prevent overwrite.\n")
 
             # Find distances to reference db
-            kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
+            kmers, sketch_sizes = readMashDBParams(args.ref_db, kmers, sketch_sizes)
 
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
