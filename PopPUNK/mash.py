@@ -171,6 +171,8 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
                         break
 
             mash_info.kill()
+            if sketch == 0:
+                raise RuntimeError("Could not find sketch size for " + str(k) + "\n")
 
         except subprocess.CalledProcessError as e:
             sys.stderr.write("Could not get info about " + dbname + "; command " + mash_exec +
@@ -296,12 +298,18 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
     """
     # Genome length needed to calculate prob of random matches
     genome_length = 1 # min of 1 to avoid div/0 errors
-    with open(assemblyList, 'r') as assemblyFiles:
-       exampleFile = assemblyFiles.readline()
-       with open(exampleFile.rstrip(), 'r') as exampleAssembly:
-           for line in exampleAssembly:
-               if line[0] != ">":
-                   genome_length += len(line.rstrip())
+    try:
+        with open(assemblyList, 'r') as assemblyFiles:
+           exampleFile = assemblyFiles.readline()
+           with open(exampleFile.rstrip(), 'r') as exampleAssembly:
+               for line in exampleAssembly:
+                   if line[0] != ">":
+                       genome_length += len(line.rstrip())
+
+    except FileNotFoundError as e:
+        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
+                         "Assuming length of 2Mb for random match probs.\n")
+        genome_length = 2000000
 
     # create kmer databases
     if threads > len(klist):
@@ -641,6 +649,40 @@ def iterDistRows(refSeqs, querySeqs, self=True):
         for query in querySeqs:
             for ref in refSeqs:
                 yield(ref, query)
+
+def readMashDBParams(dbPrefix, kmers, sketch_sizes, mash_exec = 'mash'):
+    """Get kmers lengths and sketch sizes from existing database
+
+    Calls :func:`~getKmersFromReferenceDatabase` and :func:`~getSketchSize`
+    Uses passed values if db missing
+
+    Args:
+        dbPrefix (str)
+            Prefix for sketch DB files
+        kmers (list)
+            Kmers to use if db not found
+        sketch_sizes (list)
+            Sketch size to use if db not found
+        mash_exec (str)
+            Location of mash executable
+
+            Default = 'mash'
+    Returns:
+        kmers (list)
+            List of k-mer lengths used in database
+        sketch_sizes (list)
+            List of sketch sizes used in database
+    """
+
+    db_kmers = getKmersFromReferenceDatabase(dbPrefix)
+    if len(db_kmers) == 0:
+        sys.stderr.write("Couldn't find mash sketches in " + dbPrefix + "\n"
+                         "Using command line input parameters for k-mer and sketch sizes\n")
+    else:
+        kmers = db_kmers
+        sketch_sizes = getSketchSize(dbPrefix, kmers, mash_exec)
+
+    return kmers, sketch_sizes
 
 def getKmersFromReferenceDatabase(dbPrefix):
     """Get kmers lengths from existing database

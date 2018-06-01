@@ -21,8 +21,7 @@ from .mash import writeTmpFile
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
+from .mash import readMashDBParams
 
 from .models import *
 
@@ -223,8 +222,6 @@ def main():
                 sys.exit(1)
 
         refList, queryList, self, distMat = readPickle(distances)
-        kmers = getKmersFromReferenceDatabase(ref_db)
-        sketch_sizes = getSketchSize(ref_db, kmers, args.mash)
         if not self:
             sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
             sys.exit(1)
@@ -267,6 +264,9 @@ def main():
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
             genomeNetwork.remove_nodes_from(set(refList).difference(newReferencesNames))
+
+            # Read previous database
+            kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
             constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
 
         printQueryOutput(refList, queryList, distMat, args.output, self)
@@ -281,8 +281,7 @@ def main():
                                  "prevent overwrite.\n")
 
             # Find distances to reference db
-            kmers = getKmersFromReferenceDatabase(args.ref_db)
-            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
+            kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
 
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
