@@ -28,6 +28,7 @@ from .models import *
 
 from .network import constructNetwork
 from .network import extractReferences
+from .network import writeReferences
 from .network import addQueryToNetwork
 from .network import printClusters
 
@@ -306,9 +307,12 @@ def main():
 
             # update_db like no full_db
             if args.update_db and len(newRefs) > 0:
+                # Update the network + ref list
+                writeReferences(refList + newRefs, outputPrefix)
                 genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
+                # Update the mash database
                 tmpRefFile = writeTmpFile(newRefs)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
