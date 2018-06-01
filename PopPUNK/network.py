@@ -24,7 +24,7 @@ from .mash import iterDistRows
 def extractReferences(G, outPrefix):
     """Extract references for each cluster based on cliques
 
-    Calls :func:`~writeReferences ` to write chosen references to file
+    Calls :func:`~writeReferences` to write chosen references to file
 
     Args:
         G (networkx.Graph)
