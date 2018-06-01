@@ -166,7 +166,7 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     # initialise links data structure
     new_edges = []
     assigned = set()
-
+    
     # store links for each query in a list of edge tuples
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
         if assignment == model.within_label:
@@ -180,7 +180,7 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     # process unassigned query sequences, if there are any
     if len(unassigned) > 1:
         sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
-
+        
         # write unassigned queries to file as if a list of references
         tmpDirName = mkdtemp(prefix=dbPrefix, suffix="_tmp", dir="./")
         tmpHandle, tmpFile = mkstemp(prefix=dbPrefix, suffix="_tmp", dir=tmpDirName)
@@ -192,7 +192,7 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
         sketchSize = getSketchSize(dbPrefix, kmers, mash_exec)
         constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, threads, mash_exec)
         qlist1, qlist2, distMat = queryDatabase(tmpHandle, kmers, tmpDirName, tmpDirName, True,
-                0, False, mash_exec = mash_exec, threads = threads)
+            0, False, mash_exec = mash_exec, threads = threads)
         queryAssignation = model.assign(distMat)
 
         # identify any links between queries and store in the same links dict

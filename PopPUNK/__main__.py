@@ -305,7 +305,7 @@ def main():
                     model_prefix + "/" + model_prefix + '_clusters.csv', False)
 
             # update_db like no full_db
-            if args.update_db and len(new_refs) > 0:
+            if args.update_db and len(newRefs) > 0:
                 genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
