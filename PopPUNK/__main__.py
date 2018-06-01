@@ -308,7 +308,7 @@ def main():
             # update_db like no full_db
             if args.update_db and len(newRefs) > 0:
                 # Update the network + ref list
-                writeReferences(refList + newRefs, outputPrefix)
+                writeReferences(refList + newRefs, args.output)
                 genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
