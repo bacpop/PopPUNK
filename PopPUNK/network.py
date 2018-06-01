@@ -21,7 +21,7 @@ from .mash import getDatabaseName
 from .mash import getSketchSize
 from .mash import iterDistRows
 
-def extractReferences(G, outPrefix):
+def extractReferences(G, outPrefix, references = None):
     """Extract references for each cluster based on cliques
 
     Writes chosen references to file
@@ -31,15 +31,18 @@ def extractReferences(G, outPrefix):
             A network used to define clusters from :func:`~constructNetwork`
         outPrefix (str)
             Prefix for output file (.refs will be appended)
+        references (list)
+            A list of pre-existing references, if querying a database
 
     Returns:
         refFileName (str)
             The name of the file references were written to
         references (list)
-            A list of the reference names
+            An updated list of the reference names
     """
     # define reference list
-    references = []
+    if references is None:
+        references = []
     # extract cliques from network
     cliques = list(nx.find_cliques(G))
     # order list by size of clique
@@ -51,7 +54,7 @@ def extractReferences(G, outPrefix):
             if node in references:
                 alreadyRepresented = 1
         if alreadyRepresented == 0:
-            references.append(clique[0])
+            references.append(node)
 
     # write references to file
     refFileName = "./" + outPrefix + "/" + outPrefix + ".refs"
@@ -244,7 +247,9 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
     if oldClusterFile != None:
         oldClusters = readClusters(oldClusterFile)
         new_id = len(oldClusters)
-
+        while new_id in oldClusters:
+            new_id = new_id + 1 # in case clusters have been merged
+        
         # Samples in previous clustering
         oldNames = set()
         for prev_cluster in oldClusters.values():
@@ -253,20 +258,20 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
 
     # Assign each cluster a name
     clustering = {}
-    new_ref_db = []
+
     for newClsIdx, newCluster in enumerate(newClusters):
+        
         # Ensure consistency with previous labelling
         if oldClusterFile != None:
             cls_id = None
-
+            
             # Samples in this cluster that are not queries
             ref_only = oldNames.intersection(newCluster)
-
+            
             # A cluster with no previous observations
             if len(ref_only) == 0:
-                cls_id = new_id
+                cls_id = str(new_id)    # harmonise data types; string flexibility helpful
                 new_id += 1
-                new_ref_db.append(list(newCluster)[0])
             else:
                 # Search through old cluster IDs to find a match
                 for oldClusterName, oldClusterMembers in oldClusters.items():
@@ -283,21 +288,28 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
                             assert cls_id == None # should not have already been part of a merge
                             cls_id = oldClusterName
                             break
-
+    
         # Otherwise just number sequentially
         else:
             cls_id = newClsIdx
 
         for cluster_member in newCluster:
             clustering[cluster_member] = cls_id
-
+    
+    # extract references based on previous clustering
+    all_references, ref_file_name = extractReferences(G, outPrefix, references = list(oldNames))
+    new_ref_db = []
+    for ref in all_references:
+        if ref not in oldNames:
+            new_ref_db.append(ref)
+    
     # print clustering to file
     outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
         for cluster_member in sorted(clustering, key=operator.itemgetter(0)):
-            if printRef or cluster_member in oldNames:
-                cluster_file.write(",".join((cluster_member, str(clustering[cluster_member]))) + "\n")
+            #            if printRef or cluster_member in oldNames: # why ever not print queries?
+            cluster_file.write(",".join((cluster_member, str(clustering[cluster_member]))) + "\n")
 
     return(clustering, new_ref_db)
 
