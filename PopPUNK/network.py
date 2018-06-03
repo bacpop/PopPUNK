@@ -21,26 +21,26 @@ from .mash import getDatabaseName
 from .mash import getSketchSize
 from .mash import iterDistRows
 
-def extractReferences(G, outPrefix):
+def extractReferences(G, outPrefix, references = None):
     """Extract references for each cluster based on cliques
-
-    Calls :func:`~writeReferences` to write chosen references to file
-
-    Args:
-        G (networkx.Graph)
-            A network used to define clusters from :func:`~constructNetwork`
-        outPrefix (str)
+        Writes chosen references to file
+        Args:
+            G (networkx.Graph)
+                A network used to define clusters from :func:`~constructNetwork`
+            outPrefix (str)
             Prefix for output file (.refs will be appended)
-        references (list)
+                references (list)
             A list of pre-existing references, if querying a database
-
-    Returns:
-        references (list)
-            A list of the references selected
-        refFileName (str)
-            The name of the file references were written to
-    """
-    references = []
+            
+        Returns:
+            refFileName (str)
+                The name of the file references were written to
+            references (list)
+                An updated list of the reference names
+        """
+    # define reference list
+    if references is None:
+        references = []
 
     # extract cliques from network
     cliques = list(nx.find_cliques(G))
@@ -155,7 +155,7 @@ def networkSummary(G):
     return(components, density, transitivity, score)
 
 def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
-        dbPrefix, threads = 1, mash_exec = 'mash'):
+        dbPrefix, threads = 1, mash_exec = 'mash', quick_query = False):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -185,12 +185,12 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     new_edges = []
     assigned = set()
 
-    # store links for each query in a list of edge tuples
-    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
-        if assignment == model.within_label:
-            new_edges.append((ref, query))
-            assigned.add(query)
-
+    if quick_query:
+        # store links for each query in a list of edge tuples
+        for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
+            if assignment == model.within_label:
+                new_edges.append((ref, query))
+                assigned.add(query)
 
     # identify potentially new lineages in list: unassigned is a list of queries with no hits
     unassigned = set(qlist).difference(assigned)
@@ -227,7 +227,7 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     G.add_edges_from(new_edges)
 
 
-def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
+def printClusters(G, outPrefix, oldClusterFile = None, printRef = True, quick_query = False):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -274,6 +274,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
     # Assign each cluster a name
     clustering = {}
     new_ref_db = []
+    
     for newClsIdx, newCluster in enumerate(newClusters):
 
         # Ensure consistency with previous labelling
@@ -287,7 +288,8 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
             if len(ref_only) == 0:
                 cls_id = str(new_id)    # harmonise data types; string flexibility helpful
                 new_id += 1
-                new_ref_db.append(list(newCluster)[0])
+                if quick_query:         # for speed - only include references in new clusters
+                    new_ref_db.append(list(newCluster)[0])
             else:
                 # Search through old cluster IDs to find a match
                 for oldClusterName, oldClusterMembers in oldClusters.items():
@@ -311,6 +313,13 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
 
         for cluster_member in newCluster:
             clustering[cluster_member] = cls_id
+
+    # for thorough clustering, extract references based on cliques
+    if not quick_query:
+        all_references, ref_file_name = extractReferences(G, outPrefix, references = list(oldNames))
+        for ref in all_references:
+            if ref not in oldNames:
+                new_ref_db.append(ref)
 
     # print clustering to file
     outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"

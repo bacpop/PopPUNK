@@ -114,6 +114,7 @@ def get_options():
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
+    queryingGroup.add_argument('--quick-query', help='Do not refine within-cluster references using new query sequences', default = False, action = 'store_true')
 
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -300,9 +301,9 @@ def main():
 
             # Assign clustering by adding to network
             addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
-                    queryAssignments, model, args.ref_db, args.threads, args.mash)
+                    queryAssignments, model, args.ref_db, args.threads, args.mash, args.quick_query)
             isolateClustering, newRefs = printClusters(genomeNetwork, args.output,
-                    model_prefix + "/" + model_prefix + '_clusters.csv', False)
+                    model_prefix + "/" + model_prefix + '_clusters.csv', False, args.quick_query)
 
             # update_db like no full_db
             if args.update_db and len(newRefs) > 0:
