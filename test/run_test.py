@@ -18,7 +18,7 @@ if not os.path.isfile("12754_4#89.contigs_velvet.fa"):
 
 #easy run
 sys.stderr.write("Running database creation + BGMM model fit (--easy-run)\n")
-subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db --K 4 --mash" + mash_exec, shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db --K 4 --mash " + mash_exec, shell=True, check=True)
 
 #fit dbscan
 sys.stderr.write("Running HDBSCAN model fit (--fit-model)\n")
