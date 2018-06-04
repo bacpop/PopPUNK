@@ -114,7 +114,6 @@ def get_options():
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
-    queryingGroup.add_argument('--quick-query', help='Do not refine within-cluster references using new query sequences', default = False, action = 'store_true')
 
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -253,7 +252,7 @@ def main():
         model.save()
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
 
-        isolateClustering, newRefs = printClusters(genomeNetwork, args.output)
+        isolateClustering = printClusters(genomeNetwork, args.output)
         # generate outputs for microreact if asked
         if args.microreact:
             outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity,
@@ -300,20 +299,23 @@ def main():
             genomeNetwork = nx.read_gpickle(model_prefix + "/" + model_prefix + '_graph.gpickle')
 
             # Assign clustering by adding to network
-            addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
-                    queryAssignments, model, args.ref_db, args.threads, args.mash, args.quick_query)
-            isolateClustering, newRefs = printClusters(genomeNetwork, args.output,
-                    model_prefix + "/" + model_prefix + '_clusters.csv', False, args.quick_query)
+            addQueryToNetwork(refList, queryList, args.q_files, genomeNetwork, kmers, queryAssignments,
+                    model, args.output, args.no_stream, args.update_db, args.threads, args.mash)
+            isolateClustering = printClusters(genomeNetwork, args.output,
+                    model_prefix + "/" + model_prefix + '_clusters.csv', False)
 
             # update_db like no full_db
-            if args.update_db and len(newRefs) > 0:
+            if args.update_db:
+                sys.stderr.write("Updating reference database to " + args.output + "\n")
+
                 # Update the network + ref list
-                writeReferences(refList + newRefs, args.output)
-                genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
+                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output)
+                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
                 # Update the mash database
-                tmpRefFile = writeTmpFile(newRefs)
+                newQueries = set(newRepresentativesNames).intersection(queryList)
+                tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
                 os.remove(tmpRefFile)
