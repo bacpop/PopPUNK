@@ -740,3 +740,28 @@ def printQueryOutput(rlist, qlist, X, outPrefix, self):
         for i, (ref, query) in enumerate(names):
             oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
 
+def translate_distMat(core_distMat, acc_distMat, rlist, qlist):
+
+    # combine strain lists
+    combined_list = rlist + qlist
+
+    # indices
+    i = 0
+    j = 1
+
+    # create distmat
+    number_pairs = int(0.5 * len(combined_list) * (len(combined_list) - 1))
+    distMat = sharedmem.empty((number_pairs, 2))
+
+    # extract distances
+    for row, (seq1, seq2) in enumerate(iterDistRows(combined_list, combined_list, self=True)):
+        distMat[row, 0] = core_distMat[i, j]
+        distMat[row, 1] = acc_distMat[i, j]
+
+        if j == len(combined_list) - 1:
+            i += 1
+            j = i + 1
+        else:
+            j += 1
+
+    return combined_list, distMat

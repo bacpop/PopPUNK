@@ -175,107 +175,6 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
     tree = dendropy.Tree.get(path=tree_filename, schema="newick")
     return tree
 
-def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, overwrite = False):
-    """Generate files for microreact
-
-    Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
-    of accessory distances (.dot) and cluster assignment (.csv)
-
-    Args:
-        refList (list)
-            Name of reference sequences. The part of the name before the first '.' will
-            be shown in the output
-        distMat (numpy.array)
-            n x 2 array of core and accessory distances for n samples.
-        clustering (list)
-            List of cluster assignments from :func:`~PopPUNK.network.printClusters`
-        perplexity (int)
-            Perplexity parameter passed to t-SNE
-        outPrefix (str)
-            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
-        epiCsv (str)
-            A CSV containing other information, to include with the CSV of clusters
-        rapidnj (str)
-            A string with the location of the rapidnj executable for tree-building. If None, will
-            use dendropy by default
-        overwrite (bool)
-            Overwrite existing output if present (default = False)
-    """
-
-    # avoid recursive import
-    from .mash import iterDistRows
-
-    sys.stderr.write("writing microreact output:\n")
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in refList]
-
-    coreMat = np.zeros((len(refList), len(refList)))
-    accMat = np.zeros((len(refList), len(refList)))
-
-    # Fill in symmetric matrices
-    i = 0
-    j = 1
-    for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
-        coreMat[i, j] = distMat[row, 0]
-        coreMat[j, i] = coreMat[i, j]
-        accMat[i, j] = distMat[row, 1]
-        accMat[j, i] = accMat[i, j]
-
-        if j == len(refList) - 1:
-            i += 1
-            j = i + 1
-        else:
-            j += 1
-
-    core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
-    np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
-    acc_dist_file = outPrefix + "/" + outPrefix + "_acc_dists.csv"
-    np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
-
-    # calculate phylogeny
-    tree_filename = outPrefix + "/" + outPrefix + "_core_NJ_microreact.nwk"
-    if overwrite or not os.path.isfile(tree_filename):
-        sys.stderr.write("Building phylogeny\n")
-        if rapidnj is not None:
-            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename)
-        else:
-            pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
-                                                           delimiter=",",
-                                                           is_first_row_column_names=True,
-                                                           is_first_column_row_names=False)
-            tree = pdm.nj_tree()
-
-        # Not sure why, but seems that this needs to be run twice to get
-        # what I would think of as a midpoint rooted tree
-        tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
-        tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
-        tree.write(path=tree_filename,
-                   schema="newick",
-                   suppress_rooting=True,
-                   unquoted_underscores=True)
-    else:
-       sys.stderr.write("NJ phylogeny already exists; add --overwrite to replace\n")
-
-
-    # generate accessory genome distance representation
-    tsne_filename = outPrefix + "/" + outPrefix + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
-    if overwrite or not os.path.isfile(tsne_filename):
-        sys.stderr.write("Running t-SNE\n")
-        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
-
-        # print dot file
-        with open(tsne_filename, 'w') as nFile:
-            nFile.write("graph G { ")
-            for s, seqLabel in enumerate(seqLabels):
-                nFile.write('"' + seqLabel + '"' +
-                        '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
-            nFile.write("}\n")
-    else:
-        sys.stderr.write("t-SNE analysis already exists; add --overwrite to replace\n")
-
-    # print clustering file
-    writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
-                    refList, seqLabels, clustering, True, epiCsv)
-
 def plot_scatter(X, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
 
@@ -570,16 +469,7 @@ def get_grid(minimum, maximum, resolution):
     return(xx, yy, xy)
 
 
-
-
-
-
-
-
-
-
-
-def query_outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, queryList = None, query_ref_distMat = None, query_query_distMat = None, overwrite = False):
+def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, queryList = None, query_ref_distMat = None, query_query_distMat = None, overwrite = False):
     """Generate files for microreact
         
         Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -709,3 +599,6 @@ def query_outputsForMicroreact(refList, distMat, clustering, perplexity, outPref
     # print clustering file
     writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
                     refList, seqLabels, clustering, True, epiCsv, queryList)
+
+    # return distance matrix
+    return coreMat, accMat

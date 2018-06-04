@@ -22,6 +22,7 @@ from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import printQueryOutput
 from .mash import readMashDBParams
+from .mash import translate_distMat
 
 from .models import *
 
@@ -328,10 +329,12 @@ def main():
                     sys.stderr.write("Need to load reference database distances with --distances and calculate all within-query distances by omitting '--quick-query'")
                 # read previous distances
                 refList, refList_copy, self, ref_distMat = readPickle(args.distances)
-                from .plot import query_outputsForMicroreact
-                query_outputsForMicroreact(refList, ref_distMat, isolateClustering, args.perplexity,
+                core_distMat, acc_distMat = outputsForMicroreact(refList, ref_distMat, isolateClustering, args.perplexity,
                      args.output, args.info_csv, args.rapidnj, ordered_queryList, distMat, query_distMat, args.overwrite)
                 # write updated full distance matrix
+                combined_seq, complete_distMat = translate_distMat(core_distMat, acc_distMat, refList, ordered_queryList)
+                dists_out = args.output + "/" + args.output + ".dists"
+                storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and "
