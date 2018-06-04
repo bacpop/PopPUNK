@@ -49,7 +49,7 @@ setup(
     packages=['PopPUNK'],
     entry_points={
         "console_scripts": [
-            'poppunk = PopPUNK.__main__:main'
+            'poppunk = PopPUNK.__main__:main',
             'prune_poppunk = PopPUNK.prune_db:main'
             ]
     },

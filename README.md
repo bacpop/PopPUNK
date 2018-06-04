@@ -1,5 +1,9 @@
 # PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
 
+[![Build Status](https://travis-ci.org/johnlees/PopPUNK.svg?branch=master)](https://travis-ci.org/johnlees/PopPUNK/)
+[![Documentation Status](https://poppunk.readthedocs.io/en/latest/?badge=latest)]((https://poppunk.readthedocs.io/)
+[![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
+
 Step 1) Use k-mers to calculate core and accessory distances
 
 Step 2) Use core and accessory distance distribution to define strains
@@ -7,7 +11,7 @@ Step 2) Use core and accessory distance distribution to define strains
 Step 3) Pick references from strains, which can be used to assign new
 query sequences
 
-See the [documentation](http://poppunk.readthedocs.io/en/master/).
+See the [documentation](http://poppunk.readthedocs.io/en/latest/).
 
 ## Installation
 The easiest way is through pip, which we would also recommend being
@@ -88,7 +92,7 @@ poppunk --assign-query \
 
 If running without having installed through PyPI, run `python poppunk-runner.py` instead of `poppunk`.
 
-See the [documentation](http://poppunk.readthedocs.io/en/master/) for
+See the [documentation](http://poppunk.readthedocs.io/en/latest/) for
 full details.
 
 
