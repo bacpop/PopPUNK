@@ -4,6 +4,7 @@ python:
   - "3.6"
 install:
   - pip install -r requirements.txt
+  - wget https://github.com/marbl/Mash/releases/download/v2.0/mash-Linux64-v2.0.tar && tar xf mash-Linux64-v2.0.tar
 before_script: # to get matplotlib to work
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
