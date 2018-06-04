@@ -39,6 +39,17 @@ In brackets are the versions we used
 * `scipy` (1.0.0)
 * `sharedmem` (0.3.5)
 
+### Test installation
+Run the following command:
+```
+cd test && python run_test.py
+```
+
+If successful, you can clean the test data by running:
+```
+cd test && python clean_test.py
+```
+
 ## Quick usage
 Easy run mode, go from assemblies to clusters of strains:
 ```
@@ -64,6 +75,15 @@ poppunk --fit-model \
    --output poppunk_db \
    --full-db \
    --K 2
+```
+
+Once fitted, new query sequences can quickly be assigned:
+```
+poppunk --assign-query \
+   --ref-db poppunk_db \
+   --q-files query_list.txt \
+   --output query_results \
+   --update-db
 ```
 
 If running without having installed through PyPI, run `python poppunk-runner.py` instead of `poppunk`.
