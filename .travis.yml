@@ -9,4 +9,4 @@ before_script: # to get matplotlib to work
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
 script:
-  - cd tests && python run_test.py
+  - cd test && python run_test.py
