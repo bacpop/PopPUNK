@@ -18,7 +18,7 @@ from sklearn.neighbors.kde import KernelDensity
 import dendropy
 import networkx as nx
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -43,9 +43,10 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv):
                     seqLabels,
                     clustering,
                     False,
-                    epiCsv)
+                    epiCsv,
+                    queryList)
 
-def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = False, epiCsv = None):
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = False, epiCsv = None, queryNames = None):
     """Print CSV file of clustering and optionally epi data
 
     Writes CSV output of clusters which can be used as input to microreact and cytoscape.
@@ -64,17 +65,20 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
             Dictionary of cluster assignments (keys are nodeNames).
         microreact (bool)
             Whether output should be formatted for microreact
-
             (default = False).
         epiCsv (str)
             Optional CSV of epi data to paste in the output in addition to
-            the clusters.
-
-            (default = None).
+            the clusters (default = None).
+        queryNames (list)
+            Optional list of isolates that have been added as a query.
+        
     """
     if epiCsv is not None:
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
         missingString = ",NA" * len(epiData.columns)
+
+    if queryNames is not None and microreact:
+        nodeNames = nodeNames + queryNames
 
     d = defaultdict(list)
     if epiCsv is not None:
@@ -85,9 +89,21 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
             if microreact:
                 d['id'].append(label)
                 d['Cluster__autocolour'].append(clustering[name])
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                        d['Status__colour'].append("red")
+                    else:
+                        d['Status'].append("Reference")
+                        d['Status__colour'].append("black")
             else:
                 d['id'].append(name)
                 d['Cluster'].append(clustering[name])
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                    else:
+                        d['Status'].append("Reference")
 
             if epiCsv is not None:
                 if label in epiData.index:
@@ -552,3 +568,144 @@ def get_grid(minimum, maximum, resolution):
     xy = np.vstack([yy.ravel(), xx.ravel()]).T
 
     return(xx, yy, xy)
+
+
+
+
+
+
+
+
+
+
+
+def query_outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, queryList = None, query_ref_distMat = None, query_query_distMat = None, overwrite = False):
+    """Generate files for microreact
+        
+        Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
+        of accessory distances (.dot) and cluster assignment (.csv)
+        
+        Args:
+            refList (list)
+                Name of reference sequences. The part of the name before the first '.' will
+                be shown in the output
+            distMat (numpy.array)
+                n x 2 array of core and accessory distances for n samples.
+            clustering (list)
+                List of cluster assignments from :func:`~PopPUNK.network.printClusters`
+            perplexity (int)
+                Perplexity parameter passed to t-SNE
+            outPrefix (str)
+                Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+            epiCsv (str)
+                A CSV containing other information, to include with the CSV of clusters
+            rapidnj (str)
+                A string with the location of the rapidnj executable for tree-building. If None, will
+                use dendropy by default
+            overwrite (bool)
+                Overwrite existing output if present (default = False)
+        """
+    
+    # avoid recursive import
+    from .mash import iterDistRows
+    
+    sys.stderr.write("writing microreact output:\n")
+    seqLabels = [r.split('/')[-1].split('.')[0] for r in refList]
+    if queryList is not None:
+        extra_seqLabels = [q.split('/')[-1].split('.')[0] for q in queryList]
+        seqLabels = seqLabels + extra_seqLabels
+    
+    coreMat = np.zeros((len(seqLabels), len(seqLabels)))
+    accMat = np.zeros((len(seqLabels), len(seqLabels)))
+
+    # Fill in symmetric matrices
+    i = 0
+    j = 1
+    # ref v ref
+    for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
+        coreMat[i, j] = distMat[row, 0]
+        coreMat[j, i] = coreMat[i, j]
+        accMat[i, j] = distMat[row, 1]
+        accMat[j, i] = accMat[i, j]
+        
+        if j == len(refList) - 1:
+            i += 1
+            j = i + 1
+        else:
+            j += 1
+
+    if queryList is not None:
+        # query v query - symmetric
+        i = len(refList)
+        j = len(refList)+1
+        for row, (ref, query) in enumerate(iterDistRows(queryList, queryList, self=True)):
+            coreMat[i, j] = query_query_distMat[row, 0]
+            coreMat[j, i] = coreMat[i, j]
+            accMat[i, j] = query_query_distMat[row, 1]
+            accMat[j, i] = accMat[i, j]
+            if j == (len(refList) + len(queryList) - 1):
+                i += 1
+                j = i + 1
+            else:
+                j += 1
+
+        # ref v query - asymmetric
+        i = len(refList)
+        j = 0
+        for row, (ref, query) in enumerate(iterDistRows(refList, queryList, self=False)):
+            coreMat[i, j] = query_ref_distMat[row, 0]
+            coreMat[j, i] = coreMat[i, j]
+            if j == (len(refList) - 1):
+                i += 1
+                j = 0
+            else:
+                j += 1
+    
+    core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
+    np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
+    acc_dist_file = outPrefix + "/" + outPrefix + "_acc_dists.csv"
+    np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
+    
+    # calculate phylogeny
+    tree_filename = outPrefix + "/" + outPrefix + "_core_NJ_microreact.nwk"
+    if overwrite or not os.path.isfile(tree_filename):
+        sys.stderr.write("Building phylogeny\n")
+        if rapidnj is not None:
+            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename)
+        else:
+            pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
+                                                               delimiter=",",
+                                                               is_first_row_column_names=True,
+                                                               is_first_column_row_names=False)
+            tree = pdm.nj_tree()
+
+        # Not sure why, but seems that this needs to be run twice to get
+        # what I would think of as a midpoint rooted tree
+        tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+        tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+        tree.write(path=tree_filename,
+                   schema="newick",
+                   suppress_rooting=True,
+                   unquoted_underscores=True)
+    else:
+        sys.stderr.write("NJ phylogeny already exists; add --overwrite to replace\n")
+
+    # generate accessory genome distance representation
+    tsne_filename = outPrefix + "/" + outPrefix + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
+    if overwrite or not os.path.isfile(tsne_filename):
+        sys.stderr.write("Running t-SNE\n")
+        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
+        
+        # print dot file
+        with open(tsne_filename, 'w') as nFile:
+            nFile.write("graph G { ")
+            for s, seqLabel in enumerate(seqLabels):
+                nFile.write('"' + seqLabel + '"' +
+                            '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
+            nFile.write("}\n")
+    else:
+        sys.stderr.write("t-SNE analysis already exists; add --overwrite to replace\n")
+
+    # print clustering file
+    writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
+                    refList, seqLabels, clustering, True, epiCsv, queryList)

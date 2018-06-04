@@ -289,7 +289,7 @@ def main():
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.output, False, args.plot_fit,
                                                         args.no_stream, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output, self)
-
+            
             # Assign these distances as within or between
             model_prefix = args.ref_db
             if args.model_dir is not None:
@@ -300,7 +300,7 @@ def main():
             genomeNetwork = nx.read_gpickle(model_prefix + "/" + model_prefix + '_graph.gpickle')
 
             # Assign clustering by adding to network
-            addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
+            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
                     queryAssignments, model, args.ref_db, args.threads, args.mash, args.quick_query)
             isolateClustering, newRefs = printClusters(genomeNetwork, args.output,
                     model_prefix + "/" + model_prefix + '_clusters.csv', False, args.quick_query)
@@ -317,6 +317,22 @@ def main():
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
                 os.remove(tmpRefFile)
+
+            # generate output for Cytoscape if requested
+            if args.cytoscape:
+                if args.quick_query:
+                    sys.stderr.write("Cytoscape network will be incomplete due to '--quick-query' mode")
+                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, ordered_queryList)
+            if args.microreact:
+                if args.quick_query or args.distances is None:
+                    sys.stderr.write("Need to load reference database distances with --distances and calculate all within-query distances by omitting '--quick-query'")
+                # read previous distances
+                refList, refList_copy, self, ref_distMat = readPickle(args.distances)
+                from .plot import query_outputsForMicroreact
+                query_outputsForMicroreact(refList, ref_distMat, isolateClustering, args.perplexity,
+                     args.output, args.info_csv, args.rapidnj, ordered_queryList, distMat, query_distMat, args.overwrite)
+                # write updated full distance matrix
+
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and "
                              "query list with --q-files\n")

@@ -226,6 +226,8 @@ def addQueryToNetwork(rlist, qlist, G, kmers, assignments, model,
     G.add_nodes_from(qlist)
     G.add_edges_from(new_edges)
 
+    # testing
+    return qlist1, distMat
 
 def printClusters(G, outPrefix, oldClusterFile = None, printRef = True, quick_query = False):
     """Get cluster assignments
