@@ -741,7 +741,24 @@ def printQueryOutput(rlist, qlist, X, outPrefix, self):
             oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
 
 def translate_distMat(core_distMat, acc_distMat, rlist, qlist):
+    """Convert distances from a square form (2 NxN matrices) to a long form
+    (1 matrix with n_comparisons rows and 2 columns).
 
+    Args:
+        core_distMat (numpy.array)
+            NxN core distances
+        acc_distMat (numpy.array)
+            NxN accessory distances
+        rlist (list)
+            Names of references (rows)
+        qlist (list)
+            Names of queries (columns)
+    Returns:
+        combined_list (list)
+            New name list to iterate over with self=True
+        distMat (numpy.array)
+            Distances in long form
+    """
     # combine strain lists
     combined_list = rlist + qlist
 

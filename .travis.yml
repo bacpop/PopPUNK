@@ -1,12 +1,13 @@
 language: python
 python:
-  - "3.5"
   - "3.6"
 install:
   - pip install -r requirements.txt
+  - wget https://github.com/marbl/Mash/releases/download/v2.0/mash-Linux64-v2.0.tar && tar xf mash-Linux64-v2.0.tar
+  - export PATH=$PATH:$PWD/mash-Linux64-v2.0
 before_script: # to get matplotlib to work
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - sleep 3 # give xvfb some time to start
 script:
-  - cd tests && python run_test.py
+  - cd test && python run_test.py

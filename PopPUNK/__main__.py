@@ -115,7 +115,6 @@ def get_options():
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
-    queryingGroup.add_argument('--quick-query', help='Do not refine within-cluster references using new query sequences', default = False, action = 'store_true')
 
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -237,8 +236,8 @@ def main():
                 sys.exit(1)
 
             model = RefineFit(args.output)
-            assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift, args.manual_start,
-                    args.no_local, args.threads)
+            assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift,
+                    args.manual_start, args.no_local, args.threads)
             model.plot(distMat)
         # Run DBSCAN model
         elif args.dbscan:
@@ -254,11 +253,11 @@ def main():
         model.save()
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
 
-        isolateClustering, newRefs = printClusters(genomeNetwork, args.output)
+        isolateClustering = printClusters(genomeNetwork, args.output)
         # generate outputs for microreact if asked
         if args.microreact:
             outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity,
-                    args.output, args.info_csv, args.rapidnj, args.overwrite)
+                    args.output, args.info_csv, args.rapidnj, overwrite=args.overwrite)
         # generate outputs for cytoscape if asked
         if args.cytoscape:
             outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
@@ -269,7 +268,8 @@ def main():
 
             # Read previous database
             kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads,
+                              args.mash, True) # overwrite old db
 
         printQueryOutput(refList, queryList, distMat, args.output, self)
         nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
@@ -281,6 +281,11 @@ def main():
             if args.ref_db == args.output:
                 sys.stderr.write("--output and --ref-db must be different to "
                                  "prevent overwrite.\n")
+                sys.exit(1)
+            if (args.microreact or args.cytoscape) and not args.update_db:
+                sys.stderr.write("--microreact and/or --cytoscape output must be "
+                        "run with --update-db to calculate all needed distances\n")
+                sys.exit(1)
 
             # Find distances to reference db
             kmers, sketch_sizes = readMashDBParams(args.ref_db, kmers, sketch_sizes)
@@ -290,7 +295,7 @@ def main():
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.output, False, args.plot_fit,
                                                         args.no_stream, args.mash, args.threads)
             printQueryOutput(refList, queryList, distMat, args.output, self)
-            
+
             # Assign these distances as within or between
             model_prefix = args.ref_db
             if args.model_dir is not None:
@@ -301,32 +306,34 @@ def main():
             genomeNetwork = nx.read_gpickle(model_prefix + "/" + model_prefix + '_graph.gpickle')
 
             # Assign clustering by adding to network
-            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, genomeNetwork, kmers,
-                    queryAssignments, model, args.ref_db, args.threads, args.mash, args.quick_query)
-            isolateClustering, newRefs = printClusters(genomeNetwork, args.output,
-                    model_prefix + "/" + model_prefix + '_clusters.csv', False, args.quick_query)
+            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
+                    genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
+                    args.update_db, args.threads, args.mash)
+            isolateClustering = printClusters(genomeNetwork, args.output,
+                    model_prefix + "/" + model_prefix + '_clusters.csv', False)
 
             # update_db like no full_db
-            if args.update_db and len(newRefs) > 0:
+            if args.update_db:
+                sys.stderr.write("Updating reference database to " + args.output + "\n")
+
                 # Update the network + ref list
-                writeReferences(refList + newRefs, args.output)
-                genomeNetwork.remove_nodes_from(set(queryList).difference(newRefs))
+                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output)
+                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
                 # Update the mash database
-                tmpRefFile = writeTmpFile(newRefs)
+                newQueries = set(newRepresentativesNames).intersection(queryList)
+                tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
                 os.remove(tmpRefFile)
 
-            # generate output for Cytoscape if requested
+            # generate output for microreact and Cytoscape if requested
             if args.cytoscape:
-                if args.quick_query:
-                    sys.stderr.write("Cytoscape network will be incomplete due to '--quick-query' mode")
+                sys.stderr.write("Writing cytoscape output\n")
                 outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, ordered_queryList)
             if args.microreact:
-                if args.quick_query or args.distances is None:
-                    sys.stderr.write("Need to load reference database distances with --distances and calculate all within-query distances by omitting '--quick-query'")
+                sys.stderr.write("Writing microreact output\n")
                 # read previous distances
                 refList, refList_copy, self, ref_distMat = readPickle(args.distances)
                 core_distMat, acc_distMat = outputsForMicroreact(refList, ref_distMat, isolateClustering, args.perplexity,

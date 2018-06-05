@@ -31,6 +31,10 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None):
         epiCsv (str)
             Optional CSV of epi data to paste in the output in addition to
             the clusters.
+        queryList (list)
+            Optional list of isolates that have been added as a query.
+
+            (default = None)
     """
     # write graph file
     nx.write_graphml(G, "./" + outPrefix + "/" + outPrefix + "_cytoscape.graphml")
@@ -71,7 +75,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
             the clusters (default = None).
         queryNames (list)
             Optional list of isolates that have been added as a query.
-        
+
+            (default = None)
     """
     if epiCsv is not None:
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
@@ -469,12 +474,13 @@ def get_grid(minimum, maximum, resolution):
     return(xx, yy, xy)
 
 
-def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj, queryList = None, query_ref_distMat = None, query_query_distMat = None, overwrite = False):
+def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, epiCsv, rapidnj,
+        queryList = None, query_ref_distMat = None, query_query_distMat = None, overwrite = False):
     """Generate files for microreact
-        
+
         Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
         of accessory distances (.dot) and cluster assignment (.csv)
-        
+
         Args:
             refList (list)
                 Name of reference sequences. The part of the name before the first '.' will
@@ -492,38 +498,56 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
             rapidnj (str)
                 A string with the location of the rapidnj executable for tree-building. If None, will
                 use dendropy by default
+            queryList (list)
+                Optional list of isolates that have been added as a query.
+
+                (default = None)
+            query_ref_distMat (numpy.array)
+                Array of core and accessory distances for query-ref comparisons
+
+                (default = None)
+            query_query_distMat (numpy.array)
+                 Array of core and accessory distances for query-query comparisons
+
+                 (default = None)
             overwrite (bool)
                 Overwrite existing output if present (default = False)
+        Returns:
+            coreMat (numpy.array)
+                Square distance matrix of core distances
+            accMat (numpy.array)
+                Square distance matrix of accessory distances
         """
-    
+
     # avoid recursive import
     from .mash import iterDistRows
-    
+
     sys.stderr.write("writing microreact output:\n")
     seqLabels = [r.split('/')[-1].split('.')[0] for r in refList]
     if queryList is not None:
         extra_seqLabels = [q.split('/')[-1].split('.')[0] for q in queryList]
         seqLabels = seqLabels + extra_seqLabels
-    
+
     coreMat = np.zeros((len(seqLabels), len(seqLabels)))
     accMat = np.zeros((len(seqLabels), len(seqLabels)))
 
-    # Fill in symmetric matrices
+    # Fill in symmetric matrices for core and accessory distances
     i = 0
     j = 1
-    # ref v ref
+    # ref v ref (used for --create-db)
     for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
         coreMat[i, j] = distMat[row, 0]
         coreMat[j, i] = coreMat[i, j]
         accMat[i, j] = distMat[row, 1]
         accMat[j, i] = accMat[i, j]
-        
+
         if j == len(refList) - 1:
             i += 1
             j = i + 1
         else:
             j += 1
 
+    # if query vs refdb (--assign-query), also include these comparisons
     if queryList is not None:
         # query v query - symmetric
         i = len(refList)
@@ -550,12 +574,13 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
                 j = 0
             else:
                 j += 1
-    
+
+    # Save distances to file
     core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
     np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
     acc_dist_file = outPrefix + "/" + outPrefix + "_acc_dists.csv"
     np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
-    
+
     # calculate phylogeny
     tree_filename = outPrefix + "/" + outPrefix + "_core_NJ_microreact.nwk"
     if overwrite or not os.path.isfile(tree_filename):
@@ -585,7 +610,7 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     if overwrite or not os.path.isfile(tsne_filename):
         sys.stderr.write("Running t-SNE\n")
         accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
-        
+
         # print dot file
         with open(tsne_filename, 'w') as nFile:
             nFile.write("graph G { ")
@@ -599,6 +624,11 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
     # print clustering file
     writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
                     refList, seqLabels, clustering, True, epiCsv, queryList)
+
+    # these are written in long form from __main__,
+    # so remove square form here (can be quite large)
+    os.remove(core_dist_file)
+    os.remove(acc_dist_file)
 
     # return distance matrix
     return coreMat, accMat
