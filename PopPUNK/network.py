@@ -275,7 +275,8 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
         raise RuntimeError("Trying to print query clusters with no query sequences")
 
     newClusters = sorted(nx.connected_components(G), key=len, reverse=True)
-
+    oldNames = set()
+    
     if oldClusterFile != None:
         oldClusters = readClusters(oldClusterFile)
         new_id = len(oldClusters)
@@ -283,7 +284,6 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
             new_id += 1 # in case clusters have been merged
 
         # Samples in previous clustering
-        oldNames = set()
         for prev_cluster in oldClusters.values():
             for prev_sample in prev_cluster:
                 oldNames.add(prev_sample)
