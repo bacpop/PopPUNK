@@ -212,7 +212,7 @@ def readManualStart(startFile):
             elif param == 'start_point':
                 start_s = float(value)
     try:
-        if mean0 == None or mean1 == None or start_s == None:
+        if not isinstance(mean0, np.ndarray) or not isinstance(mean1, np.ndarray) or start_s == None:
             raise RuntimeError('All of mean0, mean1 and start_s must all be set')
         if mean0.shape != (2,) or mean1.shape != (2,):
             raise RuntimeError('Wrong size for values')
