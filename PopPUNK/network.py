@@ -23,19 +23,21 @@ from .mash import iterDistRows
 
 def extractReferences(G, outPrefix):
     """Extract references for each cluster based on cliques
-        Writes chosen references to file
-        Args:
-            G (networkx.Graph)
-                A network used to define clusters from :func:`~constructNetwork`
-            outPrefix (str)
-                Prefix for output file (.refs will be appended)
 
-        Returns:
-            refFileName (str)
-                The name of the file references were written to
-            references (list)
-                An updated list of the reference names
-        """
+       Writes chosen references to file by calling :func:`~writeReferences`
+
+       Args:
+           G (networkx.Graph)
+               A network used to define clusters from :func:`~constructNetwork`
+           outPrefix (str)
+               Prefix for output file (.refs will be appended)
+
+       Returns:
+           refFileName (str)
+               The name of the file references were written to
+           references (list)
+               An updated list of the reference names
+    """
     # extract cliques from network
     references = []
     cliques = list(nx.find_cliques(G))

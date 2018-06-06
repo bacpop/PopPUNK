@@ -271,6 +271,11 @@ In this case the fit is quite similar to the mixture model:
 The small black points are classified as noise, and are not used in the network
 construction.
 
+.. warning::
+   If there are a lot of noise points (in black) then fit refinement will be
+   subsequently required, as these points will not contribute to the network.
+   See :ref:`refine-model`.
+
 Use of full-db
 ^^^^^^^^^^^^^^
 By default the ``--full-db`` option is off. When on this will keep every sample in the
