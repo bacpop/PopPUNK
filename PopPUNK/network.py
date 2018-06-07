@@ -340,7 +340,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
             clustering[cluster_member] = cls_id
 
     # print clustering to file
-    outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
+    outFileName =  outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
         for cluster_member in sorted(clustering, key=operator.itemgetter(0)):

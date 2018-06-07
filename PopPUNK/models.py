@@ -31,13 +31,12 @@ from .dbscan import evaluate_dbscan_clusters
 from .plot import plot_dbscan_results
 
 # refine
-from .refine import refineFit
+from .refine import refineFit2D
+from .refine import refineFit1D
 from .refine import likelihoodBoundary
 from .refine import withinBoundary
 from .refine import readManualStart
 from .plot import plot_refined_results
-
-#TODO write docstrings
 
 def loadClusterFit(pkl_file, npz_file):
     '''Call this to load a fitted model
@@ -80,6 +79,7 @@ class ClusterFit:
     def __init__(self, outPrefix):
         self.outPrefix = outPrefix
         self.fitted = False
+        self.oneD_fitted = False
 
 
     def fit(self, X = None):
@@ -433,10 +433,6 @@ class RefineFit(ClusterFit):
     Args:
         outPrefix (str)
             The output prefix used for reading/writing
-        max_samples (int)
-            The number of subsamples to fit the model to
-
-            (default = 100000)
     '''
 
     def __init__(self, outPrefix):
@@ -449,7 +445,7 @@ class RefineFit(ClusterFit):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
-        :func:`~PopPUNK.refine.refineFit`.
+        :func:`~PopPUNK.refine.refineFit2D`.
 
         Fitted parameters are stored in the object.
 
@@ -519,10 +515,26 @@ class RefineFit(ClusterFit):
         else:
             raise RuntimeError("Unrecognised model type")
 
-        self.start_point, self.optimal_x, self.optimal_y = refineFit(X/self.scale,
+        # Main refinement in 2D
+        self.start_point, self.optimal_x, self.optimal_y = refineFit2D(X/self.scale,
                 sample_names, assignment, model, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                 no_local, threads)
         self.fitted = True
+        self.slope = 'combined'
+
+        # Try and do a 1D refinement for both core and accessory
+        self.core_boundary = self.optimal_x
+        self.accessory_boundary = self.optimal_y
+        try:
+            sys.stderr.write("Refining core and accessory separately\n")
+            self.core_boundary = refineFit1D(X/self.scale[:, 0], sample_names, self.optimal_x, self.max_move,
+                    self.min_move, slope = 'vertical', no_local = no_local, num_processes = threads)
+            self.accessory_boundary = refineFit1D(X/self.scale[:, 1], sample_names, self.optimal_x, self.max_move,
+                    self.min_move, slope = 'horizontal', no_local = no_local, num_processes = threads)
+            self.oneD_fitted = True
+        except:
+            sys.stderr.write("Could not separately refine core and accessory boundaries. "
+                             "Using joint 2D refinement only.\n")
 
         y = self.assign(X)
         return y
@@ -535,6 +547,7 @@ class RefineFit(ClusterFit):
         else:
             np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
              intercept=np.array([self.optimal_x, self.optimal_y]),
+             core_acc_intercepts=np.array([self.core_boundary, self.accessory_boundary]),
              scale=self.scale)
             with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([None, self.type], pickle_file)
@@ -551,8 +564,12 @@ class RefineFit(ClusterFit):
         '''
         self.optimal_x = np.asscalar(fit_npz['intercept'][0])
         self.optimal_y = np.asscalar(fit_npz['intercept'][1])
+        self.core_boundary = np.asscalar(fit_npz['core_acc_intercepts'][0])
+        self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
         self.scale = fit_npz['scale']
         self.fitted = True
+        self.oneD_fitted = True
+        self.slope = 'combined'
 
 
     def plot(self, X):
@@ -566,17 +583,23 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
         else:
-            plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y,
-                self.mean0, self.mean1, self.start_point, self.min_move, self.max_move, self.scale,
-                "Refined fit boundary", self.outPrefix + "/" + self.outPrefix + "_refined_fit")
+            plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y, self.core_boundary,
+                self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
+                self.max_move, self.scale, "Refined fit boundary",
+                self.outPrefix + "/" + self.outPrefix + "_refined_fit")
 
 
-    def assign(self, X):
+    def assign(self, X, slope=None):
         '''Assign the clustering of new samples using :func:`~PopPUNK.refine.withinBoundary`
 
         Args:
             X (numpy.array)
                 Core and accessory distances
+            slope (str)
+                Override self.slope
+
+                Set to 'vertical' for a vertical line, 'horizontal' for a horizontal line, or
+                None to use a slope
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -584,7 +607,12 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
+            if slope == 'combined' or (slope == None and self.slope == 'combined'):
+                y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
+            elif slope == 'vertical' or (slope == None and self.slope == 'vertical'):
+                y = withinBoundary(X/self.scale[:, 0], self.core_boundary, 0, slope=slope)
+            elif slope == 'horizontal' or (slope == None and self.slope == 'horizontal'):
+                y = withinBoundary(X/self.scale[:, 1], 0, self.accessory_boundary, slope=slope)
 
         return y
 

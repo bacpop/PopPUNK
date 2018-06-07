@@ -114,7 +114,12 @@ def get_options():
 
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
-    queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
+    queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
+                                                   'to clusters [default = reference database directory]', type = str)
+    queryingGroup.add_argument('--core-only', help='Use a core-distance only model for assigning queries '
+                                              '[default = False]', default=False, action='store_true')
+    queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
+                                              '[default = False]', default=False, action='store_true')
 
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -250,17 +255,33 @@ def main():
             assignments = model.fit(distMat, args.K)
             model.plot(distMat, assignments)
 
+        fit_type = 'combined'
         model.save()
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
+        isolateClustering = {fit_type: printClusters(genomeNetwork, args.output + "/" + args.output)}
 
-        isolateClustering = printClusters(genomeNetwork, args.output)
+        # Write core and accessory based clusters, if they worked
+        if model.oneD_fitted:
+            oneDnetworks = {}
+            for dist_type, slope in zip(['core', 'accessory'], ['vertical', 'horizontal']):
+                oneDassignments = model.assign(distMat, slope)
+                oneDnetworks[dist_type] = constructNetwork(refList, queryList, oneDassignments, model.within_label)
+                isolateClustering[dist_type] = printClusters(genomeNetwork, args.output + "/" + args.output + "_" + dist_type)
+                nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + "_" + dist_type + '_graph.gpickle')
+            if args.core_only:
+                fit_type = 'core'
+                genomeNetwork = oneDnetworks['core']
+            elif args.accessory_only:
+                fit_type = 'accessory'
+                genomeNetwork = oneDnetworks['accessory']
+
         # generate outputs for microreact if asked
         if args.microreact:
             outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity,
                     args.output, args.info_csv, args.rapidnj, overwrite=args.overwrite)
         # generate outputs for cytoscape if asked
         if args.cytoscape:
-            outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+            outputsForCytoscape(genomeNetwork, isolateClustering['combined'], args.output, args.info_csv)
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
@@ -302,15 +323,31 @@ def main():
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + model_prefix + '_fit.pkl',
                                    model_prefix + "/" + model_prefix + '_fit.npz')
+
+            # If a refined fit, may use just core or accessory distances
+            if args.core_only and model.type == 'refine':
+                model.slope = 'vertical'
+                network_file = model_prefix + "/" + model_prefix + '_core_graph.gpickle'
+                old_cluster_file = model_prefix + "/" + model_prefix + '_core_clusters.csv'
+            elif args.accessory_only and model.type == 'refine':
+                model.slope = 'horizontal'
+                network_file = model_prefix + "/" + model_prefix + '_accessory_graph.gpickle'
+                old_cluster_file = model_prefix + "/" + model_prefix + '_accessory_clusters.csv'
+            else:
+                network_file = model_prefix + "/" + model_prefix + '_graph.gpickle'
+                old_cluster_file = model_prefix + "/" + model_prefix + '_clusters.csv'
+                if args.core_only or args.accessory_only:
+                    sys.stderr.write("Can only do --core-only or --accessory-only fits from "
+                                     "a refined fit. Using the combined distances.\n")
+
             queryAssignments = model.assign(distMat)
-            genomeNetwork = nx.read_gpickle(model_prefix + "/" + model_prefix + '_graph.gpickle')
+            genomeNetwork = nx.read_gpickle(network_file)
 
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
                     genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
                     args.update_db, args.threads, args.mash)
-            isolateClustering = printClusters(genomeNetwork, args.output,
-                    model_prefix + "/" + model_prefix + '_clusters.csv', False)
+            isolateClustering = printClusters(genomeNetwork, args.output, old_cluster_file, False)
 
             # update_db like no full_db
             if args.update_db:
