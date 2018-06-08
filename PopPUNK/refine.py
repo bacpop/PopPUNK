@@ -83,7 +83,7 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y
 
 
-def refineFit1D(distMat, sample_names, start_s, max_move, min_move, mean1, slope,
+def refineFit1D(distMat, sample_names, start_point, max_move, min_move, mean1, slope,
         no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
@@ -94,7 +94,7 @@ def refineFit1D(distMat, sample_names, start_s, max_move, min_move, mean1, slope
             n vector of core or accessory distances for n samples
         sample_names (list)
             List of query sequence labels
-        start_s (float)
+        start_point (float)
             Point along line to start search
         max_move (float)
             Maximum distance to move away from start point
@@ -116,11 +116,10 @@ def refineFit1D(distMat, sample_names, start_s, max_move, min_move, mean1, slope
         optimised_s (float)
             axis intercept of refined fit
     """
-    optimised_s = optimiseScore(distMat, min_move, max_move, sample_names, start_s,
+    optimised_s = optimiseScore(distMat, min_move, max_move, sample_names, start_point,
         mean1, 0, slope = slope, no_local = no_local, num_processes = num_processes)
-    optimised_coor = transformLine(s, start_point, mean1)[slope]
+    optimised_coor = transformLine(optimised_s, start_point, mean1)[slope]
 
-    print(optimised_coor)
     if optimised_coor <= 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
@@ -169,7 +168,7 @@ def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
 
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
-    global_grid_resolution = 5 # Seems to work
+    global_grid_resolution = 40 # Seems to work
     shared_dists = sharedmem.copy(distMat)
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
     with sharedmem.MapReduce(np = num_processes) as pool:

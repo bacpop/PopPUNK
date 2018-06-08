@@ -109,6 +109,8 @@ def get_options():
             type=float, default=0.4)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
+    refinementGroup.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually', default=False,
+            action='store_true')
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
 
@@ -242,7 +244,7 @@ def main():
 
             model = RefineFit(args.output)
             assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift,
-                    args.manual_start, args.no_local, args.threads)
+                    args.manual_start, args.indiv_refine, args.no_local, args.threads)
             model.plot(distMat)
         # Run DBSCAN model
         elif args.dbscan:
@@ -261,19 +263,19 @@ def main():
         isolateClustering = {fit_type: printClusters(genomeNetwork, args.output + "/" + args.output)}
 
         # Write core and accessory based clusters, if they worked
-        if model.oneD_fitted:
-            oneDnetworks = {}
+        if model.indiv_fitted:
+            indivNetworks = {}
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                oneDassignments = model.assign(distMat, slope)
-                oneDnetworks[dist_type] = constructNetwork(refList, queryList, oneDassignments, model.within_label)
-                isolateClustering[dist_type] = printClusters(genomeNetwork, args.output + "/" + args.output + "_" + dist_type)
-                nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + "_" + dist_type + '_graph.gpickle')
+                indivAssignments = model.assign(distMat, slope)
+                indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
+                isolateClustering[dist_type] = printClusters(indivNetworks[dist_type], args.output + "/" + args.output + "_" + dist_type)
+                nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + args.output + "_" + dist_type + '_graph.gpickle')
             if args.core_only:
                 fit_type = 'core'
-                genomeNetwork = oneDnetworks['core']
+                genomeNetwork = indivNetworks['core']
             elif args.accessory_only:
                 fit_type = 'accessory'
-                genomeNetwork = oneDnetworks['accessory']
+                genomeNetwork = indivNetworks['accessory']
 
         # generate outputs for microreact if asked
         if args.microreact:

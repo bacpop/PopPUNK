@@ -79,7 +79,7 @@ class ClusterFit:
     def __init__(self, outPrefix):
         self.outPrefix = outPrefix
         self.fitted = False
-        self.oneD_fitted = False
+        self.indiv_fitted = False
 
 
     def fit(self, X = None):
@@ -441,7 +441,8 @@ class RefineFit(ClusterFit):
         self.preprocess = False
         self.within_label = -1
 
-    def fit(self, X, sample_names, model, max_move, min_move, startFile = None, no_local = False, threads = 1):
+    def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
+            no_local = False, threads = 1):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -466,6 +467,10 @@ class RefineFit(ClusterFit):
                 See documentation for format.
 
                 (default = None).
+            indiv_refine (bool)
+                Run refinement for core and accessory distances separately
+
+                (default = False).
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
@@ -523,27 +528,20 @@ class RefineFit(ClusterFit):
         self.slope = 2
 
         # Try and do a 1D refinement for both core and accessory
-        self.core_boundary = self.optimal_x
-        self.accessory_boundary = self.optimal_y
-        #try:
-        #    sys.stderr.write("Refining core and accessory separately\n")
+        if indiv_refine:
+            self.core_boundary = self.optimal_x
+            self.accessory_boundary = self.optimal_y
+            try:
+                sys.stderr.write("Refining core and accessory separately\n")
 
-        #    self.core_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
-        #            self.min_move, self.mean1, slope = 0, no_local = no_local, num_processes = threads)
-        #    self.accessory_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
-        #            self.min_move, self.mean1, slope = 1, no_local = no_local, num_processes = threads)
-        #    self.oneD_fitted = True
-        #except:
-        #    sys.stderr.write("Could not separately refine core and accessory boundaries. "
-        #                     "Using joint 2D refinement only.\n")
-
-        sys.stderr.write("Refining core and accessory separately\n")
-
-        self.core_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
-                self.min_move, self.mean1, slope = 0, no_local = no_local, num_processes = threads)
-        self.accessory_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
-                self.min_move, self.mean1, slope = 1, no_local = no_local, num_processes = threads)
-        self.oneD_fitted = True
+                self.core_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
+                        self.min_move, self.mean1, slope = 0, no_local = no_local, num_processes = threads)
+                self.accessory_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
+                        self.min_move, self.mean1, slope = 1, no_local = no_local, num_processes = threads)
+                self.indiv_fitted = True
+            except:
+                sys.stderr.write("Could not separately refine core and accessory boundaries. "
+                                 "Using joint 2D refinement only.\n")
 
         y = self.assign(X)
         return y
@@ -577,7 +575,7 @@ class RefineFit(ClusterFit):
         self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
         self.scale = fit_npz['scale']
         self.fitted = True
-        self.oneD_fitted = True
+        self.indiv_fitted = True
         self.slope = 2
 
 
@@ -594,7 +592,7 @@ class RefineFit(ClusterFit):
         else:
             plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y, self.core_boundary,
                 self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
-                self.max_move, self.scale, "Refined fit boundary",
+                self.max_move, self.scale, self.indiv_fitted, "Refined fit boundary",
                 self.outPrefix + "/" + self.outPrefix + "_refined_fit")
 
 

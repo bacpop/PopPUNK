@@ -349,7 +349,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     plt.close()
 
 def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_boundary,
-        mean0, mean1, start_point, min_move, max_move, scale, title, out_prefix):
+        mean0, mean1, start_point, min_move, max_move, scale, indiv_boundaries, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
     A scatter plot of core and accessory distances, coloured by component
@@ -380,6 +380,8 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
             Maximum s range
         scale (numpy.array)
             Scaling factor from :class:`~PopPUNK.models.RefineFit`
+        indiv_boundaries (bool)
+            Whether to draw lines for core and accessory refinement
         title (str)
             The title to display above the plot
         out_prefix (str)
@@ -395,8 +397,11 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
 
     # Draw fit lines
     plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Combined decision boundary')
-    plt.plot([core_boundary, core_boundary], [0, 1], color='0.5', linewidth=1, linestyle='-.', label='Individual decision boundaries')
-    plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='0.25', linewidth=1, linestyle='-.')
+    if indiv_boundaries:
+        plt.plot([core_boundary, core_boundary], [0, 1], color='lightgray', linewidth=1,
+                linestyle='-.', label='Individual decision boundaries')
+        plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='lightgray', linewidth=1,
+                linestyle='-.')
 
     minimum_xy = transformLine(-min_move, start_point, mean1)
     maximum_xy = transformLine(max_move, start_point, mean1)
