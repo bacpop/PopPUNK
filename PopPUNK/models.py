@@ -33,6 +33,7 @@ from .plot import plot_dbscan_results
 # refine
 from .refine import refineFit2D
 from .refine import refineFit1D
+from .refine import transformLine
 from .refine import likelihoodBoundary
 from .refine import withinBoundary
 from .refine import readManualStart
@@ -527,10 +528,13 @@ class RefineFit(ClusterFit):
         self.accessory_boundary = self.optimal_y
         try:
             sys.stderr.write("Refining core and accessory separately\n")
-            self.core_boundary = refineFit1D(X/self.scale[:, 0], sample_names, self.optimal_x, self.max_move,
-                    self.min_move, slope = 'vertical', no_local = no_local, num_processes = threads)
-            self.accessory_boundary = refineFit1D(X/self.scale[:, 1], sample_names, self.optimal_x, self.max_move,
-                    self.min_move, slope = 'horizontal', no_local = no_local, num_processes = threads)
+            min_xy = transformLine(self.start_s - self.min_move, mean0, mean1)
+            max_xy = transformLine(self.start_s + self.max_move, mean0, mean1)
+
+            self.core_boundary = refineFit1D(X/self.scale[:, 0], sample_names, self.optimal_x, max_xy[0],
+                    min_xy[0], slope = 'vertical', no_local = no_local, num_processes = threads)
+            self.accessory_boundary = refineFit1D(X/self.scale[:, 1], sample_names, self.optimal_x, max_xy[1],
+                    max_xy[1], slope = 'horizontal', no_local = no_local, num_processes = threads)
             self.oneD_fitted = True
         except:
             sys.stderr.write("Could not separately refine core and accessory boundaries. "
