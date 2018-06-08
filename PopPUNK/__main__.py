@@ -263,7 +263,7 @@ def main():
         # Write core and accessory based clusters, if they worked
         if model.oneD_fitted:
             oneDnetworks = {}
-            for dist_type, slope in zip(['core', 'accessory'], ['vertical', 'horizontal']):
+            for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
                 oneDassignments = model.assign(distMat, slope)
                 oneDnetworks[dist_type] = constructNetwork(refList, queryList, oneDassignments, model.within_label)
                 isolateClustering[dist_type] = printClusters(genomeNetwork, args.output + "/" + args.output + "_" + dist_type)
@@ -281,7 +281,7 @@ def main():
                     args.output, args.info_csv, args.rapidnj, overwrite=args.overwrite)
         # generate outputs for cytoscape if asked
         if args.cytoscape:
-            outputsForCytoscape(genomeNetwork, isolateClustering['combined'], args.output, args.info_csv)
+            outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
@@ -326,11 +326,11 @@ def main():
 
             # If a refined fit, may use just core or accessory distances
             if args.core_only and model.type == 'refine':
-                model.slope = 'vertical'
+                model.slope = 0
                 network_file = model_prefix + "/" + model_prefix + '_core_graph.gpickle'
                 old_cluster_file = model_prefix + "/" + model_prefix + '_core_clusters.csv'
             elif args.accessory_only and model.type == 'refine':
-                model.slope = 'horizontal'
+                model.slope = 1
                 network_file = model_prefix + "/" + model_prefix + '_accessory_graph.gpickle'
                 old_cluster_file = model_prefix + "/" + model_prefix + '_accessory_clusters.csv'
             else:

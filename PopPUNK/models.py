@@ -33,7 +33,6 @@ from .plot import plot_dbscan_results
 # refine
 from .refine import refineFit2D
 from .refine import refineFit1D
-from .refine import transformLine
 from .refine import likelihoodBoundary
 from .refine import withinBoundary
 from .refine import readManualStart
@@ -521,24 +520,30 @@ class RefineFit(ClusterFit):
                 sample_names, assignment, model, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                 no_local, threads)
         self.fitted = True
-        self.slope = 'combined'
+        self.slope = 2
 
         # Try and do a 1D refinement for both core and accessory
         self.core_boundary = self.optimal_x
         self.accessory_boundary = self.optimal_y
-        try:
-            sys.stderr.write("Refining core and accessory separately\n")
-            min_xy = transformLine(self.start_s - self.min_move, mean0, mean1)
-            max_xy = transformLine(self.start_s + self.max_move, mean0, mean1)
+        #try:
+        #    sys.stderr.write("Refining core and accessory separately\n")
 
-            self.core_boundary = refineFit1D(X/self.scale[:, 0], sample_names, self.optimal_x, max_xy[0],
-                    min_xy[0], slope = 'vertical', no_local = no_local, num_processes = threads)
-            self.accessory_boundary = refineFit1D(X/self.scale[:, 1], sample_names, self.optimal_x, max_xy[1],
-                    max_xy[1], slope = 'horizontal', no_local = no_local, num_processes = threads)
-            self.oneD_fitted = True
-        except:
-            sys.stderr.write("Could not separately refine core and accessory boundaries. "
-                             "Using joint 2D refinement only.\n")
+        #    self.core_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
+        #            self.min_move, self.mean1, slope = 0, no_local = no_local, num_processes = threads)
+        #    self.accessory_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
+        #            self.min_move, self.mean1, slope = 1, no_local = no_local, num_processes = threads)
+        #    self.oneD_fitted = True
+        #except:
+        #    sys.stderr.write("Could not separately refine core and accessory boundaries. "
+        #                     "Using joint 2D refinement only.\n")
+
+        sys.stderr.write("Refining core and accessory separately\n")
+
+        self.core_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
+                self.min_move, self.mean1, slope = 0, no_local = no_local, num_processes = threads)
+        self.accessory_boundary = refineFit1D(X/self.scale, sample_names, self.start_point, self.max_move,
+                self.min_move, self.mean1, slope = 1, no_local = no_local, num_processes = threads)
+        self.oneD_fitted = True
 
         y = self.assign(X)
         return y
@@ -573,7 +578,7 @@ class RefineFit(ClusterFit):
         self.scale = fit_npz['scale']
         self.fitted = True
         self.oneD_fitted = True
-        self.slope = 'combined'
+        self.slope = 2
 
 
     def plot(self, X):
@@ -599,11 +604,11 @@ class RefineFit(ClusterFit):
         Args:
             X (numpy.array)
                 Core and accessory distances
-            slope (str)
-                Override self.slope
+            slope (int)
+                Override self.slope. Default - use self.slope
 
-                Set to 'vertical' for a vertical line, 'horizontal' for a horizontal line, or
-                None to use a slope
+                Set to 0 for a vertical line, 1 for a horizontal line, or
+                2 to use a slope
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -611,12 +616,12 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            if slope == 'combined' or (slope == None and self.slope == 'combined'):
+            if slope == 2 or (slope == None and self.slope == 2):
                 y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
-            elif slope == 'vertical' or (slope == None and self.slope == 'vertical'):
-                y = withinBoundary(X/self.scale[:, 0], self.core_boundary, 0, slope=slope)
-            elif slope == 'horizontal' or (slope == None and self.slope == 'horizontal'):
-                y = withinBoundary(X/self.scale[:, 1], 0, self.accessory_boundary, slope=slope)
+            elif slope == 0 or (slope == None and self.slope == 0):
+                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=slope)
+            elif slope == 1 or (slope == None and self.slope == 1):
+                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=slope)
 
         return y
 

@@ -97,16 +97,16 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
                 for cluster_type in clustering:
                     col_name = cluster_type + "_Cluster__autocolour"
                     d[col_name].append(clustering[cluster_type][name])
-                    if queryNames is not None:
-                        if name in queryNames:
-                            d['Status'].append("Query")
-                            d['Status__colour'].append("red")
-                        else:
-                            d['Status'].append("Reference")
-                            d['Status__colour'].append("black")
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                        d['Status__colour'].append("red")
+                    else:
+                        d['Status'].append("Reference")
+                        d['Status__colour'].append("black")
             else:
                 d['id'].append(name)
-                d['Cluster'].append(clustering[name])
+                d['Cluster'].append(clustering['combined'][name])
                 if queryNames is not None:
                     if name in queryNames:
                         d['Status'].append("Query")
@@ -395,8 +395,8 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
 
     # Draw fit lines
     plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Combined decision boundary')
-    plt.plot([core_boundary, 0], [core_boundary, 1], color='0.5', linewidth=1, linestyle='-.', label='Core decision boundary')
-    plt.plot([0, accessory_boundary], [1, accessory_boundary], color='0.5', linewidth=1, linestyle='-.', label='Core decision boundary')
+    plt.plot([core_boundary, core_boundary], [0, 1], color='0.5', linewidth=1, linestyle='-.', label='Individual decision boundaries')
+    plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='0.25', linewidth=1, linestyle='-.')
 
     minimum_xy = transformLine(-min_move, start_point, mean1)
     maximum_xy = transformLine(max_move, start_point, mean1)

@@ -73,8 +73,8 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
     # Run optimisation
-    optimised_s = optimiseScore(distMat, min_move, max_move, num_processes, sample_names, start_point,
-        mean1, gradient, slope = None, no_local = no_local, num_processes = num_processes)
+    optimised_s = optimiseScore(distMat, min_move, max_move, sample_names, start_point,
+        mean1, gradient, slope = 2, no_local = no_local, num_processes = num_processes)
     optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
 
     if optimal_x <= 0 or optimal_y <= 0:
@@ -83,7 +83,7 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y
 
 
-def refineFit1D(distMat, sample_names, start_s, max_move, min_move, slope,
+def refineFit1D(distMat, sample_names, start_s, max_move, min_move, mean1, slope,
         no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
@@ -100,9 +100,11 @@ def refineFit1D(distMat, sample_names, start_s, max_move, min_move, slope,
             Maximum distance to move away from start point
         min_move (float)
             Minimum distance to move away from start point
-        slope (str)
-            Set to 'vertical' for a vertical line, 'horizontal' for a horizontal line, or
-            None to use a slope
+        mean1 (numpy.array)
+            End point to define search line
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
         no_local (bool)
             Turn off the local optimisation step.
             Quicker, but may be less well refined.
@@ -114,26 +116,28 @@ def refineFit1D(distMat, sample_names, start_s, max_move, min_move, slope,
         optimised_s (float)
             axis intercept of refined fit
     """
-    optimised_s = optimiseScore(distMat, min_move, max_move, num_processes, sample_names, start_point,
-        None, 0, slope = slope, no_local = no_local, num_processes = num_processes)
+    optimised_s = optimiseScore(distMat, min_move, max_move, sample_names, start_s,
+        mean1, 0, slope = slope, no_local = no_local, num_processes = num_processes)
+    optimised_coor = transformLine(s, start_point, mean1)[slope]
 
-    if optimised_s <= 0:
+    print(optimised_coor)
+    if optimised_coor <= 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
-    return optimised_s
+    return optimised_coor
 
 
 def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
-        mean1, gradient, slope = None, no_local = False, num_processes = 1):
+        mean1, gradient, slope = 2, no_local = False, num_processes = 1):
     """Do the score optimisation. First a brute force global search, followed by local optimisation.
 
     Args:
         distMat (numpy.array)
             Distances for all samples
-        max_move (float)
-            Maximum distance to move away from start point
         min_move (float)
             Minimum distance to move away from start point
+        max_move (float)
+            Maximum distance to move away from start point
         sample_names (list)
             List of query sequence labels
         start_point (float)
@@ -142,9 +146,9 @@ def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
             End point to define search line
         gradient (float)
             Gradient of boundary
-        slope (str)
-            Set to 'vertical' for a vertical line, 'horizontal' for a horizontal line, or
-            None to use a slope
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
         no_local (bool)
             Turn off the local optimisation step.
             Quicker, but may be less well refined.
@@ -165,7 +169,7 @@ def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
 
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
-    global_grid_resolution = 40 # Seems to work
+    global_grid_resolution = 5 # Seems to work
     shared_dists = sharedmem.copy(distMat)
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
     with sharedmem.MapReduce(np = num_processes) as pool:
@@ -189,7 +193,7 @@ def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
     return optimised_s
 
 @jit(nopython=True)
-def withinBoundary(dists, x_max, y_max, slope=None):
+def withinBoundary(dists, x_max, y_max, slope=2):
     """Classifies points as within or outside of a refined boundary.
     Numba JIT compiled for speed.
 
@@ -202,9 +206,9 @@ def withinBoundary(dists, x_max, y_max, slope=None):
             The x-axis intercept from :func:`~decisionBoundary`
         y_max (float)
             The y-axis intercept from :func:`~decisionBoundary`
-        slope (str)
-            Set to 'vertical' for a vertical line, 'horizontal' for a horizontal line, or
-            None to use a slope
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
     Returns:
         signs (numpy.array)
             For each sample in dists, -1 if within-strain and 1 if between-strain.
@@ -214,12 +218,12 @@ def withinBoundary(dists, x_max, y_max, slope=None):
     # x_max and y_max from decisionBoundary
     boundary_test = np.ones((dists.shape[0]))
     for row in range(boundary_test.size):
-        if slope == None:
+        if slope == 2:
             in_tri = dists[row, 0]*dists[row, 1] - (x_max-dists[row, 0])*(y_max-dists[row, 1])
-        elif slope == 'vertical':
-            in_tri = dists[row] - x_max
-        elif slope == 'horizontal':
-            in_tri = dists[row] - y_max
+        elif slope == 0:
+            in_tri = dists[row, 0] - x_max
+        elif slope == 1:
+            in_tri = dists[row, 1] - y_max
 
         if in_tri < 0:
             boundary_test[row] = -1
@@ -228,7 +232,7 @@ def withinBoundary(dists, x_max, y_max, slope=None):
     return(boundary_test)
 
 
-def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=None):
+def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -248,23 +252,23 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=Non
             Defines line direction from start_point
         gradient (float)
             Gradient of line to move along
-        slope (str)
-            Set to 'vertical' for a vertical line, 'horizontal' for a horizontal line, or
-            None to use a slope
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
     Returns:
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
     # Set up boundary
-    if slope == None:
-        new_intercept = transformLine(s, start_point, mean1)
+    new_intercept = transformLine(s, start_point, mean1)
+    if slope == 2:
         x_max, y_max = decisionBoundary(new_intercept, gradient)
-    elif slope == 'vertical':
-        x_max = start_point + s
+    elif slope == 0:
+        x_max = new_intercept[0]
         y_max = 0
-    elif slope == 'horizontal':
+    elif slope == 1:
         x_max = 0
-        y_max = start_point + s
+        y_max = new_intercept[1]
 
     # Make network
     boundary_assignments = withinBoundary(distMat, x_max, y_max, slope)
