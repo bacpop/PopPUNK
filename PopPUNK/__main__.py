@@ -115,6 +115,7 @@ def get_options():
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
+    queryingGroup.add_argument('--cluster-file', help='File containing previous cluster definitions [default = use that in the directory containing the model]', type = str)
 
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -309,8 +310,11 @@ def main():
             ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
                     genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
                     args.update_db, args.threads, args.mash)
+            old_cluster_file = model_prefix + "/" + model_prefix + '_clusters.csv'
+            if args.cluster_file is not None:
+                old_cluster_file = args.cluster_file
             isolateClustering = printClusters(genomeNetwork, args.output,
-                    model_prefix + "/" + model_prefix + '_clusters.csv', False)
+                    old_cluster_file, False)
 
             # update_db like no full_db
             if args.update_db:
