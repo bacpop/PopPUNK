@@ -20,7 +20,6 @@ from .mash import joinDBs
 from .mash import writeTmpFile
 from .mash import constructDatabase
 from .mash import queryDatabase
-from .mash import printQueryOutput
 from .mash import readMashDBParams
 from .mash import translate_distMat
 
@@ -115,7 +114,7 @@ def get_options():
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries to clusters [default = reference database directory]', type = str)
-    queryingGroup.add_argument('--cluster-file', help='File containing previous cluster definitions [default = use that in the directory containing the model]', type = str)
+    queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions and network [default = use that in the directory containing the model]', type = str)
 
     # model output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -272,7 +271,6 @@ def main():
             constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads,
                               args.mash, True) # overwrite old db
 
-        printQueryOutput(refList, queryList, distMat, args.output, self)
         nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
     elif args.assign_query:
@@ -295,7 +293,6 @@ def main():
             constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.output, False, args.plot_fit,
                                                         args.no_stream, args.mash, args.threads)
-            printQueryOutput(refList, queryList, distMat, args.output, self)
 
             # Assign these distances as within or between
             model_prefix = args.ref_db
@@ -304,15 +301,18 @@ def main():
             model = loadClusterFit(model_prefix + "/" + model_prefix + '_fit.pkl',
                                    model_prefix + "/" + model_prefix + '_fit.npz')
             queryAssignments = model.assign(distMat)
-            genomeNetwork = nx.read_gpickle(model_prefix + "/" + model_prefix + '_graph.gpickle')
-
+            old_network_file = model_prefix + "/" + model_prefix + '_graph.gpickle'
+            if args.previous_clustering is not None:
+                old_network_file = args.previous_clustering + "/" + args.previous_clustering + '_graph.gpickle'
+            genomeNetwork = nx.read_gpickle(old_network_file)
+            print("Network loaded: "+str(genomeNetwork.number_of_nodes()))
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
                     genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
                     args.update_db, args.threads, args.mash)
             old_cluster_file = model_prefix + "/" + model_prefix + '_clusters.csv'
-            if args.cluster_file is not None:
-                old_cluster_file = args.cluster_file
+            if args.previous_clustering is not None:
+                old_cluster_file = args.previous_clustering + "/" + args.previous_clustering + '_clusters.csv'
             isolateClustering = printClusters(genomeNetwork, args.output,
                     old_cluster_file, False)
 
@@ -322,7 +322,8 @@ def main():
 
                 # Update the network + ref list
                 newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output)
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
+                if args.full_db is False:
+                    genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
 
                 # Update the mash database

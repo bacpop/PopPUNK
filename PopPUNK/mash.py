@@ -709,37 +709,6 @@ def getKmersFromReferenceDatabase(dbPrefix):
     kmers = np.asarray(knum)
     return kmers
 
-def printQueryOutput(rlist, qlist, X, outPrefix, self):
-    """Write calculated distances between query and ref to a text file
-
-    First three arguments are the return values from :func:`~queryDatabase`
-
-    Args:
-        rlist (list)
-            Names of reference sequences
-        qlist (list)
-            Names of query sequences
-        X (numpy.array)
-            Core and accessory distances
-        outPrefix (str)
-            Prefix for output file
-        self (bool)
-            Whether :func:`~queryDatabase` was run with self (rlist = qlist)
-    """
-    # check if output directory exists and generate if not
-    if not os.path.isdir(outPrefix):
-        os.makedirs(outPrefix)
-
-    # get names order
-    names = iterDistRows(rlist, qlist, self)
-
-    # open output file
-    outFileName = outPrefix + "/" + outPrefix + ".search.out"
-    with open(outFileName, 'w') as oFile:
-        oFile.write("\t".join(['Query', 'Reference', 'Core', 'Accessory']) + "\n")
-        for i, (ref, query) in enumerate(names):
-            oFile.write("\t".join([query, ref, str(X[i,0]), str(X[i,1])]) + "\n")
-
 def translate_distMat(core_distMat, acc_distMat, rlist, qlist):
     """Convert distances from a square form (2 NxN matrices) to a long form
     (1 matrix with n_comparisons rows and 2 columns).
