@@ -107,7 +107,7 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
             connections.append((ref, query))
 
     density_proportion = len(connections) / (0.5 * (len(rlist) * (len(rlist) + 1)))
-    if density_proportion > 0.2 or len(connections) > 100000:
+    if density_proportion > 0.4 or len(connections) > 500000:
         sys.stderr.write("Warning: trying to create very large network\n")
 
     # build the graph
@@ -340,7 +340,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
             clustering[cluster_member] = cls_id
 
     # print clustering to file
-    outFileName = outPrefix + "/" + outPrefix + "_clusters.csv"
+    outFileName =  outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
         for cluster_member in sorted(clustering, key=operator.itemgetter(0)):

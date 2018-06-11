@@ -15,8 +15,8 @@ from .mash import iterDistRows
 from .network import constructNetwork
 from .network import networkSummary
 
-def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
-        max_move, min_move, no_local = False, num_processes = 1):
+def refineFit(distMat, sample_names, start_s, mean0, mean1,
+        max_move, min_move, slope = 2, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -26,10 +26,6 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
             n x 2 array of core and accessory distances for n samples
         sample_names (list)
             List of query sequence labels
-        assignment (numpy.array)
-            Assignment of samples from ``model.assign(distMat)``
-        model (ClusterFit)
-            Fitted model
         start_s (float)
             Point along line to start search
         mean0 (numpy.array)
@@ -40,11 +36,9 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
             Maximum distance to move away from start point
         min_move (float)
             Minimum distance to move away from start point
-        startFile (str)
-            A file defining an initial fit, rather than one from ``--fit-model``.
-            See documentation for format.
-
-            (default = None).
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
         no_local (bool)
             Turn off the local optimisation step.
             Quicker, but may be less well refined.
@@ -60,7 +54,6 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
         optimal_y (float)
             y-coordinate of refined fit
     """
-    G = constructNetwork(sample_names, sample_names, assignment, model.within_label)
     sys.stderr.write("Initial boundary based network construction\n")
     start_point = transformLine(start_s, mean0, mean1)
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
@@ -68,9 +61,6 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
 
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x_max, y_max = decisionBoundary(start_point, gradient)
-    boundary_assignments = withinBoundary(distMat, x_max, y_max)
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
     # ALTERNATIVE - use a single network
     # Move boundary along in steps, and find those samples which have changed
@@ -86,7 +76,8 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
     with sharedmem.MapReduce(np = num_processes) as pool:
         global_s = pool.map(partial(newNetwork,
-            sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1, gradient=gradient),
+            sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1,
+            gradient=gradient, slope=slope),
             s_range)
 
     # Local optimisation around global optimum
@@ -96,21 +87,26 @@ def refineFit(distMat, sample_names, assignment, model, start_s, mean0, mean1,
         local_s = scipy.optimize.minimize_scalar(newNetwork,
                         bounds=[s_range[min_idx-1], s_range[min_idx+1]],
                         method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient))
+                        args = (sample_names, distMat, start_point, mean1, gradient, slope))
         optimised_s = local_s.x
     else:
         optimised_s = s_range[min_idx]
 
-    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
-    if optimal_x <= 0 or optimal_y <= 0:
-        sys.stderr.write("Optimisation failed: produced a boundary outside of allowed range\n")
-        sys.exit(1)
+    optimised_coor = transformLine(optimised_s, start_point, mean1)
+    if slope == 2:
+        optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
+    else:
+        optimal_x = optimised_coor[0]
+        optimal_y = optimised_coor[1]
+
+    if optimal_x < 0 or optimal_y < 0:
+        raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
     return start_point, optimal_x, optimal_y
 
 
 @jit(nopython=True)
-def withinBoundary(dists, x_max, y_max):
+def withinBoundary(dists, x_max, y_max, slope=2):
     """Classifies points as within or outside of a refined boundary.
     Numba JIT compiled for speed.
 
@@ -123,6 +119,9 @@ def withinBoundary(dists, x_max, y_max):
             The x-axis intercept from :func:`~decisionBoundary`
         y_max (float)
             The y-axis intercept from :func:`~decisionBoundary`
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
     Returns:
         signs (numpy.array)
             For each sample in dists, -1 if within-strain and 1 if between-strain.
@@ -132,7 +131,13 @@ def withinBoundary(dists, x_max, y_max):
     # x_max and y_max from decisionBoundary
     boundary_test = np.ones((dists.shape[0]))
     for row in range(boundary_test.size):
-        in_tri = dists[row, 0]*dists[row, 1] - (x_max-dists[row, 0])*(y_max-dists[row, 1])
+        if slope == 2:
+            in_tri = dists[row, 0]*dists[row, 1] - (x_max-dists[row, 0])*(y_max-dists[row, 1])
+        elif slope == 0:
+            in_tri = dists[row, 0] - x_max
+        elif slope == 1:
+            in_tri = dists[row, 1] - y_max
+
         if in_tri < 0:
             boundary_test[row] = -1
         elif in_tri == 0:
@@ -140,7 +145,7 @@ def withinBoundary(dists, x_max, y_max):
     return(boundary_test)
 
 
-def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
+def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -160,16 +165,26 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient):
             Defines line direction from start_point
         gradient (float)
             Gradient of line to move along
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
     Returns:
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
-    x_max, y_max = decisionBoundary(new_intercept, gradient)
+    if slope == 2:
+        x_max, y_max = decisionBoundary(new_intercept, gradient)
+    elif slope == 0:
+        x_max = new_intercept[0]
+        y_max = 0
+    elif slope == 1:
+        x_max = 0
+        y_max = new_intercept[1]
 
     # Make network
-    boundary_assignments = withinBoundary(distMat, x_max, y_max)
+    boundary_assignments = withinBoundary(distMat, x_max, y_max, slope)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score

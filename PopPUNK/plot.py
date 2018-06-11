@@ -65,8 +65,9 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
             Names of sequences in clustering (includes path).
         nodeLabels (list)
             Names of sequences to write in CSV (usually has path removed).
-        clustering (dict)
-            Dictionary of cluster assignments (keys are nodeNames).
+        clustering (dict or dict of dicts)
+            Dictionary of cluster assignments (keys are nodeNames). Pass a dict with depth two
+            to include multiple possible clusterings.
         microreact (bool)
             Whether output should be formatted for microreact
             (default = False).
@@ -90,10 +91,12 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
         colnames = [str(e) for e in epiData.columns]
 
     for name, label in zip(nodeNames, nodeLabels):
-        if name in clustering:
+        if name in clustering['combined']:
             if microreact:
                 d['id'].append(label)
-                d['Cluster__autocolour'].append(clustering[name])
+                for cluster_type in clustering:
+                    col_name = cluster_type + "_Cluster__autocolour"
+                    d[col_name].append(clustering[cluster_type][name])
                 if queryNames is not None:
                     if name in queryNames:
                         d['Status'].append("Query")
@@ -103,7 +106,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, microreact = Fal
                         d['Status__colour'].append("black")
             else:
                 d['id'].append(name)
-                d['Cluster'].append(clustering[name])
+                d['Cluster'].append(clustering['combined'][name])
                 if queryNames is not None:
                     if name in queryNames:
                         d['Status'].append("Query")
@@ -345,8 +348,8 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point,
-        min_move, max_move, scale, title, out_prefix):
+def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_boundary,
+        mean0, mean1, start_point, min_move, max_move, scale, indiv_boundaries, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
     A scatter plot of core and accessory distances, coloured by component
@@ -361,6 +364,10 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
             Intercept of boundary with x-axis, from :class:`~PopPUNK.models.RefineFit`
         y_boundary (float)
             Intercept of boundary with y-axis, from :class:`~PopPUNK.models.RefineFit`
+        core_boundary (float)
+            Intercept of 1D (core) boundary with x-axis, from :class:`~PopPUNK.models.RefineFit`
+        accessory_boundary (float)
+            Intercept of 1D (core) boundary with y-axis, from :class:`~PopPUNK.models.RefineFit`
         mean0 (numpy.array)
             Centre of within-strain distribution
         mean1 (numpy.array)
@@ -373,6 +380,8 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
             Maximum s range
         scale (numpy.array)
             Scaling factor from :class:`~PopPUNK.models.RefineFit`
+        indiv_boundaries (bool)
+            Whether to draw lines for core and accessory refinement
         title (str)
             The title to display above the plot
         out_prefix (str)
@@ -387,7 +396,12 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, mean0, mean1, start_point
     plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .4, color='c')
 
     # Draw fit lines
-    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Decision boundary')
+    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Combined decision boundary')
+    if indiv_boundaries:
+        plt.plot([core_boundary, core_boundary], [0, 1], color='darkgray', linewidth=1,
+                linestyle='-.', label='Individual decision boundaries')
+        plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='darkgray', linewidth=1,
+                linestyle='-.')
 
     minimum_xy = transformLine(-min_move, start_point, mean1)
     maximum_xy = transformLine(max_move, start_point, mean1)
@@ -487,8 +501,9 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
                 be shown in the output
             distMat (numpy.array)
                 n x 2 array of core and accessory distances for n samples.
-            clustering (list)
-                List of cluster assignments from :func:`~PopPUNK.network.printClusters`
+            clustering (dict or dict of dicts)
+                List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
+                Further clusterings (e.g. 1D core only) can be included by passing these as a dict.
             perplexity (int)
                 Perplexity parameter passed to t-SNE
             outPrefix (str)
