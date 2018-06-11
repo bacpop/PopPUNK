@@ -12,10 +12,13 @@ Usage::
                [--K K] [--dbscan] [--D D]
                [--min-cluster-prop MIN_CLUSTER_PROP] [--pos-shift POS_SHIFT]
                [--neg-shift NEG_SHIFT] [--manual-start MANUAL_START]
-               [--no-local] [--model-dir MODEL_DIR] [--microreact]
-               [--cytoscape] [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
+               [--indiv-refine] [--no-local] [--model-dir MODEL_DIR]
+               [--previous-clustering PREVIOUS_CLUSTERING] [--core-only]
+               [--accessory-only] [--microreact] [--cytoscape]
+               [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
                [--info-csv INFO_CSV] [--mash MASH] [--threads THREADS]
                [--no-stream] [--version]
+
    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
 
 Command line options
@@ -73,6 +76,8 @@ Command line options
      --manual-start MANUAL_START
                            A file containing information for a start point. See
                            documentation for help.
+     --indiv-refine        Also run refinement for core and accessory
+                           individually
      --no-local            Do not perform the local optimization step (speed up
                            on very large datasets)
 
@@ -81,6 +86,14 @@ Command line options
                            Directory containing model to use for assigning
                            queries to clusters [default = reference database
                            directory]
+     --previous-clustering PREVIOUS_CLUSTERING
+                           Directory containing previous cluster definitions and
+                           network [default = use that in the directory
+                           containing the model]
+     --core-only           Use a core-distance only model for assigning queries
+                           [default = False]
+     --accessory-only      Use an accessory-distance only model for assigning
+                           queries [default = False]
 
    Further analysis options:
      --microreact          Generate output files for microreact visualisation

@@ -446,6 +446,11 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
    :alt:  The refined fit, in microreact
    :align: center
 
+The core and accessory distances can also be used on their own.
+Add the ``--indiv-refine`` option to refine the fit to these two distances
+independently (see :ref:`indiv-refine` for more information).
+
+
 Output files
 ^^^^^^^^^^^^
 The files are as for ``--fit-model`` (:ref:`fit-files`), and also include:
@@ -453,6 +458,9 @@ The files are as for ``--fit-model`` (:ref:`fit-files`), and also include:
 * strain_db_refined_fit.png -- A plot of the new linear boundary, and core and
   accessory distances coloured by assignment to either side of this boundary.
 * strain_db_refined_fit.npz -- The saved parameters of the refined fit.
+
+If ``--indiv-refine`` was used, a copy of the *_clusters.csv* and network *.gpickle*
+files for core and accessory only will also be produced.
 
 Relevant command line options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -481,6 +489,8 @@ The following command line options can be used in this mode:
      --manual-start MANUAL_START
                            A file containing information for a start point. See
                            documentation for help.
+     --indiv-refine        Also run refinement for core and accessory
+                           individually
      --no-local            Do not perform the local optimization step (speed up
                            on very large datasets)
 
@@ -522,7 +532,8 @@ containing the model fit and distances.
 
 .. note::
    It is possible to specify a model fit in a separate directory from the
-   distance sketches using ``--model-dir``.
+   distance sketches using ``--model-dir``. Similarly a clustering and network
+   can be specified using ``--previous-clustering``.
 
 First, distances between queries and
 sequences in the reference database will be calculated. The model fit (whether mixture model,
@@ -643,6 +654,66 @@ will be updated to reflect this if ``--update-db`` was used::
    For future uses of ``--assign-query``, the database now stored in
    ``strain-query`` should be used as the ``--ref-db`` argument.
 
+.. _indiv-refine:
+
+Using core/accessory only
+^^^^^^^^^^^^^^^^^^^^^^^^^
+In some cases, such as analysis within a lineage, it may be desirable to use
+only core or accessory distances to classify further queries. This can be
+achieved by using the ``--core-only`` or ``--accessory-only`` options with
+a fit produced by :ref:`refine-model`. The default is to use the x-axis
+intercept of the boundary as the core distance cutoff (y-axis for accessory).
+However, if planning on using this mode we recommend running the refinement
+with the ``--indiv-refine`` options, which will allow these boundaries to be
+placed independently, allowing the best fit in each case::
+
+   poppunk --refine-model --distances strain_db/strain_db.dists --output strain_db --full-db --indiv-refine --ref-db strain_db --threads 4
+   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+   Mode: Refining model fit using network properties
+
+   Loading BGMM 2D Gaussian model
+   Initial boundary based network construction
+   Decision boundary starts at (0.54,0.36)
+   Trying to optimise score globally
+   Trying to optimise score locally
+   Refining core and accessory separately
+   Initial boundary based network construction
+   Decision boundary starts at (0.54,0.36)
+   Trying to optimise score globally
+   Trying to optimise score locally
+   Initial boundary based network construction
+   Decision boundary starts at (0.54,0.36)
+   Trying to optimise score globally
+   Trying to optimise score locally
+   Network summary:
+   	Components	132
+   	Density	0.0889
+   	Transitivity	0.9717
+   	Score	0.8853
+   Network summary:
+   	Components	114
+   	Density	0.0955
+   	Transitivity	0.9770
+   	Score	0.8837
+   Network summary:
+   	Components	92
+   	Density	0.0937
+   	Transitivity	0.9327
+   	Score	0.8453
+   writing microreact output:
+   Building phylogeny
+   Running t-SNE
+
+   Done
+
+There are three different networks, and the core and accessory boundaries will
+also be shown on the *refined_fit.png* plot as dashed gray lines:
+
+.. image:: indiv_refine.png
+   :alt:  Refining fit with core and accessory individuals independently
+   :align: center
+
+
 Output files
 ^^^^^^^^^^^^
 The main output is *strain_query/strain_query_clusters.csv*, which contains the
@@ -673,6 +744,14 @@ The following command line options can be used in this mode:
                            Directory containing model to use for assigning
                            queries to clusters [default = reference database
                            directory]
+     --previous-clustering PREVIOUS_CLUSTERING
+                           Directory containing previous cluster definitions and
+                           network [default = use that in the directory
+                           containing the model]
+     --core-only           Use a core-distance only model for assigning queries
+                           [default = False]
+     --accessory-only      Use an accessory-distance only model for assigning
+                           queries [default = False]
 
    Other options:
      --mash MASH           Location of mash executable
