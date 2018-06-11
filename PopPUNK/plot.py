@@ -398,9 +398,9 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
     # Draw fit lines
     plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Combined decision boundary')
     if indiv_boundaries:
-        plt.plot([core_boundary, core_boundary], [0, 1], color='lightgray', linewidth=1,
+        plt.plot([core_boundary, core_boundary], [0, 1], color='darkgray', linewidth=1,
                 linestyle='-.', label='Individual decision boundaries')
-        plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='lightgray', linewidth=1,
+        plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='darkgray', linewidth=1,
                 linestyle='-.')
 
     minimum_xy = transformLine(-min_move, start_point, mean1)

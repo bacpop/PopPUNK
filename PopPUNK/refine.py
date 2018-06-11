@@ -15,8 +15,8 @@ from .mash import iterDistRows
 from .network import constructNetwork
 from .network import networkSummary
 
-def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
-        max_move, min_move, no_local = False, num_processes = 1):
+def refineFit(distMat, sample_names, start_s, mean0, mean1,
+        max_move, min_move, slope = 2, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -26,10 +26,6 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
             n x 2 array of core and accessory distances for n samples
         sample_names (list)
             List of query sequence labels
-        assignment (numpy.array)
-            Assignment of samples from ``model.assign(distMat)``
-        model (ClusterFit)
-            Fitted model
         start_s (float)
             Point along line to start search
         mean0 (numpy.array)
@@ -40,11 +36,9 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
             Maximum distance to move away from start point
         min_move (float)
             Minimum distance to move away from start point
-        startFile (str)
-            A file defining an initial fit, rather than one from ``--fit-model``.
-            See documentation for format.
-
-            (default = None).
+        slope (int)
+            Set to 0 for a vertical line, 1 for a horizontal line, or
+            2 to use a slope
         no_local (bool)
             Turn off the local optimisation step.
             Quicker, but may be less well refined.
@@ -60,7 +54,6 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
         optimal_y (float)
             y-coordinate of refined fit
     """
-    G = constructNetwork(sample_names, sample_names, assignment, model.within_label)
     sys.stderr.write("Initial boundary based network construction\n")
     start_point = transformLine(start_s, mean0, mean1)
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
@@ -68,97 +61,7 @@ def refineFit2D(distMat, sample_names, assignment, model, start_s, mean0, mean1,
 
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x_max, y_max = decisionBoundary(start_point, gradient)
-    boundary_assignments = withinBoundary(distMat, x_max, y_max)
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1)
 
-    # Run optimisation
-    optimised_s = optimiseScore(distMat, min_move, max_move, sample_names, start_point,
-        mean1, gradient, slope = 2, no_local = no_local, num_processes = num_processes)
-    optimal_x, optimal_y = decisionBoundary(transformLine(optimised_s, start_point, mean1), gradient)
-
-    if optimal_x <= 0 or optimal_y <= 0:
-        raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
-
-    return start_point, optimal_x, optimal_y
-
-
-def refineFit1D(distMat, sample_names, start_point, max_move, min_move, mean1, slope,
-        no_local = False, num_processes = 1):
-    """Try to refine a fit by maximising a network score based on transitivity and density.
-
-    Iteratively move the decision boundary to do this, using starting point from existing model.
-
-    Args:
-        distMat (numpy.array)
-            n vector of core or accessory distances for n samples
-        sample_names (list)
-            List of query sequence labels
-        start_point (float)
-            Point along line to start search
-        max_move (float)
-            Maximum distance to move away from start point
-        min_move (float)
-            Minimum distance to move away from start point
-        mean1 (numpy.array)
-            End point to define search line
-        slope (int)
-            Set to 0 for a vertical line, 1 for a horizontal line, or
-            2 to use a slope
-        no_local (bool)
-            Turn off the local optimisation step.
-            Quicker, but may be less well refined.
-        num_processes (int)
-            Number of threads to use in the global optimisation step.
-
-            (default = 1)
-    Returns:
-        optimised_s (float)
-            axis intercept of refined fit
-    """
-    optimised_s = optimiseScore(distMat, min_move, max_move, sample_names, start_point,
-        mean1, 0, slope = slope, no_local = no_local, num_processes = num_processes)
-    optimised_coor = transformLine(optimised_s, start_point, mean1)[slope]
-
-    if optimised_coor <= 0:
-        raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
-
-    return optimised_coor
-
-
-def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
-        mean1, gradient, slope = 2, no_local = False, num_processes = 1):
-    """Do the score optimisation. First a brute force global search, followed by local optimisation.
-
-    Args:
-        distMat (numpy.array)
-            Distances for all samples
-        min_move (float)
-            Minimum distance to move away from start point
-        max_move (float)
-            Maximum distance to move away from start point
-        sample_names (list)
-            List of query sequence labels
-        start_point (float)
-            Point along line to start search
-        mean1 (numpy.array)
-            End point to define search line
-        gradient (float)
-            Gradient of boundary
-        slope (int)
-            Set to 0 for a vertical line, 1 for a horizontal line, or
-            2 to use a slope
-        no_local (bool)
-            Turn off the local optimisation step.
-            Quicker, but may be less well refined.
-        num_processes (int)
-            Number of threads to use in the global optimisation step.
-
-            (default = 1)
-    Returns:
-        optimised_s (float)
-            axis intercept of refined fit
-    """
     # ALTERNATIVE - use a single network
     # Move boundary along in steps, and find those samples which have changed
     # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
@@ -189,7 +92,18 @@ def optimiseScore(distMat, min_move, max_move, sample_names, start_point,
     else:
         optimised_s = s_range[min_idx]
 
-    return optimised_s
+    optimised_coor = transformLine(optimised_s, start_point, mean1)
+    if slope == 2:
+        optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
+    else:
+        optimal_x = optimised_coor[0]
+        optimal_y = optimised_coor[1]
+
+    if optimal_x < 0 or optimal_y < 0:
+        raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
+
+    return start_point, optimal_x, optimal_y
+
 
 @jit(nopython=True)
 def withinBoundary(dists, x_max, y_max, slope=2):
