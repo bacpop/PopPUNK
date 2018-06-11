@@ -350,14 +350,15 @@ def main():
                                      "a refined fit. Using the combined distances.\n")
 
             genomeNetwork = nx.read_gpickle(old_network_file)
-            sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + "\n")
+            sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
 
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
                     genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
                     args.update_db, args.threads, args.mash)
 
-            isolateClustering = printClusters(genomeNetwork, args.output, old_cluster_file, False)
+            isolateClustering = printClusters(genomeNetwork, args.output + "/" + args.output,
+                    old_cluster_file, False)
 
             # update_db like no full_db
             if args.update_db:

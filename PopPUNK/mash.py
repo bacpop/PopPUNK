@@ -528,8 +528,10 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
                 rawOutput.wait(timeout=1)
                 if rawOutput.poll() != 0:
                     raise RuntimeError('mash dist command "' + mash_cmd + '" failed with raw output ' + str(rawOutput.poll()))
-                elif os.path.isfile(dbPrefix + ".err.log"):
-                    os.remove(dbPrefix + ".err.log")
+
+            # Remove the stderr file
+            if os.path.isfile(dbPrefix + ".err.log"):
+                os.remove(dbPrefix + ".err.log")
 
         except subprocess.CalledProcessError as e:
             sys.stderr.write("mash dist command " + mash_cmd + " failed with error " + e.message + "\n")
