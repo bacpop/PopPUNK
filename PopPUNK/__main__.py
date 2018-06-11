@@ -328,23 +328,23 @@ def main():
             queryAssignments = model.assign(distMat)
 
             # Set directories of previous fit
-            if args.previous_clusterings is not None:
-                prev_clustering = args.previous_clusterings
+            if args.previous_clustering is not None:
+                prev_clustering = args.previous_clustering
             else:
                 prev_clustering = model_prefix
 
             # If a refined fit, may use just core or accessory distances
             if args.core_only and model.type == 'refine':
                 model.slope = 0
-                old_network_file = model_prefix + "/" + model_prefix + '_core_graph.gpickle'
-                old_cluster_file = model_prefix + "/" + model_prefix + '_core_clusters.csv'
+                old_network_file = prev_clustering + "/" + prev_clustering + '_core_graph.gpickle'
+                old_cluster_file = prev_clustering + "/" + prev_clustering + '_core_clusters.csv'
             elif args.accessory_only and model.type == 'refine':
                 model.slope = 1
-                old_network_file = model_prefix + "/" + model_prefix + '_accessory_graph.gpickle'
-                old_cluster_file = model_prefix + "/" + model_prefix + '_accessory_clusters.csv'
+                old_network_file = prev_clustering + "/" + prev_clustering + '_accessory_graph.gpickle'
+                old_cluster_file = prev_clustering + "/" + prev_clustering + '_accessory_clusters.csv'
             else:
-                old_network_file = model_prefix + "/" + model_prefix + '_graph.gpickle'
-                old_cluster_file = model_prefix + "/" + model_prefix + '_clusters.csv'
+                old_network_file = prev_clustering + "/" + prev_clustering + '_graph.gpickle'
+                old_cluster_file = prev_clustering + "/" + prev_clustering + '_clusters.csv'
                 if args.core_only or args.accessory_only:
                     sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                                      "a refined fit. Using the combined distances.\n")

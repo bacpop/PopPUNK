@@ -527,32 +527,22 @@ class RefineFit(ClusterFit):
         self.slope = 2
 
         # Try and do a 1D refinement for both core and accessory
+        self.core_boundary = self.optimal_x
+        self.accessory_boundary = self.optimal_y
         if indiv_refine:
-            self.core_boundary = self.optimal_x
-            self.accessory_boundary = self.optimal_y
-            sys.stderr.write("Refining core and accessory separately\n")
+            try:
+                sys.stderr.write("Refining core and accessory separately\n")
 
-            start_point, self.core_boundary, core_acc = refineFit(X/self.scale, sample_names, self.start_s,
-                    self.mean0, self.mean1, self.max_move, self.min_move, slope = 0, no_local = no_local,
-                    num_processes = threads)
-            start_point, acc_core, self.accessory_boundary = refineFit(X/self.scale, sample_names, self.start_s,
-                    self.mean0, self.mean1, self.max_move, self.min_move, slope = 1, no_local = no_local,
-                    num_processes = threads)
-            self.indiv_fitted = True
-            #except:
-            #try:
-            #    sys.stderr.write("Refining core and accessory separately\n")
-
-            #    start_point, self.core_boundary, core_acc = refineFit(X/self.scale, sample_names, self.start_s,
-            #            self.mean0, self.mean1, self.max_move, self.min_move, slope = 0, no_local = no_local,
-            #            num_processes = threads)
-            #    start_point, acc_core, self.accessory_boundary = refineFit(X/self.scale, sample_names, self.start_s,
-            #            self.mean0, self.mean1, self.max_move, self.min_move, slope = 1, no_local = no_local,
-            #            num_processes = threads)
-            #    self.indiv_fitted = True
-            #except RuntimeError as e:
-            #    sys.stderr.write("Could not separately refine core and accessory boundaries. "
-            #                     "Using joint 2D refinement only.\n")
+                start_point, self.core_boundary, core_acc = refineFit(X/self.scale, sample_names, self.start_s,
+                        self.mean0, self.mean1, self.max_move, self.min_move, slope = 0, no_local = no_local,
+                        num_processes = threads)
+                start_point, acc_core, self.accessory_boundary = refineFit(X/self.scale, sample_names, self.start_s,
+                        self.mean0, self.mean1, self.max_move, self.min_move, slope = 1, no_local = no_local,
+                        num_processes = threads)
+                self.indiv_fitted = True
+            except RuntimeError as e:
+                sys.stderr.write("Could not separately refine core and accessory boundaries. "
+                                 "Using joint 2D refinement only.\n")
 
         y = self.assign(X)
         return y
