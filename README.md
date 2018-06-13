@@ -29,7 +29,11 @@ Then run with `python poppunk-runner.py`.
 
 ### Dependencies
 
-In brackets are the versions we used
+You will need a [mash](http://mash.readthedocs.io/en/latest/) installation
+which is v2.0 or higher.
+
+The following python packages are required, which can be installed
+through `pip`. In brackets are the versions we used:
 
 * python3
 * `DendroPy` (4.3.0)
