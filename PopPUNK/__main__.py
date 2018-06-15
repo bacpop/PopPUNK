@@ -357,8 +357,8 @@ def main():
                     genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
                     args.update_db, args.threads, args.mash)
 
-            isolateClustering = printClusters(genomeNetwork, args.output + "/" + args.output,
-                    old_cluster_file, False)
+            isolateClustering = {'combined': printClusters(genomeNetwork, args.output + "/" + args.output,
+                                                           old_cluster_file, False)}
 
             # update_db like no full_db
             if args.update_db:

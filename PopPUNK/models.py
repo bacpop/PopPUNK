@@ -439,6 +439,7 @@ class RefineFit(ClusterFit):
         self.type = 'refine'
         self.preprocess = False
         self.within_label = -1
+        self.slope = 2
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
             no_local = False, threads = 1):
@@ -524,7 +525,6 @@ class RefineFit(ClusterFit):
                 sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                 slope = 2, no_local = no_local, num_processes = threads)
         self.fitted = True
-        self.slope = 2
 
         # Try and do a 1D refinement for both core and accessory
         self.core_boundary = self.optimal_x
@@ -576,8 +576,7 @@ class RefineFit(ClusterFit):
         self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
         self.scale = fit_npz['scale']
         self.fitted = True
-        self.indiv_fitted = True
-        self.slope = 2
+        self.indiv_fitted = False # Do not output multiple microreacts
 
 
     def plot(self, X):
