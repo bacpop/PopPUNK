@@ -306,9 +306,10 @@ def main():
                 sys.stderr.write("--output and --ref-db must be different to "
                                  "prevent overwrite.\n")
                 sys.exit(1)
-            if (args.microreact or args.cytoscape) and not args.update_db:
+            if (args.microreact or args.cytoscape) and (not args.update_db or not args.distances):
                 sys.stderr.write("--microreact and/or --cytoscape output must be "
-                        "run with --update-db to calculate all needed distances\n")
+                        "run with --distances and --update-db to generate a full "
+                        " distance matrix\n")
                 sys.exit(1)
 
             # Find distances to reference db
@@ -357,8 +358,12 @@ def main():
                     genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
                     args.update_db, args.threads, args.mash)
 
+            # if running simple query
+            print_full_clustering = False
+            if args.update_db:
+                print_full_clustering = True
             isolateClustering = {'combined': printClusters(genomeNetwork, args.output + "/" + args.output,
-                                                           old_cluster_file, False)}
+                                                           old_cluster_file, print_full_clustering)}
 
             # update_db like no full_db
             if args.update_db:
