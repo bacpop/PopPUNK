@@ -22,6 +22,7 @@ from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import readMashDBParams
 from .mash import translate_distMat
+from .mash import update_distance_matrices
 
 from .models import *
 
@@ -33,6 +34,8 @@ from .network import printClusters
 
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
+from .plot import outputsForPhandango
+from .plot import outputsForGrapetree
 
 #################
 # run main code #
@@ -129,11 +132,13 @@ def get_options():
     faGroup = parser.add_argument_group('Further analysis options')
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
+    faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
+    faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default=None)
     faGroup.add_argument('--perplexity', type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
     faGroup.add_argument('--info-csv',
-                     help='Epidemiological information CSV formatted for microreact (with --microreact or --cytoscape)')
+                     help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -279,13 +284,25 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        # generate outputs for microreact if asked
-        if args.microreact:
-            outputsForMicroreact(refList, distMat, isolateClustering, args.perplexity,
-                    args.output, args.info_csv, args.rapidnj, overwrite=args.overwrite)
-        # generate outputs for cytoscape if asked
-        if args.cytoscape:
-            outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+        # generate distance matrices for outputs if required
+        if args.microreact or args.cytoscape or args.phandango or args.grapetree:
+            combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
+            # generate outputs for microreact if asked
+            if args.microreact:
+                outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                                     args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
+            # generate outputs for phandango if asked
+            if args.phandango:
+                outputsForPhandango(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    overwrite = args.overwrite, microreact = args.microreact)
+            # generate outputs for grapetree if asked
+            if args.grapetree:
+                outputsForGrapetree(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    overwrite = args.overwrite, microreact = args.microreact)
+            # generate outputs for cytoscape if asked
+            if args.cytoscape:
+                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
@@ -381,21 +398,35 @@ def main():
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
                 os.remove(tmpRefFile)
+    
+                # Update distance matrices - what to do if not full_db?
+                refList, refList_copy, self, ref_distMat = readPickle(args.distances)
+                combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
+                                                                    ordered_queryList, distMat, query_distMat)
+                complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
+                dists_out = args.output + "/" + args.output + ".dists"
+                storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
-            # generate output for microreact and Cytoscape if requested
+
+            # generate outputs for microreact if asked
+            if args.microreact:
+                sys.stderr.write("Writing microreact output\n")
+                outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                                     args.output, args.info_csv, args.rapidnj, ordered_queryList, args.overwrite)
+            # generate outputs for phandango if asked
+            if args.phandango:
+                sys.stderr.write("Writing phandango output\n")
+                outputsForPhandango(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    queryList = ordered_queryList, overwrite = args.overwrite, microreact = args.microreact)
+            # generate outputs for grapetree if asked
+            if args.grapetree:
+                sys.stderr.write("Writing grapetree output\n")
+                outputsForGrapetree(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    queryList = ordered_queryList, overwrite = args.overwrite, microreact = args.microreact)
+            # generate outputs for cytoscape if asked
             if args.cytoscape:
                 sys.stderr.write("Writing cytoscape output\n")
                 outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, ordered_queryList)
-            if args.microreact:
-                sys.stderr.write("Writing microreact output\n")
-                # read previous distances
-                refList, refList_copy, self, ref_distMat = readPickle(args.distances)
-                core_distMat, acc_distMat = outputsForMicroreact(refList, ref_distMat, isolateClustering, args.perplexity,
-                     args.output, args.info_csv, args.rapidnj, ordered_queryList, distMat, query_distMat, args.overwrite)
-                # write updated full distance matrix
-                combined_seq, complete_distMat = translate_distMat(core_distMat, acc_distMat, refList, ordered_queryList)
-                dists_out = args.output + "/" + args.output + ".dists"
-                storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and "

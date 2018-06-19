@@ -711,27 +711,22 @@ def getKmersFromReferenceDatabase(dbPrefix):
     kmers = np.asarray(knum)
     return kmers
 
-def translate_distMat(core_distMat, acc_distMat, rlist, qlist):
+def translate_distMat(combined_list, core_distMat, acc_distMat):
     """Convert distances from a square form (2 NxN matrices) to a long form
     (1 matrix with n_comparisons rows and 2 columns).
 
     Args:
+        combined_list
+            Combined list of references followed by queries (list)
         core_distMat (numpy.array)
             NxN core distances
         acc_distMat (numpy.array)
             NxN accessory distances
-        rlist (list)
-            Names of references (rows)
-        qlist (list)
-            Names of queries (columns)
+
     Returns:
-        combined_list (list)
-            New name list to iterate over with self=True
         distMat (numpy.array)
             Distances in long form
     """
-    # combine strain lists
-    combined_list = rlist + qlist
 
     # indices
     i = 0
@@ -752,4 +747,99 @@ def translate_distMat(core_distMat, acc_distMat, rlist, qlist):
         else:
             j += 1
 
-    return combined_list, distMat
+    return distMat
+
+def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
+                             query_query_distMat = None):
+    
+    """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
+        to a square form (2 NxN matrices), with merging of query distances if necessary.
+        
+    Args:
+        refList (list)
+            List of references
+        distMat (numpy.array)
+            Two column long form list of core and accessory distances
+            for pairwise comparisons between reference db sequences
+        queryList (list)
+            List of queries
+        query_ref_distMat (numpy.array)
+            Two column long form list of core and accessory distances
+            for pairwise comparisons between queries and reference db
+            sequences
+        query_query_distMat (numpy.array)
+            Two column long form list of core and accessory distances
+            for pairwise comparisons between query sequences
+        
+    Returns:
+        seqLabels (list)
+            Combined list of reference and query sequences
+        coreMat (numpy.array)
+            NxN array of core distances for N sequences
+        accMat (numpy.array)
+            NxN array of accessory distances for N sequences
+    """
+    
+    # avoid recursive import
+    from .mash import iterDistRows
+    
+    seqLabels = refList
+    if queryList is not None:
+        seqLabels = seqLabels + queryList
+    
+    coreMat = np.zeros((len(seqLabels), len(seqLabels)))
+    accMat = np.zeros((len(seqLabels), len(seqLabels)))
+
+    # Fill in symmetric matrices for core and accessory distances
+    i = 0
+    j = 1
+    
+    # ref v ref (used for --create-db)
+    for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
+        coreMat[i, j] = distMat[row, 0]
+        coreMat[j, i] = coreMat[i, j]
+        accMat[i, j] = distMat[row, 1]
+        accMat[j, i] = accMat[i, j]
+        
+        if j == len(refList) - 1:
+            i += 1
+            j = i + 1
+        else:
+            j += 1
+
+    # if query vs refdb (--assign-query), also include these comparisons
+    if queryList is not None:
+        
+        # query v query - symmetric
+        i = len(refList)
+        j = len(refList)+1
+        for row, (ref, query) in enumerate(iterDistRows(queryList, queryList, self=True)):
+            coreMat[i, j] = query_query_distMat[row, 0]
+            coreMat[j, i] = coreMat[i, j]
+            accMat[i, j] = query_query_distMat[row, 1]
+            accMat[j, i] = accMat[i, j]
+            if j == (len(refList) + len(queryList) - 1):
+                i += 1
+                j = i + 1
+            else:
+                j += 1
+
+        # ref v query - asymmetric
+        i = len(refList)
+        j = 0
+        for row, (ref, query) in enumerate(iterDistRows(refList, queryList, self=False)):
+            coreMat[i, j] = query_ref_distMat[row, 0]
+            coreMat[j, i] = coreMat[i, j]
+            accMat[i, j] = query_ref_distMat[row, 1]
+            accMat[j, i] = accMat[i, j]
+            if j == (len(refList) - 1):
+                i += 1
+                j = 0
+            else:
+                j += 1
+
+    # return outputs
+    return seqLabels, coreMat, accMat
+
+
+
