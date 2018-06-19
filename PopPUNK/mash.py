@@ -751,10 +751,9 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
                              query_query_distMat = None):
-    
     """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
-        to a square form (2 NxN matrices), with merging of query distances if necessary.
-        
+    to a square form (2 NxN matrices), with merging of query distances if necessary.
+
     Args:
         refList (list)
             List of references
@@ -770,7 +769,7 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         query_query_distMat (numpy.array)
             Two column long form list of core and accessory distances
             for pairwise comparisons between query sequences
-        
+
     Returns:
         seqLabels (list)
             Combined list of reference and query sequences
@@ -779,28 +778,24 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         accMat (numpy.array)
             NxN array of accessory distances for N sequences
     """
-    
-    # avoid recursive import
-    from .mash import iterDistRows
-    
     seqLabels = refList
     if queryList is not None:
         seqLabels = seqLabels + queryList
-    
+
     coreMat = np.zeros((len(seqLabels), len(seqLabels)))
     accMat = np.zeros((len(seqLabels), len(seqLabels)))
 
     # Fill in symmetric matrices for core and accessory distances
     i = 0
     j = 1
-    
+
     # ref v ref (used for --create-db)
     for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
         coreMat[i, j] = distMat[row, 0]
         coreMat[j, i] = coreMat[i, j]
         accMat[i, j] = distMat[row, 1]
         accMat[j, i] = accMat[i, j]
-        
+
         if j == len(refList) - 1:
             i += 1
             j = i + 1
@@ -809,7 +804,7 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
 
     # if query vs refdb (--assign-query), also include these comparisons
     if queryList is not None:
-        
+
         # query v query - symmetric
         i = len(refList)
         j = len(refList)+1
@@ -840,6 +835,4 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
 
     # return outputs
     return seqLabels, coreMat, accMat
-
-
 

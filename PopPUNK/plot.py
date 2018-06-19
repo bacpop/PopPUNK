@@ -9,7 +9,8 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import itertools
-# for microreact
+# for other outputs
+from shutil import copyfile
 import pandas as pd
 from collections import defaultdict
 from scipy import spatial
@@ -79,7 +80,6 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
 
             (default = None)
     """
-    
     # set order of column names
     colnames = []
     if format == 'microreact':
@@ -122,7 +122,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
 
     # process clustering data
     nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
-    
+
     for name, label in zip(nodeNames, nodeLabels):
         if name in clustering['combined']:
             if format == 'microreact':
@@ -206,7 +206,6 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
         tree (dendropy.Tree)
             NJ tree from core distances
     """
-
     # generate phylip matrix
     phylip_name = "./" + outPrefix + "/" + outPrefix + "_core_distances.phylip"
     with open(phylip_name, 'w') as pFile:
@@ -544,82 +543,75 @@ def get_grid(minimum, maximum, resolution):
     return(xx, yy, xy)
 
 
-def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity, outPrefix, epiCsv, rapidnj,
-        queryList = None, overwrite = False):
+def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity, outPrefix, epiCsv,
+                         rapidnj, queryList = None, overwrite = False):
     """Generate files for microreact
 
-        Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
-        of accessory distances (.dot) and cluster assignment (.csv)
+    Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
+    of accessory distances (.dot) and cluster assignment (.csv)
 
-        Args:
-            combined_list (list)
-                Name of sequences being analysed. The part of the name before the first '.' will
-                be shown in the output
-            coreMat (numpy.array)
-                n x n array of core distances for n samples.
-            accMat (numpy.array)
-                n x n array of accessory distances for n samples.
-            clustering (dict or dict of dicts)
-                List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
-                Further clusterings (e.g. 1D core only) can be included by passing these as a dict.
-            perplexity (int)
-                Perplexity parameter passed to t-SNE
-            outPrefix (str)
-                Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
-            epiCsv (str)
-                A CSV containing other information, to include with the CSV of clusters
-            rapidnj (str)
-                A string with the location of the rapidnj executable for tree-building. If None, will
-                use dendropy by default
-            queryList (list)
-                Optional list of isolates that have been added as a query for colouring in the CSV.
-                (default = None)
-            overwrite (bool)
-                Overwrite existing output if present (default = False)
-        Returns:
-            Nothing.
-        """
+    Args:
+        combined_list (list)
+            Name of sequences being analysed. The part of the name before the first '.' will
+            be shown in the output
+        coreMat (numpy.array)
+            n x n array of core distances for n samples.
+        accMat (numpy.array)
+            n x n array of accessory distances for n samples.
+        clustering (dict or dict of dicts)
+            List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
+            Further clusterings (e.g. 1D core only) can be included by passing these as a dict.
+        perplexity (int)
+            Perplexity parameter passed to t-SNE
+        outPrefix (str)
+            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        epiCsv (str)
+            A CSV containing other information, to include with the CSV of clusters
+        rapidnj (str)
+            A string with the location of the rapidnj executable for tree-building. If None, will
+            use dendropy by default
+        queryList (list)
+            Optional list of isolates that have been added as a query for colouring in the CSV.
+            (default = None)
+        overwrite (bool)
+            Overwrite existing output if present (default = False)
+    """
+    # Avoid recursive import
+    from .tsne import generate_tsne
 
     # generate sequence labels
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
 
-    # calculate phylogeny
+    # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
     generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
-
-    # calculate t-SNE projection
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
-
-    # print clustering file
     writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
                     combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
 def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite):
     """Generate phylogeny using dendropy or RapidNJ
-        
-        Outputs a neighbour joining tree (.nwk) from core distances.
-        
-        Args:
-            coreMat (numpy.array)
-                n x n array of core distances for n samples.
-            seqLabels (list)
-                Processed names of sequences being analysed.
-            outPrefix (str)
-                Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
-            tree_suffix (str)
-                String to append to tree file name
-            rapidnj (str)
-                A string with the location of the rapidnj executable for tree-building. If None, will
-                use dendropy by default
-            overwrite (bool)
-                Overwrite existing output if present (default = False)
-        Returns:
-            Nothing.
-    """
 
+    Writes a neighbour joining tree (.nwk) from core distances.
+
+    Args:
+        coreMat (numpy.array)
+            n x n array of core distances for n samples.
+        seqLabels (list)
+            Processed names of sequences being analysed.
+        outPrefix (str)
+            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        tree_suffix (str)
+            String to append to tree file name
+        rapidnj (str)
+            A string with the location of the rapidnj executable for tree-building. If None, will
+            use dendropy by default
+        overwrite (bool)
+            Overwrite existing output if present (default = False)
+    """
     # Save distances to file
     core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
     np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
-    
+
     # calculate phylogeny
     tree_filename = outPrefix + "/" + outPrefix + tree_suffix
     if overwrite or not os.path.isfile(tree_filename):
@@ -632,7 +624,7 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
                                                                is_first_row_column_names=True,
                                                                is_first_column_row_names=False)
             tree = pdm.nj_tree()
-        
+
         # Not sure why, but seems that this needs to be run twice to get
         # what I would think of as a midpoint rooted tree
         tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
@@ -647,148 +639,98 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
     # remove file as it can be large
     os.remove(core_dist_file)
 
-def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite):
+def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
+                        queryList = None, overwrite = False, microreact = False):
+    """Generate files for Phandango
 
-    """Generate t-SNE projection using accessory distances
-    
-    Outputs a  plot of t-SNE clustering of accessory distances (.dot)
-    
+    Write a neighbour joining tree (.tree) from core distances
+    and cluster assignment (.csv)
+
     Args:
-        seqLabels (list)
-            Processed names of sequences being analysed.
-        accMat (numpy.array)
-            n x n array of accessory distances for n samples.
-        perplexity (int)
-            Perplexity parameter passed to t-SNE
+        combined_list (list)
+            Name of sequences being analysed. The part of the name before the first '.' will
+            be shown in the output
+        coreMat (numpy.array)
+            n x n array of core distances for n samples.
+        clustering (dict or dict of dicts)
+            List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
+            Further clusterings (e.g. 1D core only) can be included by passing these as a dict.
         outPrefix (str)
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        epiCsv (str)
+            A CSV containing other information, to include with the CSV of clusters
+        rapidnj (str)
+            A string with the location of the rapidnj executable for tree-building. If None, will
+            use dendropy by default
+        queryList (list)
+            Optional list of isolates that have been added as a query for colouring in the CSV.
+            (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
-    Returns:
-        Nothing.
+        microreact (bool)
+            Avoid regenerating tree if already built for microreact (default = False)
     """
-
-    # Save distances to file
-    acc_dist_file = outPrefix + "/" + outPrefix + "_acc_dists.csv"
-    np.savetxt(acc_dist_file, accMat, delimiter=",", header = ",".join(seqLabels), comments="")
-
-    # generate accessory genome distance representation
-    tsne_filename = outPrefix + "/" + outPrefix + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
-    if overwrite or not os.path.isfile(tsne_filename):
-        sys.stderr.write("Running t-SNE\n")
-        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
-        
-        # print dot file
-        with open(tsne_filename, 'w') as nFile:
-            nFile.write("graph G { ")
-            for s, seqLabel in enumerate(seqLabels):
-                nFile.write('"' + seqLabel + '"' +
-                            '[x='+str(5*float(accArray_embedded[s][0]))+',y='+str(5*float(accArray_embedded[s][1]))+']; ')
-            nFile.write("}\n")
-    else:
-        sys.stderr.write("t-SNE analysis already exists; add --overwrite to replace\n")
-    
-    # remove file at end as can be large
-    os.remove(acc_dist_file)
-
-def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
-                         queryList = None, overwrite = False, microreact = False):
-
-    """Generate files for Phandango
-        
-        Output a neighbour joining tree (.tree) from core distances
-        and cluster assignment (.csv)
-        
-        Args:
-            combined_list (list)
-                Name of sequences being analysed. The part of the name before the first '.' will
-                be shown in the output
-            coreMat (numpy.array)
-                n x n array of core distances for n samples.
-            clustering (dict or dict of dicts)
-                List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
-                Further clusterings (e.g. 1D core only) can be included by passing these as a dict.
-            outPrefix (str)
-                Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
-            epiCsv (str)
-                A CSV containing other information, to include with the CSV of clusters
-            rapidnj (str)
-                A string with the location of the rapidnj executable for tree-building. If None, will
-                use dendropy by default
-            queryList (list)
-                Optional list of isolates that have been added as a query for colouring in the CSV.
-                (default = None)
-            overwrite (bool)
-                Overwrite existing output if present (default = False)
-            microreact (bool)
-                Avoid regenerating tree if already built for microreact (default = False)
-
-        Returns:
-            Nothing.
-    """
-
     # generate sequence labels
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
-    
+
     # calculate phylogeny, or copy existing microreact file
     microreact_tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.nwk"
     phandango_tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.tree"
     if microreact and os.path.isfile(microreact_tree_filename):
         sys.stderr.write('Copying microreact tree')
-        subprocess.run('cp '+microreact_tree_filename+' '+phandango_tree_filename, shell=True, check=True)
+        copyfile(microreact_tree_filename, phandango_tree_filename)
     else:
         generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite)
-    
+
     # print clustering file
     writeClusterCsv(outPrefix + "/" + outPrefix + "_phandango_clusters.csv",
                     combined_list, combined_list, clustering, 'phandango', epiCsv, queryList)
 
 def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
                         queryList = None, overwrite = False, microreact = False):
-    
     """Generate files for Grapetree
-        
-        Output a neighbour joining tree (.tree) from core distances
-        and cluster assignment (.csv)
-        
-        Args:
+
+    Write a neighbour joining tree (.nwk) from core distances
+    and cluster assignment (.csv)
+
+    Args:
         combined_list (list)
-        Name of sequences being analysed. The part of the name before the first '.' will
-        be shown in the output
+            Name of sequences being analysed. The part of the name before the
+            first '.' will be shown in the output
         coreMat (numpy.array)
-        n x n array of core distances for n samples.
+            n x n array of core distances for n samples.
         clustering (dict or dict of dicts)
-        List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
-        Further clusterings (e.g. 1D core only) can be included by passing these as a dict.
+            List of cluster assignments from :func:`~PopPUNK.network.printClusters`.
+            Further clusterings (e.g. 1D core only) can be included by passing these
+            as a dict.
         outPrefix (str)
-        Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+            Prefix for all generated output files, which will be placed in `outPrefix`
+            subdirectory.
         epiCsv (str)
-        A CSV containing other information, to include with the CSV of clusters
+            A CSV containing other information, to include with the CSV of clusters
         rapidnj (str)
-        A string with the location of the rapidnj executable for tree-building. If None, will
-        use dendropy by default
+            A string with the location of the rapidnj executable for tree-building.
+            If None, will use dendropy by default
         queryList (list)
-        Optional list of isolates that have been added as a query for colouring in the CSV.
-        (default = None)
+            Optional list of isolates that have been added as a query for colouring
+            in the CSV.
+
+            (default = None)
         overwrite (bool)
-        Overwrite existing output if present (default = False)
+            Overwrite existing output if present (default = False).
         microreact (bool)
-        Avoid regenerating tree if already built for microreact (default = False)
-        
-        Returns:
-        Nothing.
-        """
-    
+            Avoid regenerating tree if already built for microreact (default = False).
+    """
     # generate sequence labels
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
-    
+
     # calculate phylogeny, or copy existing microreact file
     microreact_tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.nwk"
     if microreact and os.path.isfile(microreact_tree_filename):
         sys.stderr.write('Using microreact tree')
     else:
         generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
-    
+
     # print clustering file
     writeClusterCsv(outPrefix + "/" + outPrefix + "_grapetree_clusters.csv",
                     combined_list, combined_list, clustering, 'grapetree', epiCsv, queryList)

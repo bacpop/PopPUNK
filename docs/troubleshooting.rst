@@ -130,7 +130,11 @@ structure cannot clearly be seen (`data <https://microreact.org/project/S1RwpK9i
    :align: center
 
 30 is a good default, but you may wish to try other values, particularly with
-larger or smaller datasets.
+larger or smaller datasets. You can re-run the t-SNE using the ``poppunk_tsne``
+command, providing the distances from the previous run::
+
+   poppunk_tsne --distances strain_db/strain_db.dists --output strain_db \
+   --perplexity 20 --verbosity 1
 
 .. _qc:
 

@@ -398,7 +398,7 @@ def main():
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
                 os.remove(tmpRefFile)
-    
+
                 # Update distance matrices - what to do if not full_db?
                 refList, refList_copy, self, ref_distMat = readPickle(args.distances)
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,

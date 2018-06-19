@@ -360,16 +360,17 @@ The following command line options can be used in this mode:
      --min-cluster-prop MIN_CLUSTER_PROP
                            Minimum proportion of points in a cluster in DBSCAN
                            fitting [default = 0.0001]
-
    Further analysis options:
      --microreact          Generate output files for microreact visualisation
      --cytoscape           Generate network output files for Cytoscape
+     --phandango           Generate phylogeny and TSV for Phandango visualisation
+     --grapetree           Generate phylogeny and CSV for grapetree visualisation
      --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for Microreact
      --perplexity PERPLEXITY
-                           Perplexity used to calculate t-SNE projection (with
-                           --microreact) [default=5.0]
+                        Perplexity used to calculate t-SNE projection (with
+                        --microreact) [default=20.0]
      --info-csv INFO_CSV   Epidemiological information CSV formatted for
-                           microreact (with --microreact or --cytoscape)
+                        microreact (can be used with other outputs)
 
    Other options:
      --mash MASH           Location of mash executable
@@ -497,12 +498,14 @@ The following command line options can be used in this mode:
    Further analysis options:
      --microreact          Generate output files for microreact visualisation
      --cytoscape           Generate network output files for Cytoscape
+     --phandango           Generate phylogeny and TSV for Phandango visualisation
+     --grapetree           Generate phylogeny and CSV for grapetree visualisation
      --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for Microreact
      --perplexity PERPLEXITY
-                           Perplexity used to calculate t-SNE projection (with
-                           --microreact) [default=5.0]
+                        Perplexity used to calculate t-SNE projection (with
+                        --microreact) [default=20.0]
      --info-csv INFO_CSV   Epidemiological information CSV formatted for
-                           microreact (with --microreact or --cytoscape)
+                        microreact (can be used with other outputs)
 
    Other options:
      --mash MASH           Location of mash executable

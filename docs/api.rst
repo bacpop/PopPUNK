@@ -62,3 +62,9 @@ plot.py
 .. automodule:: PopPUNK.plot
    :members:
 
+tsne.py
+-------
+
+.. automodule:: PopPUNK.tsne
+   :members:
+
