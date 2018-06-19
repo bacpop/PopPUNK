@@ -564,6 +564,7 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
 
     # if query vs refdb (--assign-query), also include these comparisons
     if queryList is not None:
+
         # query v query - symmetric
         i = len(refList)
         j = len(refList)+1
@@ -584,6 +585,8 @@ def outputsForMicroreact(refList, distMat, clustering, perplexity, outPrefix, ep
         for row, (ref, query) in enumerate(iterDistRows(refList, queryList, self=False)):
             coreMat[i, j] = query_ref_distMat[row, 0]
             coreMat[j, i] = coreMat[i, j]
+            accMat[i, j] = query_ref_distMat[row, 1]
+            accMat[j, i] = accMat[i, j]
             if j == (len(refList) - 1):
                 i += 1
                 j = 0
