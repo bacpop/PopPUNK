@@ -289,19 +289,28 @@ def main():
             combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
             # generate outputs for microreact if asked
             if args.microreact:
+                sys.stderr.write("Writing microreact output\n")
                 outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
                                      args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
             # generate outputs for phandango if asked
             if args.phandango:
+                sys.stderr.write("Writing phandango output\n")
                 outputsForPhandango(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             # generate outputs for grapetree if asked
             if args.grapetree:
+                sys.stderr.write("Writing grapetree output\n")
                 outputsForGrapetree(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             # generate outputs for cytoscape if asked
             if args.cytoscape:
+                sys.stderr.write("Writing cytoscape output\n")
                 outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                if model.indiv_fitted:
+                    sys.stderr.write("Writing individual cytoscape networks\n")
+                    for dist_type in ['core', 'accessory']:
+                        outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                    args.info_csv, suffix = dist_type, writeCsv = False)
 
         # extract limited references from clique by default
         if not args.full_db:
@@ -427,6 +436,12 @@ def main():
             if args.cytoscape:
                 sys.stderr.write("Writing cytoscape output\n")
                 outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, ordered_queryList)
+                if model.indiv_fitted:
+                    sys.stderr.write("Writing individual cytoscape networks\n")
+                    for dist_type in ['core', 'accessory']:
+                        outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                            args.info_csv, queryList = ordered_queryList, suffix = dist_type, writeCsv = False)
+
 
         else:
             sys.stderr.write("Need to provide both a reference database with --ref-db and "

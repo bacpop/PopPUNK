@@ -19,7 +19,7 @@ from sklearn.neighbors.kde import KernelDensity
 import dendropy
 import networkx as nx
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None):
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -34,22 +34,32 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None):
             the clusters.
         queryList (list)
             Optional list of isolates that have been added as a query.
-
             (default = None)
+        suffix (string)
+            String to append to network file name.
+            (default = None)
+        writeCsv (bool)
+            Whether to print CSV file to accompany network
+
     """
     # write graph file
-    nx.write_graphml(G, "./" + outPrefix + "/" + outPrefix + "_cytoscape.graphml")
+    if suffix is None:
+        graph_file_name = outPrefix + "_cytoscape.graphml"
+    else:
+        graph_file_name = outPrefix + "_" + suffix + "_cytoscape.graphml"
+    nx.write_graphml(G, "./" + outPrefix + "/" + graph_file_name)
 
     # Write CSV of metadata
-    refNames = G.nodes(data=False)
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
-    writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
-                    refNames,
-                    seqLabels,
-                    clustering,
-                    'cytoscape',
-                    epiCsv,
-                    queryList)
+    if writeCsv:
+        refNames = G.nodes(data=False)
+        seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
+        writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
+                        refNames,
+                        seqLabels,
+                        clustering,
+                        'cytoscape',
+                        epiCsv,
+                        queryList)
 
 def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'microreact', epiCsv = None, queryNames = None):
     """Print CSV file of clustering and optionally epi data
@@ -106,7 +116,12 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
         if queryNames is not None:
             colnames.append('Status')
     elif format == 'cytoscape':
-        colnames = ['id','Cluster','Status']
+        colnames = ['id']
+        for cluster_type in clustering:
+            col_name = cluster_type + '_Cluster'
+            colnames.append(col_name)
+        if queryNames is not None:
+            colnames.append('Status')
     else:
         sys.stderr.write("Do not recognise format for CSV writing")
         exit(1)
@@ -161,13 +176,14 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
                         d['Status'].append("Reference")
             elif format == 'cytoscape':
                 d['id'].append(name)
-                d['Cluster'].append(clustering['combined'][name])
+                for cluster_type in clustering:
+                    col_name = cluster_type + "_Cluster"
+                    d[col_name].append(clustering[cluster_type][name])
                 if queryNames is not None:
                     if name in queryNames:
                         d['Status'].append("Query")
                     else:
                         d['Status'].append("Reference")
-
             if epiCsv is not None:
                 if label in epiData.index:
                     for col, value in zip(colnames, epiData.loc[label].values):
