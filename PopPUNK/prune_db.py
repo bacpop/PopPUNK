@@ -21,6 +21,64 @@ from .mash import constructDatabase
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
 
+#########################################
+# Function for revising distance matrix #
+#########################################
+
+def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
+    
+    # Find list items to remove
+    remove_seqs_list = []
+    removal_indices = []
+    for to_remove in remove_seqs_in:
+        found = False
+        for idx, item in enumerate(refList):
+            if item == to_remove:
+                removal_indices.append(idx)
+                remove_seqs_list.append(item)
+                found = True
+                break
+        if not found:
+            sys.stderr.write("Couldn't find " + to_remove + " in database\n")
+    remove_seqs = frozenset(remove_seqs_list)
+
+    if len(remove_seqs) > 0:
+        sys.stderr.write("Removing " + str(len(remove_seqs)) + " sequences\n")
+    
+        numNew = len(refList) - len(remove_seqs)
+        newDistMat = np.zeros((int(0.5 * numNew * (numNew - 1)), 2))
+        
+        # Create new reference list iterator
+        removal_indices.sort()
+        removal_indices.reverse()
+        next_remove = removal_indices.pop()
+        newRefList = []
+        for idx, seq in enumerate(refList):
+            if idx == next_remove:
+                if len(removal_indices) > 0:
+                    next_remove = removal_indices.pop()
+            else:
+                newRefList.append(seq)
+    
+        newRowNames = iter(iterDistRows(newRefList, newRefList, self=True))
+        
+        # Copy over rows which don't have an excluded sequence
+        newIdx = 0
+        for distRow, (ref1, ref2) in zip(distMat, iterDistRows(refList, refList, self=True)):
+            if ref1 not in remove_seqs and ref2 not in remove_seqs:
+                (newRef1, newRef2) = next(newRowNames)
+                if newRef1 == ref1 and newRef2 == ref2:
+                    newDistMat[newIdx, :] = distRow
+                    newIdx += 1
+                else:
+                    raise RuntimeError("Row name mismatch. Old: " + ref1 + "," + ref2 + "\n"
+                                       "New: " + newRef1 + "," + newRef2 + "\n")
+
+        storePickle(newRefList, newRefList, True, newDistMat, output)
+            
+    # return new distance matrix and sequence lists
+    return newRefList, newDistMat
+
 #################
 # run main code #
 #################
@@ -75,55 +133,11 @@ def main():
         for line in remove_file:
             remove_seqs_in.append(line.rstrip())
 
-    # Find list items to remove
-    remove_seqs = []
-    removal_indices = []
-    for to_remove in remove_seqs_in:
-        found = False
-        for idx, item in enumerate(refList):
-            if item == to_remove:
-                removal_indices.append(idx)
-                remove_seqs.append(item)
-                found = True
-                break
-        if not found:
-            sys.stderr.write("Couldn't find " + to_remove + " in database\n")
+    # reduce distance matrix
+    newRefList, newDistMat = prune_distance_matrix(refList, remove_seqs_in, distMat, args.output)
 
-    if len(remove_seqs) > 0:
-        sys.stderr.write("Removing " + str(len(remove_seqs)) + " sequences\n")
-
-        numNew = len(refList) - len(remove_seqs)
-        newDistMat = np.zeros((int(0.5 * numNew * (numNew - 1)), 2))
-
-        # Create new reference list iterator
-        removal_indices.sort()
-        removal_indices.reverse()
-        next_remove = removal_indices.pop()
-        newRefList = []
-        for idx, seq in enumerate(refList):
-            if idx == next_remove:
-                if len(removal_indices) > 0:
-                    next_remove = removal_indices.pop()
-            else:
-                newRefList.append(seq)
-
-        newRowNames = iter(iterDistRows(newRefList, newRefList, self=True))
-
-        # Copy over rows which don't have an excluded sequence
-        newIdx = 0
-        for distRow, (ref1, ref2) in zip(distMat, iterDistRows(refList, refList, self=True)):
-            if ref1 not in remove_seqs and ref2 not in remove_seqs:
-                (newRef1, newRef2) = next(newRowNames)
-                if newRef1 == ref1 and newRef2 == ref2:
-                    newDistMat[newIdx, :] = distRow
-                    newIdx += 1
-                else:
-                    raise RuntimeError("Row name mismatch. Old: " + ref1 + "," + ref2 + "\n"
-                                       "New: " + newRef1 + "," + newRef2 + "\n")
-
-        storePickle(newRefList, newRefList, True, newDistMat, args.output)
-
-        if args.resketch:
+    if len(refList) != len(newRefList):
+        if args.ref_db is not None:
             sys.stderr.write("Resketching sequences\n")
 
             # Write names to file

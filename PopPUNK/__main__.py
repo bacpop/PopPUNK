@@ -37,6 +37,8 @@ from .plot import outputsForCytoscape
 from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
 
+from .prune_db import prune_distance_matrix
+
 #################
 # run main code #
 #################
@@ -243,8 +245,11 @@ def main():
 
         # Run refinement
         if args.refine_model:
-            old_model = loadClusterFit(args.ref_db + "/" + args.ref_db + '_fit.pkl',
-                                       args.ref_db + "/" + args.ref_db + '_fit.npz')
+            model_prefix = args.ref_db
+            if args.model_dir is not None:
+                model_prefix = args.model_dir
+            old_model = loadClusterFit(model_prefix + "/" + model_prefix + '_fit.pkl',
+                       model_prefix + "/" + model_prefix + '_fit.npz')
             if old_model.type == 'refine':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
@@ -315,8 +320,9 @@ def main():
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
-            genomeNetwork.remove_nodes_from(set(refList).difference(newReferencesNames))
-
+            nodes_to_remove = set(refList).difference(newReferencesNames)
+            genomeNetwork.remove_nodes_from(nodes_to_remove)
+            prune_distance_matrix(refList, nodes_to_remove, distMat, args.output + "/" + args.output + ".dists")
             # Read previous database
             kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
             constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads,
@@ -380,9 +386,7 @@ def main():
             sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
 
             # Assign clustering by adding to network
-            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
-                    genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream,
-                    args.update_db, args.threads, args.mash)
+            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files, genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream, args.update_db, args.threads, args.mash)
 
             # if running simple query
             print_full_clustering = False
