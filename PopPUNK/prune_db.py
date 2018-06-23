@@ -26,6 +26,24 @@ from .mash import getSketchSize
 #########################################
 
 def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
+    """Rebuild distance matrix following selection of panel of references
+        
+    Args:
+        refList (list)
+            List of sequences used to generate distance matrix
+        remove_seqs_in (list)
+            List of sequences to be omitted
+        distMat (numpy.array)
+            nx2 matrix of core distances (column 0) and accessory
+            distances (column 1)
+        output (string)
+            Prefix for new distance output files
+    Returns:
+        newRefList (list)
+            List of sequences retained in distance matrix
+        newDistMat (numpy.array)
+            Updated version of distMat
+    """
     
     # Find list items to remove
     remove_seqs_list = []
