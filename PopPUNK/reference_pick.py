@@ -37,6 +37,8 @@ def get_options():
     iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances (required)')
     iGroup.add_argument('--ref-db', help='Location of reference db, if resketching')
     iGroup.add_argument('--model', help='Directory containing model fit. Will be copied to new directory')
+    iGroup.add_argument('--clusters', default=None, help='Specify a different clustering (e.g. core/accessory) to '
+                                                         'copy to new directory')
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -111,6 +113,11 @@ def main():
         sys.stderr.write("Copying model fit into " + args.output + "\n")
         copyfile(args.model + "/" + args.model + "_fit.pkl", args.output + "/" + args.output + "_fit.pkl")
         copyfile(args.model + "/" + args.model + "_fit.npz", args.output + "/" + args.output + "_fit.npy")
+        if args.clusters is not None:
+            cluster_file = args.clusters
+        else:
+            cluster_file = args.model + "/" + args.model + "_clusters.csv"
+        copyfile(cluster_file, args.output + "/" + args.output + "_clusters.csv")
 
     sys.exit(0)
 
