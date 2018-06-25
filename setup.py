@@ -51,6 +51,7 @@ setup(
         "console_scripts": [
             'poppunk = PopPUNK.__main__:main',
             'poppunk_prune = PopPUNK.prune_db:main',
+            'poppunk_references = PopPUNK.reference_pick:main',
             'poppunk_tsne = PopPUNK.tsne:main'
             ]
     },

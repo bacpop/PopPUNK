@@ -6,7 +6,6 @@ import os
 import sys
 # additional
 import numpy as np
-import subprocess
 from tempfile import mkstemp
 
 # import poppunk package
@@ -21,13 +20,9 @@ from .mash import constructDatabase
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
 
-#########################################
-# Function for revising distance matrix #
-#########################################
-
 def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
     """Rebuild distance matrix following selection of panel of references
-        
+
     Args:
         refList (list)
             List of sequences used to generate distance matrix
@@ -44,7 +39,6 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
         newDistMat (numpy.array)
             Updated version of distMat
     """
-    
     # Find list items to remove
     remove_seqs_list = []
     removal_indices = []
@@ -62,10 +56,10 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
 
     if len(remove_seqs) > 0:
         sys.stderr.write("Removing " + str(len(remove_seqs)) + " sequences\n")
-    
+
         numNew = len(refList) - len(remove_seqs)
         newDistMat = np.zeros((int(0.5 * numNew * (numNew - 1)), 2))
-        
+
         # Create new reference list iterator
         removal_indices.sort()
         removal_indices.reverse()
@@ -77,9 +71,9 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
                     next_remove = removal_indices.pop()
             else:
                 newRefList.append(seq)
-    
+
         newRowNames = iter(iterDistRows(newRefList, newRefList, self=True))
-        
+
         # Copy over rows which don't have an excluded sequence
         newIdx = 0
         for distRow, (ref1, ref2) in zip(distMat, iterDistRows(refList, refList, self=True)):
@@ -93,13 +87,9 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
                                        "New: " + newRef1 + "," + newRef2 + "\n")
 
         storePickle(newRefList, newRefList, True, newDistMat, output)
-            
+
     # return new distance matrix and sequence lists
     return newRefList, newDistMat
-
-#################
-# run main code #
-#################
 
 # command line parsing
 def get_options():
@@ -107,7 +97,7 @@ def get_options():
     import argparse
 
     parser = argparse.ArgumentParser(description='Remove sequences from a PopPUNK database',
-                                     prog='prune_poppunk')
+                                     prog='poppunk_prune')
 
     # input options
     iGroup = parser.add_argument_group('Input files')
@@ -119,7 +109,7 @@ def get_options():
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--resketch', default=False, action='store_true', help='Resketch the non-excluded sequences '
-                                                                                '[default = False]')
+                                                                               '[default = False]')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -155,7 +145,7 @@ def main():
     newRefList, newDistMat = prune_distance_matrix(refList, remove_seqs_in, distMat, args.output)
 
     if len(refList) != len(newRefList):
-        if args.ref_db is not None:
+        if args.resketch and args.ref_db is not None:
             sys.stderr.write("Resketching sequences\n")
 
             # Write names to file
@@ -179,3 +169,4 @@ def main():
         sys.stderr.write("No sequences to remove\n")
 
     sys.exit(0)
+

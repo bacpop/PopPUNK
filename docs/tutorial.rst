@@ -291,6 +291,16 @@ database is sketched for future distance comparison.
 In the case of the example above, this reduces from 848 to 14 representatives (one for
 each of the twelve clusters, except for 3 and 6 which have two each).
 
+If the program was run through using ``--full-db``, references can be picked
+and a full directory with a PopPUNK model for query assignment created using
+the ``poppunk_references`` program::
+
+   poppunk_references --network strain_db/strain_db_graph.gpickle --ref-db strain_db --distances strain_db/strain_db.dists \
+   --model strain_db --output strain_references --threads 4
+
+Using the ``--model`` will also copy over the model fit, so that the entire
+PopPUNK database is in a single directory.
+
 .. _fit-files:
 
 Output files
