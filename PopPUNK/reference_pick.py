@@ -112,7 +112,7 @@ def main():
     if args.model is not None and os.path.isdir(args.model):
         sys.stderr.write("Copying model fit into " + args.output + "\n")
         copyfile(args.model + "/" + args.model + "_fit.pkl", args.output + "/" + args.output + "_fit.pkl")
-        copyfile(args.model + "/" + args.model + "_fit.npz", args.output + "/" + args.output + "_fit.npy")
+        copyfile(args.model + "/" + args.model + "_fit.npz", args.output + "/" + args.output + "_fit.npz")
         if args.clusters is not None:
             cluster_file = args.clusters
         else:
