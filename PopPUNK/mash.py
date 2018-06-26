@@ -52,7 +52,7 @@ def getDatabaseName(prefix, k):
         db_name (str)
             Name of mash db
     """
-    return prefix + "/" + prefix + "." + k + ".msh"
+    return prefix + "/" + os.path.basename(prefix) + "." + k + ".msh"
 
 
 def createDatabaseDir(outPrefix, kmers):
@@ -68,7 +68,7 @@ def createDatabaseDir(outPrefix, kmers):
     # check for writing
     if os.path.isdir(outputDir):
         # remove old database files if not needed
-        for msh_file in glob(outputDir + "/" + outPrefix + "*.msh"):
+        for msh_file in glob(outputDir + "/" + os.path.basename(outPrefix) + "*.msh"):
             knum = int(msh_file.split('.')[-2])
             if not (kmers == knum).any():
                 sys.stderr.write("Removing old database " + msh_file + "\n")
@@ -104,7 +104,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
     # iterate over kmer lengths
     for k in klist:
-        dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
+        dbname = "./" + dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(k) + ".msh"
         try:
             mash_cmd = mash_exec + " info -t " + dbname
             mash_info = subprocess.Popen(mash_cmd, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
@@ -191,9 +191,9 @@ def joinDBs(db1, db2, klist, mash_exec = 'mash'):
     """
     for kmer in klist:
         try:
-            join_name = db1 + "/" + db1 + "." + str(kmer) + ".joined"
-            db1_name = db1 + "/" + db1 + "." + str(kmer) + ".msh"
-            db2_name = db2 + "/" + db2 + "." + str(kmer) + ".msh"
+            join_name = db1 + "/" + os.path.basename(db1) + "." + str(kmer) + ".joined"
+            db1_name = db1 + "/" + os.path.basename(db1) + "." + str(kmer) + ".msh"
+            db2_name = db2 + "/" + os.path.basename(db2) + "." + str(kmer) + ".msh"
 
             mash_cmd = mash_exec + " paste " + join_name + " " + db1_name + " " + db2_name
             subprocess.run(mash_cmd, shell=True, check=True)
@@ -301,7 +301,7 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
             (default = 1)
     """
     # define database name
-    dbname = "./" + oPrefix + "/" + oPrefix + "." + str(k)
+    dbname = "./" + oPrefix + "/" + os.path.basename(oPrefix) + "." + str(k)
     dbfilename = dbname + ".msh"
 
     # calculate false positive rate
@@ -395,7 +395,7 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
     with open(qFile, 'r') as queryFile:
         for line in queryFile:
             queryList.append(line.rstrip())
-    refList = getSeqsInDb("./" + dbPrefix + "/" + dbPrefix + "." + str(klist[0]) + ".msh", mash_exec)
+    refList = getSeqsInDb(dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(klist[0]) + ".msh", mash_exec)
 
     if self:
         if dbPrefix != queryPrefix:
@@ -412,8 +412,8 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
         row = 0
 
         # run mash distance query based on current file
-        ref_dbname = "./" + dbPrefix + "/" + dbPrefix + "." + str(k) + ".msh"
-        query_dbname = "./" + queryPrefix + "/" + queryPrefix + "." + str(k) + ".msh"
+        ref_dbname = dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(k) + ".msh"
+        query_dbname = queryPrefix + "/" + os.path.basename(queryPrefix) + "." + str(k) + ".msh"
         # construct mash command
         mash_cmd = mash_exec + " dist -p " + str(threads) + " " + ref_dbname + " " + query_dbname
 
@@ -613,7 +613,7 @@ def getKmersFromReferenceDatabase(dbPrefix):
     """
     # prepare
     knum = []
-    fullDbPrefix = "./" + dbPrefix + "/" + dbPrefix + "."
+    fullDbPrefix = dbPrefix + "/" + os.path.basename(dbPrefix) + "."
 
     # iterate through files
     for msh_file in glob(fullDbPrefix + "*.msh"):

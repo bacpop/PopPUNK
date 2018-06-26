@@ -20,7 +20,7 @@ from .mash import queryDatabase
 from .mash import getDatabaseName
 from .mash import getSketchSize
 
-from .network import iterDistRows
+from .utils import iterDistRows
 
 def extractReferences(G, outPrefix):
     """Extract references for each cluster based on cliques
@@ -70,7 +70,7 @@ def writeReferences(refList, outPrefix):
             The name of the file references were written to
     """
     # write references to file
-    refFileName = "./" + outPrefix + "/" + outPrefix + ".refs"
+    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + ".refs"
     with open(refFileName, 'w') as rFile:
         for ref in refList:
             rFile.write(ref + '\n')

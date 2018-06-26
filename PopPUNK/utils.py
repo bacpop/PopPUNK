@@ -9,7 +9,6 @@ from tempfile import mkstemp
 import numpy as np
 import sharedmem
 
-
 def storePickle(rlist, qlist, self, X, pklName):
     """Saves core and accessory distances in a .npy file, names in a .pkl
 

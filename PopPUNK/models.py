@@ -112,7 +112,7 @@ class ClusterFit:
             self.subsampled_X /= self.scale
 
             # Show clustering
-            plot_scatter(self.subsampled_X, self.outPrefix + "/" + self.outPrefix + "_distanceDistribution",
+            plot_scatter(self.subsampled_X, self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_distanceDistribution",
                     self.outPrefix + " distances")
 
     def no_scale(self):
@@ -181,14 +181,14 @@ class BGMMFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
-            np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
+            np.savez(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.npz',
              weights=self.weights,
              means=self.means,
              covariances=self.covariances,
              within=self.within_label,
              between=self.between_label,
              scale=self.scale)
-            with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
+            with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.dpgmm, self.type], pickle_file)
 
 
@@ -230,7 +230,7 @@ class BGMMFit(ClusterFit):
                                                            "\tNumber of components used\t" + str(used_components)]) + "\n")
 
             title = self.outPrefix + " " + str(len(np.unique(y))) + "-component DPGMM"
-            outfile = self.outPrefix + "/" + self.outPrefix + "_DPGMM_fit"
+            outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
 
             plot_results(X, y, self.means, self.covariances, self.scale, title, outfile)
             plot_contours(y, self.weights, self.means, self.covariances, title + " assignment boundary", outfile + "_contours")
@@ -351,7 +351,7 @@ class DBSCANFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
-            np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
+            np.savez(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.npz',
              n_clusters=self.n_clusters,
              within=self.within_label,
              between=self.between_label,
@@ -359,7 +359,7 @@ class DBSCANFit(ClusterFit):
              maxs=self.cluster_maxs,
              mins=self.cluster_mins,
              scale=self.scale)
-            with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
+            with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.hdb, self.type], pickle_file)
 
 
@@ -402,7 +402,7 @@ class DBSCANFit(ClusterFit):
                                                            "\tNumber of assignments\t" + str(len(self.labels))]) + "\n")
 
             plot_dbscan_results(self. subsampled_X, self. labels, self.n_clusters,
-                self.outPrefix + "/" + self.outPrefix + "_dbscan")
+                self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
     def assign(self, X):
@@ -553,11 +553,11 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
-            np.savez(self.outPrefix + "/" + self.outPrefix + '_fit.npz',
+            np.savez(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.npz',
              intercept=np.array([self.optimal_x, self.optimal_y]),
              core_acc_intercepts=np.array([self.core_boundary, self.accessory_boundary]),
              scale=self.scale)
-            with open(self.outPrefix + "/" + self.outPrefix + '_fit.pkl', 'wb') as pickle_file:
+            with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([None, self.type], pickle_file)
 
 
@@ -593,7 +593,7 @@ class RefineFit(ClusterFit):
             plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y, self.core_boundary,
                 self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
                 self.max_move, self.scale, self.indiv_fitted, "Refined fit boundary",
-                self.outPrefix + "/" + self.outPrefix + "_refined_fit")
+                self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
     def assign(self, X, slope=None):

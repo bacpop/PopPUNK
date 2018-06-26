@@ -44,10 +44,10 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
     """
     # write graph file
     if suffix is None:
-        graph_file_name = outPrefix + "_cytoscape.graphml"
+        graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
     else:
-        graph_file_name = outPrefix + "_" + suffix + "_cytoscape.graphml"
-    nx.write_graphml(G, "./" + outPrefix + "/" + graph_file_name)
+        graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
+    nx.write_graphml(G, outPrefix + "/" + graph_file_name)
 
     # Write CSV of metadata
     if writeCsv:
@@ -223,7 +223,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
             NJ tree from core distances
     """
     # generate phylip matrix
-    phylip_name = "./" + outPrefix + "/" + outPrefix + "_core_distances.phylip"
+    phylip_name = outPrefix + "/" + os.path.basename(outPrefix) + "_core_distances.phylip"
     with open(phylip_name, 'w') as pFile:
         pFile.write(str(len(refList))+"\n")
         for coreDist, ref in zip(coreMat, refList):
@@ -601,7 +601,7 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
     generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
-    writeClusterCsv(outPrefix + "/" + outPrefix + "_microreact_clusters.csv",
+    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
                     combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
 def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite):
@@ -625,11 +625,11 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
             Overwrite existing output if present (default = False)
     """
     # Save distances to file
-    core_dist_file = outPrefix + "/" + outPrefix + "_core_dists.csv"
+    core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
     np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
 
     # calculate phylogeny
-    tree_filename = outPrefix + "/" + outPrefix + tree_suffix
+    tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + tree_suffix
     if overwrite or not os.path.isfile(tree_filename):
         sys.stderr.write("Building phylogeny\n")
         if rapidnj is not None:
@@ -690,8 +690,8 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
 
     # calculate phylogeny, or copy existing microreact file
-    microreact_tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.nwk"
-    phandango_tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.tree"
+    microreact_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
+    phandango_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.tree"
     if microreact and os.path.isfile(microreact_tree_filename):
         sys.stderr.write('Copying microreact tree')
         copyfile(microreact_tree_filename, phandango_tree_filename)
@@ -699,7 +699,7 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
         generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite)
 
     # print clustering file
-    writeClusterCsv(outPrefix + "/" + outPrefix + "_phandango_clusters.csv",
+    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
                     combined_list, combined_list, clustering, 'phandango', epiCsv, queryList)
 
 def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
@@ -741,13 +741,13 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
 
     # calculate phylogeny, or copy existing microreact file
-    microreact_tree_filename = outPrefix + "/" + outPrefix + "_core_NJ.nwk"
+    microreact_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
     if microreact and os.path.isfile(microreact_tree_filename):
         sys.stderr.write('Using microreact tree')
     else:
         generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
 
     # print clustering file
-    writeClusterCsv(outPrefix + "/" + outPrefix + "_grapetree_clusters.csv",
+    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",
                     combined_list, combined_list, clustering, 'grapetree', epiCsv, queryList)
 

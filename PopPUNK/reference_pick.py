@@ -88,10 +88,11 @@ def main():
     newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
     nodes_to_remove = set(refList).difference(newReferencesNames)
     genomeNetwork.remove_nodes_from(nodes_to_remove)
-    nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
+    nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
     # Prune distances
-    prune_distance_matrix(refList, nodes_to_remove, distMat, args.output + "/" + args.output + ".dists")
+    prune_distance_matrix(refList, nodes_to_remove, distMat,
+                          args.output + "/" + os.path.basename(args.output) + ".dists")
 
     # Resketch
     if len(nodes_to_remove) > 0:
@@ -112,13 +113,15 @@ def main():
     # Copy model fit into new directory
     if args.model is not None and os.path.isdir(args.model):
         sys.stderr.write("Copying model fit into " + args.output + "\n")
-        copyfile(args.model + "/" + args.model + "_fit.pkl", args.output + "/" + args.output + "_fit.pkl")
-        copyfile(args.model + "/" + args.model + "_fit.npz", args.output + "/" + args.output + "_fit.npz")
+        copyfile(args.model + "/" + os.path.basename(args.model) + "_fit.pkl",
+                 args.output + "/" + os.path.basename(args.output) + "_fit.pkl")
+        copyfile(args.model + "/" + os.path.basename(args.model) + "_fit.npz",
+                 args.output + "/" + os.path.basename(args.output) + "_fit.npz")
         if args.clusters is not None:
             cluster_file = args.clusters
         else:
-            cluster_file = args.model + "/" + args.model + "_clusters.csv"
-        copyfile(cluster_file, args.output + "/" + args.output + "_clusters.csv")
+            cluster_file = args.model + "/" + os.path.basename(args.model) + "_clusters.csv"
+        copyfile(cluster_file, args.output + "/" + os.path.basename(args.output) + "_clusters.csv")
 
     sys.exit(0)
 

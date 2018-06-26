@@ -212,7 +212,7 @@ def main():
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.output, True,
                     args.plot_fit, args.no_stream, args.mash, args.threads)
 
-            dists_out = args.output + "/" + args.output + ".dists"
+            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
             storePickle(refList, queryList, True, distMat, dists_out)
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files")
@@ -249,8 +249,8 @@ def main():
             model_prefix = args.ref_db
             if args.model_dir is not None:
                 model_prefix = args.model_dir
-            old_model = loadClusterFit(model_prefix + "/" + model_prefix + '_fit.pkl',
-                       model_prefix + "/" + model_prefix + '_fit.npz')
+            old_model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                       model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
             if old_model.type == 'refine':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
@@ -273,7 +273,7 @@ def main():
         fit_type = 'combined'
         model.save()
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
-        isolateClustering = {fit_type: printClusters(genomeNetwork, args.output + "/" + args.output)}
+        isolateClustering = {fit_type: printClusters(genomeNetwork, args.output + "/" + os.path.basename(args.output))}
 
         # Write core and accessory based clusters, if they worked
         if model.indiv_fitted:
@@ -281,8 +281,10 @@ def main():
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
                 indivAssignments = model.assign(distMat, slope)
                 indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
-                isolateClustering[dist_type] = printClusters(indivNetworks[dist_type], args.output + "/" + args.output + "_" + dist_type)
-                nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + args.output + "_" + dist_type + '_graph.gpickle')
+                isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
+                                                 args.output + "/" + os.path.basename(args.output) + "_" + dist_type)
+                nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + os.path.basename(args.output) +
+                                                           "_" + dist_type + '_graph.gpickle')
             if args.core_only:
                 fit_type = 'core'
                 genomeNetwork = indivNetworks['core']
@@ -323,13 +325,14 @@ def main():
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
             nodes_to_remove = set(refList).difference(newReferencesNames)
             genomeNetwork.remove_nodes_from(nodes_to_remove)
-            prune_distance_matrix(refList, nodes_to_remove, distMat, args.output + "/" + args.output + ".dists")
+            prune_distance_matrix(refList, nodes_to_remove, distMat,
+                                  args.output + "/" + os.path.basename(args.output) + ".dists")
             # Read previous database
             kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
             constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads,
                               args.mash, True) # overwrite old db
 
-        nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
+        nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
     elif args.assign_query:
         if args.ref_db is not None and args.q_files is not None:
@@ -357,8 +360,8 @@ def main():
             model_prefix = args.ref_db
             if args.model_dir is not None:
                 model_prefix = args.model_dir
-            model = loadClusterFit(model_prefix + "/" + model_prefix + '_fit.pkl',
-                                   model_prefix + "/" + model_prefix + '_fit.npz')
+            model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                                   model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
             queryAssignments = model.assign(distMat)
 
             # Set directories of previous fit
@@ -370,15 +373,15 @@ def main():
             # If a refined fit, may use just core or accessory distances
             if args.core_only and model.type == 'refine':
                 model.slope = 0
-                old_network_file = prev_clustering + "/" + prev_clustering + '_core_graph.gpickle'
-                old_cluster_file = prev_clustering + "/" + prev_clustering + '_core_clusters.csv'
+                old_network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_core_graph.gpickle'
+                old_cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_core_clusters.csv'
             elif args.accessory_only and model.type == 'refine':
                 model.slope = 1
-                old_network_file = prev_clustering + "/" + prev_clustering + '_accessory_graph.gpickle'
-                old_cluster_file = prev_clustering + "/" + prev_clustering + '_accessory_clusters.csv'
+                old_network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_accessory_graph.gpickle'
+                old_cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_accessory_clusters.csv'
             else:
-                old_network_file = prev_clustering + "/" + prev_clustering + '_graph.gpickle'
-                old_cluster_file = prev_clustering + "/" + prev_clustering + '_clusters.csv'
+                old_network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_graph.gpickle'
+                old_cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_clusters.csv'
                 if args.core_only or args.accessory_only:
                     sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                                      "a refined fit. Using the combined distances.\n")
@@ -387,13 +390,15 @@ def main():
             sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
 
             # Assign clustering by adding to network
-            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files, genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream, args.update_db, args.threads, args.mash)
+            ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
+                    genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream, args.update_db,
+                    args.threads, args.mash)
 
             # if running simple query
             print_full_clustering = False
             if args.update_db:
                 print_full_clustering = True
-            isolateClustering = {'combined': printClusters(genomeNetwork, args.output + "/" + args.output,
+            isolateClustering = {'combined': printClusters(genomeNetwork, args.output + "/" + os.path.basename(args.output),
                                                            old_cluster_file, print_full_clustering)}
 
             # update_db like no full_db
@@ -404,7 +409,7 @@ def main():
                 newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output)
                 if args.full_db is False:
                     genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
-                nx.write_gpickle(genomeNetwork, args.output + "/" + args.output + '_graph.gpickle')
+                nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
                 # Update the mash database
                 newQueries = set(newRepresentativesNames).intersection(queryList)
@@ -418,7 +423,7 @@ def main():
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
                                                                     ordered_queryList, distMat, query_distMat)
                 complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
-                dists_out = args.output + "/" + args.output + ".dists"
+                dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
                 storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
 

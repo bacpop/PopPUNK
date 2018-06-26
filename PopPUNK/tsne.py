@@ -35,7 +35,7 @@ def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity
             (default = 0)
     """
     # generate accessory genome distance representation
-    tsne_filename = outPrefix + "/" + outPrefix + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
+    tsne_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
     if overwrite or not os.path.isfile(tsne_filename):
         sys.stderr.write("Running t-SNE\n")
         accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
