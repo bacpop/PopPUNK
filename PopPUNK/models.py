@@ -455,7 +455,7 @@ class RefineFit(ClusterFit):
                 The core and accessory distances to cluster. Must be set if
                 preprocess is set.
             sample_names (list)
-                Sample names in X (accessed by :func:`~PopPUNK.mash.iterDistRows`)
+                Sample names in X (accessed by :func:`~PopPUNK.utils.iterDistRows`)
             model (ClusterFit)
                 The model fit to refine
             max_move (float)

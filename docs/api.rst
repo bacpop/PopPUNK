@@ -68,3 +68,9 @@ tsne.py
 .. automodule:: PopPUNK.tsne
    :members:
 
+utils.py
+--------
+
+.. automodule:: PopPUNK.utils
+   :members:
+

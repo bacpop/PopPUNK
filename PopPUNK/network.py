@@ -19,7 +19,8 @@ from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import getDatabaseName
 from .mash import getSketchSize
-from .mash import iterDistRows
+
+from .network import iterDistRows
 
 def extractReferences(G, outPrefix):
     """Extract references for each cluster based on cliques

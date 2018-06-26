@@ -7,8 +7,8 @@ import pickle
 import numpy as np
 from sklearn import manifold
 
-from .mash import readPickle
-from .mash import iterDistRows
+from .utils import readPickle
+from .utils import iterDistRows
 
 def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity = 0):
     """Generate t-SNE projection using accessory distances

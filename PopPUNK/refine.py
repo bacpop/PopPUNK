@@ -11,9 +11,10 @@ from functools import partial
 import networkx as nx
 import scipy.optimize
 
-from .mash import iterDistRows
 from .network import constructNetwork
 from .network import networkSummary
+
+from .utils import iterDistRows
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
         max_move, min_move, slope = 2, no_local = False, num_processes = 1):

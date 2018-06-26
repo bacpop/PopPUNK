@@ -14,7 +14,6 @@ from .__init__ import __version__
 
 from .mash import checkMashVersion
 from .mash import createDatabaseDir
-from .mash import readPickle
 from .mash import constructDatabase
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
@@ -22,6 +21,8 @@ from .mash import getSketchSize
 from .network import extractReferences
 
 from .prune_db import prune_distance_matrix
+
+from .utils import readPickle
 
 # command line parsing
 def get_options():

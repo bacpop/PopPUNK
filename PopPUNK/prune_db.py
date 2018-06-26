@@ -13,12 +13,13 @@ from .__init__ import __version__
 
 from .mash import checkMashVersion
 from .mash import createDatabaseDir
-from .mash import storePickle
-from .mash import readPickle
-from .mash import iterDistRows
 from .mash import constructDatabase
 from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
+
+from .utils import storePickle
+from .utils import readPickle
+from .utils import iterDistRows
 
 def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
     """Rebuild distance matrix following selection of panel of references

@@ -14,15 +14,10 @@ from .__init__ import __version__
 
 from .mash import checkMashVersion
 from .mash import createDatabaseDir
-from .mash import storePickle
-from .mash import readPickle
 from .mash import joinDBs
-from .mash import writeTmpFile
 from .mash import constructDatabase
 from .mash import queryDatabase
 from .mash import readMashDBParams
-from .mash import translate_distMat
-from .mash import update_distance_matrices
 
 from .models import *
 
@@ -38,6 +33,12 @@ from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
 
 from .prune_db import prune_distance_matrix
+
+from .utils import storePickle
+from .utils import readPickle
+from .utils import writeTmpFile
+from .utils import translate_distMat
+from .utils import update_distance_matrices
 
 #################
 # run main code #
