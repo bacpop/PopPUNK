@@ -104,7 +104,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
     # iterate over kmer lengths
     for k in klist:
-        dbname = "./" + dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(k) + ".msh"
+        dbname = dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(k) + ".msh"
         try:
             mash_cmd = mash_exec + " info -t " + dbname
             mash_info = subprocess.Popen(mash_cmd, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
@@ -301,7 +301,7 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
             (default = 1)
     """
     # define database name
-    dbname = "./" + oPrefix + "/" + os.path.basename(oPrefix) + "." + str(k)
+    dbname = oPrefix + "/" + os.path.basename(oPrefix) + "." + str(k)
     dbfilename = dbname + ".msh"
 
     # calculate false positive rate
