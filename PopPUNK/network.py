@@ -229,8 +229,8 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
             sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
 
             # write unassigned queries to file as if a list of references
-            tmpDirName = mkdtemp(prefix=queryDB, suffix="_tmp", dir="./")
-            tmpHandle, tmpFile = mkstemp(prefix=queryDB, suffix="_tmp", dir=tmpDirName)
+            tmpDirName = mkdtemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir="./")
+            tmpHandle, tmpFile = mkstemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir=tmpDirName)
             with open(tmpFile, 'w') as tFile:
                 for query in unassigned:
                     tFile.write(query + '\n')

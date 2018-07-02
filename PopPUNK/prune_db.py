@@ -150,7 +150,7 @@ def main():
             sys.stderr.write("Resketching sequences\n")
 
             # Write names to file
-            tmpHandle, tmpName = mkstemp(prefix=args.output, suffix=".tmp", dir=".")
+            tmpHandle, tmpName = mkstemp(prefix=os.path.basename(args.output), suffix=".tmp", dir=".")
             with open(tmpName, 'w') as tmpRefFile:
                 for newRefSeq in newRefList:
                     tmpRefFile.write(newRefSeq + "\n")

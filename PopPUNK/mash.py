@@ -418,9 +418,10 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
         mash_cmd = mash_exec + " dist -p " + str(threads) + " " + ref_dbname + " " + query_dbname
 
         if no_stream:
-            tmpHandle, tmpName = mkstemp(prefix=dbPrefix, suffix=".tmp", dir="./" + dbPrefix)
+            tmpHandle, tmpName = mkstemp(prefix=os.path.basename(dbPrefix),
+                                         suffix=".tmp", dir="./" + os.path.basename(dbPrefix))
             mash_cmd += " > " + tmpName
-        mash_cmd += " 2> " + dbPrefix + ".err.log"
+        mash_cmd += " 2> " + os.path.basename(dbPrefix) + ".err.log"
         sys.stderr.write(mash_cmd + "\n")
 
         try:
