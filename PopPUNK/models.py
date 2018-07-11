@@ -51,15 +51,15 @@ def loadClusterFit(pkl_file, npz_file):
     fit_data = np.load(npz_file)
 
     if fit_type == "bgmm":
-        print("Loading BGMM 2D Gaussian model",file=sys.stderr)
+        sys.stderr.write("Loading BGMM 2D Gaussian model\n")
         load_obj = BGMMFit("")
         load_obj.load(fit_data, fit_object)
     elif fit_type == "dbscan":
-        print("Loading DBSCAN model",file=sys.stderr)
+        sys.stderr.write("Loading DBSCAN model\n")
         load_obj = DBSCANFit("")
         load_obj.load(fit_data, fit_object)
     elif fit_type == "refine":
-        print("Loading previously refined model",file=sys.stderr)
+        sys.stderr.write("Loading previously refined model\n")
         load_obj = RefineFit("")
         load_obj.load(fit_data, fit_object)
     else:
