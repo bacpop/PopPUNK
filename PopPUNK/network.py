@@ -291,7 +291,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
 
     if oldClusterFile != None:
         oldClusters = readClusters(oldClusterFile)
-        new_id = len(oldClusters)
+        new_id = len(oldClusters) + 1 # 1-indexed
         while new_id in oldClusters:
             new_id += 1 # in case clusters have been merged
 
@@ -333,9 +333,9 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
                             cls_id = oldClusterName
                             break
 
-        # Otherwise just number sequentially
+        # Otherwise just number sequentially starting from 1
         else:
-            cls_id = newClsIdx
+            cls_id = newClsIdx + 1
 
         for cluster_member in newCluster:
             clustering[cluster_member] = cls_id
