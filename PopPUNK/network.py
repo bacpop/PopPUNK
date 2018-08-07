@@ -302,6 +302,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
 
     # Assign each cluster a name
     clustering = {}
+    foundOldClusters = []
 
     for newClsIdx, newCluster in enumerate(newClusters):
 
@@ -322,6 +323,13 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
                 for oldClusterName, oldClusterMembers in oldClusters.items():
                     join = ref_only.intersection(oldClusterMembers)
                     if len(join) > 0:
+                        # Check cluster is consistent with previous definitions
+                        if oldClusterName in foundOldClusters:
+                            sys.stderr.write("WARNING: Old cluster " + oldClusterName + " split"
+                                             " across multiple new clusters\n")
+                        else:
+                            foundOldClusters.append(oldClusterName)
+
                         # Query has merged clusters
                         if len(join) < len(ref_only):
                             merge = True
