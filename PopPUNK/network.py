@@ -307,6 +307,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
 
         # Ensure consistency with previous labelling
         if oldClusterFile != None:
+            merge = False
             cls_id = None
 
             # Samples in this cluster that are not queries
@@ -323,15 +324,21 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
                     if len(join) > 0:
                         # Query has merged clusters
                         if len(join) < len(ref_only):
+                            merge = True
                             if cls_id == None:
                                 cls_id = oldClusterName
                             else:
                                 cls_id += "_" + oldClusterName
                         # Exact match -> same name as before
                         elif len(join) == len(ref_only):
-                            assert cls_id == None # should not have already been part of a merge
+                            assert merge == False # should not have already been part of a merge
                             cls_id = oldClusterName
                             break
+
+            # Report merges
+            if merge:
+                merged_ids = cls_id.split("_")
+                sys.stderr.write("Clusters " + ",".join(merged_ids) + " have merged into " + cls_id + "\n")
 
         # Otherwise just number sequentially starting from 1
         else:
