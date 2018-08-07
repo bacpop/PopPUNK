@@ -351,7 +351,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
     outFileName = outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
-        for cluster_member in sorted(clustering, key=operator.itemgetter(0)):
+        for cluster_member in sorted(clustering, key=operator.itemgetter(1)):
             if printRef or cluster_member not in oldNames:
                 cluster_file.write(",".join((cluster_member, str(clustering[cluster_member]))) + "\n")
 
