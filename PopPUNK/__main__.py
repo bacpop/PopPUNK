@@ -273,6 +273,12 @@ def main():
         fit_type = 'combined'
         model.save()
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
+        
+        # Ensure all in dists are in final network
+        networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
+        if len(networkMissing) > 0:
+            sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+        
         isolateClustering = {fit_type: printClusters(genomeNetwork, args.output + "/" + os.path.basename(args.output))}
 
         # Write core and accessory based clusters, if they worked
@@ -388,6 +394,11 @@ def main():
 
             genomeNetwork = nx.read_gpickle(old_network_file)
             sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
+            
+            # Ensure all in dists are in final network
+            networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
+            if len(networkMissing) > 0:
+                sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
