@@ -420,7 +420,7 @@ def main():
                 if args.full_db is False:
                     newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output, refList)
                     genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
-                    newQueries = set(newRepresentativesNames).intersection(ordered_queryList)
+                    newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
                 else:
                     newQueries = ordered_queryList 
                 nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
@@ -428,11 +428,15 @@ def main():
                 # Update the mash database
                 tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
-                joinDBs(args.output, args.ref_db, kmers)
+                joinDBs(args.ref_db, args.output, args.output, kmers)
                 os.remove(tmpRefFile)
 
                 # Update distance matrices with all calculated distances
-                refList, refList_copy, self, ref_distMat = readPickle(args.distances)
+                if args.distances == None:
+                    distanceFiles = args.ref_db + "/" + os.path.basename(args.ref_db) + ".dists"
+                else:
+                    distanceFiles = args.distances
+                refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
                                                                     ordered_queryList, distMat, query_distMat)
                 complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)

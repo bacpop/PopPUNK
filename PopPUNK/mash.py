@@ -174,14 +174,16 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
 
     return seqs
 
-def joinDBs(db1, db2, klist, mash_exec = 'mash'):
+def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
     """Join two mash sketch databases with ``mash paste``
 
     Args:
         db1 (str)
-            Prefix for db1. Used for new joined database
+            Prefix for db1
         db2 (str)
             Prefix for db2
+        output (str)
+            Prefix for joined output
         klist (list)
             List of k-mer sizes to sketch
         mash_exec (str)
@@ -191,13 +193,13 @@ def joinDBs(db1, db2, klist, mash_exec = 'mash'):
     """
     for kmer in klist:
         try:
-            join_name = db1 + "/" + os.path.basename(db1) + "." + str(kmer) + ".joined"
+            join_name = output + "/" + os.path.basename(output) + "." + str(kmer) + ".joined"
             db1_name = db1 + "/" + os.path.basename(db1) + "." + str(kmer) + ".msh"
             db2_name = db2 + "/" + os.path.basename(db2) + "." + str(kmer) + ".msh"
 
             mash_cmd = mash_exec + " paste " + join_name + " " + db1_name + " " + db2_name
             subprocess.run(mash_cmd, shell=True, check=True)
-            os.rename(join_name + ".msh", db1_name)
+            os.rename(join_name + ".msh", output + "/" + os.path.basename(output) + "." + str(kmer) + ".msh")
         except subprocess.CalledProcessError as e:
             sys.stderr.write("Could not run command " + mash_cmd + "; returned: " + e.message + "\n")
             sys.exit(1)
@@ -520,7 +522,7 @@ def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
         idxRanges (int, int)
             Tuple of first and last row of slice to calculate
         distMat (numpy.array)
-            sharedmem object to store core and accessory distances in(altered in place)
+            sharedmem object to store core and accessory distances in (altered in place)
         raw (numpy.array)
             sharedmem object with proportion of k-mer matches for each query-ref pair
             by row, columns are at k-mer lengths in klist
