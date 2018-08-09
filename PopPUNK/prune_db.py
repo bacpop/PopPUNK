@@ -143,14 +143,14 @@ def main():
             remove_seqs_in.append(line.rstrip())
 
     # reduce distance matrix
-    newRefList, newDistMat = prune_distance_matrix(refList, remove_seqs_in, distMat, args.output)
+    newRefList = prune_distance_matrix(refList, remove_seqs_in, distMat, args.output)[0]
 
     if len(refList) != len(newRefList):
         if args.resketch and args.ref_db is not None:
             sys.stderr.write("Resketching sequences\n")
 
             # Write names to file
-            tmpHandle, tmpName = mkstemp(prefix=os.path.basename(args.output), suffix=".tmp", dir=".")
+            tmpName = mkstemp(prefix=os.path.basename(args.output), suffix=".tmp", dir=".")[1]
             with open(tmpName, 'w') as tmpRefFile:
                 for newRefSeq in newRefList:
                     tmpRefFile.write(newRefSeq + "\n")

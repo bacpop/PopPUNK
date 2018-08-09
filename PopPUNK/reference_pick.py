@@ -6,7 +6,6 @@ import os
 import sys
 # additional
 from shutil import copyfile
-import numpy as np
 import networkx as nx
 
 # import poppunk package
@@ -70,7 +69,7 @@ def main():
     if not os.path.isdir(args.output):
         try:
             os.makedirs(args.output)
-        except:
+        except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 

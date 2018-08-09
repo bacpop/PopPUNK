@@ -3,25 +3,19 @@
 # universal
 import os
 import sys
-import re
 # additional
-import numpy as np
-import random
 import operator
-import pickle
+import numpy as np
 
-from scipy import stats
 from scipy import linalg
 try:  # SciPy >= 0.19
     from scipy.special import logsumexp as sp_logsumexp
-    from scipy.special import gammaln as sp_gammaln
 except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
-    from scipy.misc import gammaln as sp_gammaln
 from sklearn import mixture
 
 
-def fit2dMultiGaussian(X, outPrefix, dpgmm_max_K = 2):
+def fit2dMultiGaussian(X, dpgmm_max_K = 2):
     """Main function to fit BGMM model, called from :func:`~PopPUNK.models.BGMMFit.fit`
 
     Fits the mixture model specified, saves model parameters to a file, and assigns the samples to
@@ -31,8 +25,6 @@ def fit2dMultiGaussian(X, outPrefix, dpgmm_max_K = 2):
         X (np.array)
             n x 2 array of core and accessory distances for n samples.
             This should be subsampled to 100000 samples.
-        outPrefix (str)
-            Prefix for output files to be saved under
         dpgmm_max_K (int)
             Maximum number of components to use with the EM fit.
             (default = 2)

@@ -4,17 +4,14 @@
 import os
 import sys
 # additional
+from functools import partial
 import numpy as np
 import sharedmem
 from numba import jit
-from functools import partial
-import networkx as nx
 import scipy.optimize
 
 from .network import constructNetwork
 from .network import networkSummary
-
-from .utils import iterDistRows
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
         max_move, min_move, slope = 2, no_local = False, num_processes = 1):
@@ -189,7 +186,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score
-    (components, density, transitivity, score) = networkSummary(G)
+    score = networkSummary(G)[3]
     return(-score)
 
 def readManualStart(startFile):

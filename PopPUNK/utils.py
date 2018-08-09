@@ -99,7 +99,7 @@ def writeTmpFile(fileList):
         tmpName (str)
             Name of temp file list written to
     """
-    tmpHandle, tmpName = mkstemp(suffix=".tmp", dir=".")
+    tmpName = mkstemp(suffix=".tmp", dir=".")[1]
     with open(tmpName, 'w') as tmpFile:
         for fileName in fileList:
             tmpFile.write(fileName + "\n")
@@ -133,9 +133,9 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
     distMat = sharedmem.empty((number_pairs, 2))
 
     # extract distances
-    for row, (seq1, seq2) in enumerate(iterDistRows(combined_list, combined_list, self=True)):
-        distMat[row, 0] = core_distMat[i, j]
-        distMat[row, 1] = acc_distMat[i, j]
+    for row in distMat:
+        row[0] = core_distMat[i, j]
+        row[1] = acc_distMat[i, j]
 
         if j == len(combined_list) - 1:
             i += 1
@@ -186,10 +186,10 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     j = 1
 
     # ref v ref (used for --create-db)
-    for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
-        coreMat[i, j] = distMat[row, 0]
+    for row in distMat:
+        coreMat[i, j] = row[0]
         coreMat[j, i] = coreMat[i, j]
-        accMat[i, j] = distMat[row, 1]
+        accMat[i, j] = row[1]
         accMat[j, i] = accMat[i, j]
 
         if j == len(refList) - 1:
@@ -204,10 +204,10 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         # query v query - symmetric
         i = len(refList)
         j = len(refList)+1
-        for row, (ref, query) in enumerate(iterDistRows(queryList, queryList, self=True)):
-            coreMat[i, j] = query_query_distMat[row, 0]
+        for row in query_query_distMat:
+            coreMat[i, j] = row[0]
             coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = query_query_distMat[row, 1]
+            accMat[i, j] = row[1]
             accMat[j, i] = accMat[i, j]
             if j == (len(refList) + len(queryList) - 1):
                 i += 1
@@ -218,10 +218,10 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         # ref v query - asymmetric
         i = len(refList)
         j = 0
-        for row, (ref, query) in enumerate(iterDistRows(refList, queryList, self=False)):
-            coreMat[i, j] = query_ref_distMat[row, 0]
+        for row in query_ref_distMat:
+            coreMat[i, j] = row[0]
             coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = query_ref_distMat[row, 1]
+            accMat[i, j] = row[1]
             accMat[j, i] = accMat[i, j]
             if j == (len(refList) - 1):
                 i += 1

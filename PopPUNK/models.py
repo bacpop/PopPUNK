@@ -164,7 +164,7 @@ class BGMMFit(ClusterFit):
                 Cluster assignments of samples in X
         '''
         ClusterFit.fit(self, X)
-        self.dpgmm = fit2dMultiGaussian(self.subsampled_X, self.outPrefix, max_components)
+        self.dpgmm = fit2dMultiGaussian(self.subsampled_X, max_components)
         self.weights = self.dpgmm.weights_
         self.means = self.dpgmm.means_
         self.covariances = self.dpgmm.covariances_
@@ -308,7 +308,7 @@ class DBSCANFit(ClusterFit):
 
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples and min_samples >= 10:
-            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, self.outPrefix, min_samples, min_cluster_size, cache_out)
+            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, min_samples, min_cluster_size, cache_out)
             self.fitted = True # needed for predict
 
             # Test whether model fit contains distinct clusters

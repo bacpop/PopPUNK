@@ -242,11 +242,11 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
     genome_length = 1 # min of 1 to avoid div/0 errors
     try:
         with open(assemblyList, 'r') as assemblyFiles:
-           exampleFile = assemblyFiles.readline()
-           with open(exampleFile.rstrip(), 'r') as exampleAssembly:
-               for line in exampleAssembly:
-                   if line[0] != ">":
-                       genome_length += len(line.rstrip())
+            exampleFile = assemblyFiles.readline()
+            with open(exampleFile.rstrip(), 'r') as exampleAssembly:
+                for line in exampleAssembly:
+                    if line[0] != ">":
+                        genome_length += len(line.rstrip())
 
     except FileNotFoundError as e:
         sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"

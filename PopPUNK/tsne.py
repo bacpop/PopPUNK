@@ -3,12 +3,10 @@
 
 import os
 import sys
-import pickle
 import numpy as np
 from sklearn import manifold
 
 from .utils import readPickle
-from .utils import iterDistRows
 
 def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity = 0):
     """Generate t-SNE projection using accessory distances
@@ -38,7 +36,7 @@ def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity
     tsne_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
     if overwrite or not os.path.isfile(tsne_filename):
         sys.stderr.write("Running t-SNE\n")
-        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity).fit_transform(np.array(accMat))
+        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))
 
         # print dot file
         with open(tsne_filename, 'w') as nFile:
@@ -91,8 +89,8 @@ def main():
     i = 0
     j = 1
     # ref v ref (used for --create-db)
-    for row, (ref, query) in enumerate(iterDistRows(refList, refList, self=True)):
-        accMat[i, j] = distMat[row, 1]
+    for row in distMat:
+        accMat[i, j] = row[1]
         accMat[j, i] = accMat[i, j]
 
         if j == len(refList) - 1:
@@ -102,7 +100,7 @@ def main():
             j += 1
 
     # generate accessory genome distance representation
-    generate_tsne(seqLabels, accMat, perplexity,  args.output, overwrite = True, verbosity = 0)
+    generate_tsne(seqLabels, accMat, args.perplexity, args.output, overwrite = True, verbosity = verbosity)
 
 
 if __name__ == "__main__":

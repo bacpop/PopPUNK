@@ -3,16 +3,10 @@
 # universal
 import os
 import sys
-import re
-# additional
-import numpy as np
-import random
-import operator
-import pickle
 # hdbscan
 import hdbscan
 
-def fitDbScan(X, outPrefix, min_samples, min_cluster_size, cache_out):
+def fitDbScan(X, min_samples, min_cluster_size, cache_out):
     """Function to fit DBSCAN model as an alternative to the Gaussian
 
     Fits the DBSCAN model to the distances using hdbscan
@@ -20,8 +14,6 @@ def fitDbScan(X, outPrefix, min_samples, min_cluster_size, cache_out):
     Args:
         X (np.array)
             n x 2 array of core and accessory distances for n samples
-        outPrefix (str)
-            Prefix for output files to be saved under
         min_samples (int)
             Parameter for DBSCAN clustering 'conservativeness'
         min_cluster_size (int)
@@ -97,7 +89,7 @@ def assign_samples_dbscan(X, hdb, scale):
         y (numpy.array)
             Cluster assignments by sample
     """
-    y, strengths = hdbscan.approximate_predict(hdb, X/scale)
+    y = hdbscan.approximate_predict(hdb, X/scale)[0]
     return y
 
 
