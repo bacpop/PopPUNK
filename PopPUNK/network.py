@@ -22,7 +22,7 @@ from .mash import getSketchSize
 
 from .utils import iterDistRows
 
-def extractReferences(G, outPrefix):
+def extractReferences(G, outPrefix, existingRefs = None):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -32,6 +32,8 @@ def extractReferences(G, outPrefix):
                A network used to define clusters from :func:`~constructNetwork`
            outPrefix (str)
                Prefix for output file (.refs will be appended)
+           existingRefs (list)
+               References that should be used for each clique
 
        Returns:
            refFileName (str)
@@ -39,8 +41,12 @@ def extractReferences(G, outPrefix):
            references (list)
                An updated list of the reference names
     """
+    if existingRefs == None:
+        references = []
+    else:
+        references = existingRefs
+    
     # extract cliques from network
-    references = []
     cliques = list(nx.find_cliques(G))
     # order list by size of clique
     cliques.sort(key = len, reverse=True)
@@ -50,8 +56,9 @@ def extractReferences(G, outPrefix):
         for node in clique:
             if node in references:
                 alreadyRepresented = 1
+                break
         if alreadyRepresented == 0:
-            references.append(node)
+            references.append(clique[0])
 
     refFileName = writeReferences(references, outPrefix)
     return references, refFileName

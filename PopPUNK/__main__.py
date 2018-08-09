@@ -417,27 +417,39 @@ def main():
                 sys.stderr.write("Updating reference database to " + args.output + "\n")
 
                 # Update the network + ref list
-                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output)
                 if args.full_db is False:
+                    newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output, refList)
                     genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
+                    newQueries = set(newRepresentativesNames).intersection(ordered_queryList)
+                else:
+                    newQueries = ordered_queryList 
                 nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
                 # Update the mash database
-                newQueries = set(newRepresentativesNames).intersection(queryList)
                 tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
                 joinDBs(args.output, args.ref_db, kmers)
                 os.remove(tmpRefFile)
 
-                # Update distance matrices - what to do if not full_db?
+                # Update distance matrices with all calculated distances
                 refList, refList_copy, self, ref_distMat = readPickle(args.distances)
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
                                                                     ordered_queryList, distMat, query_distMat)
                 complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
+                
+                # Prune distances to references only, if not full db
                 dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-                storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
-
-
+                if args.full_db is False:
+                    # could also have newRepresentativesNames in this diff (should be the same) - but want
+                    # to ensure consistency with the network in case of bad input/bugs
+                    nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes) 
+                    combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove, complete_distMat, dists_out)
+                else:
+                    storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
+                
+                # ensure mash sketch and distMat order match
+                assert combined_seq == refList + newQueries 
+            
             # generate outputs for microreact if asked
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
