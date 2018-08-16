@@ -348,6 +348,9 @@ def main():
                 sys.stderr.write("--output and --ref-db must be different to "
                                  "prevent overwrite.\n")
                 sys.exit(1)
+            if (args.update_db and not args.distances):
+                sys.stderr.write("--update-db requires --distances to be provided\n")
+                sys.exit(1)
             if (args.microreact or args.cytoscape) and (not args.update_db or not args.distances):
                 sys.stderr.write("--microreact and/or --cytoscape output must be "
                         "run with --distances and --update-db to generate a full "
