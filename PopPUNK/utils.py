@@ -5,8 +5,10 @@ import os
 import sys
 # additional
 import pickle
+from collections import defaultdict
 from tempfile import mkstemp
 import numpy as np
+import pandas as pd
 import sharedmem
 
 def storePickle(rlist, qlist, self, X, pklName):
@@ -105,6 +107,50 @@ def writeTmpFile(fileList):
             tmpFile.write(fileName + "\n")
 
     return tmpName
+
+def readClusters(clustCSV):
+    """Read a previous reference clustering from CSV
+
+    Args:
+        clustCSV (str)
+            File name of CSV with previous cluster assignments
+
+    Returns:
+        clusters (dict)
+            Dictionary of cluster assignments (keys are cluster names, values are
+            sets containing samples in the cluster)
+    """
+    clusters = defaultdict(set)
+
+    with open(clustCSV, 'r') as csv_file:
+        header = csv_file.readline()
+        for line in csv_file:
+            (sample, clust_id) = line.rstrip().split(",")
+            clusters[clust_id].add(sample)
+
+    return clusters
+
+def readExternalClusters(clustCSV):
+    """Read a cluster definition from CSV (does not have to be PopPUNK
+    generated clusters). Rows samples, columns clusters.
+
+    Args:
+        clustCSV (str)
+            File name of CSV with previous cluster assingments
+
+    Returns:
+        extClusters (dict)
+            Dictionary of dictionaries of cluster assignments
+            (first key cluster assignment name, second key sample, value cluster assignment)
+    """
+    extClusters = defaultdict(lambda: defaultdict(str))
+    
+    extClustersFile = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
+    for row in extClustersFile.itertuples():
+        for cls_idx, cluster in enumerate(extClustersFile.columns):
+            extClusters[cluster][row.Index] = row[cls_idx + 1]
+    
+    return(extClusters)
 
 
 def translate_distMat(combined_list, core_distMat, acc_distMat):

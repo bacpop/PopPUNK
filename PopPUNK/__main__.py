@@ -81,6 +81,8 @@ def get_options():
     iGroup.add_argument('--r-files', help='File listing reference input assemblies')
     iGroup.add_argument('--q-files', help='File listing query input assemblies')
     iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
+    iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
+                                                      'generated with any other method.', default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -279,7 +281,9 @@ def main():
         if len(networkMissing) > 0:
             sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
         
-        isolateClustering = {fit_type: printClusters(genomeNetwork, args.output + "/" + os.path.basename(args.output))}
+        isolateClustering = {fit_type: printClusters(genomeNetwork, 
+                                                     args.output + "/" + os.path.basename(args.output),
+                                                     externalClusterCSV = args.external_clustering)}
 
         # Write core and accessory based clusters, if they worked
         if model.indiv_fitted:
@@ -288,7 +292,8 @@ def main():
                 indivAssignments = model.assign(distMat, slope)
                 indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
                 isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
-                                                 args.output + "/" + os.path.basename(args.output) + "_" + dist_type)
+                                                 args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
+                                                 externalClusterCSV = args.external_clustering)
                 nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + os.path.basename(args.output) +
                                                            "_" + dist_type + '_graph.gpickle')
             if args.core_only:
@@ -413,7 +418,7 @@ def main():
             if args.update_db:
                 print_full_clustering = True
             isolateClustering = {'combined': printClusters(genomeNetwork, args.output + "/" + os.path.basename(args.output),
-                                                           old_cluster_file, print_full_clustering)}
+                                                           old_cluster_file, args.external_clustering, print_full_clustering)}
 
             # update_db like no full_db
             if args.update_db:

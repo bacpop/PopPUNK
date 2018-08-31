@@ -6,16 +6,17 @@ Usage::
    usage: PopPUNK [-h]
                (--easy-run | --create-db | --fit-model | --refine-model | --assign-query)
                [--ref-db REF_DB] [--r-files R_FILES] [--q-files Q_FILES]
-               [--distances DISTANCES] --output OUTPUT [--plot-fit PLOT_FIT]
-               [--full-db] [--update-db] [--overwrite] [--min-k MIN_K]
-               [--max-k MAX_K] [--k-step K_STEP] [--sketch-size SKETCH_SIZE]
-               [--K K] [--dbscan] [--D D]
+               [--distances DISTANCES]
+               [--external-clustering EXTERNAL_CLUSTERING] --output OUTPUT
+               [--plot-fit PLOT_FIT] [--full-db] [--update-db] [--overwrite]
+               [--min-k MIN_K] [--max-k MAX_K] [--k-step K_STEP]
+               [--sketch-size SKETCH_SIZE] [--K K] [--dbscan] [--D D]
                [--min-cluster-prop MIN_CLUSTER_PROP] [--pos-shift POS_SHIFT]
                [--neg-shift NEG_SHIFT] [--manual-start MANUAL_START]
                [--indiv-refine] [--no-local] [--model-dir MODEL_DIR]
                [--previous-clustering PREVIOUS_CLUSTERING] [--core-only]
-               [--accessory-only] [--microreact] [--cytoscape]
-               [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
+               [--accessory-only] [--microreact] [--cytoscape] [--phandango]
+               [--grapetree] [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
                [--info-csv INFO_CSV] [--mash MASH] [--threads THREADS]
                [--no-stream] [--version]
 
@@ -41,6 +42,9 @@ Command line options
      --q-files Q_FILES     File listing query input assemblies
      --distances DISTANCES
                            Prefix of input pickle of pre-calculated distances
+     --external-clustering EXTERNAL_CLUSTERING
+                           File with cluster definitions or other labels
+                           generated with any other method.
 
    Output options:
      --output OUTPUT       Prefix for output files (required)

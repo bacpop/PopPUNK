@@ -301,6 +301,32 @@ the ``poppunk_references`` program::
 Using the ``--model`` will also copy over the model fit, so that the entire
 PopPUNK database is in a single directory.
 
+Providing previous cluster definitions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+By using the option ``--external-clustering`` one can provide cluster names
+or labels that have been previously defined by any other method. This could
+include, for example, another clustering methods IDs, serotypes, clonal complexes
+and MLST assignments. The input is a CSV file which is formatted as follows::
+
+   sample,serotype,MLST
+   sample1,12,34
+   sample2,23F,1
+
+This can contain any subset of the samples in the input, and additionally defined
+samples will be safely ignored.
+
+PopPUNK will output a file ``_external_clusters.csv`` which has, for each sample in
+the input (either reference or query, depending on the mode it was run in), a list of
+of these labels which have been assigned to any sample in the PopPUNK cluster. Samples are
+expected to have a single label, but may receive multiple labels. Novel query clusters
+will not receive labels. An example of output::
+
+   sample,serotype,MLST
+   sample1,12,34
+   sample2,23F,1
+   sample3,15B;15C,21
+   sample4,NA,NA
+
 .. _fit-files:
 
 Output files
@@ -326,6 +352,11 @@ If ``--dbscan`` was used:
 
 * strain_db_dbscan.png -- scatter plot of all distances, and DBSCAN
   assignment.
+
+If ``--external-clustering`` was used:
+
+* strain_db_external_clusters.csv -- a CSV file relating the samples
+  to previous clusters provided in the input CSV.
 
 If ``--microreact`` was used:
 
@@ -356,6 +387,9 @@ The following command line options can be used in this mode:
      --ref-db REF_DB       Location of built reference database
      --distances DISTANCES
                            Prefix of input pickle of pre-calculated distances
+     --external-clustering EXTERNAL_CLUSTERING
+                           File with cluster definitions or other labels
+                           generated with any other method.
 
    Output options:
      --output OUTPUT       Prefix for output files (required)
@@ -484,6 +518,9 @@ The following command line options can be used in this mode:
      --ref-db REF_DB       Location of built reference database
      --distances DISTANCES
                            Prefix of input pickle of pre-calculated distances
+     --external-clustering EXTERNAL_CLUSTERING
+                           File with cluster definitions or other labels
+                           generated with any other method.
 
    Output options:
      --output OUTPUT       Prefix for output files (required)
@@ -747,6 +784,9 @@ The following command line options can be used in this mode:
    Input files:
      --ref-db REF_DB       Location of built reference database
      --q-files Q_FILES     File listing query input assemblies
+     --external-clustering EXTERNAL_CLUSTERING
+                           File with cluster definitions or other labels
+                           generated with any other method.
 
    Output options:
      --output OUTPUT       Prefix for output files (required)

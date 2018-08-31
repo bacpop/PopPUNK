@@ -11,8 +11,9 @@ import shutil
 import subprocess
 import networkx as nx
 import numpy as np
-from collections import defaultdict
+import pandas as pd
 from tempfile import mkstemp, mkdtemp
+from collections import defaultdict
 
 from .mash import createDatabaseDir
 from .mash import constructDatabase
@@ -21,6 +22,8 @@ from .mash import getDatabaseName
 from .mash import getSketchSize
 
 from .utils import iterDistRows
+from .utils import readClusters
+from .utils import readExternalClusters
 
 def extractReferences(G, outPrefix, existingRefs = None):
     """Extract references for each cluster based on cliques
@@ -45,7 +48,7 @@ def extractReferences(G, outPrefix, existingRefs = None):
         references = []
     else:
         references = existingRefs
-    
+
     # extract cliques from network
     cliques = list(nx.find_cliques(G))
     # order list by size of clique
@@ -264,7 +267,7 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
 
     return qlist1, distMat
 
-def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
+def printClusters(G, outPrefix, oldClusterFile = None, externalClusterCSV = None, printRef = True):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -278,6 +281,11 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
         oldClusterFile (str)
             CSV with previous cluster assignments.
             Pass to ensure consistency in cluster assignment name.
+
+            Default = None
+        externalClusterCSV (str)
+            CSV with cluster assignments from any source. Will print a file
+            relating these to new cluster assignments
 
             Default = None
         printRef (bool)
@@ -370,26 +378,57 @@ def printClusters(G, outPrefix, oldClusterFile = None, printRef = True):
             if printRef or cluster_member not in oldNames:
                 cluster_file.write(",".join((cluster_member, str(clustering[cluster_member]))) + "\n")
 
+    if externalClusterCSV is not None:
+        printExternalClusters(newClusters, externalClusterCSV, outPrefix, oldNames, printRef)
+
     return(clustering)
 
-def readClusters(clustCSV):
-    """Read a previous reference clustering from CSV
+def printExternalClusters(newClusters, extClusterFile, outPrefix,
+                          oldNames, printRef = True):
+    """Prints cluster assignments with respect to previously defined
+    clusters or labels.
 
     Args:
-        clustCSV (str)
-            File name of CSV with previous cluster assingments
+        newClusters (set iterable)
+            The components from the graph G, defining the PopPUNK clusters
+        extClusterFile (str)
+            A CSV file containing definitions of the external clusters for
+            each sample (does not need to contain all samples)
+        outPrefix (str)
+            Prefix for output CSV (_external_clusters.csv)
+        oldNames (list)
+            A list of the reference sequences
+        printRef (bool)
+            If false, print only query sequences in the output
 
-    Returns:
-        clusters (dict)
-            Dictionary of cluster assignments (keys are cluster names, values are
-            sets containing samples in the cluster)
+            Default = True
     """
-    clusters = defaultdict(set)
+    # Object to store output csv datatable
+    d = defaultdict(list)
 
-    with open(clustCSV, 'r') as csv_file:
-        header = csv_file.readline()
-        for line in csv_file:
-            (sample, clust_id) = line.rstrip().split(",")
-            clusters[clust_id].add(sample)
+    # Read in external clusters
+    extClusters = readExternalClusters(extClusterFile)
 
-    return clusters
+    # Go through each cluster (as defined by poppunk) and find the external
+    # clusters that had previously been assigned to any sample in the cluster
+    for ppCluster in newClusters:
+        # Store clusters as a set to avoid duplicates
+        prevClusters = defaultdict(set)
+        for sample in ppCluster:
+            for extCluster in extClusters:
+                if sample in extClusters[extCluster]:
+                    prevClusters[extCluster].add(extClusters[extCluster][sample])
+
+        # Go back through and print the samples that were found
+        for sample in ppCluster:
+            if printRef or sample not in oldNames:
+                d['sample'].append(sample)
+                for extCluster in extClusters:
+                    if extCluster in prevClusters:
+                        d[extCluster].append(";".join(prevClusters[extCluster]))
+                    else:
+                        d[extCluster].append("NA")
+
+    pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
+                                columns = ["sample"] + list(extClusters.keys()),
+                                index = False)
