@@ -158,6 +158,10 @@ def get_options():
 
 def main():
 
+    if sys.version_info[0] < 3:
+        sys.stderr.write('PopPUNK requires python version 3 or above\n')
+        sys.exit(1)
+
     args = get_options()
 
     # check mash is installed
@@ -275,13 +279,13 @@ def main():
         fit_type = 'combined'
         model.save()
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
-        
+
         # Ensure all in dists are in final network
         networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
         if len(networkMissing) > 0:
             sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
-        
-        isolateClustering = {fit_type: printClusters(genomeNetwork, 
+
+        isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                      args.output + "/" + os.path.basename(args.output),
                                                      externalClusterCSV = args.external_clustering)}
 
@@ -402,7 +406,7 @@ def main():
 
             genomeNetwork = nx.read_gpickle(old_network_file)
             sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
-            
+
             # Ensure all in dists are in final network
             networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
             if len(networkMissing) > 0:
@@ -430,7 +434,7 @@ def main():
                     genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                     newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
                 else:
-                    newQueries = ordered_queryList 
+                    newQueries = ordered_queryList
                 nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
                 # Update the mash database
@@ -448,20 +452,20 @@ def main():
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
                                                                     ordered_queryList, distMat, query_distMat)
                 complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
-                
+
                 # Prune distances to references only, if not full db
                 dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
                 if args.full_db is False:
                     # could also have newRepresentativesNames in this diff (should be the same) - but want
                     # to ensure consistency with the network in case of bad input/bugs
-                    nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes) 
+                    nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
                     combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove, complete_distMat, dists_out)
                 else:
                     storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
-                
+
                 # ensure mash sketch and distMat order match
-                assert combined_seq == refList + newQueries 
-            
+                assert combined_seq == refList + newQueries
+
             # generate outputs for microreact if asked
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")

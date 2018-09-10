@@ -4,7 +4,7 @@ Installation
 The easiest way to install is through pip, which will also install the
 dependencies::
 
-   pip install poppunk
+   python3 -m pip install poppunk
 
 You can also clone the github to run the latest version, which is executed by::
 
@@ -15,6 +15,9 @@ installed.
 
 Python installation
 -------------------
+
+PopPUNK requires python3 to run (which on many default Linux installations is
+run using `python3` rather than `python`).
 
 We recommend the use of a `miniconda <https://conda.io/miniconda.html>`__
 installation.
@@ -28,6 +31,7 @@ Dependencies
 ------------
 We tested PopPUNK with the following packages:
 
+* python3 (3.6.3)
 * ``DendroPy`` (4.3.0)
 * ``hdbscan`` (0.8.13)
 * ``matplotlib`` (2.1.2)

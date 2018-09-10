@@ -17,8 +17,9 @@ See the [documentation](http://poppunk.readthedocs.io/en/latest/).
 The easiest way is through pip, which we would also recommend being
 a [miniconda](https://conda.io/miniconda.html) install:
 ```
-pip install poppunk
+python3 -m pip install poppunk
 ```
+You will need to be using Python 3.
 
 The command `poppunk` will then be directly executable. Alternatively
 clone this repository:

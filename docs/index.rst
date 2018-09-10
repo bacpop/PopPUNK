@@ -60,11 +60,6 @@ The advantages of this approach are broadly that:
   available
 - Everything is available within a single python executable.
 
-.. note:: PopPUNK is only applicable where there are 'strains'
-   This is when core and accessory distances are broadly correlated with each
-   other in separate groups. This is often the case across a species, but would
-   not be true within a lineage
-
 Index:
 ------
 
