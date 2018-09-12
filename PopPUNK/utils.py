@@ -144,12 +144,12 @@ def readExternalClusters(clustCSV):
             (first key cluster assignment name, second key sample, value cluster assignment)
     """
     extClusters = defaultdict(lambda: defaultdict(str))
-    
+
     extClustersFile = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
     for row in extClustersFile.itertuples():
         for cls_idx, cluster in enumerate(extClustersFile.columns):
-            extClusters[cluster][row.Index] = row[cls_idx + 1]
-    
+            extClusters[str(cluster)][row.Index] = str(row[cls_idx + 1])
+
     return(extClusters)
 
 

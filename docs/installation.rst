@@ -17,7 +17,7 @@ Python installation
 -------------------
 
 PopPUNK requires python3 to run (which on many default Linux installations is
-run using `python3` rather than `python`).
+run using ``python3`` rather than ``python``).
 
 We recommend the use of a `miniconda <https://conda.io/miniconda.html>`__
 installation.
