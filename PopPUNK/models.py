@@ -102,18 +102,20 @@ class ClusterFit:
                 sys.stderr.write(self.outPrefix + " already exists as a file! Use a different --output\n")
                 sys.exit(1)
 
-        # preprocess scaling
+        # preprocess subsampling
         if self.preprocess:
             if X.shape[0] > self.max_samples:
                 self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
             else:
                 self.subsampled_X = np.copy(X)
-            self.scale = np.amax(self.subsampled_X, axis = 0)
-            self.subsampled_X /= self.scale
 
             # Show clustering
             plot_scatter(self.subsampled_X, self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_distanceDistribution",
                     self.outPrefix + " distances")
+
+            # perform scaling
+            self.scale = np.amax(self.subsampled_X, axis = 0)
+            self.subsampled_X /= self.scale
 
     def no_scale(self):
         '''Turn off scaling (useful for refine, where optimization
@@ -401,7 +403,7 @@ class DBSCANFit(ClusterFit):
                                                            "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
                                                            "\tNumber of assignments\t" + str(len(self.labels))]) + "\n")
 
-            plot_dbscan_results(self. subsampled_X, self. labels, self.n_clusters,
+            plot_dbscan_results(self.subsampled_X * self.scale, self.labels, self.n_clusters,
                 self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 

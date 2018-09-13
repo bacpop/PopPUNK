@@ -6,6 +6,7 @@ import subprocess
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
+mpl.rcParams.update({'font.size': 18})
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import itertools
@@ -61,7 +62,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
                         epiCsv,
                         queryList)
 
-def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'microreact', epiCsv = None, queryNames = None):
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None):
     """Print CSV file of clustering and optionally epi data
 
     Writes CSV output of clusters which can be used as input to microreact and cytoscape.
@@ -79,7 +80,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
         clustering (dict or dict of dicts)
             Dictionary of cluster assignments (keys are nodeNames). Pass a dict with depth two
             to include multiple possible clusterings.
-        format (str)
+        output_format (str)
             Software for which CSV should be formatted
             (microreact, phandango, grapetree and cytoscape are accepted)
         epiCsv (str)
@@ -92,7 +93,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
     """
     # set order of column names
     colnames = []
-    if format == 'microreact':
+    if output_format == 'microreact':
         colnames = ['id']
         for cluster_type in clustering:
             col_name = cluster_type + '_Cluster__autocolour'
@@ -100,7 +101,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
         if queryNames is not None:
             colnames.append('Status')
             colnames.append('Status__colour')
-    elif format == 'phandango':
+    elif output_format == 'phandango':
         colnames = ['id']
         for cluster_type in clustering:
             col_name = cluster_type + '_Cluster'
@@ -108,14 +109,14 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
         if queryNames is not None:
             colnames.append('Status')
             colnames.append('Status:colour')
-    elif format == 'grapetree':
+    elif output_format == 'grapetree':
         colnames = ['ID']
         for cluster_type in clustering:
             col_name = cluster_type + '_Cluster'
             colnames.append(col_name)
         if queryNames is not None:
             colnames.append('Status')
-    elif format == 'cytoscape':
+    elif output_format == 'cytoscape':
         colnames = ['id']
         for cluster_type in clustering:
             col_name = cluster_type + '_Cluster'
@@ -129,7 +130,6 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
     # process epidemiological data
     if epiCsv is not None:
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
-        missingString = ",NA" * len(epiData.columns)
 
     d = defaultdict(list)
     if epiCsv is not None:
@@ -140,7 +140,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
 
     for name, label in zip(nodeNames, nodeLabels):
         if name in clustering['combined']:
-            if format == 'microreact':
+            if output_format == 'microreact':
                 d['id'].append(label)
                 for cluster_type in clustering:
                     col_name = cluster_type + "_Cluster__autocolour"
@@ -152,7 +152,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
                     else:
                         d['Status'].append("Reference")
                         d['Status__colour'].append("black")
-            elif format == 'phandango':
+            elif output_format == 'phandango':
                 d['id'].append(label)
                 for cluster_type in clustering:
                     col_name = cluster_type + "_Cluster"
@@ -164,7 +164,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
                     else:
                         d['Status'].append("Reference")
                         d['Status:colour'].append("#000000")
-            elif format == 'grapetree':
+            elif output_format == 'grapetree':
                 d['ID'].append(label)
                 for cluster_type in clustering:
                     col_name = cluster_type + "_Cluster"
@@ -174,7 +174,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, format = 'micror
                         d['Status'].append("Query")
                     else:
                         d['Status'].append("Reference")
-            elif format == 'cytoscape':
+            elif output_format == 'cytoscape':
                 d['id'].append(name)
                 for cluster_type in clustering:
                     col_name = cluster_type + "_Cluster"
@@ -247,7 +247,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
 
     # record errors
     except subprocess.CalledProcessError as e:
-        sys.stderr.write("Could not run command " + tree_info + "; returned: " + e.message + "\n")
+        sys.stderr.write("Could not run command " + rapidnj_cmd + "; returned code: " + e.returncode + "\n")
         sys.exit(1)
 
     # read tree and return
@@ -271,9 +271,9 @@ def plot_scatter(X, out_prefix, title, kde = True):
 
             (default = True)
     """
-    fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
+    plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     if kde:
-        xx, yy, xy = get_grid(0, 1, 100)
+        xx, yy, xy = get_grid(0, np.amax(X[:, 0]), 100, 0, np.amax(X[:, 1]), 100)
 
         # KDE estimate
         kde = KernelDensity(bandwidth=0.03, metric='euclidean',
@@ -291,6 +291,8 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.scatter(X[:,0].flat, X[:,1].flat, s=1, alpha=scatter_alpha)
 
     plt.title(title)
+    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
 
@@ -359,7 +361,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     splot = plt.subplot(1, 1, 1)
     for i, (mean, covar, color) in enumerate(zip(means, covariances, color_iter)):
-        v, w = np.linalg.eigh(covar)
+        v, w = np.linalg.eigh(covar*scale)
         v = 2. * np.sqrt(2.) * np.sqrt(v)
         u = w[0] / np.linalg.norm(w[0])
         # as the DP will not use every component it has access to
@@ -367,17 +369,19 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
         # components.
         if not np.any(Y == i):
             continue
-        plt.scatter([(X/scale)[Y == i, 0]], [(X/scale)[Y == i, 1]], .4, color=color)
+        plt.scatter([(X)[Y == i, 0]], [(X)[Y == i, 1]], .4, color=color)
 
         # Plot an ellipse to show the Gaussian component
         angle = np.arctan(u[1] / u[0])
         angle = 180. * angle / np.pi  # convert to degrees
-        ell = mpl.patches.Ellipse(mean, v[0], v[1], 180. + angle, color=color)
+        ell = mpl.patches.Ellipse(mean*scale, v[0], v[1], 180. + angle, color=color)
         ell.set_clip_box(splot.bbox)
         ell.set_alpha(0.5)
         splot.add_artist(ell)
 
     plt.title(title)
+    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
 
@@ -416,6 +420,8 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     # plot output
     plt_filename = out_prefix + ".png"
     plt.title('Estimated number of clusters: %d' % n_clusters)
+    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
 
@@ -512,7 +518,7 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix):
     from .bgmm import log_likelihood
     from .bgmm import findWithinLabel
 
-    xx, yy, xy = get_grid(0, 1, 100)
+    xx, yy, xy = get_grid(0, 1, 100, 0, 1, 100)
 
     # for likelihood boundary
     z = assign_samples(xy, weights, means, covariances, np.array([1,1]), True)
@@ -530,18 +536,24 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix):
     plt.savefig(out_prefix + ".pdf")
     plt.close()
 
-def get_grid(minimum, maximum, resolution):
-    """Get a square grid of points to evaluate a function across
+def get_grid(min_x, max_x, res_x, min_y, max_y, res_y):
+    """Get a rectangular grid of points to evaluate a function across
 
     Used for :func:`~plot_scatter` and :func:`~plot_contours`
 
     Args:
-        minimum (float)
-            Minimum value for grid
-        maximum (float)
-            Maximum value for grid
-        resolution (int)
-            Number of points along each axis
+        min_x (float)
+            Minimum value for grid along x
+        max_x (float)
+            Maximum value for grid along x
+        res_x (int)
+            Number of points along x
+        min_y (float)
+            Minimum value for grid along y
+        may_y (float)
+            Mayimum value for grid along y
+        res_y (int)
+            Number of points along y
 
     Returns:
         xx (numpy.array)
@@ -551,10 +563,10 @@ def get_grid(minimum, maximum, resolution):
         xy (numpy.array)
             n x 2 pairs of x, y values grid is over
     """
-    x = np.linspace(minimum, maximum, resolution)
-    y = np.linspace(minimum, maximum, resolution)
+    x = np.linspace(min_x, max_x, res_x)
+    y = np.linspace(min_y, max_y, res_y)
     xx, yy = np.meshgrid(x, y)
-    xy = np.vstack([yy.ravel(), xx.ravel()]).T
+    xy = np.vstack([xx.ravel(), yy.ravel()]).T
 
     return(xx, yy, xy)
 
