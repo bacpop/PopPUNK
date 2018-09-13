@@ -254,7 +254,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
     tree = dendropy.Tree.get(path=tree_filename, schema="newick")
     return tree
 
-def plot_scatter(X, out_prefix, title, kde = True):
+def plot_scatter(X, scale, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
 
     Also draws contours of kernel density estimare
@@ -262,6 +262,8 @@ def plot_scatter(X, out_prefix, title, kde = True):
     Args:
         X (numpy.array)
             n x 2 array of core and accessory distances for n samples.
+        scale (numpy.array)
+            Scaling factor from :class:`~PopPUNK.models.BGMMFit`
         out_prefix (str)
             Prefix for output plot file (.png will be appended)
         title (str)
@@ -273,7 +275,7 @@ def plot_scatter(X, out_prefix, title, kde = True):
     """
     plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     if kde:
-        xx, yy, xy = get_grid(0, np.amax(X[:, 0]), 100, 0, np.amax(X[:, 1]), 100)
+        xx, yy, xy = get_grid(0, 1, 100)
 
         # KDE estimate
         kde = KernelDensity(bandwidth=0.03, metric='euclidean',
@@ -283,12 +285,12 @@ def plot_scatter(X, out_prefix, title, kde = True):
         z = z.reshape(xx.shape).T
 
         levels = np.linspace(z.min(), z.max(), 10)
-        plt.contour(xx, yy, z, levels=levels, cmap='plasma')
+        plt.contour(xx*scale[0], yy*scale[1], z, levels=levels, cmap='plasma')
         scatter_alpha = 1
     else:
         scatter_alpha = 0.1
 
-    plt.scatter(X[:,0].flat, X[:,1].flat, s=1, alpha=scatter_alpha)
+    plt.scatter(X[:,0]*scale[0].flat, X[:,1]*scale[1].flat, s=1, alpha=scatter_alpha)
 
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
@@ -361,7 +363,8 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     splot = plt.subplot(1, 1, 1)
     for i, (mean, covar, color) in enumerate(zip(means, covariances, color_iter)):
-        v, w = np.linalg.eigh(covar*scale)
+        scaled_covar = np.matmul(np.matmul(np.diag(scale), covar), np.diag(scale).T)
+        v, w = np.linalg.eigh(scaled_covar)
         v = 2. * np.sqrt(2.) * np.sqrt(v)
         u = w[0] / np.linalg.norm(w[0])
         # as the DP will not use every component it has access to
@@ -469,28 +472,34 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
     fig=plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
 
     # Draw points
-    plt.scatter([(X/scale)[Y == -1, 0]], [(X/scale)[Y == -1, 1]], .4, color='cornflowerblue')
-    plt.scatter([(X/scale)[Y == 1, 0]], [(X/scale)[Y == 1, 1]], .4, color='c')
+    plt.scatter([(X)[Y == -1, 0]], [(X)[Y == -1, 1]], .4, color='cornflowerblue')
+    plt.scatter([(X)[Y == 1, 0]], [(X)[Y == 1, 1]], .4, color='c')
 
     # Draw fit lines
-    plt.plot([x_boundary, 0], [0, y_boundary], color='red', linewidth=2, linestyle='--', label='Combined decision boundary')
+    plt.plot([x_boundary*scale[0], 0], [0, y_boundary*scale[1]], color='red', linewidth=2, linestyle='--',
+              label='Combined decision boundary')
     if indiv_boundaries:
-        plt.plot([core_boundary, core_boundary], [0, 1], color='darkgray', linewidth=1,
+        plt.plot([core_boundary*scale[0], core_boundary*scale[0]], [0, np.amax[X[:,1]]], color='darkgray', linewidth=1,
                 linestyle='-.', label='Individual decision boundaries')
-        plt.plot([0, 1], [accessory_boundary, accessory_boundary], color='darkgray', linewidth=1,
+        plt.plot([0, np.amax[X[:,0]]], [accessory_boundary*scale[1], accessory_boundary*scale[1]], color='darkgray', linewidth=1,
                 linestyle='-.')
 
-    minimum_xy = transformLine(-min_move, start_point, mean1)
-    maximum_xy = transformLine(max_move, start_point, mean1)
+    minimum_xy = transformLine(-min_move, start_point, mean1) * scale
+    maximum_xy = transformLine(max_move, start_point, mean1) * scale
     plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
               color='k', linewidth=1, linestyle=':', label='Search range')
+    start_point *= scale
     plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
 
+    mean0 *= scale
+    mean1 *= scale
     plt.plot(mean0[0], mean0[1], 'rx', label='Within-strain mean')
     plt.plot(mean1[0], mean1[1], 'r+', label='Between-strain mean')
 
     plt.legend()
     plt.title(title)
+    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
 
@@ -518,7 +527,7 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix):
     from .bgmm import log_likelihood
     from .bgmm import findWithinLabel
 
-    xx, yy, xy = get_grid(0, 1, 100, 0, 1, 100)
+    xx, yy, xy = get_grid(0, 1, 100)
 
     # for likelihood boundary
     z = assign_samples(xy, weights, means, covariances, np.array([1,1]), True)
@@ -529,32 +538,28 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix):
     z_ll, lpr = log_likelihood(xy, weights, means, covariances, np.array([1,1]))
     z_ll = z_ll.reshape(xx.shape).T
 
+    plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     plt.contour(xx, yy, z_ll, levels=np.linspace(z_ll.min(), z_ll.max(), 25))
     plt.contour(xx, yy, z, levels=[0], colors='r', linewidths=3)
 
     plt.title(title)
+    plt.xlabel('Scaled core distance')
+    plt.ylabel('Scaled accessory distance')
     plt.savefig(out_prefix + ".pdf")
     plt.close()
 
-def get_grid(min_x, max_x, res_x, min_y, max_y, res_y):
-    """Get a rectangular grid of points to evaluate a function across
+def get_grid(minimum, maximum, resolution):
+    """Get a square grid of points to evaluate a function across
 
     Used for :func:`~plot_scatter` and :func:`~plot_contours`
 
     Args:
-        min_x (float)
-            Minimum value for grid along x
-        max_x (float)
-            Maximum value for grid along x
-        res_x (int)
-            Number of points along x
-        min_y (float)
-            Minimum value for grid along y
-        may_y (float)
-            Mayimum value for grid along y
-        res_y (int)
-            Number of points along y
-
+        minimum (float)
+            Minimum value for grid
+        maximum (float)
+            Maximum value for grid
+        resolution (int)
+            Number of points along each axis
     Returns:
         xx (numpy.array)
             x values across n x n grid
@@ -563,10 +568,10 @@ def get_grid(min_x, max_x, res_x, min_y, max_y, res_y):
         xy (numpy.array)
             n x 2 pairs of x, y values grid is over
     """
-    x = np.linspace(min_x, max_x, res_x)
-    y = np.linspace(min_y, max_y, res_y)
+    x = np.linspace(minimum, maximum, resolution)
+    y = np.linspace(minimum, maximum, resolution)
     xx, yy = np.meshgrid(x, y)
-    xy = np.vstack([xx.ravel(), yy.ravel()]).T
+    xy = np.vstack([yy.ravel(), xx.ravel()]).T
 
     return(xx, yy, xy)
 

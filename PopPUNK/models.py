@@ -109,13 +109,15 @@ class ClusterFit:
             else:
                 self.subsampled_X = np.copy(X)
 
-            # Show clustering
-            plot_scatter(self.subsampled_X, self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_distanceDistribution",
-                    self.outPrefix + " distances")
-
             # perform scaling
             self.scale = np.amax(self.subsampled_X, axis = 0)
             self.subsampled_X /= self.scale
+
+            # Show clustering
+            plot_scatter(self.subsampled_X,
+                         self.scale,
+                         self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_distanceDistribution",
+                         self.outPrefix + " distances")
 
     def no_scale(self):
         '''Turn off scaling (useful for refine, where optimization
