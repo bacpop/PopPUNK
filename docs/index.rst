@@ -14,7 +14,7 @@ In straightforward cases, usage can be as simple as::
    poppunk --easy-run --r-files references.txt --output poppunk_db
 
 Where ``references.txt`` is a list of assembly fasta files, one per line. See
-the :doc:`tutorial` for full details.
+:doc:`quickstart` and the :doc:`tutorial` for full details.
 
 .. toctree::
    :maxdepth: 2
@@ -23,6 +23,7 @@ the :doc:`tutorial` for full details.
    self
    installation.rst
    options.rst
+   quickstart.rst
    tutorial.rst
    troubleshooting.rst
    api.rst
@@ -30,6 +31,8 @@ the :doc:`tutorial` for full details.
 
 Details
 -------
+A full description of the method can be found in the `pre-print <https://doi.org/10.1101/360917>`_.
+
 ``PopPUNK`` uses the fast k-mer distance estimation enabled by `mash <https://mash.readthedocs.io/en/latest/>`_
 to calculate core and accessory distances between all pairs of isolates of bacteria in a collection. By clustering
 these distances into 'within-strain' and 'between-strain' distances a network
@@ -57,7 +60,9 @@ The advantages of this approach are broadly that:
 - There is a lot of quantitative and graphical output to assist with
   clustering.
 - A direct import into  `microreact <https://microreact.org/>`_ is
-  available
+  available, as well as `cytoscape <http://www.cytoscape.org/>`_,
+  `grapetree <http://dx.doi.org/10.1101/gr.232397.117>`_ and
+  `phandango <http://jameshadfield.github.io/phandango/>`_.
 - Everything is available within a single python executable.
 
 Index:

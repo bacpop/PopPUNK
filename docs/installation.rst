@@ -1,17 +1,30 @@
 Installation
 ============
 
-The easiest way to install is through pip, which will also install the
+The easiest way to install is through conda, which will also install the
 dependencies::
 
-   python3 -m pip install poppunk
+    conda install poppunk
+
+If you do not have ``conda`` you can install it through
+`miniconda <https://conda.io/miniconda.html>`_ and then add the necessary
+channels::
+
+    conda config --add channels defaults
+    conda config --add channels conda-forge
+    conda config --add channels bioconda
+
+If you do not have conda, you can also install through pip::
+
+    python3 -m pip install poppunk
 
 You can also clone the github to run the latest version, which is executed by::
 
-   python poppunk-runner.py
+    git clone https://github.com/johnlees/PopPUNK.git && cd PopPUNK
+    python3 poppunk-runner.py
 
 You will also need `mash <http://mash.readthedocs.io/en/latest/>`__ (v2 or higher)
-installed.
+installed. If using conda, this will automatically be installed.
 
 Python installation
 -------------------
@@ -21,11 +34,6 @@ run using ``python3`` rather than ``python``).
 
 We recommend the use of a `miniconda <https://conda.io/miniconda.html>`__
 installation.
-
-Using the miniconda installation will also allow the use of faster linear
-algebra functions by installing dependencies as follows::
-
-   conda install numpy scipy mkl
 
 Dependencies
 ------------

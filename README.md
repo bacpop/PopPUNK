@@ -1,6 +1,6 @@
 # PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
 
-[![Build Status](https://travis-ci.org/johnlees/PopPUNK.svg?branch=v1.1.0)](https://travis-ci.org/johnlees/PopPUNK/)
+[![Build Status](https://travis-ci.org/johnlees/PopPUNK.svg?branch=v1.1.1)](https://travis-ci.org/johnlees/PopPUNK/)
 [![Documentation Status](https://readthedocs.org/projects/poppunk/badge/?version=latest)](https://poppunk.readthedocs.io/)
 [![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
 
@@ -11,18 +11,31 @@ Step 2) Use core and accessory distance distribution to define strains
 Step 3) Pick references from strains, which can be used to assign new
 query sequences
 
-See the [documentation](http://poppunk.readthedocs.io/en/latest/).
+See the [documentation](http://poppunk.readthedocs.io/en/latest/) and the
+[pre-print](https://doi.org/10.1101/360917).
 
 ## Installation
-The easiest way is through pip, which we would also recommend being
-a [miniconda](https://conda.io/miniconda.html) install:
+The easiest way is through conda, which is most easily accessed by first
+installing [miniconda](https://conda.io/miniconda.html). PopPUNK can then
+be installed by running:
+```
+conda install poppunk
+```
+If the package cannot be found you will need to add the necessary channels:
+```
+conda config --add channels defaults
+conda config --add channels conda-forge
+conda config --add channels bioconda
+```
+
+If you do not have conda you can also install through pip:
 ```
 python3 -m pip install poppunk
 ```
 You will need to be using Python 3.
 
-The command `poppunk` will then be directly executable. Alternatively
-clone this repository:
+Using both of these methods command `poppunk` will then be directly executable.
+Alternatively clone this repository:
 ```
 git clone git@github.com:johnlees/PopPUNK.git
 ```
@@ -95,7 +108,8 @@ poppunk --assign-query \
    --update-db
 ```
 
-If running without having installed through PyPI, run `python poppunk-runner.py` instead of `poppunk`.
+If running without having installed through conda or pip,
+run `python poppunk-runner.py` instead of `poppunk`.
 
 See the [documentation](http://poppunk.readthedocs.io/en/latest/) for
 full details.
