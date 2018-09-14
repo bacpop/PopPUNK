@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/johnlees/PopPUNK.svg?branch=v1.1.1)](https://travis-ci.org/johnlees/PopPUNK/)
 [![Documentation Status](https://readthedocs.org/projects/poppunk/badge/?version=latest)](https://poppunk.readthedocs.io/)
 [![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
+[![Anaconda package](https://anaconda.org/bioconda/poppunk/badges/version.svg)](https://anaconda.org/bioconda/poppunk)
 
 Step 1) Use k-mers to calculate core and accessory distances
 
