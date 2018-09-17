@@ -233,7 +233,7 @@ class BGMMFit(ClusterFit):
             sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                            "\tNumber of components used\t" + str(used_components)]) + "\n")
 
-            title = self.outPrefix + " " + str(len(np.unique(y))) + "-component DPGMM"
+            title = "DPGMM – Estimated number of spatial clusters: " + str(len(np.unique(y)))
             outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
 
             plot_results(X, y, self.means, self.covariances, self.scale, title, outfile)

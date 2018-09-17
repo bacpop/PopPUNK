@@ -422,7 +422,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
 
     # plot output
     plt_filename = out_prefix + ".png"
-    plt.title('Estimated number of clusters: %d' % n_clusters)
+    plt.title('HDBSCAN – estimated number of spatial clusters: %d' % n_clusters)
     plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
