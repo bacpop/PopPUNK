@@ -25,8 +25,8 @@ conda install poppunk
 If the package cannot be found you will need to add the necessary channels:
 ```
 conda config --add channels defaults
-conda config --add channels conda-forge
 conda config --add channels bioconda
+conda config --add channels conda-forge
 ```
 
 If you do not have conda you can also install through pip:
