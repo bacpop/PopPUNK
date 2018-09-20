@@ -13,7 +13,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from tempfile import mkstemp, mkdtemp
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 from .mash import createDatabaseDir
 from .mash import constructDatabase
@@ -374,9 +374,17 @@ def printClusters(G, outPrefix, oldClusterFile = None, externalClusterCSV = None
     outFileName = outPrefix + "_clusters.csv"
     with open(outFileName, 'w') as cluster_file:
         cluster_file.write("Taxon,Cluster\n")
-        for cluster_member in sorted(clustering, key=operator.itemgetter(1)):
+
+        # sort the clusters by frequency - define a list with a custom sort order
+        # first line gives tuples e.g. (1, 28), (2, 17) - cluster 1 has 28 members, cluster 2 has 17 members
+        # second line takes first element - the cluster IDs sorted by frequency
+        freq_order = sorted(dict(Counter(clustering.values())).items(), key=operator.itemgetter(0))
+        freq_order = [x[0] for x in freq_order]
+
+        # iterate through cluster dictionary sorting by value using above custom sort order
+        for cluster_member, cluster_name in sorted(clustering.items(), key=lambda i:freq_order.index(i[1])):
             if printRef or cluster_member not in oldNames:
-                cluster_file.write(",".join((cluster_member, str(clustering[cluster_member]))) + "\n")
+                cluster_file.write(",".join((cluster_member, str(cluster_name))) + "\n")
 
     if externalClusterCSV is not None:
         printExternalClusters(newClusters, externalClusterCSV, outPrefix, oldNames, printRef)
