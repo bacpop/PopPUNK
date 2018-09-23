@@ -133,7 +133,10 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
 
     d = defaultdict(list)
     if epiCsv is not None:
-        colnames = colnames.append([str(e) for e in epiData.columns])
+        for e in epiData.columns.values:
+            colnames.append(str(e))
+
+    columns_to_be_omitted = ['id', 'Id', 'ID', 'Status', 'Status:colour', 'Status__colour']
 
     # process clustering data
     nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
@@ -187,7 +190,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
             if epiCsv is not None:
                 if label in epiData.index:
                     for col, value in zip(colnames, epiData.loc[label].values):
-                        d[col].append(str(value))
+                        if col not in columns_to_be_omitted:
+                            d[col].append(str(value))
                 else:
                     for col in colnames:
                         d[col].append('nan')
