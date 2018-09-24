@@ -253,6 +253,12 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
                          "Assuming length of 2Mb for random match probs.\n")
         genome_length = 2000000
 
+    # check minimum k-mer is above random probability threshold
+    k_min = min(klist)
+    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
+        exit(1)
+
     # create kmer databases
     if threads > len(klist):
         num_processes = 1

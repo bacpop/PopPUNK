@@ -167,22 +167,12 @@ def main():
     # check mash is installed
     checkMashVersion(args.mash)
 
-    # identify kmer properties
-    minkmer = 9
-    maxkmer = 29
-    stepSize = 4
-    if args.k_step is not None and args.k_step >= 2:
-        stepSize = args.k_step
-    if args.min_k is not None and args.min_k > minkmer:
-        minkmer = int(args.min_k)
-    if args.max_k is not None and args.max_k < maxkmer:
-        maxkmer = int(args.max_k)
-    if minkmer >= maxkmer or minkmer < 9 or maxkmer > 31:
-        sys.stderr.write("Minimum kmer size " + minkmer + " must be smaller than maximum kmer size " +
-                         maxkmer + "; range must be between 9 and 31\n")
+    # check kmer properties
+    if args.min_k >= args.max_k or args.min_k < 9 or args.max_k > 31 or args.k_step < 2:
+        sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size " +
+                         str(args.max_k) + "; range must be between 9 and 31, step must be at least one\n")
         sys.exit(1)
-
-    kmers = np.arange(minkmer, maxkmer + 1, stepSize)
+    kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
 
     # define sketch sizes, store in hash in case on day
     # different kmers get different hash sizes
