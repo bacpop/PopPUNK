@@ -1,3 +1,4 @@
+# vim: set fileencoding=<utf-8> :
 '''Plots of GMM results, k-mer fits, and microreact output'''
 
 import sys

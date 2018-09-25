@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: set fileencoding=<utf-8> :
 # Copyright 2018 John Lees and Nick Croucher
 
 import pickle
@@ -8,20 +9,20 @@ import argparse
 
 # command line parsing
 def get_options():
-    
+
     parser = argparse.ArgumentParser(description='Extract tab-separated file of distances from pkl and npy files', prog='extract_distances')
-        
+
     # input options
     parser.add_argument('--distances', required=True, help='Prefix of input pickle and numpy file of pre-calculated distances (required)')
     parser.add_argument('--output', required=True, help='Name of output file')
-    
+
     return parser.parse_args()
 
 def iterDistRows(refSeqs, querySeqs, self=True):
     """Gets the ref and query ID for each row of the distance matrix
-        
+
     Returns an iterable with ref and query ID pairs by row.
-        
+
     Args:
         refSeqs (list)
             List of reference sequence names.
@@ -29,9 +30,9 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             List of query sequence names.
         self (bool)
             Whether a self-comparison, used when constructing a database.
-        
+
             Requires refSeqs == querySeqs
-        
+
             Default is True
         Returns:
             ref, query (str, str)
@@ -50,7 +51,7 @@ def iterDistRows(refSeqs, querySeqs, self=True):
 
 # main code
 if __name__ == "__main__":
-    
+
     # Check input ok
     args = get_options()
 

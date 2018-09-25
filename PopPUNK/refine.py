@@ -1,3 +1,4 @@
+# vim: set fileencoding=<utf-8> :
 '''Refine mixture model using network properties'''
 
 # universal

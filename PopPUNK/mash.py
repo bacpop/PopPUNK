@@ -1,3 +1,4 @@
+# vim: set fileencoding=<utf-8> :
 '''Mash functions for database construction'''
 
 # universal

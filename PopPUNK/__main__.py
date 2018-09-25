@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# vim: set fileencoding=<utf-8> :
 # Copyright 2018 John Lees and Nick Croucher
 
 # universal
@@ -450,7 +451,7 @@ def main():
                     # to ensure consistency with the network in case of bad input/bugs
                     nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
                     postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove, complete_distMat, dists_out)
-                    
+
                     # ensure mash sketch and distMat order match
                     assert postpruning_combined_seq == refList + newQueries
 

@@ -1,3 +1,4 @@
+# vim: set fileencoding=<utf-8> :
 '''General utility functions for data read/writing/manipulation in PopPUNK'''
 
 # universal
