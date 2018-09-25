@@ -449,12 +449,16 @@ def main():
                     # could also have newRepresentativesNames in this diff (should be the same) - but want
                     # to ensure consistency with the network in case of bad input/bugs
                     nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
-                    combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove, complete_distMat, dists_out)
+                    postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove, complete_distMat, dists_out)
+                    
+                    # ensure mash sketch and distMat order match
+                    assert postpruning_combined_seq == refList + newQueries
+
                 else:
                     storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
-                # ensure mash sketch and distMat order match
-                assert combined_seq == refList + newQueries
+                    # ensure mash sketch and distMat order match
+                    assert combined_seq == refList + newQueries
 
             # generate outputs for microreact if asked
             if args.microreact:
