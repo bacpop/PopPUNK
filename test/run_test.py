@@ -17,16 +17,16 @@ if not os.path.isfile("12754_4#89.contigs_velvet.fa"):
     subprocess.run("tar xf example_set.tar.bz2", shell=True, check=True)
 
 #easy run
-sys.stderr.write("Running database creation + BGMM model fit (--easy-run)\n")
-subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db --K 4 --no-stream --mash " + mash_exec, shell=True, check=True)
+sys.stderr.write("Running database creation + DBSCAN model fit + fit refinement (--easy-run)\n")
+subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db --no-stream --mash " + mash_exec, shell=True, check=True)
 
-#fit dbscan
-sys.stderr.write("Running HDBSCAN model fit (--fit-model)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model --distances example_db/example_db.dists --ref-db example_db --output example_db --dbscan --microreact --cytoscape --no-stream --mash " + mash_exec, shell=True, check=True)
+#fit GMM
+sys.stderr.write("Running GMM model fit (--fit-model)\n")
+subprocess.run("python ../poppunk-runner.py --fit-model --distances example_db/example_db.dists --ref-db example_db --output example_db --full-db --K 4 --microreact --cytoscape --no-stream --mash " + mash_exec, shell=True, check=True)
 
-#refine model
+#refine model with GMM
 sys.stderr.write("Running model refinement (--refine-model)\n")
-subprocess.run("python ../poppunk-runner.py --refine-model --distances example_db/example_db.dists --ref-db example_db --output example_refine --neg-shift 0.8 --full-db --mash " + mash_exec, shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --refine-model --distances example_db/example_db.dists --ref-db example_db --output example_refine --neg-shift 0.8 --mash " + mash_exec, shell=True, check=True)
 
 #assign query
 sys.stderr.write("Running query assignment (--assign-query)\n")

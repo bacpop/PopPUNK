@@ -241,31 +241,36 @@ def main():
             sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
             sys.exit(1)
 
-        # Run refinement
-        if args.refine_model:
-            model_prefix = args.ref_db
-            if args.model_dir is not None:
-                model_prefix = args.model_dir
-            old_model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                       model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
-            if old_model.type == 'refine':
-                sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
-                sys.exit(1)
+        # Run selected model here, or if easy run DBSCAN followed by refinement
+        if args.fit_model or args.easy_run:
+            # Run DBSCAN model
+            if args.dbscan or args.easy_run:
+                model = DBSCANFit(args.output)
+                assignments = model.fit(distMat, args.D, args.min_cluster_prop)
+                model.plot()
+            # Run Gaussian model
+            else:
+                model = BGMMFit(args.output)
+                assignments = model.fit(distMat, args.K)
+                model.plot(distMat, assignments)
+
+        if args.refine_model or args.easy_run:
+            if args.refine_model:
+                model_prefix = args.ref_db
+                if args.model_dir is not None:
+                    model_prefix = args.model_dir
+                old_model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                            model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+                if old_model.type == 'refine':
+                    sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
+                    sys.exit(1)
+            elif args.easy_run:
+                old_model = model
 
             model = RefineFit(args.output)
             assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift,
                     args.manual_start, args.indiv_refine, args.no_local, args.threads)
             model.plot(distMat)
-        # Run DBSCAN model
-        elif args.dbscan:
-            model = DBSCANFit(args.output)
-            assignments = model.fit(distMat, args.D, args.min_cluster_prop)
-            model.plot()
-        # Run Gaussian model
-        else:
-            model = BGMMFit(args.output)
-            assignments = model.fit(distMat, args.K)
-            model.plot(distMat, assignments)
 
         fit_type = 'combined'
         model.save()
