@@ -85,7 +85,7 @@ def main():
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
-    newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
+    newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
     nodes_to_remove = set(refList).difference(newReferencesNames)
     genomeNetwork.remove_nodes_from(nodes_to_remove)
     nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')

@@ -26,7 +26,7 @@ from .utils import iterDistRows
 from .utils import readClusters
 from .utils import readExternalClusters
 
-def extractReferences(G, outPrefix, existingRefs = None):
+def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -34,6 +34,8 @@ def extractReferences(G, outPrefix, existingRefs = None):
        Args:
            G (networkx.Graph)
                A network used to define clusters from :func:`~constructNetwork`
+           mashOrder (list)
+               The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
                Prefix for output file (.refs will be appended)
            existingRefs (list)
@@ -64,6 +66,8 @@ def extractReferences(G, outPrefix, existingRefs = None):
         if alreadyRepresented == 0:
             references.append(clique[0])
 
+    # Order found references as in mash sketch files
+    references = [x for x in mashOrder if x in frozenset(references)]
     refFileName = writeReferences(references, outPrefix)
     return references, refFileName
 
@@ -379,7 +383,7 @@ def printClusters(G, outPrefix, oldClusterFile = None, externalClusterCSV = None
         # sort the clusters by frequency - define a list with a custom sort order
         # first line gives tuples e.g. (1, 28), (2, 17) - cluster 1 has 28 members, cluster 2 has 17 members
         # second line takes first element - the cluster IDs sorted by frequency
-        freq_order = sorted(dict(Counter(clustering.values())).items(), key=operator.itemgetter(0))
+        freq_order = sorted(dict(Counter(clustering.values())).items(), key=operator.itemgetter(1), reverse=True)
         freq_order = [x[0] for x in freq_order]
 
         # iterate through cluster dictionary sorting by value using above custom sort order

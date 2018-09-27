@@ -257,7 +257,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
 
     # record errors
     except subprocess.CalledProcessError as e:
-        sys.stderr.write("Could not run command " + rapidnj_cmd + "; returned code: " + e.returncode + "\n")
+        sys.stderr.write("Could not run command " + rapidnj_cmd + "; returned code: " + str(e.returncode) + "\n")
         sys.exit(1)
 
     # read tree and return

@@ -328,7 +328,7 @@ def main():
 
         # extract limited references from clique by default
         if not args.full_db:
-            newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, args.output)
+            newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
             nodes_to_remove = set(refList).difference(newReferencesNames)
             genomeNetwork.remove_nodes_from(nodes_to_remove)
             prune_distance_matrix(refList, nodes_to_remove, distMat,
@@ -421,7 +421,8 @@ def main():
 
                 # Update the network + ref list
                 if args.full_db is False:
-                    newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, args.output, refList)
+                    mashOrder = refList + ordered_queryList
+                    newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, args.output, refList)
                     genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                     newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
                 else:
@@ -429,10 +430,11 @@ def main():
                 nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
                 # Update the mash database
-                tmpRefFile = writeTmpFile(newQueries)
-                constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
+                if newQueries != queryList:
+                    tmpRefFile = writeTmpFile(newQueries)
+                    constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
+                    os.remove(tmpRefFile)
                 joinDBs(args.ref_db, args.output, args.output, kmers)
-                os.remove(tmpRefFile)
 
                 # Update distance matrices with all calculated distances
                 if args.distances == None:
@@ -450,7 +452,9 @@ def main():
                     # could also have newRepresentativesNames in this diff (should be the same) - but want
                     # to ensure consistency with the network in case of bad input/bugs
                     nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
-                    postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove, complete_distMat, dists_out)
+                    # This function also writes out the new distance matrix
+                    postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove,
+                                                                                 complete_distMat, dists_out)
 
                     # ensure mash sketch and distMat order match
                     assert postpruning_combined_seq == refList + newQueries
