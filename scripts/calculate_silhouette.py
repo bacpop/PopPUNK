@@ -11,9 +11,9 @@ import pandas as pd
 from scipy.spatial.distance import euclidean
 from sklearn.metrics import silhouette_score
 
-#################
-# run main code #
-#################
+#############
+# functions #
+#############
 
 # command line parsing
 def get_options():
@@ -32,6 +32,10 @@ def get_options():
 
 
     return parser.parse_args()
+
+#################
+# run main code #
+#################
 
 if __name__ == "__main__":
 
