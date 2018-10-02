@@ -8,24 +8,44 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 from sklearn.metrics import adjusted_rand_score
-from scipy.misc import comb
+from sklearn.metrics.cluster.supervised import check_clusterings
+from sklearn.metrics.cluster.supervised import contingency_matrix
+from scipy.special import comb
 
 #############
 # functions #
 #############
 
-# from https://stats.stackexchange.com/questions/89030/rand-index-calculation
-def rand_index_score(clusters, classes):
+# using code from https://stats.stackexchange.com/questions/89030/rand-index-calculation,
+# sklearn and arandi - validated against R package mcclust
+def rand_index_score(labels_true, labels_pred):
 
-    tp_plus_fp = comb(np.bincount(clusters), 2).sum()
-    tp_plus_fn = comb(np.bincount(classes), 2).sum()
-    A = np.c_[(clusters, classes)]
-    tp = sum(comb(np.bincount(A[A[:, 0] == i, 1]), 2).sum()
-             for i in set(clusters))
-    fp = tp_plus_fp - tp
-    fn = tp_plus_fn - tp
-    tn = comb(len(A), 2) - tp - fp - fn
-    return (tp + tn) / (tp + fp + fn + tn)
+    # check clusterings
+    labels_true, labels_pred = check_clusterings(labels_true, labels_pred)
+    
+    # initial statistics calculations
+    n_samples = labels_true.shape[0]
+    n_samples_comb = comb(n_samples,2)
+    n_classes = np.unique(labels_true).shape[0]
+    n_clusters = np.unique(labels_pred).shape[0]
+    class_freq = np.bincount(labels_true)
+    cluster_freq = np.bincount(labels_pred)
+    
+    # Special limit cases: no clustering since the data is not split;
+    # or trivial clustering where each document is assigned a unique cluster.
+    # These are perfect matches hence return 1.0.
+    if (n_classes == n_clusters == 1 or
+        n_classes == n_clusters == 0 or
+        n_classes == n_clusters == n_samples):
+        return 1.0
+
+    # Compute the RI using the contingency data
+    contingency = contingency_matrix(labels_true, labels_pred, sparse=True)
+    sum_comb_c = sum((n_c**2) for n_c in cluster_freq)
+    sum_comb_k = sum((n_k**2) for n_k in class_freq)
+    sum_comb = sum((n_ij**2) for n_ij in contingency.data)
+    
+    return (1 + (sum_comb - 0.5 * sum_comb_k - 0.5 * sum_comb_c)/n_samples_comb)
 
 # command line parsing
 def get_options():
@@ -71,7 +91,7 @@ if __name__ == "__main__":
             bn = os.path.basename(input_file)
             if "Taxon" in epiData.columns.values and "Cluster" in epiData.columns.values:
                 names_list[bn] = epiData["Taxon"]
-                cluster_list[bn] = epiData["Cluster"]
+                cluster_list[bn] = pd.factorize(epiData["Cluster"])[0]
             else:
                 sys.stderr.write("Input files need to be PopPUNK clustering "
                                  "CSVs; " + input_file + " appears to be misformatted\n")
@@ -89,7 +109,7 @@ if __name__ == "__main__":
     # open output and print header
     with open(args.output, 'w') as output_file:
         output_file.write("\t".join(["File_1","File_2","n_1","n_2",
-                                     "n_compared","Rand_index","Adjusted_Rand_index"]))
+                                     "n_compared","Rand_index","Adjusted_Rand_index"]) + "\n")
 
         # iterate through clusterings
         for x,input_x in enumerate(names_list):
@@ -107,20 +127,23 @@ if __name__ == "__main__":
                                 indices_x.append(np.asscalar(np.where(names_list[input_x].values == name)[0]))
                     else:
                         for name in subset_seq:
-                            indices_y.append(np.asscalar(np.where(names_list[input_y].values == name)[0]))
-                            indices_x.append(np.asscalar(np.where(names_list[input_x].values == name)[0]))
+                            if name in x_set:
+                                indices_y.append(np.asscalar(np.where(names_list[input_y].values == name)[0]))
+                                indices_x.append(np.asscalar(np.where(names_list[input_x].values == name)[0]))
+                            else:
+                                sys.stderr.write("Cannot find " + name + " in both datasets")
 
                     # calculate indices
                     if len(indices_x) > 0:
-                        numpy_x = np.asarray(cluster_list[input_x].values[indices_x],dtype=int)
-                        numpy_y = np.asarray(cluster_list[input_y].values[indices_y],dtype=int)
+                        numpy_x = np.asarray(cluster_list[input_x][indices_x],dtype=int)
+                        numpy_y = np.asarray(cluster_list[input_y][indices_y],dtype=int)
                         ri = rand_index_score(numpy_x,numpy_y)
                         ari = adjusted_rand_score(cluster_list[input_x][indices_x],cluster_list[input_y][indices_y])
 
                         # print output line
                         output_file.write("\t".join([input_x, input_y, str(len(cluster_list[input_x])),
                                                      str(len(cluster_list[input_y])), str(len(indices_x)),
-                                                     str(ri), str(ari)]))
+                                                     str(ri), str(ari)]) + "\n")
                     else:
                         sys.stderr.write("No overlapping sequences for files " + input_x +
                                          " and " + input_y + "\n")
