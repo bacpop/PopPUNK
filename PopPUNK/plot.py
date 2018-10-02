@@ -191,7 +191,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
             if epiCsv is not None:
                 # avoid adding
                 if len(columns_to_be_omitted) == 0:
-                    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour', 'core_Cluster__autocolour', 'accessory_Cluster__autocolour']
+                    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
+                                             'core_Cluster__autocolour', 'accessory_Cluster__autocolour']
                     for c in d:
                         columns_to_be_omitted.append(c)
                 if label in epiData.index:

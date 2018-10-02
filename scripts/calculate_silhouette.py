@@ -27,7 +27,7 @@ def get_options():
     parser.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances (required)')
     parser.add_argument('--cluster-csv', required=True, help='Cluster assignments')
     parser.add_argument('--cluster-col', type = int, default = 2, help="Column with cluster assignment (default = 2)")
-    parser.add_argument('--id-col', type = int, default = 1, help="Column with sample names (default = 2)")
+    parser.add_argument('--id-col', type = int, default = 1, help="Column with sample names (default = 1)")
     parser.add_argument('--sub', type = str, default = None, help="Remove string from sample names")
 
 
