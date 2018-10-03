@@ -15,6 +15,13 @@ However, if needed, there is a script available to extract these distances as a 
 
   python scripts/extract_distances.py --distances strain_db.dists --output strain_db.dists.out
 
+Writing network components to an output file
+--------------------------------------------
+Visualisation of large networks with cytoscape may become challenging. It is possible to extract
+individual components/clusters for visualisation as follows::
+
+  python scripts/extract_components.py strain_db_graph.gpickle strain_db
+
 Calculating Rand indices
 ------------------------
 This script allows the clusters formed by different runs/fits/modes of PopPUNK to be compared to each
