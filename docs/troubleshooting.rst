@@ -7,6 +7,63 @@ installing or running the software please raise an issue on github.
 .. contents::
    :local:
 
+Error/warning messages
+----------------------
+
+Trying to create a very large network
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When using ``--refine-model`` you may see the message::
+
+    Warning: trying to create very large network
+
+One or more times. This is triggered if :math:`5 \times 10^5` edges or greater than 40%
+of the maximum possible number of edges have been added into the network. This suggests that
+the boundary is too large including too many links as within sample. This isn't necessarily a
+problem as it can occur at the edge of the optimisation range, so will not be the final optimised
+result. However, if you have a large number of samples it may make this step run very slowly
+and/or use a lot of memory. If that is the case, decrease ``--pos-shift``.
+
+Row name mismatch
+^^^^^^^^^^^^^^^^^
+PopPUNK may throw::
+
+    RuntimeError: Row name mismatch. Old: 6999_2#17.fa,6259_5#6.fa
+    New: 6952_7#16.fa,6259_5#6.fa
+
+This is an error where the mash output order does not match the order in stored
+databases (``.pkl``). Most likely, the input files are from different runs, possibly
+due to using ``--overwrite``. Run again, giving each step its own output directory.
+
+Samples are missing from the final network
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When running ``--assign-query`` an error such as::
+
+    WARNING: Samples 7553_5#54.fa,6999_5#1.fa are missing from the final network
+
+Means that samples present in ``--distances`` and or ``--ref-db`` are not present
+in the loaded network. This should be considered an error as it will likely lead to other
+errors and warnings. Make sure the provided network is the one created by applying
+the ``--model-dir`` to ``--distances``, and that the same output directory has
+not been used and overwriten by different steps or inputs.
+
+Old cluster split across multiple new clusters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When running ``--assign-query``, after distances have been calculated and queries are being
+assigned warnings such as::
+
+    WARNING: Old cluster 1 split across multiple new clusters
+
+Mean that a single cluster in the original clustering is now split into more than one
+cluster. This means something has gone wrong, as the addition of new queries should only
+be able to merge existing clusters, not cause them to split.
+
+Most likely, the ``--previous-clustering`` directory is inconsistent with the ``--ref-db``
+and/or ``--model-dir``. Make sure the clusters are those created from the network being
+used to assign new queries.
+
+If you want to change cluster names or assign queries to your own cluster definitions
+you can use the ``--external-clustering`` argument instead.
+
 .. _kmer-length:
 
 Choosing the right k-mer lengths
