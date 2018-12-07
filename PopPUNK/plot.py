@@ -304,7 +304,7 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
     plt.scatter(X[:,0]*scale[0].flat, X[:,1]*scale[1].flat, s=1, alpha=scatter_alpha)
 
     plt.title(title)
-    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
@@ -394,7 +394,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
         splot.add_artist(ell)
 
     plt.title(title)
-    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
@@ -434,7 +434,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     # plot output
     plt_filename = out_prefix + ".png"
     plt.title('HDBSCAN – estimated number of spatial clusters: %d' % n_clusters)
-    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
@@ -509,7 +509,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
 
     plt.legend()
     plt.title(title)
-    plt.xlabel('Core distance (' + r'$\pi_n$' + ')')
+    plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
     plt.savefig(out_prefix + ".png")
     plt.close()
