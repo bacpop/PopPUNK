@@ -62,6 +62,8 @@ through `pip`. In brackets are the versions we used:
 * `scipy` (1.0.0)
 * `sharedmem` (0.3.5)
 
+To install `numba` through pip, you may need `gcc >=v4.8` for it to work correctly.
+
 ### Test installation
 Run the following command:
 ```

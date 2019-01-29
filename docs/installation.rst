@@ -51,6 +51,9 @@ We tested PopPUNK with the following packages:
 * ``scipy`` (1.0.0)
 * ``sharedmem`` (0.3.5)
 
+``numba`` may need ``gcc >=v4.8`` to install correctly through pip (if you are
+getting ``OSError`` or ``'GLIBCXX_3.4.17' not found``).
+
 Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
 if producing output with ``--microreact`` and ``--rapidnj`` options. We used
 v2.3.2.
