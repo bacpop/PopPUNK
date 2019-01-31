@@ -65,18 +65,17 @@ def createDatabaseDir(outPrefix, kmers):
         kmers (list)
             k-mer sizes in db
     """
-    outputDir = os.getcwd() + "/" + outPrefix
     # check for writing
-    if os.path.isdir(outputDir):
+    if os.path.isdir(outPrefix):
         # remove old database files if not needed
-        for msh_file in glob(outputDir + "/" + os.path.basename(outPrefix) + "*.msh"):
+        for msh_file in glob(outPrefix + "/" + os.path.basename(outPrefix) + "*.msh"):
             knum = int(msh_file.split('.')[-2])
             if not (kmers == knum).any():
                 sys.stderr.write("Removing old database " + msh_file + "\n")
                 os.remove(msh_file)
     else:
         try:
-            os.makedirs(outputDir)
+            os.makedirs(outPrefix)
         except:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
@@ -169,7 +168,7 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
         if mash_info.poll() != 0:
             raise RuntimeError('mash command "' + mash_cmd + '" failed')
     except subprocess.CalledProcessError as e:
-        sys.stderr.write("Could not get info about " + dbname + "; command " +
+        sys.stderr.write("Could not get info about " + str(mashSketch) + "; command " +
                 mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
         sys.exit(1)
 
@@ -312,6 +311,10 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
     # define database name
     dbname = oPrefix + "/" + os.path.basename(oPrefix) + "." + str(k)
     dbfilename = dbname + ".msh"
+    # Causes mash sketch to fail at end -- createDatabaseDir should stop this
+    if not os.path.isdir(dbname):
+        sys.stderr.write("Directory " + dbname + " does not exist\n")
+        sys.exit(1)
 
     # calculate false positive rate
     random_prob = 1/(pow(4, k)/float(genome_length) + 1)

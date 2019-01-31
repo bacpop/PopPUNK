@@ -13,7 +13,12 @@ Step 3) Pick references from strains, which can be used to assign new
 query sequences
 
 See the [documentation](http://poppunk.readthedocs.io/en/latest/) and the
-[pre-print](https://doi.org/10.1101/360917).
+[paper](https://doi.org/10.1101/gr.241455.118).
+
+If you find PopPUNK useful, please cite as:
+
+Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ.
+Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:1-13 (2019). doi:10.1101/gr.241455.118
 
 ## Installation
 The easiest way is through conda, which is most easily accessed by first

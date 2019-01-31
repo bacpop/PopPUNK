@@ -32,7 +32,7 @@ Where ``references.txt`` is a list of assembly fasta files, one per line. See
 
 Details
 -------
-A full description of the method can be found in the `pre-print <https://doi.org/10.1101/360917>`_.
+A full description of the method can be found in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
 
 ``PopPUNK`` uses the fast k-mer distance estimation enabled by `mash <https://mash.readthedocs.io/en/latest/>`_
 to calculate core and accessory distances between all pairs of isolates of bacteria in a collection. By clustering
@@ -65,6 +65,13 @@ The advantages of this approach are broadly that:
   `grapetree <http://dx.doi.org/10.1101/gr.232397.117>`_ and
   `phandango <http://jameshadfield.github.io/phandango/>`_.
 - Everything is available within a single python executable.
+
+Citation:
+---------
+If you find PopPUNK useful, please cite as:
+
+Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ. Fast and flexible
+bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:1-13 (2019). doi:10.1101/gr.241455.118
 
 Index:
 ------
