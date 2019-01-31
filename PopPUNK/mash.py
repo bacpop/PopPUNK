@@ -312,8 +312,8 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
     dbname = oPrefix + "/" + os.path.basename(oPrefix) + "." + str(k)
     dbfilename = dbname + ".msh"
     # Causes mash sketch to fail at end -- createDatabaseDir should stop this
-    if not os.path.isdir(dbname):
-        sys.stderr.write("Directory " + dbname + " does not exist\n")
+    if not os.path.isdir(oPrefix):
+        sys.stderr.write("Directory " + oPrefix + " does not exist\n")
         sys.exit(1)
 
     # calculate false positive rate
