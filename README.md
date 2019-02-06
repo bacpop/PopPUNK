@@ -18,7 +18,7 @@ See the [documentation](http://poppunk.readthedocs.io/en/latest/) and the
 If you find PopPUNK useful, please cite as:
 
 Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ.
-Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:1-13 (2019). doi:10.1101/gr.241455.118
+Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019). doi:10.1101/gr.241455.118
 
 ## Installation
 The easiest way is through conda, which is most easily accessed by first

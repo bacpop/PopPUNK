@@ -134,7 +134,7 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
         except subprocess.CalledProcessError as e:
             sys.stderr.write("Could not get info about " + dbname + "; command " + mash_exec +
                     " info -t " + dbname + " returned " + str(mash_info.returncode) +
-                    ": " + e.message + "\n")
+                    ": " + e.output + "\n")
             sys.exit(1)
 
     return sketchdb
@@ -169,7 +169,7 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
             raise RuntimeError('mash command "' + mash_cmd + '" failed')
     except subprocess.CalledProcessError as e:
         sys.stderr.write("Could not get info about " + str(mashSketch) + "; command " +
-                mash_cmd + " returned " + str(mash_info.returncode) + ": "+e.message+"\n")
+                mash_cmd + " returned " + str(mash_info.returncode) + ": " + e.output + "\n")
         sys.exit(1)
 
     return seqs
@@ -201,7 +201,7 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
             subprocess.run(mash_cmd, shell=True, check=True)
             os.rename(join_name + ".msh", output + "/" + os.path.basename(output) + "." + str(kmer) + ".msh")
         except subprocess.CalledProcessError as e:
-            sys.stderr.write("Could not run command " + mash_cmd + "; returned: " + e.message + "\n")
+            sys.stderr.write("Could not run command " + mash_cmd + "; returned: " + e.output + "\n")
             sys.exit(1)
 
 
@@ -566,12 +566,19 @@ def fitKmerCurve(pairwise, klist, jacobian):
     # curve fit pr = (1-a)(1-c)^k
     # log pr = log(1-a) + k*log(1-c)
     # a = p[0]; c = p[1] (will flip on return)
-    distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+    try:
+        distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                      x0=[0.0, -0.01],
                                      jac=lambda p, x, y: jacobian,
                                      args=(klist, np.log(pairwise)),
                                      bounds=([-np.inf, -np.inf], [0, 0]))
-    transformed_params = 1 - np.exp(distFit.x)
+        transformed_params = 1 - np.exp(distFit.x)
+    except ValueError as e:
+        sys.stderr.write("Fitting k-mer curve failed: " + e.message +
+                         "\nWith mash input " +
+                         np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
+                         "\nCheck for low quality input genomes\n")
+        exit(0)
 
     # Return core, accessory
     return(np.flipud(transformed_params))
