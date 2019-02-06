@@ -67,7 +67,7 @@ setup(
                       'sharedmem',
                       'numba',
                       'pandas',
-                      'networkx',
+                      'networkx>=2.0',
                       'matplotlib',
                       'hdbscan'],
     test_suite="test",
