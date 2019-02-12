@@ -10,6 +10,14 @@ installing or running the software please raise an issue on github.
 Error/warning messages
 ----------------------
 
+Errors in graph.py
+^^^^^^^^^^^^^^^^^^
+If you get an ``AttributeError``::
+
+    AttributeError: 'Graph' object has no attribute 'node'
+
+Then your ``networkx`` package is out of date. Its version needs to be at >=v2.0.
+
 Trying to create a very large network
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When using ``--refine-model`` you may see the message::
