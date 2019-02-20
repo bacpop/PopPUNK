@@ -75,6 +75,10 @@ def get_options():
             help='Assign the cluster of query sequences without re-running the whole mixture model',
             default=False,
             action='store_true')
+    mode.add_argument('--use-model',
+            help='Apply a fitted model to a reference database to restore database files',
+            default=False,
+            action='store_true')
 
     # input options
     iGroup = parser.add_argument_group('Input files')
@@ -217,7 +221,7 @@ def main():
 
     # model fit and network construction
     # refine model also needs to run all model steps
-    if args.fit_model or args.refine_model or args.easy_run:
+    if args.fit_model or args.use_model or args.refine_model or args.easy_run:
         # Set up saved data from first step, if easy_run mode
         if args.easy_run:
             distances = dists_out
@@ -225,6 +229,8 @@ def main():
         else:
             if args.fit_model:
                 sys.stderr.write("Mode: Fitting model to reference database\n\n")
+            elif args.use_model:
+                sys.stderr.write("Mode: Using previous model with a reference database\n\n")
             else:
                 sys.stderr.write("Mode: Refining model fit using network properties\n\n")
 
@@ -236,6 +242,18 @@ def main():
                                  "and reference database directory with --ref-db\n\n")
                 sys.exit(1)
 
+        # Set up variables for using previous models
+        if args.refine_model or args.use_model:
+            model_prefix = args.ref_db
+            if args.model_dir is not None:
+                model_prefix = args.model_dir
+            model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                        model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+            if args.refine_model and model.type == 'refine':
+                sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
+                sys.exit(1)
+
+        # Load the distances
         refList, queryList, self, distMat = readPickle(distances)
         if not self:
             sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
@@ -254,23 +272,18 @@ def main():
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)
 
+        # Run model refinement
         if args.refine_model or args.easy_run:
-            if args.refine_model:
-                model_prefix = args.ref_db
-                if args.model_dir is not None:
-                    model_prefix = args.model_dir
-                old_model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                            model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
-                if old_model.type == 'refine':
-                    sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
-                    sys.exit(1)
-            elif args.easy_run:
-                old_model = model
-
-            model = RefineFit(args.output)
-            assignments = model.fit(distMat, refList, old_model, args.pos_shift, args.neg_shift,
+            new_model = RefineFit(args.output)
+            assignments = new_model.fit(distMat, refList, model, args.pos_shift, args.neg_shift,
                     args.manual_start, args.indiv_refine, args.no_local, args.threads)
-            model.plot(distMat)
+            new_model.plot(distMat)
+            model = new_model
+
+        # Load and apply a previous model of any type
+        if args.use_model:
+            assignments = model.assign(distMat)
+            model.plot(distMat, assignments)
 
         fit_type = 'combined'
         model.save()

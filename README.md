@@ -18,9 +18,13 @@ See the [documentation](http://poppunk.readthedocs.io/en/latest/) and the
 If you find PopPUNK useful, please cite as:
 
 Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ.
-Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019). doi:10.1101/gr.241455.118
+Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019).
+doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 
 ## Installation
+
+### Through conda (recommended)
+
 The easiest way is through conda, which is most easily accessed by first
 installing [miniconda](https://conda.io/miniconda.html). PopPUNK can then
 be installed by running:
@@ -34,6 +38,7 @@ conda config --add channels bioconda
 conda config --add channels conda-forge
 ```
 
+### Through pip
 If you do not have conda you can also install through pip:
 ```
 python3 -m pip install poppunk
@@ -46,39 +51,6 @@ Alternatively clone this repository:
 git clone git@github.com:johnlees/PopPUNK.git
 ```
 Then run with `python poppunk-runner.py`.
-
-### Dependencies
-
-You will need a [mash](http://mash.readthedocs.io/en/latest/) installation
-which is v2.0 or higher.
-
-The following python packages are required, which can be installed
-through `pip`. In brackets are the versions we used:
-
-* python3
-* `DendroPy` (4.3.0)
-* `hdbscan` (0.8.13)
-* `matplotlib` (2.1.2)
-* `networkx` (2.1)
-* `numba` (0.36.2)
-* `numpy` (1.14.1)
-* `pandas` (0.22.0)
-* `scikit-learn` (0.19.1)
-* `scipy` (1.0.0)
-* `sharedmem` (0.3.5)
-
-To install `numba` through pip, you may need `gcc >=v4.8` for it to work correctly.
-
-### Test installation
-Run the following command:
-```
-cd test && python run_test.py
-```
-
-If successful, you can clean the test data by running:
-```
-cd test && python clean_test.py
-```
 
 ## Quick usage
 Easy run mode, go from assemblies to clusters of strains:
@@ -121,5 +93,48 @@ run `python poppunk-runner.py` instead of `poppunk`.
 
 See the [documentation](http://poppunk.readthedocs.io/en/latest/) for
 full details.
+
+## Other installation notes
+
+Installing via conda takes care of all dependencies. For other methods you will
+need to install the packages listed under dependencies.
+
+If you wish to use the [/scripts](https://poppunk.readthedocs.io/en/latest/scripts.html)
+you will need to clone the github.
+
+### Dependencies
+
+You will need a [mash](http://mash.readthedocs.io/en/latest/) installation
+which is v2.0 or higher.
+
+The following python packages are required, which can be installed
+through `pip`. In brackets are the versions we used:
+
+* python3
+* `DendroPy` (4.3.0)
+* `hdbscan` (0.8.13)
+* `matplotlib` (2.1.2)
+* `networkx` (2.1)
+* `numba` (0.36.2)
+* `numpy` (1.14.1)
+* `pandas` (0.22.0)
+* `scikit-learn` (0.19.1)
+* `scipy` (1.0.0)
+* `sharedmem` (0.3.5)
+
+To install `numba` through pip, you may need `gcc >=v4.8` for it to work correctly.
+
+### Test installation
+Run the following command:
+```
+cd test && python run_test.py
+```
+
+If successful, you can clean the test data by running:
+```
+cd test && python clean_test.py
+```
+
+
 
 

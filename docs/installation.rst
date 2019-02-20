@@ -6,6 +6,14 @@ dependencies::
 
     conda install poppunk
 
+Then run with ``poppunk``.
+
+.. important::
+    PopPUNK requires python3 to run (which on many default Linux installations is
+    run using ``python3`` rather than ``python``).
+
+Installing with conda (recommended)
+-----------------------------------
 If you do not have ``conda`` you can install it through
 `miniconda <https://conda.io/miniconda.html>`_ and then add the necessary
 channels::
@@ -14,26 +22,32 @@ channels::
     conda config --add channels bioconda
     conda config --add channels conda-forge
 
+Then run::
+
+    conda install poppunk
+
+Installing with pip
+-------------------
 If you do not have conda, you can also install through pip::
 
     python3 -m pip install poppunk
 
+You will also need `mash <http://mash.readthedocs.io/en/latest/>`__ (v2 or higher)
+installed (see :ref:`dependencies`).
+
+Clone the code
+--------------
 You can also clone the github to run the latest version, which is executed by::
 
     git clone https://github.com/johnlees/PopPUNK.git && cd PopPUNK
     python3 poppunk-runner.py
 
-You will also need `mash <http://mash.readthedocs.io/en/latest/>`__ (v2 or higher)
-installed. If using conda, this will automatically be installed.
+This will also give access to the :ref:`scripts`.
 
-Python installation
--------------------
+You will need to install the :ref:`dependencies` yourself (you can still use
+conda or pip for this purpose).
 
-PopPUNK requires python3 to run (which on many default Linux installations is
-run using ``python3`` rather than ``python``).
-
-We recommend the use of a `miniconda <https://conda.io/miniconda.html>`__
-installation.
+.. _dependencies:
 
 Dependencies
 ------------
@@ -53,6 +67,9 @@ We tested PopPUNK with the following packages:
 
 ``numba`` may need ``gcc >=v4.8`` to install correctly through pip (if you are
 getting ``OSError`` or ``'GLIBCXX_3.4.17' not found``).
+
+You will need a [mash](http://mash.readthedocs.io/en/latest/) installation
+which is v2.0 or higher
 
 Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
 if producing output with ``--microreact`` and ``--rapidnj`` options. We used

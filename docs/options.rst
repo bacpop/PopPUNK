@@ -35,6 +35,8 @@ Command line options
      --refine-model        Refine the accuracy of a fitted model
      --assign-query        Assign the cluster of query sequences without re-
                            running the whole mixture model
+     --use-model           Apply a fitted model to a reference database to
+                           restore database files
 
    Input files:
      --ref-db REF_DB       Location of built reference database

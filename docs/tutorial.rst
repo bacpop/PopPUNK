@@ -563,6 +563,8 @@ The following command line options can be used in this mode:
    Threads are used for the global optimisation step only. If the local
    optimisation step is slow, turn it off with ``--no-local``.
 
+.. _assign-query:
+
 Assigning queries
 -----------------
 Once a database has been built and a model fitted (either in one step with
@@ -813,3 +815,18 @@ The following command line options can be used in this mode:
                            memory use/increase disk use for large datasets
      --version             show program's version number and exit
 
+Using a previous model with a new database
+------------------------------------------
+If you have a model which has been fitted which you wish to apply this to a new reference
+database, you may do this with ``--use-model``. This will take a fitted model, apply it
+to distances from ``--create-db`` and produce a network, assignment and reference database
+for future use with ``--assign-query``.
+
+.. note::
+   Generally, to use an existing model with new data it is better to
+   ``--assign-query`` (see :ref:`assign-query`). This mode can be used when
+   the model, reference database and network are out of sync due to accidentally
+   overwriting one or losing track of versions.
+
+Options are the same as ``--fit-model`` for GMM and DBSCAN models or ``--refine-model`` for
+refined models.

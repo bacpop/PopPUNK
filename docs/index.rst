@@ -71,7 +71,8 @@ Citation:
 If you find PopPUNK useful, please cite as:
 
 Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ. Fast and flexible
-bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:1-13 (2019). doi:10.1101/gr.241455.118
+bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:1-13 (2019).
+doi:`10.1101/gr.241455.118 <https://dx.doi.org/10.1101/gr.241455.118>`__
 
 Index:
 ------

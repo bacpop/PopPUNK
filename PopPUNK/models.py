@@ -389,7 +389,7 @@ class DBSCANFit(ClusterFit):
         self.fitted = True
 
 
-    def plot(self):
+    def plot(self, X=None, y=None):
         '''Write a summary of the fit, and plot the results using
         :func:`PopPUNK.plot.plot_dbscan_results`
 
@@ -584,13 +584,15 @@ class RefineFit(ClusterFit):
         self.indiv_fitted = False # Do not output multiple microreacts
 
 
-    def plot(self, X):
+    def plot(self, X, y=None):
         '''Write a summary of the fit, and plot the results using
         :func:`PopPUNK.plot.plot_refined_results`
 
         Args:
             X (numpy.array)
                 Core and accessory distances
+            y (numpy.array)
+                Assignments (unused)
         '''
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
