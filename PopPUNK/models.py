@@ -38,7 +38,7 @@ from .refine import withinBoundary
 from .refine import readManualStart
 from .plot import plot_refined_results
 
-def loadClusterFit(pkl_file, npz_file, outPrefix = ""):
+def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples=100000):
     '''Call this to load a fitted model
 
     Args:
@@ -46,6 +46,12 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = ""):
             Location of saved .pkl file on disk
         npz_file (str)
             Location of saved .npz file on disk
+        outPrefix (str)
+            Output prefix for model to save to (e.g. plots)
+        max_samples (int)
+            Maximum samples if subsampling X
+
+            [default = 100000]
     '''
     with open(pkl_file, 'rb') as pickle_obj:
         fit_object, fit_type = pickle.load(pickle_obj)
@@ -53,11 +59,11 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = ""):
 
     if fit_type == "bgmm":
         sys.stderr.write("Loading BGMM 2D Gaussian model\n")
-        load_obj = BGMMFit(outPrefix)
+        load_obj = BGMMFit(outPrefix, max_samples)
         load_obj.load(fit_data, fit_object)
     elif fit_type == "dbscan":
         sys.stderr.write("Loading DBSCAN model\n")
-        load_obj = DBSCANFit(outPrefix)
+        load_obj = DBSCANFit(outPrefix, max_samples)
         load_obj.load(fit_data, fit_object)
     elif fit_type == "refine":
         sys.stderr.write("Loading previously refined model\n")
@@ -123,7 +129,7 @@ class ClusterFit:
     def plot(self, X=None):
         '''Initial steps for all plot functions.
 
-        Ensures model has been fitted, and takes a new X subsample if needed
+        Ensures model has been fitted.
 
         Args:
             X (numpy.array)
@@ -133,9 +139,6 @@ class ClusterFit:
         '''
         if not self.fitted:
             raise RuntimeError("Trying to plot unfitted model")
-        # Generate a subsampling if one was not used in the fit
-        if not hasattr(self, 'subsampled_X'):
-            self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
     def no_scale(self):
         '''Turn off scaling (useful for refine, where optimization
@@ -246,6 +249,9 @@ class BGMMFit(ClusterFit):
                 Cluster assignments from :func:`~BGMMFit.assign`
         '''
         ClusterFit.plot(self, X)
+        # Generate a subsampling if one was not used in the fit
+        if not hasattr(self, 'subsampled_X'):
+            self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
         avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
         used_components = np.unique(y).size
@@ -420,13 +426,16 @@ class DBSCANFit(ClusterFit):
                 Cluster assignments from :func:`~BGMMFit.assign`
         '''
         ClusterFit.plot(self, X)
+        # Generate a subsampling if one was not used in the fit
+        if not hasattr(self, 'subsampled_X'):
+            self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
         non_noise = np.sum(np.where(self.labels != -1))
         sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" + str(self.n_clusters),
                                                         "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
-                                                        "\tNumber of assignments\t" + str(len(non_noise))]) + "\n")
+                                                        "\tNumber of assignments\t" + str(non_noise)]) + "\n")
 
-        plot_dbscan_results(self.subsampled_X * self.scale, self.assign(subsampled_X), self.n_clusters,
+        plot_dbscan_results(self.subsampled_X * self.scale, self.assign(self.subsampled_X), self.n_clusters,
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
