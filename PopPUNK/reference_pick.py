@@ -105,7 +105,7 @@ def main():
 
             # Resketch all
             createDatabaseDir(args.output, kmers)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True)
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
 
     else:
         sys.stderr.write("No sequences to remove\n")

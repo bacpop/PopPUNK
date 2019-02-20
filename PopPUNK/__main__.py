@@ -38,6 +38,7 @@ from .prune_db import prune_distance_matrix
 from .utils import storePickle
 from .utils import readPickle
 from .utils import writeTmpFile
+from .utils import qcDistMat
 from .utils import translate_distMat
 from .utils import update_distance_matrices
 
@@ -104,6 +105,13 @@ def get_options():
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
+
+    # qc options
+    qcGroup = parser.add_argument_group('Quality control options')
+    qcGroup.add_argument('--max-a-dist', default = 0.5, type=float, help='Maximum accessory distance to permit '
+                                                                         '[default = 0.5]')
+    qcGroup.add_argument('--ignore-length', help='Ignore outliers in terms of assembly length '
+                                                 '[default = False]', default=False, action='store_true')
 
     # model fitting
     modelGroup = parser.add_argument_group('Model fit options')
@@ -209,9 +217,11 @@ def main():
             sys.stderr.write("Mode: Creating clusters from assemblies (create_db & fit_model)\n")
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
+                              args.threads, args.mash, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.output, True,
                     args.plot_fit, args.no_stream, args.mash, args.threads)
+            qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
             storePickle(refList, queryList, True, distMat, dists_out)
@@ -257,6 +267,9 @@ def main():
         refList, queryList, self, distMat = readPickle(distances)
         if not self:
             sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
+            sys.exit(1)
+        if qcDistMat(distMat, refList, queryList, args.max_a_dist) == False:
+            sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
 
         # Run selected model here, or if easy run DBSCAN followed by refinement
@@ -353,7 +366,7 @@ def main():
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
             # Read previous database
             kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, args.threads,
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads,
                               args.mash, True) # overwrite old db
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
@@ -379,9 +392,11 @@ def main():
             kmers, sketch_sizes = readMashDBParams(args.ref_db, kmers, sketch_sizes)
 
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.threads, args.mash, args.overwrite)
+            constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.ignore_length,
+                              args.threads, args.mash, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.output, False, args.plot_fit,
                                                         args.no_stream, args.mash, args.threads)
+            qcPass = qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
             # Assign these distances as within or between
             model_prefix = args.ref_db
@@ -435,7 +450,10 @@ def main():
 
             # update_db like no full_db
             if args.update_db:
-                sys.stderr.write("Updating reference database to " + args.output + "\n")
+                if not qcPass:
+                    sys.stderr.write("Queries contained outlier distances, not updating database\n")
+                else:
+                    sys.stderr.write("Updating reference database to " + args.output + "\n")
 
                 # Update the network + ref list
                 if args.full_db is False:
@@ -450,7 +468,8 @@ def main():
                 # Update the mash database
                 if newQueries != queryList:
                     tmpRefFile = writeTmpFile(newQueries)
-                    constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, args.threads, args.mash, True) # overwrite old db
+                    constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, True,
+                                      args.threads, args.mash, True) # overwrite old db
                     os.remove(tmpRefFile)
                 joinDBs(args.ref_db, args.output, args.output, kmers)
 

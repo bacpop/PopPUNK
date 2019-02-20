@@ -162,7 +162,7 @@ def main():
 
             # Resketch all
             createDatabaseDir(args.output, kmers)
-            constructDatabase(tmpName, kmers, sketch_sizes, args.output, args.threads, args.mash, True)
+            constructDatabase(tmpName, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
 
             os.rename(args.output + ".pkl", args.output + "/" + os.path.basename(args.output) + "dists.pkl")
             os.rename(args.output + ".npy", args.output + "/" + os.path.basename(args.output) + "dists.npy")

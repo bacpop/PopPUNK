@@ -17,7 +17,7 @@ from random import sample
 import numpy as np
 import sharedmem
 import networkx as nx
-from scipy import optimize
+from scipy import optimize, iqr
 
 from .utils import iterDistRows
 
@@ -76,7 +76,7 @@ def createDatabaseDir(outPrefix, kmers):
     else:
         try:
             os.makedirs(outPrefix)
-        except:
+        except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
@@ -205,7 +205,8 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
             sys.exit(1)
 
 
-def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_exec = 'mash', overwrite = False):
+def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers = False,
+                      threads = 1, mash_exec = 'mash', overwrite = False):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -224,6 +225,11 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
+        ignoreLengthOutliers (bool)
+            Whether to check for outlying genome lengths (and error
+            if found)
+
+            (default = True)
         threads (int)
             Number of threads to use
 
@@ -239,14 +245,31 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
 
     """
     # Genome length needed to calculate prob of random matches
-    genome_length = 1 # min of 1 to avoid div/0 errors
     try:
+        input_lengths = []
+        input_names = []
         with open(assemblyList, 'r') as assemblyFiles:
-            exampleFile = assemblyFiles.readline()
-            with open(exampleFile.rstrip(), 'r') as exampleAssembly:
-                for line in exampleAssembly:
-                    if line[0] != ">":
-                        genome_length += len(line.rstrip())
+            for assembly in assemblyFiles:
+                with open(assembly.rstrip(), 'r') as exampleAssembly:
+                    genome_length = 0
+                    for line in exampleAssembly:
+                        if line[0] != ">":
+                            genome_length += len(line.rstrip())
+                    input_lengths.append(genome_length)
+                    input_names.append(assembly)
+
+        input_lengths = np.array(input_lengths)
+        genome_length = np.mean(input_lengths)
+
+        # Check for outliers
+        if not ignoreLengthOutliers:
+            outlier_low = np.percentile(input_lengths, 0.25) - (iqr(input_lengths) * 1.5)
+            outlier_high = np.percentile(input_lengths, 0.75) + (iqr(input_lengths) * 1.5)
+            outliers = np.where(input_lengths > outlier_high | input_lengths < outlier_low, input_names)
+            if len(outliers) > 0:
+                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
+                                 "\n".join(outliers) + "\n")
+                sys.exit(1)
 
     except FileNotFoundError as e:
         sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
@@ -254,6 +277,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, threads = 1, mash_ex
         genome_length = 2000000
 
     # check minimum k-mer is above random probability threshold
+    assert(genome_length > 0)
     k_min = min(klist)
     if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
         sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")

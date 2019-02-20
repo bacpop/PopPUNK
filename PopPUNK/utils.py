@@ -109,6 +109,39 @@ def writeTmpFile(fileList):
 
     return tmpName
 
+
+def qcDistMat(distMat, refList, queryList, a_max):
+    """Checks distance matrix for outliers. At the moment
+    just a threshold for accessory distance
+
+    Args:
+        distMat (np.array)
+            Core and accessory distances
+        refList (list)
+            Reference labels
+        queryList (list)
+            Query labels (or refList if self)
+        a_max (float)
+            Maximum accessory distance to allow
+
+    Returns:
+        passed (bool)
+            False if any samples failed
+    """
+    passed = True
+
+    # First check with numpy, which is quicker than iterating over everything
+    if np.any(distMat[:,1] > a_max):
+        passed = False
+        names = iterDistRows(refList, queryList, refList == queryList)
+        for i, (ref, query) in enumerate(names):
+            if distMat[i,1] > a_max:
+                sys.stderr("WARNING: Accessory outlier at a=" + str(distMat[i,1]) +
+                           " 1:" + ref + " 2:" + query + "\n")
+
+    return passed
+
+
 def readClusters(clustCSV):
     """Read a previous reference clustering from CSV
 
@@ -130,6 +163,7 @@ def readClusters(clustCSV):
             clusters[clust_id].add(sample)
 
     return clusters
+
 
 def readExternalClusters(clustCSV):
     """Read a cluster definition from CSV (does not have to be PopPUNK
@@ -191,6 +225,7 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
             j += 1
 
     return distMat
+
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
                              query_query_distMat = None):

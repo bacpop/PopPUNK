@@ -252,7 +252,7 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
 
             # use database construction methods to find links between unassigned queries
             sketchSize = getSketchSize(queryDB, kmers, mash_exec)
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, threads, mash_exec)
+            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, mash_exec)
             qlist1, qlist2, distMat = queryDatabase(tmpHandle, kmers, tmpDirName, tmpDirName, True,
                 0, no_stream, mash_exec = mash_exec, threads = threads)
             queryAssignation = model.assign(distMat)
