@@ -136,8 +136,8 @@ def qcDistMat(distMat, refList, queryList, a_max):
         names = iterDistRows(refList, queryList, refList == queryList)
         for i, (ref, query) in enumerate(names):
             if distMat[i,1] > a_max:
-                sys.stderr("WARNING: Accessory outlier at a=" + str(distMat[i,1]) +
-                           " 1:" + ref + " 2:" + query + "\n")
+                sys.stderr.write("WARNING: Accessory outlier at a=" + str(distMat[i,1]) +
+                                 " 1:" + ref + " 2:" + query + "\n")
 
     return passed
 

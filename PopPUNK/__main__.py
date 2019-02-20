@@ -258,7 +258,8 @@ def main():
             if args.model_dir is not None:
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                        model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+                        model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
+                        args.output)
             if args.refine_model and model.type == 'refine':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)

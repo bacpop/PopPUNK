@@ -17,7 +17,7 @@ from random import sample
 import numpy as np
 import sharedmem
 import networkx as nx
-from scipy import optimize, iqr
+from scipy import optimize
 
 from .utils import iterDistRows
 
@@ -258,17 +258,19 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
                     input_lengths.append(genome_length)
                     input_names.append(assembly)
 
-        input_lengths = np.array(input_lengths)
-        genome_length = np.mean(input_lengths)
-
         # Check for outliers
+        outliers = []
+        sigma = 5
         if not ignoreLengthOutliers:
-            outlier_low = np.percentile(input_lengths, 0.25) - (iqr(input_lengths) * 1.5)
-            outlier_high = np.percentile(input_lengths, 0.75) + (iqr(input_lengths) * 1.5)
-            outliers = np.where(input_lengths > outlier_high | input_lengths < outlier_low, input_names)
-            if len(outliers) > 0:
+            genome_length = np.mean(np.array(input_lengths))
+            outlier_low = genome_length - sigma*np.std(input_lengths)
+            outlier_high = genome_length + sigma*np.std(input_lengths)
+            for length, name in zip(input_lengths, input_names):
+                if length < outlier_low or length > outlier_high:
+                    outliers.append(name)
+            if outliers:
                 sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
-                                 "\n".join(outliers) + "\n")
+                                 "\n".join(outliers))
                 sys.exit(1)
 
     except FileNotFoundError as e:

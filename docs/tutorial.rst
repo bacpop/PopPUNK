@@ -118,6 +118,12 @@ The following command line options can be used in this mode:
                            core/accessory distances [default = 0]
      --overwrite           Overwrite any existing database files
 
+   Quality control options:
+     --max-a-dist MAX_A_DIST
+                        Maximum accessory distance to permit [default = 0.5]
+     --ignore-length    Ignore outliers in terms of assembly length [default =
+                        False]
+
    Kmer comparison options:
      --min-k MIN_K         Minimum kmer length [default = 9]
      --max-k MAX_K         Maximum kmer length [default = 29]
@@ -396,6 +402,10 @@ The following command line options can be used in this mode:
      --full-db             Keep full reference database, not just representatives
      --overwrite           Overwrite any existing database files
 
+   Quality control options:
+     --max-a-dist MAX_A_DIST
+                        Maximum accessory distance to permit [default = 0.5]
+
    Model fit options:
      --K K                 Maximum number of mixture components [default = 2]
      --dbscan              Use DBSCAN rather than mixture model
@@ -526,6 +536,10 @@ The following command line options can be used in this mode:
      --output OUTPUT       Prefix for output files (required)
      --full-db             Keep full reference database, not just representatives
      --overwrite           Overwrite any existing database files
+
+   Quality control options:
+     --max-a-dist MAX_A_DIST
+                        Maximum accessory distance to permit [default = 0.5]
 
    Refine model options:
      --pos-shift POS_SHIFT
@@ -793,6 +807,12 @@ The following command line options can be used in this mode:
    Output options:
      --output OUTPUT       Prefix for output files (required)
      --update-db           Update reference database with query sequences
+
+   Quality control options:
+     --max-a-dist MAX_A_DIST
+                        Maximum accessory distance to permit [default = 0.5]
+     --ignore-length    Ignore outliers in terms of assembly length [default =
+                        False]
 
    Database querying options:
      --model-dir MODEL_DIR

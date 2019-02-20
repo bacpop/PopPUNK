@@ -62,6 +62,11 @@ Command line options
      --k-step K_STEP       K-mer step size [default = 4]
      --sketch-size SKETCH_SIZE
                            Kmer sketch size [default = 10000]
+   Quality control options:
+     --max-a-dist MAX_A_DIST
+                        Maximum accessory distance to permit [default = 0.5]
+     --ignore-length    Ignore outliers in terms of assembly length [default =
+                        False]
 
    Model fit options:
      --K K                 Maximum number of mixture components [default = 2]

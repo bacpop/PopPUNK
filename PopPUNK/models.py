@@ -38,7 +38,7 @@ from .refine import withinBoundary
 from .refine import readManualStart
 from .plot import plot_refined_results
 
-def loadClusterFit(pkl_file, npz_file):
+def loadClusterFit(pkl_file, npz_file, outPrefix = ""):
     '''Call this to load a fitted model
 
     Args:
@@ -53,15 +53,15 @@ def loadClusterFit(pkl_file, npz_file):
 
     if fit_type == "bgmm":
         sys.stderr.write("Loading BGMM 2D Gaussian model\n")
-        load_obj = BGMMFit("")
+        load_obj = BGMMFit(outPrefix)
         load_obj.load(fit_data, fit_object)
     elif fit_type == "dbscan":
         sys.stderr.write("Loading DBSCAN model\n")
-        load_obj = DBSCANFit("")
+        load_obj = DBSCANFit(outPrefix)
         load_obj.load(fit_data, fit_object)
     elif fit_type == "refine":
         sys.stderr.write("Loading previously refined model\n")
-        load_obj = RefineFit("")
+        load_obj = RefineFit(outPrefix)
         load_obj.load(fit_data, fit_object)
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
@@ -119,6 +119,23 @@ class ClusterFit:
                          self.scale,
                          self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_distanceDistribution",
                          self.outPrefix + " distances")
+
+    def plot(self, X=None):
+        '''Initial steps for all plot functions.
+
+        Ensures model has been fitted, and takes a new X subsample if needed
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to subsample.
+
+                (default = None)
+        '''
+        if not self.fitted:
+            raise RuntimeError("Trying to plot unfitted model")
+        # Generate a subsampling if one was not used in the fit
+        if not hasattr(self, 'subsampled_X'):
+            self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
     def no_scale(self):
         '''Turn off scaling (useful for refine, where optimization
@@ -217,7 +234,9 @@ class BGMMFit(ClusterFit):
 
 
     def plot(self, X, y):
-        '''Write a summary of the fit, and plot the results using
+        '''Extends :func:`~ClusterFit.plot`
+
+        Write a summary of the fit, and plot the results using
         :func:`PopPUNK.plot.plot_results` and :func:`PopPUNK.plot.plot_contours`
 
         Args:
@@ -226,19 +245,18 @@ class BGMMFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments from :func:`~BGMMFit.assign`
         '''
-        if not self.fitted:
-            raise RuntimeError("Trying to plot unfitted model")
-        else:
-            avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
-            used_components = np.unique(y).size
-            sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
-                                                           "\tNumber of components used\t" + str(used_components)]) + "\n")
+        ClusterFit.plot(self, X)
 
-            title = "DPGMM – estimated number of spatial clusters: " + str(len(np.unique(y)))
-            outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
+        avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
+        used_components = np.unique(y).size
+        sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
+                                                        "\tNumber of components used\t" + str(used_components)]) + "\n")
 
-            plot_results(X, y, self.means, self.covariances, self.scale, title, outfile)
-            plot_contours(y, self.weights, self.means, self.covariances, title + " assignment boundary", outfile + "_contours")
+        title = "DPGMM – estimated number of spatial clusters: " + str(len(np.unique(y)))
+        outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
+
+        plot_results(X, y, self.means, self.covariances, self.scale, title, outfile)
+        plot_contours(y, self.weights, self.means, self.covariances, title + " assignment boundary", outfile + "_contours")
 
 
     def assign(self, X, values = False):
@@ -390,7 +408,9 @@ class DBSCANFit(ClusterFit):
 
 
     def plot(self, X=None, y=None):
-        '''Write a summary of the fit, and plot the results using
+        '''Extends :func:`~ClusterFit.plot`
+
+        Write a summary of the fit, and plot the results using
         :func:`PopPUNK.plot.plot_dbscan_results`
 
         Args:
@@ -399,15 +419,15 @@ class DBSCANFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments from :func:`~BGMMFit.assign`
         '''
-        if not self.fitted:
-            raise RuntimeError("Trying to plot unfitted model")
-        else:
-            sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" + str(self.n_clusters),
-                                                           "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
-                                                           "\tNumber of assignments\t" + str(len(self.labels))]) + "\n")
+        ClusterFit.plot(self, X)
 
-            plot_dbscan_results(self.subsampled_X * self.scale, self.labels, self.n_clusters,
-                self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
+        non_noise = np.sum(np.where(self.labels != -1))
+        sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" + str(self.n_clusters),
+                                                        "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
+                                                        "\tNumber of assignments\t" + str(len(non_noise))]) + "\n")
+
+        plot_dbscan_results(self.subsampled_X * self.scale, self.assign(subsampled_X), self.n_clusters,
+            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
     def assign(self, X):
@@ -585,7 +605,9 @@ class RefineFit(ClusterFit):
 
 
     def plot(self, X, y=None):
-        '''Write a summary of the fit, and plot the results using
+        '''Extends :func:`~ClusterFit.plot`
+
+        Write a summary of the fit, and plot the results using
         :func:`PopPUNK.plot.plot_refined_results`
 
         Args:
@@ -594,13 +616,12 @@ class RefineFit(ClusterFit):
             y (numpy.array)
                 Assignments (unused)
         '''
-        if not self.fitted:
-            raise RuntimeError("Trying to plot unfitted model")
-        else:
-            plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y, self.core_boundary,
-                self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
-                self.max_move, self.scale, self.indiv_fitted, "Refined fit boundary",
-                self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
+        ClusterFit.plot(self, X)
+
+        plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y, self.core_boundary,
+            self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
+            self.max_move, self.scale, self.indiv_fitted, "Refined fit boundary",
+            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
     def assign(self, X, slope=None):
