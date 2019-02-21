@@ -4,6 +4,8 @@ Scripts
 =======
 
 Brief documentation on the helper scripts included in the package in the ``/scripts`` directory.
+To use these scripts you will need to have a clone of the git repository, as these are not included
+with the conda or pip installs.
 
 .. contents::
    :local:

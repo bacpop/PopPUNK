@@ -68,7 +68,7 @@ We tested PopPUNK with the following packages:
 ``numba`` may need ``gcc >=v4.8`` to install correctly through pip (if you are
 getting ``OSError`` or ``'GLIBCXX_3.4.17' not found``).
 
-You will need a [mash](http://mash.readthedocs.io/en/latest/) installation
+You will need a `mash <http://mash.readthedocs.io/en/latest/>`__ installation
 which is v2.0 or higher
 
 Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
