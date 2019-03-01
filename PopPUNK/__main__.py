@@ -373,74 +373,74 @@ def main():
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
     elif args.assign_query:
-        assign_query(args.ref_db, args.q_files, args.output, args.update_db, args.distances,
+        assign_query(args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
                      args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length,
                      args.threads, args.mash, args.overwrite, args.plot_fit, args.no_stream,
-                     args.max_a_dist, args.model_dir, args.previous_clustering, args.core_only,
-                     args.accessory_only, args.phandango, args.grapetree, args.info_csv,
+                     args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
+                     args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity)
 
     sys.stderr.write("\nDone\n")
 
-def assign_query(ref_db, q_files, output, update_db, distances, microreact, cytoscape,
+def assign_query(ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
                  kmers, sketch_sizes, ignore_length, threads, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
-                 core_only, accessory_only, phandango, grapetree,
+                 external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity):
 
-    if args.ref_db is not None and args.q_files is not None:
+    if ref_db is not None and q_files is not None:
         sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
         self = False
-        if args.ref_db == args.output:
+        if ref_db == output:
             sys.stderr.write("--output and --ref-db must be different to "
                                 "prevent overwrite.\n")
             sys.exit(1)
-        if (args.update_db and not args.distances):
+        if (update_db and not distances):
             sys.stderr.write("--update-db requires --distances to be provided\n")
             sys.exit(1)
-        if (args.microreact or args.cytoscape) and (not args.update_db or not args.distances):
+        if (microreact or cytoscape) and (not update_db or not distances):
             sys.stderr.write("--microreact and/or --cytoscape output must be "
                     "run with --distances and --update-db to generate a full "
                     " distance matrix\n")
             sys.exit(1)
 
         # Find distances to reference db
-        kmers, sketch_sizes = readMashDBParams(args.ref_db, kmers, sketch_sizes)
+        kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
 
-        createDatabaseDir(args.output, kmers)
-        constructDatabase(args.q_files, kmers, sketch_sizes, args.output, args.ignore_length,
-                            args.threads, args.mash, args.overwrite)
-        refList, queryList, distMat = queryDatabase(args.q_files, kmers, args.ref_db, args.output, False, args.plot_fit,
-                                                    args.no_stream, args.mash, args.threads)
-        qcPass = qcDistMat(distMat, refList, queryList, args.max_a_dist)
+        createDatabaseDir(output, kmers)
+        constructDatabase(q_files, kmers, sketch_sizes, output, ignore_length,
+                            threads, mash, overwrite)
+        refList, queryList, distMat = queryDatabase(q_files, kmers, ref_db, output, False, plot_fit,
+                                                    no_stream, mash, threads)
+        qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
 
         # Assign these distances as within or between
-        model_prefix = args.ref_db
-        if args.model_dir is not None:
-            model_prefix = args.model_dir
+        model_prefix = ref_db
+        if model_dir is not None:
+            model_prefix = model_dir
         model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                 model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
         queryAssignments = model.assign(distMat)
 
         # Set directories of previous fit
-        if args.previous_clustering is not None:
-            prev_clustering = args.previous_clustering
+        if previous_clustering is not None:
+            prev_clustering = previous_clustering
         else:
             prev_clustering = model_prefix
 
         # If a refined fit, may use just core or accessory distances
-        if args.core_only and model.type == 'refine':
+        if core_only and model.type == 'refine':
             model.slope = 0
             old_network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_core_graph.gpickle'
             old_cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_core_clusters.csv'
-        elif args.accessory_only and model.type == 'refine':
+        elif accessory_only and model.type == 'refine':
             model.slope = 1
             old_network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_accessory_graph.gpickle'
             old_cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_accessory_clusters.csv'
         else:
             old_network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_graph.gpickle'
             old_cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_clusters.csv'
-            if args.core_only or args.accessory_only:
+            if core_only or accessory_only:
                 sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                                     "a refined fit. Using the combined distances.\n")
 
@@ -453,55 +453,55 @@ def assign_query(ref_db, q_files, output, update_db, distances, microreact, cyto
             sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
         # Assign clustering by adding to network
-        ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, args.q_files,
-                genomeNetwork, kmers, queryAssignments, model, args.output, args.no_stream, args.update_db,
-                args.threads, args.mash)
+        ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, q_files,
+                genomeNetwork, kmers, queryAssignments, model, output, no_stream, update_db,
+                threads, mash)
 
         # if running simple query
         print_full_clustering = False
-        if args.update_db:
+        if update_db:
             print_full_clustering = True
-        isolateClustering = {'combined': printClusters(genomeNetwork, args.output + "/" + os.path.basename(args.output),
-                                                        old_cluster_file, args.external_clustering, print_full_clustering)}
+        isolateClustering = {'combined': printClusters(genomeNetwork, output + "/" + os.path.basename(output),
+                                                        old_cluster_file, external_clustering, print_full_clustering)}
 
         # update_db like no full_db
-        if args.update_db:
+        if update_db:
             if not qcPass:
                 sys.stderr.write("Queries contained outlier distances, not updating database\n")
             else:
-                sys.stderr.write("Updating reference database to " + args.output + "\n")
+                sys.stderr.write("Updating reference database to " + output + "\n")
 
             # Update the network + ref list
-            if args.full_db is False:
+            if full_db is False:
                 mashOrder = refList + ordered_queryList
-                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, args.output, refList)
+                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, output, refList)
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
             else:
                 newQueries = ordered_queryList
-            nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
+            nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
 
             # Update the mash database
             if newQueries != queryList:
                 tmpRefFile = writeTmpFile(newQueries)
-                constructDatabase(tmpRefFile, kmers, sketch_sizes, args.output, True,
-                                    args.threads, args.mash, True) # overwrite old db
+                constructDatabase(tmpRefFile, kmers, sketch_sizes, output, True,
+                                    threads, mash, True) # overwrite old db
                 os.remove(tmpRefFile)
-            joinDBs(args.ref_db, args.output, args.output, kmers)
+            joinDBs(ref_db, output, output, kmers)
 
             # Update distance matrices with all calculated distances
-            if args.distances == None:
-                distanceFiles = args.ref_db + "/" + os.path.basename(args.ref_db) + ".dists"
+            if distances == None:
+                distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
             else:
-                distanceFiles = args.distances
+                distanceFiles = distances
             refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
             combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
                                                                 ordered_queryList, distMat, query_distMat)
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
 
             # Prune distances to references only, if not full db
-            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-            if args.full_db is False:
+            dists_out = output + "/" + os.path.basename(output) + ".dists"
+            if full_db is False:
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs
                 nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
@@ -519,29 +519,29 @@ def assign_query(ref_db, q_files, output, update_db, distances, microreact, cyto
                 assert combined_seq == refList + newQueries
 
         # generate outputs for microreact if asked
-        if args.microreact:
+        if microreact:
             sys.stderr.write("Writing microreact output\n")
-            outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, args.perplexity,
-                                    args.output, args.info_csv, args.rapidnj, ordered_queryList, args.overwrite)
+            outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
+                                    output, info_csv, rapidnj, ordered_queryList, overwrite)
         # generate outputs for phandango if asked
-        if args.phandango:
+        if phandango:
             sys.stderr.write("Writing phandango output\n")
-            outputsForPhandango(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                                queryList = ordered_queryList, overwrite = args.overwrite, microreact = args.microreact)
+            outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                                queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
         # generate outputs for grapetree if asked
-        if args.grapetree:
+        if grapetree:
             sys.stderr.write("Writing grapetree output\n")
-            outputsForGrapetree(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                                queryList = ordered_queryList, overwrite = args.overwrite, microreact = args.microreact)
+            outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                                queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
         # generate outputs for cytoscape if asked
-        if args.cytoscape:
+        if cytoscape:
             sys.stderr.write("Writing cytoscape output\n")
-            outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, ordered_queryList)
+            outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
             if model.indiv_fitted:
                 sys.stderr.write("Writing individual cytoscape networks\n")
                 for dist_type in ['core', 'accessory']:
-                    outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
-                        args.info_csv, queryList = ordered_queryList, suffix = dist_type, writeCsv = False)
+                    outputsForCytoscape(indivNetworks[dist_type], isolateClustering, output,
+                        info_csv, queryList = ordered_queryList, suffix = dist_type, writeCsv = False)
 
     else:
         sys.stderr.write("Need to provide both a reference database with --ref-db and "
