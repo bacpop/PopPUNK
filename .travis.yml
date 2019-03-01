@@ -25,3 +25,8 @@ before_script: # to get matplotlib to work
   - sleep 3 # give xvfb some time to start
 script:
   - cd test && python run_test.py
+
+# blocklist
+branches:
+  except:
+    - pathogenwatch
