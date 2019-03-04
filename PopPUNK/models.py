@@ -612,6 +612,12 @@ class RefineFit(ClusterFit):
         self.fitted = True
         self.indiv_fitted = False # Do not output multiple microreacts
 
+        # blank values to pass to plot (used in --use-model)
+        self.mean0 = None
+        self.mean1 = None
+        self.start_point = None
+        self.min_move = None
+        self.max_move = None
 
     def plot(self, X, y=None):
         '''Extends :func:`~ClusterFit.plot`

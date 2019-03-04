@@ -495,17 +495,19 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
         plt.plot([0, np.amax(X[:,0])], [accessory_boundary*scale[1], accessory_boundary*scale[1]], color='darkgray', linewidth=1,
                 linestyle='-.')
 
-    minimum_xy = transformLine(-min_move, start_point, mean1) * scale
-    maximum_xy = transformLine(max_move, start_point, mean1) * scale
-    plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
-              color='k', linewidth=1, linestyle=':', label='Search range')
-    start_point *= scale
-    plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
+    # Draw boundary search range
+    if mean0 != None and mean1 != None and min_move != None and max_move != None and start_point != None:
+        minimum_xy = transformLine(-min_move, start_point, mean1) * scale
+        maximum_xy = transformLine(max_move, start_point, mean1) * scale
+        plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
+                color='k', linewidth=1, linestyle=':', label='Search range')
+        start_point *= scale
+        plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
 
-    mean0 *= scale
-    mean1 *= scale
-    plt.plot(mean0[0], mean0[1], 'rx', label='Within-strain mean')
-    plt.plot(mean1[0], mean1[1], 'r+', label='Between-strain mean')
+        mean0 *= scale
+        mean1 *= scale
+        plt.plot(mean0[0], mean0[1], 'rx', label='Within-strain mean')
+        plt.plot(mean1[0], mean1[1], 'r+', label='Between-strain mean')
 
     plt.legend()
     plt.title(title)
