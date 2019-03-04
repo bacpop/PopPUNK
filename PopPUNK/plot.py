@@ -496,7 +496,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
                 linestyle='-.')
 
     # Draw boundary search range
-    if mean0 != None and mean1 != None and min_move != None and max_move != None and start_point != None:
+    if mean0 is not None and mean1 is not None and min_move is not None and max_move is not None and start_point is not None:
         minimum_xy = transformLine(-min_move, start_point, mean1) * scale
         maximum_xy = transformLine(max_move, start_point, mean1) * scale
         plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
