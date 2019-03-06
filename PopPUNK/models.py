@@ -84,7 +84,7 @@ class ClusterFit:
 
     def __init__(self, outPrefix):
         self.outPrefix = outPrefix
-        if not os.path.isdir(outPrefix):
+        if outPrefix != "" and not os.path.isdir(outPrefix):
             try:
                 os.makedirs(outPrefix)
             except OSError:
