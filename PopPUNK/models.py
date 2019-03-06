@@ -84,6 +84,13 @@ class ClusterFit:
 
     def __init__(self, outPrefix):
         self.outPrefix = outPrefix
+        if not os.path.isdir(outPrefix):
+            try:
+                os.makedirs(outPrefix)
+            except OSError:
+                sys.stderr.write("Cannot create output directory " + outPrefix + "\n")
+                sys.exit(1)
+
         self.fitted = False
         self.indiv_fitted = False
 
@@ -633,7 +640,14 @@ class RefineFit(ClusterFit):
         '''
         ClusterFit.plot(self, X)
 
-        plot_refined_results(X, self.assign(X), self.optimal_x, self.optimal_y, self.core_boundary,
+        # Subsamples huge plots to save on memory
+        max_points = 0.5*(5000)**2
+        if X.shape[0] > max_points:
+            plot_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_points,]
+        else:
+            plot_X = X
+
+        plot_refined_results(plot_X, self.assign(plot_X), self.optimal_x, self.optimal_y, self.core_boundary,
             self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
             self.max_move, self.scale, self.indiv_fitted, "Refined fit boundary",
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
