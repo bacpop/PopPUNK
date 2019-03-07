@@ -641,7 +641,7 @@ class RefineFit(ClusterFit):
         ClusterFit.plot(self, X)
 
         # Subsamples huge plots to save on memory
-        max_points = 0.5*(5000)**2
+        max_points = int(0.5*(5000)**2)
         if X.shape[0] > max_points:
             plot_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_points,]
         else:
