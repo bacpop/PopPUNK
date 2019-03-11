@@ -600,7 +600,7 @@ def fitKmerCurve(pairwise, klist, jacobian):
                                      bounds=([-np.inf, -np.inf], [0, 0]))
         transformed_params = 1 - np.exp(distFit.x)
     except ValueError as e:
-        sys.stderr.write("Fitting k-mer curve failed: " + e.message +
+        sys.stderr.write("Fitting k-mer curve failed: " + format(e) +
                          "\nWith mash input " +
                          np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
                          "\nCheck for low quality input genomes\n")
