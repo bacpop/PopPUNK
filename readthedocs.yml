@@ -17,9 +17,10 @@ python:
    version: 3.7
    install:
       - requirements: requirements.txt
-      - method: pip
-      - path: .
-      - extra_requirements:
+        method: pip
+        path: .
+        extra_requirements:
           - setuptools==40.8.0
       - method: setuptools
+        path: .
    system_packages: true
