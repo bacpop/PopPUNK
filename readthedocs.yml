@@ -18,8 +18,8 @@ python:
    install:
       - requirements: requirements.txt
       - method: pip
-        path: .
-        extra_requirements:
+      - path: .
+      - extra_requirements:
           - setuptools==40.8.0
       - method: setuptools
    system_packages: true
