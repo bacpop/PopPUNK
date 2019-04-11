@@ -244,7 +244,10 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             (default = False)
 
     """
+    
     # Genome length needed to calculate prob of random matches
+    genome_length = 2000000 # assume 2 Mb in the absence of other information
+    
     try:
         input_lengths = []
         input_names = []
@@ -276,7 +279,6 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
     except FileNotFoundError as e:
         sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
                          "Assuming length of 2Mb for random match probs.\n")
-        genome_length = 2000000
 
     # check minimum k-mer is above random probability threshold
     assert(genome_length > 0)
