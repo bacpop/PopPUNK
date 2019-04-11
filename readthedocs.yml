@@ -12,16 +12,14 @@ sphinx:
 # Optionally build your docs in additional formats such as PDF and ePub
 formats: all
 
-requirements_file: requirements.txt
-
 # Optionally set the version of Python and requirements required to build your docs
 python:
    version: 3.7
    install:
-      - requirements: setuptools==40.8.0
+      - requirements: requirements.txt
       - method: pip
         path: .
-#        extra_requirements:
-#          - setuptools==40.8.0
+        extra_requirements:
+          - setuptools==40.8.0
       - method: setuptools
    system_packages: true
