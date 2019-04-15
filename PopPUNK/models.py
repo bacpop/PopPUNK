@@ -263,7 +263,11 @@ class BGMMFit(ClusterFit):
         avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
         used_components = np.unique(y).size
         sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
-                                                        "\tNumber of components used\t" + str(used_components)]) + "\n")
+                                                        "\tNumber of components used\t" + str(used_components)]) + "\n\n")
+        sys.stderr.write("Scaled component means:\n")
+        for centre in self.means:
+            sys.stderr.write("\t" + str(centre) + "\n")
+        sys.stderr.write("\n")
 
         title = "DPGMM – estimated number of spatial clusters: " + str(len(np.unique(y)))
         outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
@@ -339,8 +343,8 @@ class DBSCANFit(ClusterFit):
 
         # DBSCAN parameters
         cache_out = "./" + self.outPrefix + "_cache"
-        min_samples = max(int(min_cluster_prop * X.shape[0]), 10)
-        min_cluster_size = max(int(0.01 * X.shape[0]), 10)
+        min_samples = max(int(min_cluster_prop * self.subsampled_X.shape[0]), 10)
+        min_cluster_size = max(int(0.01 * self.subsampled_X.shape[0]), 10)
 
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples and min_samples >= 10:
@@ -360,7 +364,7 @@ class DBSCANFit(ClusterFit):
                     self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
                     self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
-                y = self.assign(X)
+                y = self.assign(self.subsampled_X, no_scale=True)
                 self.within_label = findWithinLabel(self.cluster_means, y)
                 self.between_label = findBetweenLabel(y, self.within_label)
 
@@ -379,6 +383,7 @@ class DBSCANFit(ClusterFit):
         else:
             shutil.rmtree(cache_out)
 
+        y = self.assign(X)
         return y
 
 
@@ -440,18 +445,29 @@ class DBSCANFit(ClusterFit):
         non_noise = np.sum(np.where(self.labels != -1))
         sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" + str(self.n_clusters),
                                                         "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
-                                                        "\tNumber of assignments\t" + str(non_noise)]) + "\n")
+                                                        "\tNumber of assignments\t" + str(non_noise)]) + "\n\n")
 
-        plot_dbscan_results(self.subsampled_X * self.scale, self.assign(self.subsampled_X), self.n_clusters,
-            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
+        sys.stderr.write("Scaled component means\n")
+        for centre in self.cluster_means:
+            sys.stderr.write("\t" + str(centre) + "\n")
+        sys.stderr.write("\n")
+
+        plot_dbscan_results(self.subsampled_X * self.scale,
+                            self.assign(self.subsampled_X, no_scale=True),
+                            self.n_clusters,
+                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
-    def assign(self, X):
+    def assign(self, X, no_scale = False):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
             X (numpy.array)
                 Core and accessory distances
+            no_scale (bool)
+                Do not scale X
+
+                [default = False]
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -459,7 +475,11 @@ class DBSCANFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            y = assign_samples_dbscan(X, self.hdb, self.scale)
+            if no_scale:
+                scale = np.array([1,1])
+            else:
+                scale = self.scale
+            y = assign_samples_dbscan(X, self.hdb, scale)
 
         return y
 
