@@ -1,10 +1,1 @@
-Cython==0.26.1
-DendroPy==4.3.0
-matplotlib==2.1.2
-networkx==2.1
-numpy==1.14.1
-numba==0.36.2
-pandas==0.22.0
-scikit-learn==0.19.1
-scipy==1.0.0
-sharedmem==0.3.5
+Cython>=0.26.1

@@ -36,7 +36,16 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.viewcode']
 
 # Causes a problem with rtd: https://github.com/pypa/setuptools/issues/1694
-autodoc_mock_imports = ["hdbscan"]
+autodoc_mock_imports = ["hdbscan",
+                        "numpy",
+                        "networkx",
+                        "pandas",
+                        "scipy",
+                        "sharedmem",
+                        "sklearn",
+                        "matplotlib",
+                        "numba",
+                        "dendropy"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
