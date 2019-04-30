@@ -56,6 +56,9 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
             sys.stderr.write("Couldn't find " + to_remove + " in database\n")
     remove_seqs = frozenset(remove_seqs_list)
 
+    newRefList = refList
+    newDistMat = distMat
+
     if len(remove_seqs) > 0:
         sys.stderr.write("Removing " + str(len(remove_seqs)) + " sequences\n")
 
