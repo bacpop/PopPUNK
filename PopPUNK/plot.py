@@ -21,250 +21,6 @@ from sklearn.neighbors.kde import KernelDensity
 import dendropy
 import networkx as nx
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True):
-    """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
-
-    Args:
-        G (networkx.Graph)
-            The network to write from :func:`~PopPUNK.network.constructNetwork`
-        clustering (dict)
-            Dictionary of cluster assignments (keys are nodeNames).
-        outPrefix (str)
-            Prefix for files to be written
-        epiCsv (str)
-            Optional CSV of epi data to paste in the output in addition to
-            the clusters.
-        queryList (list)
-            Optional list of isolates that have been added as a query.
-            (default = None)
-        suffix (string)
-            String to append to network file name.
-            (default = None)
-        writeCsv (bool)
-            Whether to print CSV file to accompany network
-
-    """
-    # write graph file
-    if suffix is None:
-        graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
-    else:
-        graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
-    nx.write_graphml(G, outPrefix + "/" + graph_file_name)
-
-    # Write CSV of metadata
-    if writeCsv:
-        refNames = G.nodes(data=False)
-        seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
-        writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
-                        refNames,
-                        seqLabels,
-                        clustering,
-                        'cytoscape',
-                        epiCsv,
-                        queryList)
-
-def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None):
-    """Print CSV file of clustering and optionally epi data
-
-    Writes CSV output of clusters which can be used as input to microreact and cytoscape.
-    Uses pandas to deal with CSV reading and writing nicely.
-
-    The epiCsv, if provided, should have the node labels in the first column.
-
-    Args:
-        outfile (str)
-            File to write the CSV to.
-        nodeNames (list)
-            Names of sequences in clustering (includes path).
-        nodeLabels (list)
-            Names of sequences to write in CSV (usually has path removed).
-        clustering (dict or dict of dicts)
-            Dictionary of cluster assignments (keys are nodeNames). Pass a dict with depth two
-            to include multiple possible clusterings.
-        output_format (str)
-            Software for which CSV should be formatted
-            (microreact, phandango, grapetree and cytoscape are accepted)
-        epiCsv (str)
-            Optional CSV of epi data to paste in the output in addition to
-            the clusters (default = None).
-        queryNames (list)
-            Optional list of isolates that have been added as a query.
-
-            (default = None)
-    """
-    # set order of column names
-    colnames = []
-    if output_format == 'microreact':
-        colnames = ['id']
-        for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster__autocolour'
-            colnames.append(col_name)
-        if queryNames is not None:
-            colnames.append('Status')
-            colnames.append('Status__colour')
-    elif output_format == 'phandango':
-        colnames = ['id']
-        for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster'
-            colnames.append(col_name)
-        if queryNames is not None:
-            colnames.append('Status')
-            colnames.append('Status:colour')
-    elif output_format == 'grapetree':
-        colnames = ['ID']
-        for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster'
-            colnames.append(col_name)
-        if queryNames is not None:
-            colnames.append('Status')
-    elif output_format == 'cytoscape':
-        colnames = ['id']
-        for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster'
-            colnames.append(col_name)
-        if queryNames is not None:
-            colnames.append('Status')
-    else:
-        sys.stderr.write("Do not recognise format for CSV writing")
-        exit(1)
-
-    # process epidemiological data
-    if epiCsv is not None:
-        epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
-
-    d = defaultdict(list)
-    if epiCsv is not None:
-        for e in epiData.columns.values:
-            colnames.append(str(e))
-
-    columns_to_be_omitted = []
-
-    # process clustering data
-    nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
-
-    for name, label in zip(nodeNames, nodeLabels):
-        if name in clustering['combined']:
-            if output_format == 'microreact':
-                d['id'].append(label)
-                for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster__autocolour"
-                    d[col_name].append(clustering[cluster_type][name])
-                if queryNames is not None:
-                    if name in queryNames:
-                        d['Status'].append("Query")
-                        d['Status__colour'].append("red")
-                    else:
-                        d['Status'].append("Reference")
-                        d['Status__colour'].append("black")
-            elif output_format == 'phandango':
-                d['id'].append(label)
-                for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster"
-                    d[col_name].append(clustering[cluster_type][name])
-                if queryNames is not None:
-                    if name in queryNames:
-                        d['Status'].append("Query")
-                        d['Status:colour'].append("#ff0000")
-                    else:
-                        d['Status'].append("Reference")
-                        d['Status:colour'].append("#000000")
-            elif output_format == 'grapetree':
-                d['ID'].append(label)
-                for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster"
-                    d[col_name].append(clustering[cluster_type][name])
-                if queryNames is not None:
-                    if name in queryNames:
-                        d['Status'].append("Query")
-                    else:
-                        d['Status'].append("Reference")
-            elif output_format == 'cytoscape':
-                d['id'].append(name)
-                for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster"
-                    d[col_name].append(clustering[cluster_type][name])
-                if queryNames is not None:
-                    if name in queryNames:
-                        d['Status'].append("Query")
-                    else:
-                        d['Status'].append("Reference")
-            if epiCsv is not None:
-                # avoid adding
-                if len(columns_to_be_omitted) == 0:
-                    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
-                                             'core_Cluster__autocolour', 'accessory_Cluster__autocolour']
-                    for c in d:
-                        columns_to_be_omitted.append(c)
-                if label in epiData.index:
-                    for col, value in zip(epiData.columns.values, epiData.loc[label].values):
-                        if col not in columns_to_be_omitted:
-                            d[col].append(str(value))
-                else:
-                    for col in colnames:
-                        d[col].append('nan')
-        else:
-            sys.stderr.write("Cannot find " + name + " in clustering\n")
-            sys.exit(1)
-
-    # print CSV
-    pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
-
-def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
-    """Use rapidNJ for more rapid tree building
-
-    Creates a phylip of core distances, system call to rapidnj executable, loads tree as
-    dendropy object (cleaning quotes in node names), removes temporary files.
-
-    Args:
-        rapidnj (str)
-            Location of rapidnj executable
-        refList (list)
-            Names of sequences in coreMat (same order)
-        coreMat (numpy.array)
-            NxN core distance matrix produced in :func:`~outputsForMicroreact`
-        outPrefix (int)
-            Output prefix for temporary files
-        outPrefix (str)
-            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
-        tree_filename (str)
-            Filename for output tree (saved to disk)
-
-    Returns:
-        tree (dendropy.Tree)
-            NJ tree from core distances
-    """
-    # generate phylip matrix
-    phylip_name = outPrefix + "/" + os.path.basename(outPrefix) + "_core_distances.phylip"
-    with open(phylip_name, 'w') as pFile:
-        pFile.write(str(len(refList))+"\n")
-        for coreDist, ref in zip(coreMat, refList):
-            pFile.write(ref)
-            pFile.write(' '+' '.join(map(str, coreDist)))
-            pFile.write("\n")
-
-    # construct tree
-    rapidnj_cmd = rapidnj + " " + phylip_name + " -i pd -o t -x " + tree_filename + ".raw"
-    try:
-        # run command
-        subprocess.run(rapidnj_cmd, shell=True, check=True)
-
-        # remove quotation marks for microreact
-        with open(tree_filename + ".raw", 'r') as f, open(tree_filename, 'w') as fo:
-            for line in f:
-                fo.write(line.replace("'", ''))
-        # tidy unnecessary files
-        os.remove(tree_filename+".raw")
-        os.remove(phylip_name)
-
-    # record errors
-    except subprocess.CalledProcessError as e:
-        sys.stderr.write("Could not run command " + rapidnj_cmd + "; returned code: " + str(e.returncode) + "\n")
-        sys.exit(1)
-
-    # read tree and return
-    tree = dendropy.Tree.get(path=tree_filename, schema="newick")
-    return tree
-
 def plot_scatter(X, scale, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
 
@@ -588,6 +344,250 @@ def get_grid(minimum, maximum, resolution):
 
     return(xx, yy, xy)
 
+
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True):
+    """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
+
+    Args:
+        G (networkx.Graph)
+            The network to write from :func:`~PopPUNK.network.constructNetwork`
+        clustering (dict)
+            Dictionary of cluster assignments (keys are nodeNames).
+        outPrefix (str)
+            Prefix for files to be written
+        epiCsv (str)
+            Optional CSV of epi data to paste in the output in addition to
+            the clusters.
+        queryList (list)
+            Optional list of isolates that have been added as a query.
+            (default = None)
+        suffix (string)
+            String to append to network file name.
+            (default = None)
+        writeCsv (bool)
+            Whether to print CSV file to accompany network
+
+    """
+    # write graph file
+    if suffix is None:
+        graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
+    else:
+        graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
+    nx.write_graphml(G, outPrefix + "/" + graph_file_name)
+
+    # Write CSV of metadata
+    if writeCsv:
+        refNames = G.nodes(data=False)
+        seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
+        writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
+                        refNames,
+                        seqLabels,
+                        clustering,
+                        'cytoscape',
+                        epiCsv,
+                        queryList)
+
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None):
+    """Print CSV file of clustering and optionally epi data
+
+    Writes CSV output of clusters which can be used as input to microreact and cytoscape.
+    Uses pandas to deal with CSV reading and writing nicely.
+
+    The epiCsv, if provided, should have the node labels in the first column.
+
+    Args:
+        outfile (str)
+            File to write the CSV to.
+        nodeNames (list)
+            Names of sequences in clustering (includes path).
+        nodeLabels (list)
+            Names of sequences to write in CSV (usually has path removed).
+        clustering (dict or dict of dicts)
+            Dictionary of cluster assignments (keys are nodeNames). Pass a dict with depth two
+            to include multiple possible clusterings.
+        output_format (str)
+            Software for which CSV should be formatted
+            (microreact, phandango, grapetree and cytoscape are accepted)
+        epiCsv (str)
+            Optional CSV of epi data to paste in the output in addition to
+            the clusters (default = None).
+        queryNames (list)
+            Optional list of isolates that have been added as a query.
+
+            (default = None)
+    """
+    # set order of column names
+    colnames = []
+    if output_format == 'microreact':
+        colnames = ['id']
+        for cluster_type in clustering:
+            col_name = cluster_type + '_Cluster__autocolour'
+            colnames.append(col_name)
+        if queryNames is not None:
+            colnames.append('Status')
+            colnames.append('Status__colour')
+    elif output_format == 'phandango':
+        colnames = ['id']
+        for cluster_type in clustering:
+            col_name = cluster_type + '_Cluster'
+            colnames.append(col_name)
+        if queryNames is not None:
+            colnames.append('Status')
+            colnames.append('Status:colour')
+    elif output_format == 'grapetree':
+        colnames = ['ID']
+        for cluster_type in clustering:
+            col_name = cluster_type + '_Cluster'
+            colnames.append(col_name)
+        if queryNames is not None:
+            colnames.append('Status')
+    elif output_format == 'cytoscape':
+        colnames = ['id']
+        for cluster_type in clustering:
+            col_name = cluster_type + '_Cluster'
+            colnames.append(col_name)
+        if queryNames is not None:
+            colnames.append('Status')
+    else:
+        sys.stderr.write("Do not recognise format for CSV writing")
+        exit(1)
+
+    # process epidemiological data
+    if epiCsv is not None:
+        epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
+
+    d = defaultdict(list)
+    if epiCsv is not None:
+        for e in epiData.columns.values:
+            colnames.append(str(e))
+
+    columns_to_be_omitted = []
+
+    # process clustering data
+    nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
+
+    for name, label in zip(nodeNames, nodeLabels):
+        if name in clustering['combined']:
+            if output_format == 'microreact':
+                d['id'].append(label)
+                for cluster_type in clustering:
+                    col_name = cluster_type + "_Cluster__autocolour"
+                    d[col_name].append(clustering[cluster_type][name])
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                        d['Status__colour'].append("red")
+                    else:
+                        d['Status'].append("Reference")
+                        d['Status__colour'].append("black")
+            elif output_format == 'phandango':
+                d['id'].append(label)
+                for cluster_type in clustering:
+                    col_name = cluster_type + "_Cluster"
+                    d[col_name].append(clustering[cluster_type][name])
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                        d['Status:colour'].append("#ff0000")
+                    else:
+                        d['Status'].append("Reference")
+                        d['Status:colour'].append("#000000")
+            elif output_format == 'grapetree':
+                d['ID'].append(label)
+                for cluster_type in clustering:
+                    col_name = cluster_type + "_Cluster"
+                    d[col_name].append(clustering[cluster_type][name])
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                    else:
+                        d['Status'].append("Reference")
+            elif output_format == 'cytoscape':
+                d['id'].append(name)
+                for cluster_type in clustering:
+                    col_name = cluster_type + "_Cluster"
+                    d[col_name].append(clustering[cluster_type][name])
+                if queryNames is not None:
+                    if name in queryNames:
+                        d['Status'].append("Query")
+                    else:
+                        d['Status'].append("Reference")
+            if epiCsv is not None:
+                # avoid adding
+                if len(columns_to_be_omitted) == 0:
+                    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
+                                             'core_Cluster__autocolour', 'accessory_Cluster__autocolour']
+                    for c in d:
+                        columns_to_be_omitted.append(c)
+                if label in epiData.index:
+                    for col, value in zip(epiData.columns.values, epiData.loc[label].values):
+                        if col not in columns_to_be_omitted:
+                            d[col].append(str(value))
+                else:
+                    for col in colnames:
+                        d[col].append('nan')
+        else:
+            sys.stderr.write("Cannot find " + name + " in clustering\n")
+            sys.exit(1)
+
+    # print CSV
+    pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
+
+def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
+    """Use rapidNJ for more rapid tree building
+
+    Creates a phylip of core distances, system call to rapidnj executable, loads tree as
+    dendropy object (cleaning quotes in node names), removes temporary files.
+
+    Args:
+        rapidnj (str)
+            Location of rapidnj executable
+        refList (list)
+            Names of sequences in coreMat (same order)
+        coreMat (numpy.array)
+            NxN core distance matrix produced in :func:`~outputsForMicroreact`
+        outPrefix (int)
+            Output prefix for temporary files
+        outPrefix (str)
+            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        tree_filename (str)
+            Filename for output tree (saved to disk)
+
+    Returns:
+        tree (dendropy.Tree)
+            NJ tree from core distances
+    """
+    # generate phylip matrix
+    phylip_name = outPrefix + "/" + os.path.basename(outPrefix) + "_core_distances.phylip"
+    with open(phylip_name, 'w') as pFile:
+        pFile.write(str(len(refList))+"\n")
+        for coreDist, ref in zip(coreMat, refList):
+            pFile.write(ref)
+            pFile.write(' '+' '.join(map(str, coreDist)))
+            pFile.write("\n")
+
+    # construct tree
+    rapidnj_cmd = rapidnj + " " + phylip_name + " -i pd -o t -x " + tree_filename + ".raw"
+    try:
+        # run command
+        subprocess.run(rapidnj_cmd, shell=True, check=True)
+
+        # remove quotation marks for microreact
+        with open(tree_filename + ".raw", 'r') as f, open(tree_filename, 'w') as fo:
+            for line in f:
+                fo.write(line.replace("'", ''))
+        # tidy unnecessary files
+        os.remove(tree_filename+".raw")
+        os.remove(phylip_name)
+
+    # record errors
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write("Could not run command " + rapidnj_cmd + "; returned code: " + str(e.returncode) + "\n")
+        sys.exit(1)
+
+    # read tree and return
+    tree = dendropy.Tree.get(path=tree_filename, schema="newick")
+    return tree
 
 def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity, outPrefix, epiCsv,
                          rapidnj, queryList = None, overwrite = False):

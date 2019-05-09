@@ -26,6 +26,62 @@ from .utils import iterDistRows
 from .utils import readClusters
 from .utils import readExternalClusters
 
+def fetchNetwork(network_dir, model, refList,
+                  core_only = False, accessory_only = False):
+    """Load the network based on input options
+
+       Returns the network as a networkx, and sets the slope parameter of
+       the passed model object.
+
+       Args:
+            network_dir (str)
+                A network used to define clusters from :func:`~constructNetwork`
+            model (ClusterFit)
+                A fitted model object
+            refList (list)
+                Names of references that should be in the network
+            core_only (bool)
+                Return the network created using only core distances
+
+                [default = False]
+            accessory_only (bool)
+                Return the network created using only accessory distances
+
+                [default = False]
+
+       Returns:
+            genomeNetwork (nx.Graph)
+                The loaded network
+            cluster_file (str)
+                The CSV of cluster assignments corresponding to this network
+    """
+    # If a refined fit, may use just core or accessory distances
+    if core_only and model.type == 'refine':
+        model.slope = 0
+        network_file = network_dir + "/" + os.path.basename(network_dir) + '_core_graph.gpickle'
+        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_core_clusters.csv'
+    elif accessory_only and model.type == 'refine':
+        model.slope = 1
+        network_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_graph.gpickle'
+        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_clusters.csv'
+    else:
+        network_file = network_dir + "/" + os.path.basename(network_dir) + '_graph.gpickle'
+        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_clusters.csv'
+        if core_only or accessory_only:
+            sys.stderr.write("Can only do --core-only or --accessory-only fits from "
+                             "a refined fit. Using the combined distances.\n")
+
+    genomeNetwork = nx.read_gpickle(network_file)
+    sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
+
+    # Ensure all in dists are in final network
+    networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
+    if len(networkMissing) > 0:
+        sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+
+    return (genomeNetwork, cluster_file)
+
+
 def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
     """Extract references for each cluster based on cliques
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018 John Lees and Nick Croucher
+# Copyright 2019 John Lees and Nick Croucher
 
 # universal
 import os
@@ -9,7 +9,6 @@ import sys
 import numpy as np
 import networkx as nx
 import subprocess
-from collections import defaultdict
 
 # import poppunk package
 from .__init__ import __version__
@@ -23,6 +22,7 @@ from .mash import readMashDBParams
 
 from .models import *
 
+from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
 from .network import writeReferences
@@ -151,9 +151,9 @@ def get_options():
     queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
                                               '[default = False]', default=False, action='store_true')
 
-    # model output
+    # plot output
     faGroup = parser.add_argument_group('Further analysis options')
-    faGroup.add_argument('--subset', help='List of sequences to include in visualisation')
+    faGroup.add_argument('--subset', help='List of sequences to include in visualisation (with --generate-viz only)', default=None)
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
@@ -176,7 +176,8 @@ def get_options():
     return parser.parse_args()
 
 def main():
-
+    """Main function. Parses cmd line args and runs in the specified mode.
+    """
     if sys.version_info[0] < 3:
         sys.stderr.write('PopPUNK requires python version 3 or above\n')
         sys.exit(1)
@@ -336,10 +337,31 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        # generate distance matrices for outputs if required
+        # Create files for visualisations
         if args.microreact or args.cytoscape or args.phandango or args.grapetree:
+            # generate distance matrices for outputs if required
             combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
-            select_visualisation(args, refList, core_distMat, acc_distMat, isolateClustering, genomeNetwork)
+
+            if args.microreact:
+                sys.stderr.write("Writing microreact output\n")
+                outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                                     args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
+            if args.phandango:
+                sys.stderr.write("Writing phandango output\n")
+                outputsForPhandango(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    overwrite = args.overwrite, microreact = args.microreact)
+            if args.grapetree:
+                sys.stderr.write("Writing grapetree output\n")
+                outputsForGrapetree(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    overwrite = args.overwrite, microreact = args.microreact)
+            if args.cytoscape:
+                sys.stderr.write("Writing cytoscape output\n")
+                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                if model.indiv_fitted:
+                    sys.stderr.write("Writing individual cytoscape networks\n")
+                    for dist_type in ['core', 'accessory']:
+                        outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                    args.info_csv, suffix = dist_type, writeCsv = False)
 
         # extract limited references from clique by default
         if not args.full_db:
@@ -363,21 +385,16 @@ def main():
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity)
 
-    # generate visualisation files from existing
-    if args.generate_viz:
+    # generate visualisation files from existing database
+    elif args.generate_viz:
         sys.stderr.write("Mode: Generating files for visualisation from database\n\n")
-        
-        # load distances
-        rlist = []
-        qlist = []
+
         if args.distances is not None and args.ref_db is not None:
-            
             # Load original distances
             with open(args.distances + ".pkl", 'rb') as pickle_file:
                 rlist, qlist, self = pickle.load(pickle_file)
                 complete_distMat = np.load(args.distances + ".npy")
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(rlist, complete_distMat)
-
 
             # make directory for new output files
             try:
@@ -387,70 +404,59 @@ def main():
                 sys.exit(1)
 
             # identify existing analysis files
-            
             model_prefix = args.ref_db
             if args.model_dir is not None:
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
-                               
+
             # Set directories of previous fit
             if args.previous_clustering is not None:
                 prev_clustering = args.previous_clustering
             else:
                 prev_clustering = model_prefix
-            
-            genomeNetwork = fetch_network(args, rlist)
-            isolateClustering = defaultdict(dict)
-            clustering_fn = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
-            if args.previous_clustering is not None:
-                clustering_fn = args.previous_clustering
 
-            fit_type = 'combined'
-            if args.core_only:
-                fit_type = 'core'
-                clustering_fn = args.ref_db + '/' + os.path.basename(args.ref_db) + '_core_clusters.csv'
-            elif args.accessory_only:
-                fit_type = 'accessory'
-                clustering_fn = args.ref_db + '/' + os.path.basename(args.ref_db) + '_accessory_clusters.csv'
-
-            with open(clustering_fn, 'r') as cluster_csv:
-                for line in cluster_csv:
-                    info = line.rstrip().split(',')
-                    if info[0] != "Taxon":
-                        isolateClustering[fit_type][info[0]] = info[1]
+            # Read in network and cluster assignment
+            genomeNetwork, cluster_file = fetch_network(args, rlist)
+            isolateClustering = readClusters(cluster_file)
 
             # extract subset of distances if requested
-            viz_list = []
             if args.subset is not None:
+                viz_subset = []
                 with open(args.subset, 'r') as assemblyFiles:
                     for assembly in assemblyFiles:
-                        viz_list.append(assembly.rstrip())
-                             
+                        viz_subset.append(assembly.rstrip())
+
+                # Use the same code as no full_db in assign_query to take a subset
                 dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-                # could also have newRepresentativesNames in this diff (should be the same) - but want
-                # to ensure consistency with the network in case of bad input/bugs
-                nodes_to_remove = set(genomeNetwork.nodes).difference(viz_list)
-                # This function also writes out the new distance matrix
+                nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, nodes_to_remove,
                                                                           complete_distMat, dists_out)
-                # update distance matrices
+
                 rlist = viz_list
-                combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_list, newDistMat)
+                combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
+                assert postpruning_combined_seq == viz_subset
 
-                # ensure mash sketch and distMat order match
-                assert postpruning_combined_seq == viz_list
+                # prune the network and dictionary of assignments
+                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
+                isolateClustering = { viz_key: isolateClustering[viz_key] for viz_key in viz_subset }
 
-                # prune the network
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_list))
-
-                # reduce down dictionary
-                new_isolateClustering = {}
-                new_isolateClustering = { viz_key: isolateClustering[fit_type][viz_key] for viz_key in viz_list }
-                isolateClustering[fit_type] = new_isolateClustering
-                                     
             # generate selected visualisations
-            select_visualisation(args, rlist, core_distMat, acc_distMat, isolateClustering, genomeNetwork)
+            if microreact:
+                sys.stderr.write("Writing microreact output\n")
+                outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
+                                        output, info_csv, rapidnj, ordered_queryList, overwrite)
+            if phandango:
+                sys.stderr.write("Writing phandango output\n")
+                outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                                    queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
+            if grapetree:
+                sys.stderr.write("Writing grapetree output\n")
+                outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                                    queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
+            if cytoscape:
+                sys.stderr.write("Writing cytoscape output\n")
+                outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
 
         else:
             # Cannot read input files
@@ -465,6 +471,9 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity):
+    """Code for assign query mode. Written as a separate function so it can be called
+    by pathogen.watch API
+    """
 
     if ref_db is not None and q_files is not None:
         sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
@@ -500,8 +509,20 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
                                 model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
         queryAssignments = model.assign(distMat)
 
-        # If a refined fit, may use just core or accessory distances
-        genomeNetwork = fetch_network(args, refList)
+        # set model prefix
+        model_prefix = ref_db
+        if model_dir is not None:
+            model_prefix = model_dir
+
+        # Set directories of previous fit
+        if previous_clustering is not None:
+            prev_clustering = previous_clustering
+        else:
+            prev_clustering = model_prefix
+
+        # Load the network based on supplied options
+        genomeNetwork, old_cluster_file = fetchNetwork(prev_clustering, model, refList,
+                                                        core_only, accessory_only)
 
         # Assign clustering by adding to network
         ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, q_files,
@@ -569,8 +590,22 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
                 # ensure mash sketch and distMat order match
                 assert combined_seq == refList + newQueries
 
-        # generate outputs for microreact if asked
-        select_visualisation(args, refList, core_distMat, acc_distMat, isolateClustering, genomeNetwork)
+        # Generate files for visualisations
+        if microreact:
+            sys.stderr.write("Writing microreact output\n")
+            outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
+                                    output, info_csv, rapidnj, ordered_queryList, overwrite)
+        if phandango:
+            sys.stderr.write("Writing phandango output\n")
+            outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                                queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
+        if grapetree:
+            sys.stderr.write("Writing grapetree output\n")
+            outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                                queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
+        if cytoscape:
+            sys.stderr.write("Writing cytoscape output\n")
+            outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
 
     else:
         sys.stderr.write("Need to provide both a reference database with --ref-db and "
@@ -579,77 +614,6 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
 
     return(isolateClustering)
 
-def select_visualisation(args, refList, core_distMat, acc_distMat, isolateClustering, genomeNetwork):
-
-    # generate outputs for microreact if asked
-    if args.microreact:
-        sys.stderr.write("Writing microreact output\n")
-        outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
-                             args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
-    # generate outputs for phandango if asked
-    if args.phandango:
-        sys.stderr.write("Writing phandango output\n")
-        outputsForPhandango(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                            overwrite = args.overwrite, microreact = args.microreact)
-    # generate outputs for grapetree if asked
-    if args.grapetree:
-        sys.stderr.write("Writing grapetree output\n")
-        outputsForGrapetree(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                            overwrite = args.overwrite, microreact = args.microreact)
-    # generate outputs for cytoscape if asked
-    if args.cytoscape:
-        sys.stderr.write("Writing cytoscape output\n")
-        outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
-        if model.indiv_fitted:
-            sys.stderr.write("Writing individual cytoscape networks\n")
-            for dist_type in ['core', 'accessory']:
-                outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
-                                    args.info_csv, suffix = dist_type, writeCsv = False)
-
-def fetch_network(args, refList):
-
-    # set model prefix
-    model_prefix = args.ref_db
-    if args.model_dir is not None:
-        model_prefix = args.model_dir
-    
-    # Set directories of previous fit
-    if args.previous_clustering is not None:
-        prev_clustering = args.previous_clustering
-    else:
-        prev_clustering = model_prefix
-    
-    # If a refined fit, may use just core or accessory distances
-    network_file = ""
-    cluster_file = ""
-    if args.core_only and model.type == 'refine':
-       model.slope = 0
-       network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_core_graph.gpickle'
-       cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_core_clusters.csv'
-    elif args.accessory_only and model.type == 'refine':
-       model.slope = 1
-       network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_accessory_graph.gpickle'
-       cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_accessory_clusters.csv'
-    else:
-       network_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_graph.gpickle'
-       cluster_file = prev_clustering + "/" + os.path.basename(prev_clustering) + '_clusters.csv'
-       if args.core_only or args.accessory_only:
-           sys.stderr.write("Can only do --core-only or --accessory-only fits from "
-                            "a refined fit. Using the combined distances.\n")
-               
-    genomeNetwork = nx.read_gpickle(network_file)
-    sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
-               
-    # Ensure all in dists are in final network
-    networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
-    if len(networkMissing) > 0:
-       sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
-
-    return genomeNetwork
-
-########
-# MAIN #
-########
 
 if __name__ == '__main__':
     main()
