@@ -5,7 +5,7 @@
 double LinearLink::likelihood(const column_vector& parameters)
 {
    // L(b) = 1/2*||y-Xb||^2
-   double result = 0.5 * length_squared(_responses - _predictors * parameters);
+   double result = 0.5 * dlib::length_squared(_responses - _predictors * parameters);
 
    return result;
 }
@@ -14,10 +14,10 @@ double LinearLink::likelihood(const column_vector& parameters)
 column_vector LinearLink::gradient(const column_vector& parameters)
 {
    // Convert from dlib column matrix to armadillo column matrix
-   column_vec gradient_value(parameters.nr());
+   column_vector gradient_value(parameters.nr());
 
    // dL(b)/db = X.t()(Xb - y)
-   gradient = trans(_predictors) * (_predictors * parameters - _responses);
+   gradient_value = dlib::trans(_predictors) * (_predictors * parameters - _responses);
 
    return(gradient_value);
 }

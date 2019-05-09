@@ -6,7 +6,7 @@ class LinearLink
 {
    public:
       // Initialisation
-      LinkFunction(const column_vector& predictors, const column_vector& responses)
+      LinearLink(const column_vector& predictors, const column_vector& responses)
          : _predictors(predictors), _responses(responses)
       {
       }
@@ -21,3 +21,5 @@ class LinearLink
       column_vector _predictors;
       column_vector _responses;
 };
+
+double (LinearLink::*likptr)(const column_vector&) const = &LinearLink::likelihood;

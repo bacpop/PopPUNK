@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <functional>
+#include <limits>
 
 // dlib headers
 #include <dlib/matrix.h>
@@ -30,23 +32,24 @@ namespace py = pybind11;
 
 // Constants
 extern const std::string VERSION;
+const double convergence_limit = 1e-7;
 
 // Function headers for each cpp file
 
 // linear_regression.cpp
-void fitKmers(py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+void fitKmers(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
               py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
-              column_vector& klist,
-              int num_threads);
-void fitKmerBlock(py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+              const column_vector& klist,
+              const int num_threads);
+void fitKmerBlock(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
                   py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
-                  column_vector& klist,
-                  size_t start,
-                  size_t end);
+                  const column_vector& klist,
+                  const size_t start,
+                  const size_t end);
 
 // regression_bindings.cpp
-void fit_all(py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+void fit_all(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
              py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
-             column_vector& klist,
-             int num_threads);
+             const column_vector& klist,
+             const int num_threads);
 

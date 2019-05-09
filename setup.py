@@ -114,7 +114,6 @@ setup(
     },
     install_requires=['numpy',
                       'scipy',
-                      'statsmodels',
                       'scikit-learn',
                       'DendroPy',
                       'sharedmem',

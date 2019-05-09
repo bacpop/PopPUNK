@@ -19,6 +19,9 @@ import sharedmem
 import networkx as nx
 from scipy import optimize
 
+# pybind11 extension
+from kmer_regression import fit_all
+
 from .utils import iterDistRows
 
 from .plot import plot_fit
@@ -244,10 +247,10 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             (default = False)
 
     """
-    
+
     # Genome length needed to calculate prob of random matches
     genome_length = 2000000 # assume 2 Mb in the absence of other information
-    
+
     try:
         input_lengths = []
         input_names = []
@@ -521,95 +524,19 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
     # Pre-assign return (to higher precision)
     sys.stderr.write("Calculating core and accessory distances\n")
 
-    # Hessian = 0, so Jacobian for regression is a constant
-    jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+    # Call to C++ routine to run all regression in parallel
+    distMat = sharedmem.empty((number_pairs, 2))
+    fit_all(raw, distMat, klist, threads)
 
     # option to plot core/accessory fits. Choose a random number from cmd line option
     if number_plot_fits > 0:
         examples = sample(range(number_pairs), k=number_plot_fits)
         for plot_idx, plot_example in enumerate(sorted(examples)):
-            fit = fitKmerCurve(raw[plot_example, :], klist, jacobian)
-            plot_fit(klist, raw[plot_example, :], fit,
+            plot_fit(klist, raw[plot_example, :], distMat[plot_example, :],
                     dbPrefix + "/fit_example_" + str(plot_idx + 1),
                     "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
 
-    # run pairwise analyses across kmer lengths, mutating distMat
-    # Create range of rows that each thread will work with
-    rows_per_thread = int(number_pairs / threads)
-    big_threads = number_pairs % threads
-    start = 0
-    mat_chunks = []
-    for thread in range(threads):
-        end = start + rows_per_thread
-        if thread < big_threads:
-            end += 1
-        mat_chunks.append((start, end))
-        start = end
-
-    distMat = sharedmem.empty((number_pairs, 2))
-    with sharedmem.MapReduce(np = threads) as pool:
-        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
-
     return(refList, queryList, distMat)
-
-
-def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
-    """Multirow wrapper around :func:`~fitKmerCurve` to the specified rows in idxRanges
-
-    Args:
-        idxRanges (int, int)
-            Tuple of first and last row of slice to calculate
-        distMat (numpy.array)
-            sharedmem object to store core and accessory distances in (altered in place)
-        raw (numpy.array)
-            sharedmem object with proportion of k-mer matches for each query-ref pair
-            by row, columns are at k-mer lengths in klist
-        klist (list)
-            List of k-mer lengths to use
-        jacobian (numpy.array)
-            The Jacobian for the fit, sent to :func:`~fitKmerCurve`
-
-    """
-    (start, end) = idxRanges
-    distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
-
-
-def fitKmerCurve(pairwise, klist, jacobian):
-    """Fit the function :math:`pr = (1-a)(1-c)^k`
-
-    Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``
-
-    Args:
-        pairwise (numpy.array)
-            Proportion of shared k-mers at k-mer values in klist
-        klist (list)
-            k-mer sizes used
-        jacobian (numpy.array)
-            Should be set as above (set once to try and save memory)
-
-    Returns:
-        transformed_params (numpy.array)
-            Column with core and accessory distance
-    """
-    # curve fit pr = (1-a)(1-c)^k
-    # log pr = log(1-a) + k*log(1-c)
-    # a = p[0]; c = p[1] (will flip on return)
-    try:
-        distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
-                                     x0=[0.0, -0.01],
-                                     jac=lambda p, x, y: jacobian,
-                                     args=(klist, np.log(pairwise)),
-                                     bounds=([-np.inf, -np.inf], [0, 0]))
-        transformed_params = 1 - np.exp(distFit.x)
-    except ValueError as e:
-        sys.stderr.write("Fitting k-mer curve failed: " + format(e) +
-                         "\nWith mash input " +
-                         np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
-                         "\nCheck for low quality input genomes\n")
-        exit(0)
-
-    # Return core, accessory
-    return(np.flipud(transformed_params))
 
 
 def readMashDBParams(dbPrefix, kmers, sketch_sizes, mash_exec = 'mash'):
