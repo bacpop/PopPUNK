@@ -32,5 +32,13 @@ subprocess.run("python ../poppunk-runner.py --refine-model --distances example_d
 sys.stderr.write("Running query assignment (--assign-query)\n")
 subprocess.run("python ../poppunk-runner.py --assign-query --q-files references.txt --ref-db example_db --output example_query --no-stream --mash " + mash_exec, shell=True, check=True)
 
+#generate viz
+sys.stderr.write("Running microreact visualisations (--generate-viz)\n")
+subprocess.run("python ../poppunk-runner.py --generate-viz --distances example_db/example_db.dists --ref-db example_db --output example_viz --microreact --subset subset.txt", shell=True, check=True)
+
+#use model
+sys.stderr.write("Running with an existing model (--use-model)\n")
+subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --distances example_db/example_db.dists --output example_use --no-stream --mash " + mash_exec, shell=True, check=True)
+
 sys.stderr.write("Tests completed\n")
 

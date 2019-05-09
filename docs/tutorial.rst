@@ -835,6 +835,30 @@ The following command line options can be used in this mode:
                            memory use/increase disk use for large datasets
      --version             show program's version number and exit
 
+Creating external visualisations from a fitted model
+----------------------------------------------------
+Visualisations for external software (Microreact etc) will be created in a mode
+calling ``--fit-model``, ``--refine-model`` or ``--assign-query`` if any of the following options
+were added:
+
+- ``--microreact``
+- ``--cytoscape``
+- ``--phandango``
+- ``--grapetree``
+
+Additionally, if ``--refine-model``, ``--indiv-refine`` and ``--cytoscape`` are all
+specified, the networks for core and accessory distances only will also be output.
+
+To create these outputs for visualisation after the initial command has been run use
+the ``--generate-viz`` mode, with the same options as the original run (plus any specific
+to the visualisation). In this mode you may also specify a file containing a list of samples to
+include in the visualisation with ``--subset``.
+
+.. note::
+   Only a single network will be used in this mode if core and accessory distance
+   restricted models have also been produced. To visualise these instead of the combined
+   fit use ``--core-only`` or ``--accessory-only``.
+
 Using a previous model with a new database
 ------------------------------------------
 If you have a model which has been fitted which you wish to apply this to a new reference

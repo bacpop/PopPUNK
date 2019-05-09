@@ -40,6 +40,7 @@ from .utils import storePickle
 from .utils import readPickle
 from .utils import writeTmpFile
 from .utils import qcDistMat
+from .utils import readClusters
 from .utils import translate_distMat
 from .utils import update_distance_matrices
 
@@ -77,14 +78,15 @@ def get_options():
             help='Assign the cluster of query sequences without re-running the whole mixture model',
             default=False,
             action='store_true')
-    mode.add_argument('--use-model',
-            help='Apply a fitted model to a reference database to restore database files',
-            default=False,
-            action='store_true')
     mode.add_argument('--generate-viz',
             help='Generate files for a visualisation from an existing database',
             default=False,
             action='store_true')
+    mode.add_argument('--use-model',
+            help='Apply a fitted model to a reference database to restore database files',
+            default=False,
+            action='store_true')
+
 
     # input options
     iGroup = parser.add_argument_group('Input files')
@@ -153,7 +155,7 @@ def get_options():
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
-    faGroup.add_argument('--subset', help='List of sequences to include in visualisation (with --generate-viz only)', default=None)
+    faGroup.add_argument('--subset', help='File with list of sequences to include in visualisation (with --generate-viz only)', default=None)
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
@@ -387,7 +389,11 @@ def main():
 
     # generate visualisation files from existing database
     elif args.generate_viz:
-        sys.stderr.write("Mode: Generating files for visualisation from database\n\n")
+        if args.microreact or args.phandango or args.grapetree or args.cytoscape:
+            sys.stderr.write("Mode: Generating files for visualisation from database\n\n")
+        else:
+            sys.stderr.write("Must specify at least one type of visualisation to output\n")
+            sys.exit(1)
 
         if args.distances is not None and args.ref_db is not None:
             # Load original distances
@@ -397,11 +403,12 @@ def main():
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(rlist, complete_distMat)
 
             # make directory for new output files
-            try:
-                os.makedirs(args.output)
-            except OSError:
-                sys.stderr.write("Cannot create output directory\n")
-                sys.exit(1)
+            if not os.path.isdir(args.output):
+                try:
+                    os.makedirs(args.output)
+                except OSError:
+                    sys.stderr.write("Cannot create output directory\n")
+                    sys.exit(1)
 
             # identify existing analysis files
             model_prefix = args.ref_db
@@ -417,7 +424,7 @@ def main():
                 prev_clustering = model_prefix
 
             # Read in network and cluster assignment
-            genomeNetwork, cluster_file = fetch_network(args, rlist)
+            genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
             isolateClustering = readClusters(cluster_file)
 
             # extract subset of distances if requested
@@ -433,30 +440,30 @@ def main():
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, nodes_to_remove,
                                                                           complete_distMat, dists_out)
 
-                rlist = viz_list
+                rlist = viz_subset
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
                 assert postpruning_combined_seq == viz_subset
 
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
-                isolateClustering = { viz_key: isolateClustering[viz_key] for viz_key in viz_subset }
+                isolateClustering = {'combined': {viz_key: isolateClustering[viz_key] for viz_key in viz_subset }}
 
             # generate selected visualisations
-            if microreact:
+            if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
-                outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
-                                        output, info_csv, rapidnj, ordered_queryList, overwrite)
-            if phandango:
+                outputsForMicroreact(rlist, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                                     args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
+            if args.phandango:
                 sys.stderr.write("Writing phandango output\n")
-                outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                                    queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
-            if grapetree:
+                outputsForPhandango(rlist, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    overwrite = args.overwrite, microreact = args.microreact)
+            if args.grapetree:
                 sys.stderr.write("Writing grapetree output\n")
-                outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                                    queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
-            if cytoscape:
+                outputsForGrapetree(rlist, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                    overwrite = args.overwrite, microreact = args.microreact)
+            if args.cytoscape:
                 sys.stderr.write("Writing cytoscape output\n")
-                outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
+                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
 
         else:
             # Cannot read input files

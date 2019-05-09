@@ -20,6 +20,10 @@ if os.path.isdir("example_refine"):
     shutil.rmtree("example_refine")
 if os.path.isdir("example_query"):
     shutil.rmtree("example_query")
+if os.path.isdir("example_viz"):
+    shutil.rmtree("example_viz")
+if os.path.isdir("example_use"):
+    shutil.rmtree("example_use")
 for ref in refs:
     os.remove(ref)
 

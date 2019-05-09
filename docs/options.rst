@@ -4,23 +4,22 @@ Options
 Usage::
 
    usage: PopPUNK [-h]
-               (--easy-run | --create-db | --fit-model | --refine-model | --assign-query)
+               (--easy-run | --create-db | --fit-model | --refine-model | --assign-query | --use-model | --generate-viz)
                [--ref-db REF_DB] [--r-files R_FILES] [--q-files Q_FILES]
                [--distances DISTANCES]
                [--external-clustering EXTERNAL_CLUSTERING] --output OUTPUT
                [--plot-fit PLOT_FIT] [--full-db] [--update-db] [--overwrite]
                [--min-k MIN_K] [--max-k MAX_K] [--k-step K_STEP]
-               [--sketch-size SKETCH_SIZE] [--K K] [--dbscan] [--D D]
+               [--sketch-size SKETCH_SIZE] [--max-a-dist MAX_A_DIST]
+               [--ignore-length] [--K K] [--dbscan] [--D D]
                [--min-cluster-prop MIN_CLUSTER_PROP] [--pos-shift POS_SHIFT]
                [--neg-shift NEG_SHIFT] [--manual-start MANUAL_START]
                [--indiv-refine] [--no-local] [--model-dir MODEL_DIR]
                [--previous-clustering PREVIOUS_CLUSTERING] [--core-only]
-               [--accessory-only] [--microreact] [--cytoscape] [--phandango]
-               [--grapetree] [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
-               [--info-csv INFO_CSV] [--mash MASH] [--threads THREADS]
-               [--no-stream] [--version]
-
-   PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+               [--accessory-only] [--subset SUBSET] [--microreact]
+               [--cytoscape] [--phandango] [--grapetree] [--rapidnj RAPIDNJ]
+               [--perplexity PERPLEXITY] [--info-csv INFO_CSV] [--mash MASH]
+               [--threads THREADS] [--no-stream] [--version]
 
 Command line options
 
@@ -35,8 +34,11 @@ Command line options
      --refine-model        Refine the accuracy of a fitted model
      --assign-query        Assign the cluster of query sequences without re-
                            running the whole mixture model
+     --generate-viz        Generate files for a visualisation from an existing
+                           database
      --use-model           Apply a fitted model to a reference database to
                            restore database files
+
 
    Input files:
      --ref-db REF_DB       Location of built reference database
@@ -62,11 +64,12 @@ Command line options
      --k-step K_STEP       K-mer step size [default = 4]
      --sketch-size SKETCH_SIZE
                            Kmer sketch size [default = 10000]
+
    Quality control options:
      --max-a-dist MAX_A_DIST
-                        Maximum accessory distance to permit [default = 0.5]
-     --ignore-length    Ignore outliers in terms of assembly length [default =
-                        False]
+                           Maximum accessory distance to permit [default = 0.5]
+     --ignore-length       Ignore outliers in terms of assembly length [default =
+                           False]
 
    Model fit options:
      --K K                 Maximum number of mixture components [default = 2]
@@ -107,16 +110,18 @@ Command line options
                            queries [default = False]
 
    Further analysis options:
+     --subset SUBSET       File with list of sequences to include in
+                           visualisation (with --generate-viz only)
      --microreact          Generate output files for microreact visualisation
      --cytoscape           Generate network output files for Cytoscape
      --phandango           Generate phylogeny and TSV for Phandango visualisation
      --grapetree           Generate phylogeny and CSV for grapetree visualisation
      --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for Microreact
      --perplexity PERPLEXITY
-                        Perplexity used to calculate t-SNE projection (with
-                        --microreact) [default=20.0]
+                           Perplexity used to calculate t-SNE projection (with
+                           --microreact) [default=20.0]
      --info-csv INFO_CSV   Epidemiological information CSV formatted for
-                        microreact (can be used with other outputs)
+                           microreact (can be used with other outputs)
 
    Other options:
      --mash MASH           Location of mash executable
@@ -124,4 +129,3 @@ Command line options
      --no-stream           Use temporary files for mash dist interfacing. Reduce
                            memory use/increase disk use for large datasets
      --version             show program's version number and exit
-
