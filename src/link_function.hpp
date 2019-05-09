@@ -2,7 +2,7 @@
 #include <dlib/matrix.h>
 typedef dlib::matrix<double,0,1> column_vector;
 
-class LinkFunction
+class LinearLink
 {
    public:
       // Initialisation

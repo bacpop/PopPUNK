@@ -38,7 +38,11 @@ void fitKmers(py::array_t<double, py::array::c_style | py::array::forcecast>& ra
               py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
               column_vector& klist,
               int num_threads);
-void fitKmerBlock();
+void fitKmerBlock(py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+                  py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
+                  column_vector& klist,
+                  size_t start,
+                  size_t end);
 
 // regression_bindings.cpp
 void fit_all(py::array_t<double, py::array::c_style | py::array::forcecast>& raw,

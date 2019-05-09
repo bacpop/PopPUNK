@@ -60,8 +60,7 @@ void fitKmerBlock(py::array_t<double, py::array::c_style | py::array::forcecast>
         {
             y_vec(i) = raw_access(row, i);
         }
-        // TODO: define this class (in link_function.hpp)
-        LinearLink linear_fit(y_vec);
+        LinearLink linear_fit(klist, y_vec);
 
         column_vector starting_point(2);
         starting_point(0) = -0.01;
