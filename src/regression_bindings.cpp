@@ -9,7 +9,7 @@
 void fit_all(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
              py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
              const py::array_t<double, py::array::c_style | py::array::forcecast>& klist,
-             const int num_threads)
+             int num_threads)
 {
     // Check input
     if (num_threads < 1)
@@ -40,11 +40,16 @@ void fit_all(const py::array_t<double, py::array::c_style | py::array::forcecast
 
     // convert klist
     column_vector k_vec(klist.size());
-    std::memcpy(k_vec.data(), klist.data(), klist.size()*sizeof(double));
+    auto r = klist.unchecked<1>();
+    for (unsigned int i = 0; i < klist.size(); ++i)
+    {
+        k_vec(i) = r(i);
+    }
+    //std::memcpy(k_vec.data(), klist.data(), klist.size()*sizeof(double));
 
-    // call pure C++ function which changes dists in place
+    // call C++ function which changes dists in place
     // returns (Na, ta) tuple
-    fitKmers(raw, dists, klist, num_threads);
+    fitKmers(raw, dists, k_vec, num_threads);
 }
 
 PYBIND11_MODULE(kmer_regression, m)

@@ -2,7 +2,7 @@
 
 // These are for a 2D linear regression only
 
-double LinearLink::likelihood(const column_vector& parameters)
+double LinearLink::likelihood(const column_vector& parameters) const
 {
    // L(b) = 1/2*||y-Xb||^2
    double result = 0.5 * dlib::length_squared(_responses - _predictors * parameters);
@@ -11,7 +11,7 @@ double LinearLink::likelihood(const column_vector& parameters)
 }
 
 // Evaluate the gradient of the linear regression objective function.
-column_vector LinearLink::gradient(const column_vector& parameters)
+column_vector LinearLink::gradient(const column_vector& parameters) const
 {
    // Convert from dlib column matrix to armadillo column matrix
    column_vector gradient_value(parameters.nr());

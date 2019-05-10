@@ -15,7 +15,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip numpy mkl scipy python-dateutil pandas statsmodels scikit-learn dendropy sharedmem numba matplotlib networkx mash hdbscan rapidnj
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION pip numpy mkl scipy python-dateutil pandas scikit-learn dendropy sharedmem numba matplotlib networkx mash hdbscan rapidnj
   - source activate test-environment
   - conda list
   - python -m pip install --no-deps --ignore-installed .
@@ -30,3 +30,4 @@ script:
 branches:
   except:
     - elfi
+    - version2

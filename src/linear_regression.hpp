@@ -40,7 +40,7 @@ const double convergence_limit = 1e-7;
 void fitKmers(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
               py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
               const column_vector& klist,
-              const int num_threads);
+              const int num_threads = 1);
 void fitKmerBlock(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
                   py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
                   const column_vector& klist,
@@ -50,6 +50,6 @@ void fitKmerBlock(const py::array_t<double, py::array::c_style | py::array::forc
 // regression_bindings.cpp
 void fit_all(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
              py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
-             const column_vector& klist,
-             const int num_threads);
+             const py::array_t<double, py::array::c_style | py::array::forcecast>& klist,
+             int num_threads);
 

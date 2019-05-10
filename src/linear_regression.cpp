@@ -12,7 +12,7 @@ const std::string VERSION = "1.0.0";
 // Wrapper around fitKmer block which multithreads calculation
 void fitKmers(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
               py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
-              const py::array_t<double, py::array::c_style | py::array::forcecast>& klist,
+              const column_vector& klist,
               const int num_threads)
 {
     // Create threaded queue for distance calculations
