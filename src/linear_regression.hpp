@@ -29,7 +29,6 @@ typedef dlib::matrix<double,0,1> column_vector;
 #include "link_function.hpp"
 
 namespace py = pybind11;
-using namespace std::placeholders;
 
 // Constants
 extern const std::string VERSION;

@@ -12,9 +12,9 @@ class LinearLink
       }
 
       // Likelihood and first derivative
-      double likelihood(const column_vector& b)
+      double likelihood(const column_vector& parameters)
          const;
-      column_vector gradient(const column_vector& b)
+      column_vector gradient(const column_vector& parameters)
          const;
 
    protected:
