@@ -37,18 +37,18 @@ const double convergence_limit = 1e-7;
 // Function headers for each cpp file
 
 // linear_regression.cpp
-void fitKmers(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+void fitKmers(const py::array_t<float, py::array::c_style | py::array::forcecast>& raw,
               py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
               const column_vector& klist,
               const int num_threads = 1);
-void fitKmerBlock(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+void fitKmerBlock(const py::array_t<float, py::array::c_style | py::array::forcecast>& raw,
                   py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
                   const column_vector& klist,
                   const size_t start,
                   const size_t end);
 
 // regression_bindings.cpp
-void fit_all(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+void fit_all(const py::array_t<float, py::array::c_style | py::array::forcecast>& raw,
              py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
              const py::array_t<double, py::array::c_style | py::array::forcecast>& klist,
              int num_threads);

@@ -448,7 +448,7 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
         number_pairs = int(len(refList) * len(queryList))
 
     # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
-    raw = sharedmem.empty((number_pairs, len(klist)), dtype=np.float32)
+    raw = np.zeros((number_pairs, len(klist)), dtype=np.float32)
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -524,8 +524,8 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
     # Pre-assign return (to higher precision)
     sys.stderr.write("Calculating core and accessory distances\n")
 
-    # Call to C++ routine to run all regression in parallel
-    distMat = sharedmem.empty((number_pairs, 2))
+    # Call to C++ routine to run all regressions in parallel
+    distMat = np.zeros((number_pairs, 2))
     fit_all(raw, distMat, klist, threads)
 
     # option to plot core/accessory fits. Choose a random number from cmd line option

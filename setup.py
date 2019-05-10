@@ -123,4 +123,7 @@ setup(
                       'matplotlib',
                       'hdbscan'],
     test_suite="test",
+    ext_modules=[CMakeExtension('kmer_regression')],
+    cmdclass=dict(build_ext=CMakeBuild),
+    zip_safe=False
 )

@@ -6,7 +6,7 @@
 
 #include "linear_regression.hpp"
 
-void fit_all(const py::array_t<double, py::array::c_style | py::array::forcecast>& raw,
+void fit_all(const py::array_t<float, py::array::c_style | py::array::forcecast>& raw,
              py::array_t<double, py::array::c_style | py::array::forcecast>& dists,
              const py::array_t<double, py::array::c_style | py::array::forcecast>& klist,
              int num_threads)
