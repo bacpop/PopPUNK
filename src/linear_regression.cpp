@@ -65,6 +65,8 @@ void fitKmerBlock(const py::array_t<double, py::array::c_style | py::array::forc
             y_vec(i) = raw_access(row, i);
         }
         LinearLink linear_fit(klist, y_vec);
+        auto likelihood_ptr = std::bind(&LinearLink::likelihood, linear_fit, _1);
+        auto gradient_ptr = std::bind(&LinearLink::gradient, linear_fit, _1);
 
         column_vector starting_point(2);
         starting_point(0) = -0.01;
@@ -75,8 +77,8 @@ void fitKmerBlock(const py::array_t<double, py::array::c_style | py::array::forc
             dlib::find_max_box_constrained(
                            dlib::bfgs_search_strategy(),
                            dlib::objective_delta_stop_strategy(convergence_limit),
-                           linear_fit.*likptr,
-                           linear_fit.gradient,
+                           likelihood_ptr,
+                           gradient_ptr,
                            starting_point,
                            x_lower,
                            x_upper);

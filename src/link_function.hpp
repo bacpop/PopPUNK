@@ -21,5 +21,3 @@ class LinearLink
       column_vector _predictors;
       column_vector _responses;
 };
-
-double (LinearLink::*likptr)(const column_vector&) const = &LinearLink::likelihood;
