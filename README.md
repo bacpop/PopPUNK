@@ -1,6 +1,6 @@
 # PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
 
-[![Build Status](https://travis-ci.org/johnlees/PopPUNK.svg?branch=v1.1.1)](https://travis-ci.org/johnlees/PopPUNK/)
+[![Build Status](https://travis-ci.org/johnlees/PopPUNK.svg?branch=v1.1.6)](https://travis-ci.org/johnlees/PopPUNK/)
 [![Documentation Status](https://readthedocs.org/projects/poppunk/badge/?version=latest)](https://poppunk.readthedocs.io/)
 [![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
 [![Anaconda package](https://anaconda.org/bioconda/poppunk/badges/version.svg)](https://anaconda.org/bioconda/poppunk)
