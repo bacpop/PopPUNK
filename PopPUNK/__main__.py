@@ -9,6 +9,7 @@ import sys
 import numpy as np
 import networkx as nx
 import subprocess
+from collections import defaultdict
 
 # import poppunk package
 from .__init__ import __version__
@@ -40,7 +41,7 @@ from .utils import storePickle
 from .utils import readPickle
 from .utils import writeTmpFile
 from .utils import qcDistMat
-from .utils import readClusters
+from .utils import readClustersToDict
 from .utils import translate_distMat
 from .utils import update_distance_matrices
 
@@ -425,7 +426,13 @@ def main():
 
             # Read in network and cluster assignment
             genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
-            isolateClustering = readClusters(cluster_file)
+            isolateClustering = defaultdict(set)
+            if args.core_only:
+                isolateClustering['core'] = readClustersToDict(cluster_file)
+            elif args.core_only:
+                isolateClustering['accessory'] = readClustersToDict(cluster_file)
+            else:
+                isolateClustering['combined'] = readClustersToDict(cluster_file)
 
             # extract subset of distances if requested
             if args.subset is not None:
@@ -433,6 +440,7 @@ def main():
                 with open(args.subset, 'r') as assemblyFiles:
                     for assembly in assemblyFiles:
                         viz_subset.append(assembly.rstrip())
+                viz_subset_set = set(viz_subset)
 
                 # Use the same code as no full_db in assign_query to take a subset
                 dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
@@ -446,7 +454,9 @@ def main():
 
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
-                isolateClustering = {'combined': {viz_key: isolateClustering[viz_key] for viz_key in viz_subset }}
+                for clustering_type in isolateClustering:
+                    isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
+                        for viz_key in viz_subset}
 
             # generate selected visualisations
             if args.microreact:

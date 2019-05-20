@@ -164,6 +164,27 @@ def readClusters(clustCSV):
 
     return clusters
 
+def readClustersToDict(clustCSV):
+    """Read a previous reference clustering from CSV
+        
+    Args:
+        clustCSV (str)
+            File name of CSV with previous cluster assignments
+        
+    Returns:
+        clusters (dict)
+            Dictionary of cluster assignments (keys are sample names, values are
+            cluster assignments)
+        """
+    clusters = {}
+    
+    with open(clustCSV, 'r') as csv_file:
+        header = csv_file.readline()
+        for line in csv_file:
+            (sample, clust_id) = line.rstrip().split(",")
+            clusters[sample] = clust_id
+
+    return clusters
 
 def readExternalClusters(clustCSV):
     """Read a cluster definition from CSV (does not have to be PopPUNK
