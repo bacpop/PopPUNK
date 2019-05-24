@@ -422,7 +422,7 @@ def main():
             if args.previous_clustering is not None:
                 prev_clustering = args.previous_clustering
             else:
-                prev_clustering = model_prefix
+                prev_clustering = os.path.dirname(args.distances + ".pkl")
 
             # Read in network and cluster assignment
             genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
