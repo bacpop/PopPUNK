@@ -453,11 +453,10 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
         exit(1)
 
     # process epidemiological data
-    if epiCsv is not None:
-        epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
-
     d = defaultdict(list)
     if epiCsv is not None:
+        epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
+        epiData.index = [i.split('/')[-1].split('.')[0] for i in epiData.index]
         for e in epiData.columns.values:
             colnames.append(str(e))
 
