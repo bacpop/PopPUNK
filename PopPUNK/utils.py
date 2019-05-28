@@ -142,49 +142,38 @@ def qcDistMat(distMat, refList, queryList, a_max):
     return passed
 
 
-def readClusters(clustCSV):
+def readClusters(clustCSV, return_dict=False):
     """Read a previous reference clustering from CSV
 
     Args:
         clustCSV (str)
             File name of CSV with previous cluster assignments
+        return_type (str)
+            If True, return a dict with sample->cluster instead
+            of sets
 
     Returns:
         clusters (dict)
             Dictionary of cluster assignments (keys are cluster names, values are
-            sets containing samples in the cluster)
+            sets containing samples in the cluster). Or if return_dict is set keys
+            are sample names, values are cluster assignments.
     """
-    clusters = defaultdict(set)
+    if return_dict:
+        clusters = {}
+    else:
+        clusters = defaultdict(set)
 
     with open(clustCSV, 'r') as csv_file:
         header = csv_file.readline()
         for line in csv_file:
             (sample, clust_id) = line.rstrip().split(",")
-            clusters[clust_id].add(sample)
+            if return_dict:
+                clusters[sample] = clust_id
+            else:
+                clusters[clust_id].add(sample)
 
     return clusters
 
-def readClustersToDict(clustCSV):
-    """Read a previous reference clustering from CSV
-        
-    Args:
-        clustCSV (str)
-            File name of CSV with previous cluster assignments
-        
-    Returns:
-        clusters (dict)
-            Dictionary of cluster assignments (keys are sample names, values are
-            cluster assignments)
-        """
-    clusters = {}
-    
-    with open(clustCSV, 'r') as csv_file:
-        header = csv_file.readline()
-        for line in csv_file:
-            (sample, clust_id) = line.rstrip().split(",")
-            clusters[sample] = clust_id
-
-    return clusters
 
 def readExternalClusters(clustCSV):
     """Read a cluster definition from CSV (does not have to be PopPUNK
