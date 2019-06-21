@@ -72,6 +72,8 @@ def createDatabaseDir(outPrefix, kmers):
             knum = int(msh_file.split('.')[-2])
             if not (kmers == knum).any():
                 sys.stderr.write("Removing old database " + msh_file + "\n")
+                sys.stderr.write("(k-mer size " + str(knum) +
+                                 " not in requested range " + str(knum) + ")\n")
                 os.remove(msh_file)
     else:
         try:
@@ -229,7 +231,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             Whether to check for outlying genome lengths (and error
             if found)
 
-            (default = True)
+            (default = False)
         threads (int)
             Number of threads to use
 
@@ -244,10 +246,10 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             (default = False)
 
     """
-    
+
     # Genome length needed to calculate prob of random matches
     genome_length = 2000000 # assume 2 Mb in the absence of other information
-    
+
     try:
         input_lengths = []
         input_names = []
@@ -280,8 +282,15 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
         sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
                          "Assuming length of 2Mb for random match probs.\n")
 
+    except UnicodeDecodeError as e:
+        sys.stderr.write("Could not read input file. Is it zipped?\n"
+                         "Assuming length of 2Mb for random match probs.\n")
+
     # check minimum k-mer is above random probability threshold
     assert(genome_length > 0)
+    if (genome_length > 10000000):
+        sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
+
     k_min = min(klist)
     if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
         sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
