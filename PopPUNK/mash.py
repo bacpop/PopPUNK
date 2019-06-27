@@ -23,6 +23,8 @@ from .utils import iterDistRows
 
 from .plot import plot_fit
 
+DEFAULT_LENGTH = 2000000
+
 def checkMashVersion(mash_exec):
     """Checks that mash can be run, and is version 2 or higher.
     Exits if version < 2.
@@ -248,7 +250,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
     """
 
     # Genome length needed to calculate prob of random matches
-    genome_length = 2000000 # assume 2 Mb in the absence of other information
+    genome_length = DEFAULT_LENGTH # assume 2 Mb in the absence of other information
 
     try:
         input_lengths = []
@@ -256,11 +258,11 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
         with open(assemblyList, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 with open(assembly.rstrip(), 'r') as exampleAssembly:
-                    genome_length = 0
+                    input_genome_length = 0
                     for line in exampleAssembly:
                         if line[0] != ">":
                             genome_length += len(line.rstrip())
-                    input_lengths.append(genome_length)
+                    input_lengths.append(input_genome_length)
                     input_names.append(assembly)
 
         # Check for outliers
@@ -287,8 +289,10 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
                          "Assuming length of 2Mb for random match probs.\n")
 
     # check minimum k-mer is above random probability threshold
-    assert(genome_length > 0)
-    if (genome_length > 10000000):
+    if genome_length <= 0:
+        genome_length = DEFAULT_LENGTH
+        sys.stderr.write("WARNING: Could not detect genome length. Assuming 2Mb\n")
+    if genome_length > 10000000:
         sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
 
     k_min = min(klist)
