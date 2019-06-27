@@ -261,7 +261,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
                     input_genome_length = 0
                     for line in exampleAssembly:
                         if line[0] != ">":
-                            genome_length += len(line.rstrip())
+                            input_genome_length += len(line.rstrip())
                     input_lengths.append(input_genome_length)
                     input_names.append(assembly)
 
