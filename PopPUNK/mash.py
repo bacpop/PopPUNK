@@ -8,6 +8,7 @@ import subprocess
 # additional
 import collections
 import pickle
+import time
 from tempfile import mkstemp
 from multiprocessing import Pool, Lock
 from functools import partial
@@ -169,6 +170,12 @@ def getSeqsInDb(mashSketch, mash_exec = 'mash'):
                     seqs.append(line.split("\t")[2])
 
         # Make sure process executed correctly
+        wait = 0
+        while mash_info.poll() == None:
+            time.sleep(1)
+            wait += 1
+            if wait > 10:
+                break
         if mash_info.poll() != 0:
             raise RuntimeError('mash command "' + mash_cmd + '" failed')
     except subprocess.CalledProcessError as e:
