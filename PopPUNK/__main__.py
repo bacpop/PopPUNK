@@ -205,7 +205,7 @@ def main():
         else:
             min_k_count = args.min_k_count
     else:
-        min_k_count = None
+        min_k_count = 0
 
     # define sketch sizes, store in hash in case on day
     # different kmers get different hash sizes

@@ -172,7 +172,7 @@ def main():
                 else:
                     min_k_count = args.min_k_count
             else:
-                min_k_count = None
+                min_k_count = 0
             createDatabaseDir(args.output, kmers)
             constructDatabase(tmpName, kmers, sketch_sizes, args.output, min_k_count, True, args.threads, args.mash, True)
 
