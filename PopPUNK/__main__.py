@@ -93,6 +93,7 @@ def get_options():
     iGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
     iGroup.add_argument('--r-files', help='File listing reference input assemblies')
     iGroup.add_argument('--q-files', help='File listing query input assemblies')
+    iGroup.add_argument('--reads', default=False, action='store_true', help='Input files are reads not assemblies')
     iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
@@ -171,6 +172,7 @@ def get_options():
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
+    other.add_argument('--min-k-count', default=10, type=int, help='Minimum number of occurences of a k-mer in reads to enter a sketch [default = 10]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -195,6 +197,15 @@ def main():
                          str(args.max_k) + "; range must be between 9 and 31, step must be at least one\n")
         sys.exit(1)
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
+
+    # reads or assemblies
+    if args.reads:
+        if args.min_k_count < 1:
+            min_k_count = 1
+        else:
+            min_k_count = args.min_k_count
+    else:
+        min_k_count = None
 
     # define sketch sizes, store in hash in case on day
     # different kmers get different hash sizes
@@ -226,8 +237,8 @@ def main():
             sys.stderr.write("Mode: Creating clusters from assemblies (create_db & fit_model)\n")
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
-                              args.threads, args.mash, args.overwrite)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, min_k_count,
+                              args.ignore_length, args.threads, args.mash, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.output, True,
                     args.plot_fit, args.no_stream, args.mash, args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
@@ -374,14 +385,14 @@ def main():
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
             # Read previous database
             kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads,
-                              args.mash, True) # overwrite old db
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, min_k_count,
+                              True, args.threads, args.mash, True) # overwrite old db
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
     elif args.assign_query:
         assign_query(args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
-                     args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length,
+                     args.microreact, args.cytoscape, kmers, sketch_sizes, min_k_count, args.ignore_length,
                      args.threads, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
@@ -476,7 +487,7 @@ def main():
     sys.stderr.write("\nDone\n")
 
 def assign_query(ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
-                 kmers, sketch_sizes, ignore_length, threads, mash, overwrite,
+                 kmers, sketch_sizes, min_k_count, ignore_length, threads, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity):
@@ -504,7 +515,7 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
         kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
 
         createDatabaseDir(output, kmers)
-        constructDatabase(q_files, kmers, sketch_sizes, output, ignore_length,
+        constructDatabase(q_files, kmers, sketch_sizes, output, min_k_count, ignore_length,
                             threads, mash, overwrite)
         refList, queryList, distMat = queryDatabase(q_files, kmers, ref_db, output, False, plot_fit,
                                                     no_stream, mash, threads)
@@ -536,7 +547,7 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
         # Assign clustering by adding to network
         ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, q_files,
                 genomeNetwork, kmers, queryAssignments, model, output, no_stream, update_db,
-                threads, mash)
+                min_k_count, threads, mash)
 
         # if running simple query
         print_full_clustering = False
@@ -565,7 +576,7 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
             # Update the mash database
             if newQueries != queryList:
                 tmpRefFile = writeTmpFile(newQueries)
-                constructDatabase(tmpRefFile, kmers, sketch_sizes, output, True,
+                constructDatabase(tmpRefFile, kmers, sketch_sizes, output, min_k_count, True,
                                     threads, mash, True) # overwrite old db
                 os.remove(tmpRefFile)
             joinDBs(ref_db, output, output, kmers)

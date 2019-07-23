@@ -223,8 +223,9 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
-        queryDB, no_stream = False, queryQuery = False, threads = 1, mash_exec = 'mash'):
+def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model, queryDB,
+                      no_stream = False, queryQuery = False, min_k_count=0,
+                      threads = 1, mash_exec = 'mash'):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -249,6 +250,11 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
             Add in all query-query distances
 
             (default = False)
+        read_count (int)
+            If > 0, the input files are treated as reads. This then sets the minimum
+            number of occurrences required to appear in the sketch.
+
+            (default = 0)
         no_stream (bool)
             Don't stream mash output
 
@@ -308,7 +314,7 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
 
             # use database construction methods to find links between unassigned queries
             sketchSize = getSketchSize(queryDB, kmers, mash_exec)
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, mash_exec)
+            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, min_k_count, True, threads, mash_exec)
             qlist1, qlist2, distMat = queryDatabase(tmpHandle, kmers, tmpDirName, tmpDirName, True,
                 0, no_stream, mash_exec = mash_exec, threads = threads)
             queryAssignation = model.assign(distMat)

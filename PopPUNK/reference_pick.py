@@ -37,6 +37,7 @@ def get_options():
     iGroup.add_argument('--network', required=True, help='gpickle file of network (required)')
     iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances (required)')
     iGroup.add_argument('--ref-db', help='Location of reference db, if resketching')
+    iGroup.add_argument('--reads', default=False, action='store_true', help='Input files are reads not assemblies, if resketching')
     iGroup.add_argument('--model', help='Directory containing model fit. Will be copied to new directory')
     iGroup.add_argument('--clusters', default=None, help='Specify a different clustering (e.g. core/accessory) to '
                                                          'copy to new directory')
@@ -51,6 +52,7 @@ def get_options():
     other = parser.add_argument_group('Other options')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
+    other.add_argument('--min-k-count', default=10, type=int, help='Minimum number of occurences of a k-mer in reads to enter a sketch [default = 10]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -104,8 +106,15 @@ def main():
             sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
 
             # Resketch all
+            if args.reads:
+                if args.min_k_count < 1:
+                    min_k_count = 1
+                else:
+                    min_k_count = args.min_k_count
+            else:
+                min_k_count = Non
             createDatabaseDir(args.output, kmers)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
+            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, min_k_count, True, args.threads, args.mash, True)
 
     else:
         sys.stderr.write("No sequences to remove\n")

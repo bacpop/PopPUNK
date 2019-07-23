@@ -24,7 +24,9 @@ from .utils import iterDistRows
 
 from .plot import plot_fit
 
+# constants
 DEFAULT_LENGTH = 2000000
+TARGET_COVERAGE = 100
 
 def checkMashVersion(mash_exec):
     """Checks that mash can be run, and is version 2 or higher.
@@ -216,7 +218,8 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
             sys.exit(1)
 
 
-def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers = False,
+def constructDatabase(assemblyList, klist, sketch, oPrefix, read_count=0,
+                      ignoreLengthOutliers = False,
                       threads = 1, mash_exec = 'mash', overwrite = False):
     """Sketch the input assemblies at the requested k-mer lengths
 
@@ -236,6 +239,11 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
+        read_count (int)
+            If > 0, the input files are treated as reads. This then sets the minimum
+            number of occurrences required to appear in the sketch.
+
+            (default = 0)
         ignoreLengthOutliers (bool)
             Whether to check for outlying genome lengths (and error
             if found)
@@ -259,53 +267,56 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
     # Genome length needed to calculate prob of random matches
     genome_length = DEFAULT_LENGTH # assume 2 Mb in the absence of other information
 
-    try:
-        input_lengths = []
-        input_names = []
-        with open(assemblyList, 'r') as assemblyFiles:
-            for assembly in assemblyFiles:
-                with open(assembly.rstrip(), 'r') as exampleAssembly:
-                    input_genome_length = 0
-                    for line in exampleAssembly:
-                        if line[0] != ">":
-                            input_genome_length += len(line.rstrip())
-                    input_lengths.append(input_genome_length)
-                    input_names.append(assembly)
+    if read_count > 0:
+        try:
+            input_lengths = []
+            input_names = []
+            with open(assemblyList, 'r') as assemblyFiles:
+                for assembly in assemblyFiles:
+                    with open(assembly.rstrip(), 'r') as exampleAssembly:
+                        input_genome_length = 0
+                        for line in exampleAssembly:
+                            if line[0] != ">":
+                                input_genome_length += len(line.rstrip())
+                        input_lengths.append(input_genome_length)
+                        input_names.append(assembly)
 
-        # Check for outliers
-        outliers = []
-        sigma = 5
-        if not ignoreLengthOutliers:
-            genome_length = np.mean(np.array(input_lengths))
-            outlier_low = genome_length - sigma*np.std(input_lengths)
-            outlier_high = genome_length + sigma*np.std(input_lengths)
-            for length, name in zip(input_lengths, input_names):
-                if length < outlier_low or length > outlier_high:
-                    outliers.append(name)
-            if outliers:
-                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
-                                 "\n".join(outliers))
-                sys.exit(1)
+            # Check for outliers
+            outliers = []
+            sigma = 5
+            if not ignoreLengthOutliers:
+                genome_length = np.mean(np.array(input_lengths))
+                outlier_low = genome_length - sigma*np.std(input_lengths)
+                outlier_high = genome_length + sigma*np.std(input_lengths)
+                for length, name in zip(input_lengths, input_names):
+                    if length < outlier_low or length > outlier_high:
+                        outliers.append(name)
+                if outliers:
+                    sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
+                                    "\n".join(outliers))
+                    sys.exit(1)
 
-    except FileNotFoundError as e:
-        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
-                         "Assuming length of 2Mb for random match probs.\n")
+        except FileNotFoundError as e:
+            sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
+                            "Assuming length of 2Mb for random match probs.\n")
 
-    except UnicodeDecodeError as e:
-        sys.stderr.write("Could not read input file. Is it zipped?\n"
-                         "Assuming length of 2Mb for random match probs.\n")
+        except UnicodeDecodeError as e:
+            sys.stderr.write("Could not read input file. Is it zipped?\n"
+                            "Assuming length of 2Mb for random match probs.\n")
 
-    # check minimum k-mer is above random probability threshold
-    if genome_length <= 0:
-        genome_length = DEFAULT_LENGTH
-        sys.stderr.write("WARNING: Could not detect genome length. Assuming 2Mb\n")
-    if genome_length > 10000000:
-        sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
+        # check minimum k-mer is above random probability threshold
+        if genome_length <= 0:
+            genome_length = DEFAULT_LENGTH
+            sys.stderr.write("WARNING: Could not detect genome length. Assuming 2Mb\n")
+        if genome_length > 10000000:
+            sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
 
-    k_min = min(klist)
-    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
-        exit(1)
+        k_min = min(klist)
+        if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
+            sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
+            exit(1)
+    else:
+        sys.stderr.write("Sketching reads. Please check min k-mer length is appropriate for expected genome size\n")
 
     # create kmer databases
     if threads > len(klist):
@@ -319,15 +330,16 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
     l = Lock()
     with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
         pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch,
-                         genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
-                         overwrite=overwrite, threads=num_threads), klist)
+                         genome_length=genome_length, oPrefix=oPrefix, read_count=read_count,
+                         mash_exec=mash_exec, overwrite=overwrite, threads=num_threads),
+                klist)
 
 def init_lock(l):
     """Sets a global lock to use when writing to STDERR in :func:`~runSketch`"""
     global lock
     lock = l
 
-def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash', overwrite = False, threads = 1):
+def runSketch(k, assemblyList, sketch, genome_length, oPrefix, read_count=0, mash_exec = 'mash', overwrite = False, threads = 1):
     """Actually run the mash sketch command
 
     Called by :func:`~constructDatabase`
@@ -343,6 +355,11 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
             Length of genomes being sketch, for random match probability calculation
         oPrefix (str)
             Output prefix for resulting sketch files
+        read_count (int)
+            If > 0, the input files are treated as reads. This then sets the minimum
+            number of occurrences required to appear in the sketch.
+
+            (default = 0)
         mash_exec (str)
             Location of mash executable
 
@@ -390,8 +407,12 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
                    + " -s " + str(sketch[k]) \
                    + " -o " + dbname \
                    + " -k " + str(k) \
-                   + " -l " + assemblyList \
-                   + " 2> /dev/null"
+                   + " -l " + assemblyList
+        if read_count > 0:
+            mash_cmd += " -r " \
+                        + " -m " + str(read_count) \
+                        + " -c " + str(TARGET_COVERAGE)
+        mash_cmd += " 2> /dev/null"
 
         subprocess.run(mash_cmd, shell=True, check=True)
     else:
