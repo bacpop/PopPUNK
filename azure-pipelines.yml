@@ -24,13 +24,8 @@ steps:
 - bash: echo "##vso[task.prependpath]$CONDA/bin"
   displayName: Add conda to PATH
 
-- bash: conda create --yes --quiet --name pp_env
-  displayName: Create Anaconda environment
-
-- bash: |
-    source activate pp_env
-    conda install --yes --quiet --name pp_env pip numpy mkl scipy python-dateutil pandas scikit-learn dendropy sharedmem numba matplotlib networkx mash hdbscan rapidnj
-  displayName: Install Anaconda packages
+- bash: conda env create --quiet --file environment.yml
+  displayName: Create Anaconda environment and install dependencies
 
 - script: |
     source activate pp_env

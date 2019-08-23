@@ -1,0 +1,22 @@
+name: pp_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+  - r
+dependencies:
+  - pip
+  - numpy
+  - mkl
+  - scipy
+  - python-dateutil
+  - pandas
+  - scikit-learn
+  - dendropy
+  - sharedmem
+  - numba
+  - matplotlib
+  - networkx
+  - mash
+  - hdbscan
+  - rapidnj
