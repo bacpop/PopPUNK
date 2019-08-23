@@ -29,7 +29,7 @@ steps:
 
 - bash: |
     source activate pp_env
-    conda install --yes --quiet --name pp_env scipy
+    conda install --yes --quiet --name pp_env pip numpy mkl scipy python-dateutil pandas scikit-learn dendropy sharedmem numba matplotlib networkx mash hdbscan rapidnj
   displayName: Install Anaconda packages
 
 - script: |
