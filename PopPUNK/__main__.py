@@ -176,7 +176,7 @@ def get_options():
                        version='%(prog)s '+__version__)
 
     # ensure directories do not have trailing forward slash
-    for arg in [args.ref_db,args.model_dir,args.previous_clustering]:
+    for arg in [iGroup.ref_db,queryingGroup.model_dir,queryingGroup.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
                        
