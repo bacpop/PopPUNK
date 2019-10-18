@@ -175,6 +175,11 @@ def get_options():
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
 
+    # ensure directories do not have trailing forward slash
+    for arg in [args.ref_db,args.model_dir,args.previous_clustering]:
+        if arg is not None:
+            arg = arg.rstrip('\\')
+                       
     return parser.parse_args()
 
 def main():
@@ -442,6 +447,7 @@ def main():
 
                 rlist = viz_subset
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
+                postpruning_combined_seq = sorted(postpruning_combined_seq)
                 assert postpruning_combined_seq == viz_subset
 
                 # prune the network and dictionary of assignments
