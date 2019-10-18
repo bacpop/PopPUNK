@@ -175,12 +175,16 @@ def get_options():
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
 
+                       
+    # combine
+    args = parser.parse_args()
+    
     # ensure directories do not have trailing forward slash
-    for arg in [iGroup.ref_db,queryingGroup.model_dir,queryingGroup.previous_clustering]:
+    for arg in [args.ref_db,args.model_dir,args.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
                        
-    return parser.parse_args()
+    return args
 
 def main():
     """Main function. Parses cmd line args and runs in the specified mode.
