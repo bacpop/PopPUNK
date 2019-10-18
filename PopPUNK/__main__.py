@@ -451,8 +451,7 @@ def main():
 
                 rlist = viz_subset
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
-                postpruning_combined_seq = sorted(postpruning_combined_seq)
-                assert postpruning_combined_seq == viz_subset
+                assert sorted(postpruning_combined_seq) == sorted(viz_subset)
 
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
