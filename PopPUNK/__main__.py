@@ -451,7 +451,13 @@ def main():
 
                 rlist = viz_subset
                 combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
-                assert sorted(postpruning_combined_seq) == sorted(viz_subset)
+
+                # reorder subset to ensure list orders match
+                try:
+                    viz_subset = sorted(viz_subset,key=postpruning_combined_seq.index)
+                except:
+                    sys.stderr.write("Isolates in subset not found in existing database\n")
+                assert postpruning_combined_seq == viz_subset
 
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))

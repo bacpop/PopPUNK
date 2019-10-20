@@ -517,20 +517,36 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
                     columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
                                              'core_Cluster__autocolour', 'accessory_Cluster__autocolour']
                     for c in d:
-                        columns_to_be_omitted.append(c)
+                        if c not in columns_to_be_omitted:
+                            columns_to_be_omitted.append(c)
                 if label in epiData.index:
                     for col, value in zip(epiData.columns.values, epiData.loc[label].values):
                         if col not in columns_to_be_omitted:
                             d[col].append(str(value))
                 else:
-                    for col in colnames:
-                        d[col].append('nan')
+                    for col in epiData.columns.values:
+                        if col not in columns_to_be_omitted:
+                            d[col].append('nan')
+
         else:
             sys.stderr.write("Cannot find " + name + " in clustering\n")
             sys.exit(1)
-
+                
     # print CSV
-    pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
+    sys.stderr.write("Parsed data, now writing to CSV\n")
+    try:
+        pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write("Problem with epidemiological data CSV; returned code: " + str(e.returncode) + "\n")
+        # check CSV
+        prev_col_items = -1
+        prev_col_name = "unknown"
+        for col in d:
+            this_col_items = len(d[col])
+            if prev_col_items > -1 and prev_col_items != this_col_items:
+                sys.stderr.write("Discrepant length between " + prev_col_name + " (length of " + prev_col_items + ") and " + col + "(length of " + this_col_items + ")\n")
+        sys.exit(1)
+
 
 def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
     """Use rapidNJ for more rapid tree building
@@ -627,11 +643,14 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
     # generate sequence labels
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
 
+    # check CSV before calculating other outputs
+    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
+                        combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
+
+    
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
     generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
-    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
-                    combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
 def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite):
     """Generate phylogeny using dendropy or RapidNJ
@@ -718,6 +737,10 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     # generate sequence labels
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
 
+    # print clustering file
+    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
+                    combined_list, combined_list, clustering, 'phandango', epiCsv, queryList)
+    
     # calculate phylogeny, or copy existing microreact file
     microreact_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
     phandango_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.tree"
@@ -726,10 +749,6 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
         copyfile(microreact_tree_filename, phandango_tree_filename)
     else:
         generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite)
-
-    # print clustering file
-    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
-                    combined_list, combined_list, clustering, 'phandango', epiCsv, queryList)
 
 def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
                         queryList = None, overwrite = False, microreact = False):
@@ -769,6 +788,10 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     # generate sequence labels
     seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
 
+    # print clustering file
+    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",
+                    combined_list, combined_list, clustering, 'grapetree', epiCsv, queryList)
+    
     # calculate phylogeny, or copy existing microreact file
     microreact_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
     if microreact and os.path.isfile(microreact_tree_filename):
@@ -776,7 +799,4 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     else:
         generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
 
-    # print clustering file
-    writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",
-                    combined_list, combined_list, clustering, 'grapetree', epiCsv, queryList)
 
