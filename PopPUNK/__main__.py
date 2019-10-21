@@ -468,15 +468,15 @@ def main():
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
-                outputsForMicroreact(rlist, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                outputsForMicroreact(viz_subset, core_distMat, acc_distMat, isolateClustering, args.perplexity,
                                      args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
             if args.phandango:
                 sys.stderr.write("Writing phandango output\n")
-                outputsForPhandango(rlist, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                outputsForPhandango(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             if args.grapetree:
                 sys.stderr.write("Writing grapetree output\n")
-                outputsForGrapetree(rlist, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                outputsForGrapetree(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             if args.cytoscape:
                 sys.stderr.write("Writing cytoscape output\n")
