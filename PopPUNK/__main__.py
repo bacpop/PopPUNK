@@ -438,7 +438,7 @@ def main():
             # Use external clustering if specified
             if args.external_clustering:
                 cluster_file = args.external_clustering
-            isolateClustering = {'combined': readClusters(cluster_file, return_dict=True, ext_clust=True)}
+            isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
 
             # extract subset of distances if requested
             if args.subset is not None:

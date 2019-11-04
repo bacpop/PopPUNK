@@ -142,7 +142,7 @@ def qcDistMat(distMat, refList, queryList, a_max):
     return passed
 
 
-def readClusters(clustCSV, return_dict=False, ext_clust=False):
+def readClusters(clustCSV, return_dict=False):
     """Read a previous reference clustering from CSV
 
     Args:
@@ -151,8 +151,6 @@ def readClusters(clustCSV, return_dict=False, ext_clust=False):
         return_type (str)
             If True, return a dict with sample->cluster instead
             of sets
-        ext_clust (bool)
-            If True, expects three columns of data rather than two
 
     Returns:
         clusters (dict)
@@ -168,10 +166,7 @@ def readClusters(clustCSV, return_dict=False, ext_clust=False):
     with open(clustCSV, 'r') as csv_file:
         header = csv_file.readline()
         for line in csv_file:
-            if ext_clust:
-                (sample, clust_id, hist) = line.rstrip().split(",")
-            else:
-                (sample, clust_id) = line.rstrip().split(",")
+            (sample, clust_id) = line.rstrip().split(",")[:2]
             if return_dict:
                 clusters[sample] = clust_id
             else:
