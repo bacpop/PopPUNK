@@ -3,4 +3,4 @@
 
 '''PopPUNK (POPulation Partitioning Using Nucleotide Kmers)'''
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
