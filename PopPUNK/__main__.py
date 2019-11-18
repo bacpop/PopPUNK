@@ -82,6 +82,10 @@ def get_options():
             help='Generate files for a visualisation from an existing database',
             default=False,
             action='store_true')
+    mode.add_argument('--threshold',
+            help='Create model at this core distance threshold',
+            default=None,
+            type=float)
     mode.add_argument('--use-model',
             help='Apply a fitted model to a reference database to restore database files',
             default=False,
@@ -249,7 +253,7 @@ def main():
 
     # model fit and network construction
     # refine model also needs to run all model steps
-    if args.fit_model or args.use_model or args.refine_model or args.easy_run:
+    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run:
         # Set up saved data from first step, if easy_run mode
         if args.easy_run:
             distances = dists_out
@@ -259,6 +263,8 @@ def main():
                 sys.stderr.write("Mode: Fitting model to reference database\n\n")
             elif args.use_model:
                 sys.stderr.write("Mode: Using previous model with a reference database\n\n")
+            elif args.threshold:
+                sys.stderr.write("Mode: Applying a core distance threshold\n\n")
             else:
                 sys.stderr.write("Mode: Refining model fit using network properties\n\n")
 
@@ -305,10 +311,14 @@ def main():
                 model.plot(distMat, assignments)
 
         # Run model refinement
-        if args.refine_model or args.easy_run:
+        if args.refine_model or args.threshold or args.easy_run:
             new_model = RefineFit(args.output)
-            assignments = new_model.fit(distMat, refList, model, args.pos_shift, args.neg_shift,
-                    args.manual_start, args.indiv_refine, args.no_local, args.threads)
+            if args.threshold == None:
+                assignments = new_model.fit(distMat, refList, model, args.pos_shift, args.neg_shift,
+                        args.manual_start, args.indiv_refine, args.no_local, args.threads)
+            else:
+                assignments = new_model.apply_threshold(distMat, args.threshold)
+                
             new_model.plot(distMat)
             model = new_model
 

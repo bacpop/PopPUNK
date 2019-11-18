@@ -501,6 +501,7 @@ class RefineFit(ClusterFit):
         self.preprocess = False
         self.within_label = -1
         self.slope = 2
+        self.threshold = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
             no_local = False, threads = 1):
@@ -608,6 +609,45 @@ class RefineFit(ClusterFit):
         y = self.assign(X)
         return y
 
+    def apply_threshold(self, X, threshold):
+        '''Applies a boundary threshold, given by user. Does not run
+        optimisation.
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to cluster. Must be set if
+                preprocess is set.
+            threshold (float)
+                The value along the x-axis (core distance) at which to
+                draw the assignment boundary
+
+        Returns:
+            y (numpy.array)
+                Cluster assignments of samples in X
+        '''
+        self.scale = np.array([1,1])
+        
+        # Blank values to pass to plot
+        self.mean0 = None
+        self.mean1 = None
+        self.start_point = None
+        self.min_move = None
+        self.max_move = None
+        
+        # Sets threshold
+        self.core_boundary = threshold
+        self.accessory_boundary = np.nan
+        self.optimal_x = threshold
+        self.optimal_y = np.nan
+        self.slope = 0
+        
+        # Flags on refine model
+        self.fitted = True
+        self.threshold = True
+        self.indiv_fitted = False
+
+        y = self.assign(X)
+        return y
 
     def save(self):
         '''Save the model to disk, as an npz and pkl (using outPrefix).'''
@@ -638,6 +678,8 @@ class RefineFit(ClusterFit):
         self.scale = fit_npz['scale']
         self.fitted = True
         self.indiv_fitted = False # Do not output multiple microreacts
+        if np.isnan(self.optimal_y) and np.isnan(self.accessory_boundary):
+            self.threshold = True
 
         # blank values to pass to plot (used in --use-model)
         self.mean0 = None
@@ -669,7 +711,7 @@ class RefineFit(ClusterFit):
 
         plot_refined_results(plot_X, self.assign(plot_X), self.optimal_x, self.optimal_y, self.core_boundary,
             self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
-            self.max_move, self.scale, self.indiv_fitted, "Refined fit boundary",
+            self.max_move, self.scale, self.threshold, self.indiv_fitted, "Refined fit boundary",
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
@@ -694,9 +736,9 @@ class RefineFit(ClusterFit):
             if slope == 2 or (slope == None and self.slope == 2):
                 y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=slope)
+                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=0)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=slope)
+                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=1)
 
         return y
 

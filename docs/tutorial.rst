@@ -577,6 +577,15 @@ The following command line options can be used in this mode:
    Threads are used for the global optimisation step only. If the local
    optimisation step is slow, turn it off with ``--no-local``.
 
+Applying a single distance threshold
+------------------------------------
+If you want to find clusters beneath a genetic distance cutoff, but using
+a network which forms clusters by joining samples beneath this threshold,
+you can use ``--threshold``. This will connect samples with core distances
+below the provided threshold::
+
+   poppunk --threshold 0.05 --distances strain_db/strain_db.dists --output strain_db --full-db --ref-db strain_db
+
 .. _assign-query:
 
 Assigning queries
