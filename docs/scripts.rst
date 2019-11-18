@@ -4,8 +4,9 @@ Scripts
 =======
 
 Brief documentation on the helper scripts included in the package in the ``/scripts`` directory.
-To use these scripts you will need to have a clone of the git repository, as these are not included
-with the conda or pip installs.
+To use these scripts you will need to have a clone of the git repository, or they should also be
+installed with the prefix 'poppunk' (e.g to run ``extract_distances.py``, run the command
+``poppunk_extract_distances.py``).  
 
 .. contents::
    :local:

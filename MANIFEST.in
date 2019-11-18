@@ -1,1 +1,1 @@
-recursive-include scripts
+recursive-include scripts *.py
