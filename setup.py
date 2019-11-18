@@ -60,10 +60,10 @@ setup(
             'poppunk_tsne = PopPUNK.tsne:main'
             ]
     },
-    scripts=['scripts/calculate_rand_indices.py', 
-             'scripts/extract_components.py',
-             'scripts/calculate_silhouette.py', 
-             'scripts/extract_distances.py'],
+    scripts=['scripts/poppunk_calculate_rand_indices.py', 
+             'scripts/poppunk_extract_components.py',
+             'scripts/poppunk_calculate_silhouette.py', 
+             'scripts/poppunk_extract_distances.py'],
     install_requires=['numpy',
                       'scipy',
                       'scikit-learn',
