@@ -9,7 +9,7 @@ import subprocess
 import collections
 import pickle
 import time
-from tempfile import mkstemp
+from tempfile import mkstemp, NamedTemporaryFile
 from multiprocessing import Pool, Lock
 from functools import partial
 from itertools import product
@@ -21,6 +21,8 @@ import networkx as nx
 from scipy import optimize
 
 from .utils import iterDistRows
+from .utils import assembly_qc
+from .utils import readRfile
 
 from .plot import plot_fit
 
@@ -144,6 +146,68 @@ def getSketchSize(dbPrefix, klist, mash_exec = 'mash'):
 
     return sketchdb
 
+
+def readMashDBParams(dbPrefix, kmers, sketch_sizes, mash_exec = 'mash'):
+    """Get kmers lengths and sketch sizes from existing database
+
+    Calls :func:`~getKmersFromReferenceDatabase` and :func:`~getSketchSize`
+    Uses passed values if db missing
+
+    Args:
+        dbPrefix (str)
+            Prefix for sketch DB files
+        kmers (list)
+            Kmers to use if db not found
+        sketch_sizes (list)
+            Sketch size to use if db not found
+        mash_exec (str)
+            Location of mash executable
+
+            Default = 'mash'
+    Returns:
+        kmers (list)
+            List of k-mer lengths used in database
+        sketch_sizes (list)
+            List of sketch sizes used in database
+    """
+
+    db_kmers = getKmersFromReferenceDatabase(dbPrefix)
+    if len(db_kmers) == 0:
+        sys.stderr.write("Couldn't find mash sketches in " + dbPrefix + "\n"
+                         "Using command line input parameters for k-mer and sketch sizes\n")
+    else:
+        kmers = db_kmers
+        sketch_sizes = getSketchSize(dbPrefix, kmers, mash_exec)
+
+    return kmers, sketch_sizes
+
+
+def getKmersFromReferenceDatabase(dbPrefix):
+    """Get kmers lengths from existing database
+
+    Parses the database name to determine klist
+
+    Args:
+        dbPrefix (str)
+            Prefix for sketch DB files
+    Returns:
+        kmers (list)
+            List of k-mer lengths used in database
+    """
+    # prepare
+    knum = []
+    fullDbPrefix = dbPrefix + "/" + os.path.basename(dbPrefix) + "."
+
+    # iterate through files
+    for msh_file in glob(fullDbPrefix + "*.msh"):
+        knum.append(int(msh_file.split('.')[-2]))
+
+    # process kmer list
+    knum.sort()
+    kmers = np.asarray(knum)
+    return kmers
+
+
 def getSeqsInDb(mashSketch, mash_exec = 'mash'):
     """Return an array with the sequences in the passed mash database
 
@@ -255,57 +319,8 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             (default = False)
 
     """
-
-    # Genome length needed to calculate prob of random matches
-    genome_length = DEFAULT_LENGTH # assume 2 Mb in the absence of other information
-
-    try:
-        input_lengths = []
-        input_names = []
-        with open(assemblyList, 'r') as assemblyFiles:
-            for assembly in assemblyFiles:
-                with open(assembly.rstrip(), 'r') as exampleAssembly:
-                    input_genome_length = 0
-                    for line in exampleAssembly:
-                        if line[0] != ">":
-                            input_genome_length += len(line.rstrip())
-                    input_lengths.append(input_genome_length)
-                    input_names.append(assembly)
-
-        # Check for outliers
-        outliers = []
-        sigma = 5
-        if not ignoreLengthOutliers:
-            genome_length = np.mean(np.array(input_lengths))
-            outlier_low = genome_length - sigma*np.std(input_lengths)
-            outlier_high = genome_length + sigma*np.std(input_lengths)
-            for length, name in zip(input_lengths, input_names):
-                if length < outlier_low or length > outlier_high:
-                    outliers.append(name)
-            if outliers:
-                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
-                                 "\n".join(outliers))
-                sys.exit(1)
-
-    except FileNotFoundError as e:
-        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
-                         "Assuming length of 2Mb for random match probs.\n")
-
-    except UnicodeDecodeError as e:
-        sys.stderr.write("Could not read input file. Is it zipped?\n"
-                         "Assuming length of 2Mb for random match probs.\n")
-
-    # check minimum k-mer is above random probability threshold
-    if genome_length <= 0:
-        genome_length = DEFAULT_LENGTH
-        sys.stderr.write("WARNING: Could not detect genome length. Assuming 2Mb\n")
-    if genome_length > 10000000:
-        sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
-
-    k_min = min(klist)
-    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
-        exit(1)
+    names, sequences = readRfile(assemblyList)
+    genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers) 
 
     # create kmer databases
     if threads > len(klist):
@@ -317,10 +332,14 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
 
     # run database construction using multiprocessing
     l = Lock()
-    with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
-        pool.map(partial(runSketch, assemblyList=assemblyList, sketch=sketch,
-                         genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
-                         overwrite=overwrite, threads=num_threads), klist)
+    with NamedTemporaryFile() as sequenceFile:
+        for sequence in sequences:
+            sequenceFile.write(sequence)
+    
+        with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
+            pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch,
+                            genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
+                            overwrite=overwrite, threads=num_threads), klist)
 
 def init_lock(l):
     """Sets a global lock to use when writing to STDERR in :func:`~runSketch`"""
@@ -634,67 +653,4 @@ def fitKmerCurve(pairwise, klist, jacobian):
 
     # Return core, accessory
     return(np.flipud(transformed_params))
-
-
-def readMashDBParams(dbPrefix, kmers, sketch_sizes, mash_exec = 'mash'):
-    """Get kmers lengths and sketch sizes from existing database
-
-    Calls :func:`~getKmersFromReferenceDatabase` and :func:`~getSketchSize`
-    Uses passed values if db missing
-
-    Args:
-        dbPrefix (str)
-            Prefix for sketch DB files
-        kmers (list)
-            Kmers to use if db not found
-        sketch_sizes (list)
-            Sketch size to use if db not found
-        mash_exec (str)
-            Location of mash executable
-
-            Default = 'mash'
-    Returns:
-        kmers (list)
-            List of k-mer lengths used in database
-        sketch_sizes (list)
-            List of sketch sizes used in database
-    """
-
-    db_kmers = getKmersFromReferenceDatabase(dbPrefix)
-    if len(db_kmers) == 0:
-        sys.stderr.write("Couldn't find mash sketches in " + dbPrefix + "\n"
-                         "Using command line input parameters for k-mer and sketch sizes\n")
-    else:
-        kmers = db_kmers
-        sketch_sizes = getSketchSize(dbPrefix, kmers, mash_exec)
-
-    return kmers, sketch_sizes
-
-
-def getKmersFromReferenceDatabase(dbPrefix):
-    """Get kmers lengths from existing database
-
-    Parses the database name to determine klist
-
-    Args:
-        dbPrefix (str)
-            Prefix for sketch DB files
-    Returns:
-        kmers (list)
-            List of k-mer lengths used in database
-    """
-    # prepare
-    knum = []
-    fullDbPrefix = dbPrefix + "/" + os.path.basename(dbPrefix) + "."
-
-    # iterate through files
-    for msh_file in glob(fullDbPrefix + "*.msh"):
-        knum.append(int(msh_file.split('.')[-2]))
-
-    # process kmer list
-    knum.sort()
-    kmers = np.asarray(knum)
-    return kmers
-
-
 

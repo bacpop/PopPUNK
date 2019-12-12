@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 import sharedmem
 
+DEFAULT_LENGTH = 2000000
+
 def storePickle(rlist, qlist, self, X, pklName):
     """Saves core and accessory distances in a .npy file, names in a .pkl
 
@@ -324,3 +326,101 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     # return outputs
     return seqLabels, coreMat, accMat
 
+def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
+    """Calculates random match probability based on means of genomes
+    in assemblyList, and looks for length outliers.
+
+    Calls a hard sys.exit(1) if failing!
+
+    Args:
+        assemblyList (str)
+            File with locations of assembly files to be sketched
+        klist (list)
+            List of k-mer sizes to sketch
+        ignoreLengthOutliers (bool)
+            Whether to check for outlying genome lengths (and error
+            if found)
+
+    Returns:
+        genome_length (int)
+            Average length of assemblies
+        max_prob (float)
+            Random match probability at minimum k-mer length
+    """
+   # Genome length needed to calculate prob of random matches
+    genome_length = DEFAULT_LENGTH # assume 2 Mb in the absence of other information
+
+    try:
+        input_lengths = []
+        input_names = []
+        for assembly in assemblyFiles:
+            with open(assembly, 'r') as exampleAssembly:
+                input_genome_length = 0
+                for line in exampleAssembly:
+                    if line[0] != ">":
+                        input_genome_length += len(line.rstrip())
+                input_lengths.append(input_genome_length)
+                input_names.append(assembly)
+
+        # Check for outliers
+        outliers = []
+        sigma = 5
+        if not ignoreLengthOutliers:
+            genome_length = np.mean(np.array(input_lengths))
+            outlier_low = genome_length - sigma*np.std(input_lengths)
+            outlier_high = genome_length + sigma*np.std(input_lengths)
+            for length, name in zip(input_lengths, input_names):
+                if length < outlier_low or length > outlier_high:
+                    outliers.append(name)
+            if outliers:
+                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
+                                 "\n".join(outliers))
+                sys.exit(1)
+
+    except FileNotFoundError as e:
+        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
+                         "Assuming length of 2Mb for random match probs.\n")
+
+    except UnicodeDecodeError as e:
+        sys.stderr.write("Could not read input file. Is it zipped?\n"
+                         "Assuming length of 2Mb for random match probs.\n")
+
+    # check minimum k-mer is above random probability threshold
+    if genome_length <= 0:
+        genome_length = DEFAULT_LENGTH
+        sys.stderr.write("WARNING: Could not detect genome length. Assuming 2Mb\n")
+    if genome_length > 10000000:
+        sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
+
+    k_min = min(klist)
+    max_prob = 1/(pow(4, k_min)/float(genome_length) + 1)
+    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
+        exit(1)
+
+    return (int(genome_length), max_prob)
+
+def readRfile(rFile):
+    """Reads in files for sketching. Names and sequence, tab separated
+
+    Args:
+        rFile (str)
+            File with locations of assembly files to be sketched
+
+    Returns:
+        names (list)
+            Array of sequence names
+        sequences (list)
+            Array of sequence files
+    """
+    
+    names = []
+    sequences = []
+    with open(rFile, 'rU') as refFile:
+        for refLine in refFile:
+            rFields = refLine.rstrip().split("\t")
+            names.append(rFields[0])
+            for sequence in rFields[1:]:
+                sequences.append(sequence)
+
+    return (names, sequences)

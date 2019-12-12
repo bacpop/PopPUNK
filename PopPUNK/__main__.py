@@ -112,7 +112,7 @@ def get_options():
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
-    kmerGroup.add_argument('--min-k', default = 9, type=int, help='Minimum kmer length [default = 9]')
+    kmerGroup.add_argument('--min-k', default = 13, type=int, help='Minimum kmer length [default = 9]')
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
