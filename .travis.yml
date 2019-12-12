@@ -28,5 +28,6 @@ script:
 
 # blocklist
 branches:
-  except:
-    - elfi
+  only:
+    - master
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/ # tagged releases
