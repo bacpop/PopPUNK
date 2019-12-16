@@ -13,13 +13,6 @@ import subprocess
 # import poppunk package
 from .__init__ import __version__
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import joinDBs
-from .mash import constructDatabase
-from .mash import queryDatabase
-from .mash import readMashDBParams
-
 from .models import *
 
 from .network import fetchNetwork
@@ -36,6 +29,7 @@ from .plot import outputsForGrapetree
 
 from .prune_db import prune_distance_matrix
 
+from .utils import setupDBFuncs
 from .utils import storePickle
 from .utils import readPickle
 from .utils import writeTmpFile
@@ -172,6 +166,7 @@ def get_options():
 
     # processing
     other = parser.add_argument_group('Other options')
+    other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
@@ -199,15 +194,19 @@ def main():
 
     args = get_options()
 
-    # check mash is installed
-    checkMashVersion(args.mash)
-
     # check kmer properties
     if args.min_k >= args.max_k or args.min_k < 9 or args.max_k > 31 or args.k_step < 2:
         sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size " +
                          str(args.max_k) + "; range must be between 9 and 31, step must be at least one\n")
         sys.exit(1)
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
+    
+    # Dict of DB access functions for assign_query (which is out of scope)
+    dbFuncs = setupDBFuncs(args, kmers)
+    createDatabaseDir = dbFuncs['createDatabaseDir']
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
 
     # define sketch sizes, store in hash in case on day
     # different kmers get different hash sizes
@@ -240,9 +239,9 @@ def main():
         if args.r_files is not None:
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
-                              args.threads, args.mash, args.overwrite)
+                              args.threads, args.overwrite)
             refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.output, True,
-                    args.plot_fit, args.no_stream, args.mash, args.threads)
+                    args.plot_fit, args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
@@ -392,14 +391,14 @@ def main():
             prune_distance_matrix(refList, nodes_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
             # Read previous database
-            kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
+            kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
             constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads,
-                              args.mash, True) # overwrite old db
+                              True) # overwrite old db
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
     elif args.assign_query:
-        assign_query(args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
+        assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
                      args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length,
                      args.threads, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
@@ -504,7 +503,7 @@ def main():
 
     sys.stderr.write("\nDone\n")
 
-def assign_query(ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
+def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
                  kmers, sketch_sizes, ignore_length, threads, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
@@ -512,6 +511,11 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
+    createDatabaseDir = dbFuncs['createDatabaseDir']
+    joinDBs = dbFuncs['joinDBs']
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
 
     if ref_db is not None and q_files is not None:
         sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
@@ -530,7 +534,7 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
             sys.exit(1)
 
         # Find distances to reference db
-        kmers, sketch_sizes = readMashDBParams(ref_db, kmers, sketch_sizes)
+        kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
 
         createDatabaseDir(output, kmers)
         constructDatabase(q_files, kmers, sketch_sizes, output, ignore_length,
@@ -597,7 +601,7 @@ def assign_query(ref_db, q_files, output, update_db, full_db, distances, microre
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, output, True,
                                     threads, mash, True) # overwrite old db
                 os.remove(tmpRefFile)
-            joinDBs(ref_db, output, output, kmers)
+            joinDBs(ref_db, output, output)
 
             # Update distance matrices with all calculated distances
             if distances == None:

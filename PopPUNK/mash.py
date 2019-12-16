@@ -280,8 +280,8 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
             sys.exit(1)
 
 
-def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers = False,
-                      threads = 1, mash_exec = 'mash', overwrite = False):
+def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,
+                      threads = 1, overwrite = False, reads = False, mash_exec = 'mash'):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -296,7 +296,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             File with locations of assembly files to be sketched
         klist (list)
             List of k-mer sizes to sketch
-        sketch (int)
+        sketch_size (int)
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
@@ -309,16 +309,23 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             Number of threads to use
 
             (default = 1)
-        mash_exec (str)
-            Location of mash executable
-
-            (default = 'mash')
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
 
             (default = False)
+        reads (bool)
+            If reads are being used as input
+
+            (default = False)
+        mash_exec (str)
+            Location of mash executable
+
+            (default = 'mash')
 
     """
+    if reads:
+        raise NotImplementedError("Cannot use reads with mash backend")
+
     names, sequences = readRfile(assemblyList)
     genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers) 
 
@@ -337,7 +344,7 @@ def constructDatabase(assemblyList, klist, sketch, oPrefix, ignoreLengthOutliers
             sequenceFile.write(sequence)
     
         with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
-            pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch,
+            pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch_size,
                             genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
                             overwrite=overwrite, threads=num_threads), klist)
 
@@ -417,7 +424,7 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
-def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_fits = 0,
+def queryDatabase(qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
         no_stream = False, mash_exec = 'mash', threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
@@ -432,12 +439,12 @@ def queryDatabase(qFile, klist, dbPrefix, queryPrefix, self = True, number_plot_
     Args:
         qFile (str)
             File with location of query sequences
-        klist (list)
-            K-mer sizes to use in the calculation
         dbPrefix (str)
             Prefix for reference mash sketch database created by :func:`~constructDatabase`
         queryPrefix (str)
             Prefix for query mash sketch database created by :func:`~constructDatabase`
+        klist (list)
+            K-mer sizes to use in the calculation
         self (bool)
             Set true if query = ref
 

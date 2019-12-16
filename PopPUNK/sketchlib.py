@@ -189,9 +189,8 @@ def joinDBs(db1, db2, output):
     h5py.h5o.copy(hdf2.id, 'sketches', hdf_join.id, 'sketches')
 
 
-# Replaces constructDatabase - does checks before library call
-def constructCheck(assemblyList, klist, oPrefix, ignoreLengthOutliers = False,
-                   overwrite = False, reads = False):
+def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,
+                      threads = 1, overwrite = False, reads = False):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -206,6 +205,8 @@ def constructCheck(assemblyList, klist, oPrefix, ignoreLengthOutliers = False,
             File with locations of assembly files to be sketched
         klist (list)
             List of k-mer sizes to sketch
+        sketch_size (int)
+            Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
         ignoreLengthOutliers (bool)
@@ -213,6 +214,10 @@ def constructCheck(assemblyList, klist, oPrefix, ignoreLengthOutliers = False,
             if found)
 
             (default = False)
+        threads (int)
+            Number of threads to use
+
+            (default = 1)
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
 
@@ -228,15 +233,16 @@ def constructCheck(assemblyList, klist, oPrefix, ignoreLengthOutliers = False,
         sys.stderr.write("Worst random match probability at " + str(min(k)) + 
                             "-mers: " + "{:.2f}".format(max_prob) + "\n")
     
-    dbfilename = oPrefix + "/" + oPrefix + ".h5"
+    dbname = oPrefix + "/" + oPrefix
+    dbfilename = dbname + ".h5"
     if os.path.isfile(dbfilename) and overwrite == True:
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
-    
 
-def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, sketch_size, self = True, 
-                  number_plot_fits = 0, ignoreLengthOutliers = False, overwrite = False, 
-                  reads = False, threads = 1):
+    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, threads)
+    
+def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
+                  threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
     For a reference database, runs the query against itself to find all pairwise
@@ -258,8 +264,6 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, sketch_size, self 
             Prefix for query mash sketch database created by :func:`~constructDatabase`
         klist (list)
             K-mer sizes to use in the calculation
-        sketch (int)
-            Size of sketch (``-s`` option)
         self (bool)
             Set true if query = ref
 
@@ -269,19 +273,6 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, sketch_size, self 
             Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`
 
             (default = 0)
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
-
-            (default = False)
-        overwrite (bool)
-            Whether to overwrite sketch DBs, if they already exist.
-
-            (default = False)
-        reads (bool)
-            If any reads are being used as input, do not run QC
-
-            (default = False)
         threads (int)
             Number of threads to use in the mash process
 
@@ -299,40 +290,36 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, sketch_size, self 
             Core distances (column 0) and accessory distances (column 1) between
             refList and queryList
     """
-    ref_db = dbPrefix + "/" + os.path.basename(dbPrefix) + ".h5"
+    ref_db = dbPrefix + "/" + os.path.basename(dbPrefix)
 
     if self:
         if dbPrefix != queryPrefix:
             raise RuntimeError("Must use same db for self query")
         rNames, rSequences = readRfile(rFile)
         qNames = rNames
-        number_pairs = int(0.5 * len(rNames) * (len(rNames) - 1))
         
         # Calls to library
-        constructCheck(rFile, klist, dbPrefix, ignoreLengthOutliers, overwrite, reads)
-        distMat = pp_sketchlib.constructAndQuery(ref_db, rNames, rSequences, klist, sketch_size, threads)
+        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist, threads)
+
+        # option to plot core/accessory fits. Choose a random number from cmd line option
+        if number_plot_fits > 0:
+            jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+            for plot_idx in range(number_plot_fits):
+                example = sample(rNames, k=2)
+                raw = np.zeros(len(klist))
+                for kidx, kmer in enumerate(klist):
+                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer)
+
+                fit = fitKmerCurve(raw, klist, jacobian)
+                plot_fit(klist, raw, fit,
+                        dbPrefix + "/fit_example_" + str(plot_idx + 1),
+                        "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
         qNames, qSequences = readRfile(qFile)
         rNames = getSeqsInDb(ref_db)
-        query_db = queryPrefix + "/" + os.path.basename(queryPrefix) + ".h5"
-        number_pairs = int(len(rNames) * len(qNames))
+        query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
         
         # Calls to library
-        constructCheck(qFile, klist, queryPrefix, ignoreLengthOutliers, overwrite, reads)
-        pp_sketchlib.constructDatabase(query_db, qNames, qSequences, klist, int(round(sketch_size/64)), threads)
-        distMat = pp_sketchlib.queryDatabase(ref_db, rNames, qNames, klist, threads)
-
-
-    #TODO
-    # option to plot core/accessory fits. Choose a random number from cmd line option
-    if number_plot_fits > 0:
-        examples = sample(range(number_pairs), k=number_plot_fits)
-        for plot_idx, plot_example in enumerate(sorted(examples)):
-            fit = fitKmerCurve(raw[plot_example, :], klist, jacobian)
-            plot_fit(klist, raw[plot_example, :], fit,
-                    dbPrefix + "/fit_example_" + str(plot_idx + 1),
-                    "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
-
-
+        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, threads)
 
     return(rNames, qNames, distMat)

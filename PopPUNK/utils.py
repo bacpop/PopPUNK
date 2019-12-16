@@ -8,11 +8,52 @@ import sys
 import pickle
 from collections import defaultdict
 from tempfile import mkstemp
+from functools import partial
+
 import numpy as np
 import pandas as pd
 import sharedmem
 
 DEFAULT_LENGTH = 2000000
+
+# Use partials to set up slightly different function calls between
+# both possible backends
+def setupDBFuncs(args, kmers):
+    if args.use_mash:
+        from .mash import checkMashVersion
+        from .mash import createDatabaseDir
+        from .mash import joinDBs as joinDBsMash
+        from .mash import constructDatabase as constructDatabaseMash
+        from .mash import queryDatabase as queryDBMash
+        from .mash import readMashDBParams
+    
+        # check mash is installed
+        checkMashVersion(args.mash)
+
+        joinDBs = partial(joinDBsMash, klist = kmers, mash_exec = args.mash)
+        constructDatabase = partial(constructDatabase, mash_exec = args.mash)
+        readDBParams = partial(readMashDBParams, mash_exec = args.mash)
+        queryDatabase = partial(queryDBMash, no_stream = args.no_stream, mash_exec = args.mash)
+
+
+    else:
+        from .sketchlib import createDatabaseDir
+        from .sketchlib import joinDBs
+        from .sketchlib import constructDatabase
+        from .sketchlib import queryDatabase as queryDatabaseSketchlib
+        from .sketchlib import readDBParams
+
+        queryDatabase = partial(queryDatabaseSketchlib, rFile = args.r_files)
+    
+    # Dict of DB access functions for assign_query (which is out of scope)
+    dbFuncs = {'createDatabaseDir': createDatabaseDir,
+               'joinDBs': joinDBs,
+               'constructDatabase': constructDatabase,
+               'queryDatabase': queryDatabase,
+               'readDBParams': readDBParams
+               }
+    
+    return dbFuncs
 
 def storePickle(rlist, qlist, self, X, pklName):
     """Saves core and accessory distances in a .npy file, names in a .pkl
