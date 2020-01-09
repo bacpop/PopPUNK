@@ -441,17 +441,18 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
 
     return (int(genome_length), max_prob)
 
-def readRfile(rFile):
+def readRfile(rFile, oneSeq=False):
     """Reads in files for sketching. Names and sequence, tab separated
 
     Args:
         rFile (str)
             File with locations of assembly files to be sketched
+        oneSeq (bool)
 
     Returns:
         names (list)
             Array of sequence names
-        sequences (list)
+        sequences (list of lists)
             Array of sequence files
     """
     
@@ -461,7 +462,21 @@ def readRfile(rFile):
         for refLine in refFile:
             rFields = refLine.rstrip().split("\t")
             names.append(rFields[0])
+            sample_files = []
             for sequence in rFields[1:]:
-                sequences.append(sequence)
+                sample_files.append(sequence)
+
+            # Take first of sequence list if using mash
+            if oneSeq:
+                if len(sample_files) > 1:
+                    sys.stderr.write("Multiple sequence found for " + rFields[0] +
+                                     ". Only using first\n")
+                sequence.append(sample_files[0])
+            else:
+                sequences.append(sample_files)
+
+    if len(set(names)) != len(names):
+        sys.stderr.write("Input contains duplicate names! All names must be unique\n")
+        sys.exit(1)
 
     return (names, sequences)

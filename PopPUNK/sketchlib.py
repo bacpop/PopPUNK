@@ -318,7 +318,12 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, self = True, numbe
         qNames, qSequences = readRfile(qFile)
         rNames = getSeqsInDb(ref_db)
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
-        
+
+        if set(rNames).intersection(set(qNames)) > 0:
+            sys.stderr.write("Sample names in query are contained in reference database\n")
+            sys.stderr.write("Unique names are required!\n")
+            exit(0)
+
         # Calls to library
         distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, threads)
 

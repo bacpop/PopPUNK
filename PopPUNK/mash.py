@@ -326,7 +326,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
     if reads:
         raise NotImplementedError("Cannot use reads with mash backend")
 
-    names, sequences = readRfile(assemblyList)
+    names, sequences = readRfile(assemblyList, oneSeq=True)
     genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers) 
 
     # create kmer databases
