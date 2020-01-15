@@ -46,7 +46,7 @@ def createDatabaseDir(outPrefix, kmers):
         if os.path.isfile(db_file):
             ref_db = h5py.File(db_file, 'r')
             for sample_name in list(ref_db['sketches'].keys()):
-                knum = ref_db['sketches/' + sample_name].attrs()['kmers']
+                knum = ref_db['sketches/' + sample_name].attrs['kmers']
                 if not (kmers == knum).any():
                     sys.stderr.write("Removing old database " + db_file + "\n")
                     sys.stderr.write("(k-mer size " + str(knum) +
@@ -230,7 +230,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
     names, sequences = readRfile(assemblyList)
     if not reads:
         genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers)
-        sys.stderr.write("Worst random match probability at " + str(min(k)) + 
+        sys.stderr.write("Worst random match probability at " + str(min(klist)) + 
                             "-mers: " + "{:.2f}".format(max_prob) + "\n")
     
     dbname = oPrefix + "/" + oPrefix

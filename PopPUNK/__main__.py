@@ -208,7 +208,7 @@ def main():
     queryDatabase = dbFuncs['queryDatabase']
     readDBParams = dbFuncs['readDBParams']
 
-    # define sketch sizes, store in hash in case on day
+    # define sketch sizes, store in hash in case one day
     # different kmers get different hash sizes
     sketch_sizes = {}
     if args.sketch_size >= 100 and args.sketch_size <= 10**6:
@@ -217,6 +217,10 @@ def main():
     else:
         sys.stderr.write("Sketch size should be between 100 and 10^6\n")
         sys.exit(1)
+    # for sketchlib, only supporting a single sketch size
+    if not args.use_mash:
+        sketch_sizes = max(sketch_sizes)
+    
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
@@ -240,8 +244,13 @@ def main():
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
                               args.threads, args.overwrite)
-            refList, queryList, distMat = queryDatabase(args.r_files, args.output, args.output, kmers,
-                                                        True, args.plot_fit, threads=args.threads)
+            refList, queryList, distMat = queryDatabase(qFile = args.r_files, 
+                                                        dbPrefix = args.output, 
+                                                        queryPrefix = args.output, 
+                                                        klist = kmers,
+                                                        self = True, 
+                                                        number_plot_fits = args.plot_fit, 
+                                                        threads=args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"

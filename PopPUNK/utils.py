@@ -394,14 +394,17 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
     try:
         input_lengths = []
         input_names = []
-        for assembly in assemblyList:
-            with open(assembly, 'r') as exampleAssembly:
+        for sampleAssembly in assemblyList:
+            if type(sampleAssembly) != list:
+                sampleAssembly = list(sampleAssembly)
+            for assemblyFile in sampleAssembly:
                 input_genome_length = 0
-                for line in exampleAssembly:
-                    if line[0] != ">":
-                        input_genome_length += len(line.rstrip())
-                input_lengths.append(input_genome_length)
-                input_names.append(assembly)
+                with open(assemblyFile, 'r') as exampleAssembly:
+                    for line in exampleAssembly:
+                        if line[0] != ">":
+                            input_genome_length += len(line.rstrip())
+            input_lengths.append(input_genome_length)
+            input_names.append(sampleAssembly)
 
         # Check for outliers
         outliers = []
