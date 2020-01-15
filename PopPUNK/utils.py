@@ -31,7 +31,7 @@ def setupDBFuncs(args, kmers):
         checkMashVersion(args.mash)
 
         joinDBs = partial(joinDBsMash, klist = kmers, mash_exec = args.mash)
-        constructDatabase = partial(constructDatabase, mash_exec = args.mash)
+        constructDatabase = partial(constructDatabaseMash, mash_exec = args.mash)
         readDBParams = partial(readMashDBParams, mash_exec = args.mash)
         queryDatabase = partial(queryDBMash, no_stream = args.no_stream, mash_exec = args.mash)
 
@@ -394,7 +394,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
     try:
         input_lengths = []
         input_names = []
-        for assembly in assemblyFiles:
+        for assembly in assemblyList:
             with open(assembly, 'r') as exampleAssembly:
                 input_genome_length = 0
                 for line in exampleAssembly:
@@ -461,6 +461,11 @@ def readRfile(rFile, oneSeq=False):
     with open(rFile, 'rU') as refFile:
         for refLine in refFile:
             rFields = refLine.rstrip().split("\t")
+            if len(rFields) < 2:
+                sys.stderr.write("Input reference list is misformatted\n"
+                                 "Must contain sample name and file, tab separated\n")
+                sys.exit(0)
+            
             names.append(rFields[0])
             sample_files = []
             for sequence in rFields[1:]:
@@ -471,7 +476,7 @@ def readRfile(rFile, oneSeq=False):
                 if len(sample_files) > 1:
                     sys.stderr.write("Multiple sequence found for " + rFields[0] +
                                      ". Only using first\n")
-                sequence.append(sample_files[0])
+                sequences.append(sample_files[0])
             else:
                 sequences.append(sample_files)
 

@@ -17,7 +17,10 @@ import pandas as pd
 from collections import defaultdict
 from scipy import spatial
 from sklearn import manifold
-from sklearn.neighbors.kde import KernelDensity
+try:  # sklearn >= 0.22
+    from sklearn.neighbors import KernelDensity
+except ImportError:
+    from sklearn.neighbors.kde import KernelDensity
 import dendropy
 import networkx as nx
 

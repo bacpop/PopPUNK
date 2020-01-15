@@ -339,9 +339,10 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
 
     # run database construction using multiprocessing
     l = Lock()
-    with NamedTemporaryFile() as sequenceFile:
+    with NamedTemporaryFile(mode='w', prefix="references", suffix=".tmp", dir=".") as sequenceFile:
         for sequence in sequences:
-            sequenceFile.write(sequence)
+            sequenceFile.write(sequence + '\n')
+        sequenceFile.flush()
     
         with Pool(processes=num_processes, initializer=init_lock, initargs=(l,)) as pool:
             pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch_size,
@@ -477,10 +478,7 @@ def queryDatabase(qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_
             Core distances (column 0) and accessory distances (column 1) between
             refList and queryList
     """
-    queryList = []
-    with open(qFile, 'r') as queryFile:
-        for line in queryFile:
-            queryList.append(line.rstrip())
+    queryNames, queryList = readRfile(qFile, oneSeq=True)
     refList = getSeqsInDb(dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(klist[0]) + ".msh", mash_exec)
 
     if self:

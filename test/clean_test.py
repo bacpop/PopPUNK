@@ -11,7 +11,7 @@ sys.stderr.write("Cleaning up tests\n")
 refs = []
 with open("references.txt", 'r') as ref_file:
     for line in ref_file:
-        refs.append(line.rstrip())
+        refs.append(line.rstrip().split("\t")[1])
 
 # clean up
 if os.path.isdir("example_db"):

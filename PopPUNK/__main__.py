@@ -240,8 +240,8 @@ def main():
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
                               args.threads, args.overwrite)
-            refList, queryList, distMat = queryDatabase(args.r_files, kmers, args.output, args.output, True,
-                    args.plot_fit, args.threads)
+            refList, queryList, distMat = queryDatabase(args.r_files, args.output, args.output, kmers,
+                                                        True, args.plot_fit, threads=args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
