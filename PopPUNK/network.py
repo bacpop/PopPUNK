@@ -16,15 +16,10 @@ import pandas as pd
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import queryDatabase
-from .mash import getDatabaseName
-from .mash import getSketchSize
-
 from .utils import iterDistRows
 from .utils import readClusters
 from .utils import readExternalClusters
+from .utils import readRFile
 
 def fetchNetwork(network_dir, model, refList,
                   core_only = False, accessory_only = False):
@@ -256,12 +251,14 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
-        queryDB, no_stream = False, queryQuery = False, threads = 1, mash_exec = 'mash'):
+def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
+        queryDB, queryQuery = False, use_mash = False):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
     Args:
+        dbFuncs (list)
+            List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
         rlist (list)
             List of reference names
         qlist (list)
@@ -300,6 +297,10 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
         distMat (numpy.array)
             Query-query distances
     """
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
+
     # initialise links data structure
     new_edges = []
     assigned = set()
@@ -307,8 +308,18 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
     qlist1 = None
     distMat = None
 
+    # Set up query names
+    qList, qSeqs = readRFile(qfile, oneSeq = use_mash)
+    queryFiles = dict(zip(qList, qSeqs))
+    if use_mash == True:
+        rNames = None
+        qNames = qSeqs
+    else:
+        rNames = qList 
+        qNames = rNames
+
     # store links for each query in a list of edge tuples
-    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=False)):
+    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qList, self=False)):
         if assignment == model.within_label:
             new_edges.append((ref, query))
             assigned.add(query)
@@ -316,8 +327,15 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
-        qlist1, qlist2, distMat = queryDatabase(qfile, kmers, queryDB, queryDB, True,
-                0, no_stream, mash_exec = mash_exec, threads = threads)
+
+        qlist1, qlist2, distMat = queryDatabase(rNames = rNames,
+                                                qNames = qNames, 
+                                                dbPrefix = queryDB, 
+                                                queryPrefix = queryDB, 
+                                                klist = kmers,
+                                                self = True, 
+                                                number_plot_fits = 0, 
+                                                threads=threads)
         queryAssignation = model.assign(distMat)
         for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
             if assignment == model.within_label:
@@ -337,13 +355,20 @@ def addQueryToNetwork(rlist, qlist, qfile, G, kmers, assignments, model,
             tmpHandle, tmpFile = mkstemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir=tmpDirName)
             with open(tmpFile, 'w') as tFile:
                 for query in unassigned:
-                    tFile.write(query + '\n')
+                    tFile.write(query + '\t' + queryFiles[query] + '\n')
 
             # use database construction methods to find links between unassigned queries
-            sketchSize = getSketchSize(queryDB, kmers, mash_exec)
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, mash_exec)
-            qlist1, qlist2, distMat = queryDatabase(tmpHandle, kmers, tmpDirName, tmpDirName, True,
-                0, no_stream, mash_exec = mash_exec, threads = threads)
+            sketchSize = readDBParams(queryDB)[1]
+
+            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
+            qlist1, qlist2, distMat = queryDatabase(rNames = unassigned,
+                                                    qNames = unassigned, 
+                                                    dbPrefix = tmpDirName,
+                                                    queryPrefix = tmpDirName,
+                                                    klist = kmers,
+                                                    self = True,
+                                                    number_plot_fits = 0,
+                                                    threads = threads)
             queryAssignation = model.assign(distMat)
 
             # identify any links between queries and store in the same links dict

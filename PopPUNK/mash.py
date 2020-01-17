@@ -438,10 +438,10 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     :func:`~PopPUNK.utils.iterDistRows` with the returned refList and queryList
 
     Args:
-        rFile (str)
-            File with location of ref sequences (ignored)
-        qFile (str)
-            File with location of query sequences
+        rNames (list)
+            Names of ref sequences (ignored)
+        qNames (list)
+            Names of query sequences
         dbPrefix (str)
             Prefix for reference mash sketch database created by :func:`~constructDatabase`
         queryPrefix (str)
@@ -480,9 +480,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             Core distances (column 0) and accessory distances (column 1) between
             refList and queryList
     """
-    if rFile != None:
+    if rNames != None:
         sys.stderr.write("List of reference names ignored with mash backend")
-
     refList = getSeqsInDb(dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(klist[0]) + ".msh", mash_exec)
 
     if self:
@@ -490,7 +489,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             raise RuntimeError("Must use same db for self query")
         number_pairs = int(0.5 * len(refList) * (len(refList) - 1))
     else:
-        number_pairs = int(len(refList) * len(queryList))
+        number_pairs = int(len(refList) * len(qNames))
 
     # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
     raw = sharedmem.empty((number_pairs, len(klist)), dtype=np.float32)
@@ -526,7 +525,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
-            expected_names = iterDistRows(refList, queryList, self)
+            expected_names = iterDistRows(refList, qNames, self)
 
             prev_ref = ""
             skip = 0
@@ -602,7 +601,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     with sharedmem.MapReduce(np = threads) as pool:
         pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
 
-    return(refList, queryList, distMat)
+    return(refList, qNames, distMat)
 
 
 def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
