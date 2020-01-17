@@ -79,13 +79,13 @@ def getSketchSize(dbPrefix):
     ref_db = h5py.File(db_file, 'r')
     prev_sketch = 0
     for sample_name in list(ref_db['sketches'].keys()):
-        sketch_size = ref_db['sketches/' + sample_name].attrs()['sketchsize64'] * 64
+        sketch_size = ref_db['sketches/' + sample_name].attrs['sketchsize64'] * 64
         if prev_sketch == 0:
             prev_sketch = sketch_size
         elif sketch_size != prev_sketch:
-            sys.stderr.write("Problem with database; sketch size for kmer length " +
-                             str(k) + " is " + str(oldSketch) +
-                             ", but smaller kmers have sketch sizes of " + str(sketch) + "\n")
+            sys.stderr.write("Problem with database; sketch sizes for sample " +
+                             sample_name + " is " + str(prev_sketch) +
+                             ", but smaller kmers have sketch sizes of " + str(sketch_size) + "\n")
             sys.exit(1)
 
     return sketch_size
@@ -104,7 +104,7 @@ def getKmersFromReferenceDatabase(dbPrefix):
     ref_db = h5py.File(db_file, 'r')
     prev_kmer_sizes = []
     for sample_name in list(ref_db['sketches'].keys()):
-        kmer_size = ref_db['sketches/' + sample_name].attrs()['kmers']
+        kmer_size = ref_db['sketches/' + sample_name].attrs['kmers']
         if len(prev_kmer_sizes) == 0:
             prev_kmer_sizes = kmer_size
         elif np.any(kmer_size != prev_kmer_sizes):
@@ -167,7 +167,7 @@ def getSeqsInDb(dbname):
     return seqs
 
 def joinDBs(db1, db2, output):
-    """Join two mash sketch databases with ``mash paste``
+    """Join two sketch databases with the low-level HDF5 copy interface
 
     Args:
         db1 (str)
@@ -240,8 +240,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
         os.remove(dbfilename)
 
     pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, threads)
-    
-def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
+
+def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
@@ -254,10 +254,10 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, self = True, numbe
     :func:`~PopPUNK.utils.iterDistRows` with the returned refList and queryList
 
     Args:
-        rFile (str)
-            File with location of ref sequences
-        qFile (str)
-            File with location of query sequences
+        rNames (list)
+            Names of references to query
+        qNames (list)
+            Names of queries
         dbPrefix (str)
             Prefix for reference mash sketch database created by :func:`~constructDatabase`
         queryPrefix (str)
@@ -295,7 +295,6 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, self = True, numbe
     if self:
         if dbPrefix != queryPrefix:
             raise RuntimeError("Must use same db for self query")
-        rNames, rSequences = readRfile(rFile)
         qNames = rNames
         
         # Calls to library
@@ -315,8 +314,6 @@ def queryDatabase(rFile, qFile, dbPrefix, queryPrefix, klist, self = True, numbe
                         dbPrefix + "/fit_example_" + str(plot_idx + 1),
                         "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
-        qNames, qSequences = readRfile(qFile)
-        rNames = getSeqsInDb(ref_db)
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
 
         if set(rNames).intersection(set(qNames)) > 0:

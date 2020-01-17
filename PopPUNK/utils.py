@@ -26,6 +26,7 @@ def setupDBFuncs(args, kmers):
         from .mash import constructDatabase as constructDatabaseMash
         from .mash import queryDatabase as queryDBMash
         from .mash import readMashDBParams
+        from .mash import getSeqsInDb
     
         # check mash is installed
         checkMashVersion(args.mash)
@@ -40,17 +41,17 @@ def setupDBFuncs(args, kmers):
         from .sketchlib import createDatabaseDir
         from .sketchlib import joinDBs
         from .sketchlib import constructDatabase
-        from .sketchlib import queryDatabase as queryDatabaseSketchlib
+        from .sketchlib import queryDatabase
         from .sketchlib import readDBParams
+        from .sketchlib import getSeqsInDb
 
-        queryDatabase = partial(queryDatabaseSketchlib, rFile = args.r_files)
-    
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = {'createDatabaseDir': createDatabaseDir,
                'joinDBs': joinDBs,
                'constructDatabase': constructDatabase,
                'queryDatabase': queryDatabase,
-               'readDBParams': readDBParams
+               'readDBParams': readDBParams,
+               'getSeqsInDb': getSeqsInDb
                }
     
     return dbFuncs
@@ -396,7 +397,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
         input_names = []
         for sampleAssembly in assemblyList:
             if type(sampleAssembly) != list:
-                sampleAssembly = list(sampleAssembly)
+                sampleAssembly = [sampleAssembly]
             for assemblyFile in sampleAssembly:
                 input_genome_length = 0
                 with open(assemblyFile, 'r') as exampleAssembly:
@@ -467,7 +468,7 @@ def readRfile(rFile, oneSeq=False):
             if len(rFields) < 2:
                 sys.stderr.write("Input reference list is misformatted\n"
                                  "Must contain sample name and file, tab separated\n")
-                sys.exit(0)
+                sys.exit(1)
             
             names.append(rFields[0])
             sample_files = []

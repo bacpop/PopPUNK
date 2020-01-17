@@ -37,12 +37,14 @@ from .utils import qcDistMat
 from .utils import readClusters
 from .utils import translate_distMat
 from .utils import update_distance_matrices
+from .utils import readRfile
 
-#################
-# run main code #
-#################
 
-# command line parsing
+#******************************#
+#*                            *#
+#* Command line parsing       *#
+#*                            *#
+#******************************#
 def get_options():
 
     import argparse
@@ -188,6 +190,12 @@ def get_options():
 def main():
     """Main function. Parses cmd line args and runs in the specified mode.
     """
+    
+    #******************************#
+    #*                            *#
+    #* Check command options      *#
+    #*                            *#
+    #******************************#
     if sys.version_info[0] < 3:
         sys.stderr.write('PopPUNK requires python version 3 or above\n')
         sys.exit(1)
@@ -234,17 +242,31 @@ def main():
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
 
-    # database construction
+    #******************************#
+    #*                            *#
+    #* Create database            *#
+    #*                            *#
+    #******************************#    
     if args.create_db or args.easy_run:
         if args.create_db:
             sys.stderr.write("Mode: Building new database from input sequences\n")
         elif args.easy_run:
             sys.stderr.write("Mode: Creating clusters from assemblies (create_db & fit_model)\n")
         if args.r_files is not None:
+            # Sketch
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
                               args.threads, args.overwrite)
-            refList, queryList, distMat = queryDatabase(qFile = args.r_files, 
+            
+            # Calculate and QC distances
+            if args.use_mash == True:
+                rNames = None
+                qNames = readRfile(args.r_files, oneSeq=True)[1]
+            else:
+                rNames = readRfile(args.r_files)[0] 
+                qNames = rNames
+            refList, queryList, distMat = queryDatabase(rNames = rNames,
+                                                        qNames = qNames, 
                                                         dbPrefix = args.output, 
                                                         queryPrefix = args.output, 
                                                         klist = kmers,
@@ -253,13 +275,19 @@ def main():
                                                         threads=args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
+            # Save results
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
             storePickle(refList, queryList, True, distMat, dists_out)
         else:
             sys.stderr.write("Need to provide a list of reference files with --r-files")
             sys.exit(1)
 
-    # model fit and network construction
+    #******************************#
+    #*                            *#
+    #* model fit and network      *#
+    #* construction               *#
+    #*                            *#
+    #******************************#    
     # refine model also needs to run all model steps
     if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run:
         # Set up saved data from first step, if easy_run mode
@@ -305,6 +333,11 @@ def main():
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
 
+        #******************************#
+        #*                            *#
+        #* model fit                  *#
+        #*                            *#
+        #******************************#    
         # Run selected model here, or if easy run DBSCAN followed by refinement
         if args.fit_model or args.easy_run:
             # Run DBSCAN model
@@ -337,6 +370,12 @@ def main():
 
         fit_type = 'combined'
         model.save()
+        
+        #******************************#
+        #*                            *#
+        #* network construction       *#
+        #*                            *#
+        #******************************#  
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
 
         # Ensure all in dists are in final network
@@ -366,6 +405,11 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
+        #******************************#
+        #*                            *#
+        #* external visualisations    *#
+        #*                            *#
+        #******************************#  
         # Create files for visualisations
         if args.microreact or args.cytoscape or args.phandango or args.grapetree:
             # generate distance matrices for outputs if required
@@ -392,6 +436,11 @@ def main():
                         outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
                                     args.info_csv, suffix = dist_type, writeCsv = False)
 
+        #******************************#
+        #*                            *#
+        #* clique pruning             *#
+        #*                            *#
+        #******************************# 
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
@@ -399,21 +448,35 @@ def main():
             genomeNetwork.remove_nodes_from(nodes_to_remove)
             prune_distance_matrix(refList, nodes_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
-            # Read previous database
-            kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads,
-                              True) # overwrite old db
+            
+            # With mash, the sketches are actually removed from the database
+            if args.use_mash:
+                # Read previous database
+                kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
+                constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads,
+                                True) # overwrite old db
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
+    #*******************************#
+    #*                             *#
+    #* query assignment (function  *#
+    #* below)                      *#
+    #*                             *#
+    #*******************************# 
     elif args.assign_query:
         assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
                      args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length,
-                     args.threads, args.mash, args.overwrite, args.plot_fit, args.no_stream,
+                     args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity)
 
+    #******************************#
+    #*                            *#
+    #* generate viz mode          *#
+    #*                            *#
+    #******************************#  
     # generate visualisation files from existing database
     elif args.generate_viz:
         if args.microreact or args.phandango or args.grapetree or args.cytoscape:
@@ -512,8 +575,13 @@ def main():
 
     sys.stderr.write("\nDone\n")
 
+#*******************************#
+#*                             *#
+#* query assignment            *#
+#*                             *#
+#*******************************# 
 def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
-                 kmers, sketch_sizes, ignore_length, threads, mash, overwrite,
+                 kmers, sketch_sizes, ignore_length, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity):
@@ -525,6 +593,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
     readDBParams = dbFuncs['readDBParams']
+    getSeqsInDb = dbFuncs['getSeqsInDb']
 
     if ref_db is not None and q_files is not None:
         sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
@@ -545,11 +614,31 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         # Find distances to reference db
         kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
 
+        # Sketch query sequences
         createDatabaseDir(output, kmers)
         constructDatabase(q_files, kmers, sketch_sizes, output, ignore_length,
-                            threads, mash, overwrite)
-        refList, queryList, distMat = queryDatabase(q_files, kmers, ref_db, output, False, plot_fit,
-                                                    no_stream, mash, threads)
+                            threads, overwrite)
+
+        # Find distances vs ref seqs
+        rNames = []
+        if use_mash == True:
+            rNames = None
+            qNames = readRfile(q_files)[1]
+        elif os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
+            with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
+                for reference in refFile:
+                    rNames.append(reference.rstrip())
+        else:
+            rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
+
+        refList, queryList, distMat = queryDatabase(rNames = rNames,
+                                                    qNames = qNames, 
+                                                    dbPrefix = ref_db,
+                                                    queryPrefix = output,
+                                                    klist = kmers,
+                                                    self = False,
+                                                    number_plot_fits = plot_fit,
+                                                    threads = threads)
         qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
 
         # Assign these distances as within or between
@@ -604,13 +693,15 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 newQueries = ordered_queryList
             nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
 
-            # Update the mash database
-            if newQueries != queryList:
+            # Update the sketch database
+            if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, output, True,
-                                    threads, mash, True) # overwrite old db
+                                    threads, True) # overwrite old db
                 os.remove(tmpRefFile)
-            joinDBs(ref_db, output, output)
+            # With mash, this is the reduced DB constructed,
+            # with sketchlib, all sketches
+            joinDBs(ref_db, output, output) 
 
             # Update distance matrices with all calculated distances
             if distances == None:

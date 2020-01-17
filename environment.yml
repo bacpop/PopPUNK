@@ -20,3 +20,4 @@ dependencies:
   - mash
   - hdbscan
   - rapidnj
+  - pp-sketchlib

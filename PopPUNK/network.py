@@ -213,7 +213,7 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
 
     density_proportion = len(connections) / (0.5 * (len(rlist) * (len(rlist) + 1)))
     if density_proportion > 0.4 or len(connections) > 500000:
-        sys.stderr.write("Warning: trying to create very large network\n")
+        sys.stderr.write("Warning: trying to create very dense network\n")
 
     # build the graph
     G = nx.Graph()

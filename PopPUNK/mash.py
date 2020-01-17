@@ -425,7 +425,7 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
-def queryDatabase(qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
+def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
         no_stream = False, mash_exec = 'mash', threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
@@ -438,6 +438,8 @@ def queryDatabase(qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_
     :func:`~PopPUNK.utils.iterDistRows` with the returned refList and queryList
 
     Args:
+        rFile (str)
+            File with location of ref sequences (ignored)
         qFile (str)
             File with location of query sequences
         dbPrefix (str)
@@ -478,7 +480,9 @@ def queryDatabase(qFile, dbPrefix, queryPrefix, klist, self = True, number_plot_
             Core distances (column 0) and accessory distances (column 1) between
             refList and queryList
     """
-    queryNames, queryList = readRfile(qFile, oneSeq=True)
+    if rFile != None:
+        sys.stderr.write("List of reference names ignored with mash backend")
+
     refList = getSeqsInDb(dbPrefix + "/" + os.path.basename(dbPrefix) + "." + str(klist[0]) + ".msh", mash_exec)
 
     if self:
