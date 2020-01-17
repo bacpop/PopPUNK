@@ -35,16 +35,22 @@ def checkMashVersion(mash_exec):
     Args:
         mash_exec (str)
             Location of mash executable
+
+    Returns:
+        version (str)
+            Version string
     """
     p = subprocess.Popen([mash_exec + ' --version'], shell=True, stdout=subprocess.PIPE)
     version = 0
     for line in iter(p.stdout.readline, ''):
         if line != '':
-            version = line.rstrip().decode().split(".")[0]
+            version = line.rstrip().decode().split(".")
             break
-    if not version.isdigit() or int(version) < 2:
+    if not version[0].isdigit() or int(version[0]) < 2:
         sys.stderr.write("Need mash v2 or higher\n")
         sys.exit(1)
+
+    return ".".join(version)
 
 def getDatabaseName(prefix, k):
     """Gets the name for the mash database for a given k size

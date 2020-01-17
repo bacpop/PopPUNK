@@ -6,6 +6,7 @@ import os
 import sys
 # additional
 import pickle
+import subprocess
 from collections import defaultdict
 from tempfile import mkstemp
 from functools import partial
@@ -18,7 +19,7 @@ DEFAULT_LENGTH = 2000000
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, kmers):
+def setupDBFuncs(args, kmers, min_count):
     if args.use_mash:
         from .mash import checkMashVersion
         from .mash import createDatabaseDir
@@ -29,7 +30,8 @@ def setupDBFuncs(args, kmers):
         from .mash import getSeqsInDb
     
         # check mash is installed
-        checkMashVersion(args.mash)
+        backend = "mash"
+        version = checkMashVersion(args.mash)
 
         joinDBs = partial(joinDBsMash, klist = kmers, mash_exec = args.mash)
         constructDatabase = partial(constructDatabaseMash, mash_exec = args.mash)
@@ -38,12 +40,18 @@ def setupDBFuncs(args, kmers):
 
 
     else:
+        from .sketchlib import checkSketchlibVersion
         from .sketchlib import createDatabaseDir
         from .sketchlib import joinDBs
-        from .sketchlib import constructDatabase
+        from .sketchlib import constructDatabase as constructDatabaseSketchlib
         from .sketchlib import queryDatabase
         from .sketchlib import readDBParams
         from .sketchlib import getSeqsInDb
+
+        backend = "sketchlib"
+        version = checkSketchlibVersion()
+
+        constructDatabase = partial(constructDatabaseSketchlib, min_count = min_count)
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = {'createDatabaseDir': createDatabaseDir,
@@ -51,7 +59,9 @@ def setupDBFuncs(args, kmers):
                'constructDatabase': constructDatabase,
                'queryDatabase': queryDatabase,
                'readDBParams': readDBParams,
-               'getSeqsInDb': getSeqsInDb
+               'getSeqsInDb': getSeqsInDb,
+               'backend': backend,
+               'backend_version': version
                }
     
     return dbFuncs

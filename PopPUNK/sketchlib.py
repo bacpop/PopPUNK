@@ -29,6 +29,23 @@ from .utils import assembly_qc
 from .utils import readRfile
 from .plot import plot_fit
 
+sketchlib_exe = "poppunk_sketch"
+
+def checkSketchlibVersion():
+    """Checks that sketchlib can be run, and returns versiob
+
+    Returns:
+        version (str)
+            Version string
+    """
+    p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
+    version = 0
+    for line in iter(p.stdout.readline, ''):
+        if line != '':
+            version = line.rstrip().decode().split(" ")[1]
+            break
+
+    return version
 
 def createDatabaseDir(outPrefix, kmers):
     """Creates the directory to write sketches to, removing old files if unnecessary
@@ -79,7 +96,7 @@ def getSketchSize(dbPrefix):
     ref_db = h5py.File(db_file, 'r')
     prev_sketch = 0
     for sample_name in list(ref_db['sketches'].keys()):
-        sketch_size = ref_db['sketches/' + sample_name].attrs['sketchsize64'] * 64
+        sketch_size = ref_db['sketches/' + sample_name].attrs['sketchsize64']
         if prev_sketch == 0:
             prev_sketch = sketch_size
         elif sketch_size != prev_sketch:
@@ -88,7 +105,7 @@ def getSketchSize(dbPrefix):
                              ", but smaller kmers have sketch sizes of " + str(sketch_size) + "\n")
             sys.exit(1)
 
-    return sketch_size
+    return int(sketch_size)
 
 def getKmersFromReferenceDatabase(dbPrefix):
     """Get kmers lengths from existing database
@@ -190,7 +207,7 @@ def joinDBs(db1, db2, output):
 
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,
-                      threads = 1, overwrite = False, reads = False):
+                      threads = 1, overwrite = False, reads = False, min_count = 0):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -239,7 +256,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
 
-    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, threads)
+    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, min_count, threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1):

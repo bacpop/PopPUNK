@@ -19,7 +19,7 @@ from collections import defaultdict, Counter
 from .utils import iterDistRows
 from .utils import readClusters
 from .utils import readExternalClusters
-from .utils import readRFile
+from .utils import readRfile
 
 def fetchNetwork(network_dir, model, refList,
                   core_only = False, accessory_only = False):
@@ -252,7 +252,7 @@ def networkSummary(G):
     return(components, density, transitivity, score)
 
 def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
-        queryDB, queryQuery = False, use_mash = False):
+        queryDB, queryQuery = False, use_mash = False, threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -261,8 +261,6 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
         rlist (list)
             List of reference names
-        qlist (list)
-            List of query names
         qfile (str)
             File containing queries
         G (networkx.Graph)
@@ -279,6 +277,8 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             Add in all query-query distances
 
             (default = False)
+        use_mash (bool)
+            Use the mash backend
         no_stream (bool)
             Don't stream mash output
 
@@ -287,10 +287,6 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             Number of threads to use if new db created
 
             (default = 1)
-        mash_exec (str)
-            Location of the mash executable
-
-            (default = 'mash')
     Returns:
         qlist1 (list)
             Ordered list of queries
@@ -309,7 +305,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
     distMat = None
 
     # Set up query names
-    qList, qSeqs = readRFile(qfile, oneSeq = use_mash)
+    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
     queryFiles = dict(zip(qList, qSeqs))
     if use_mash == True:
         rNames = None

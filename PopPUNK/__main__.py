@@ -112,6 +112,7 @@ def get_options():
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
+    kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
 
     # qc options
     qcGroup = parser.add_argument_group('Quality control options')
@@ -210,7 +211,7 @@ def main():
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
     
     # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, kmers)
+    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
@@ -227,8 +228,7 @@ def main():
         sys.exit(1)
     # for sketchlib, only supporting a single sketch size
     if not args.use_mash:
-        sketch_sizes = max(sketch_sizes)
-    
+        sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
@@ -241,6 +241,7 @@ def main():
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
+    sys.stderr.write("(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + ")\n")
 
     #******************************#
     #*                            *#
@@ -624,12 +625,14 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         if use_mash == True:
             rNames = None
             qNames = readRfile(q_files)[1]
-        elif os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
-            with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
-                for reference in refFile:
-                    rNames.append(reference.rstrip())
         else:
-            rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
+            qNames = readRfile(q_files)[0]
+            if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
+                with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
+                    for reference in refFile:
+                        rNames.append(reference.rstrip())
+            else:
+                rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
 
         refList, queryList, distMat = queryDatabase(rNames = rNames,
                                                     qNames = qNames, 
@@ -665,9 +668,9 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                         core_only, accessory_only)
 
         # Assign clustering by adding to network
-        ordered_queryList, query_distMat = addQueryToNetwork(refList, queryList, q_files,
-                genomeNetwork, kmers, queryAssignments, model, output, no_stream, update_db,
-                threads, mash)
+        ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, rNames, q_files,
+                genomeNetwork, kmers, queryAssignments, model, output, update_db,
+                use_mash, threads)
 
         # if running simple query
         print_full_clustering = False
