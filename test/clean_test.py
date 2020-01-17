@@ -7,6 +7,10 @@ import os
 import sys
 import shutil
 
+def deleteDir(dirname):
+    if os.path.isdir(dirname):
+        shutil.rmtree(dirname)    
+
 sys.stderr.write("Cleaning up tests\n")
 refs = []
 with open("references.txt", 'r') as ref_file:
@@ -14,16 +18,20 @@ with open("references.txt", 'r') as ref_file:
         refs.append(line.rstrip().split("\t")[1])
 
 # clean up
-if os.path.isdir("example_db"):
-    shutil.rmtree("example_db")
-if os.path.isdir("example_refine"):
-    shutil.rmtree("example_refine")
-if os.path.isdir("example_query"):
-    shutil.rmtree("example_query")
-if os.path.isdir("example_viz"):
-    shutil.rmtree("example_viz")
-if os.path.isdir("example_use"):
-    shutil.rmtree("example_use")
+outputDirs = [
+    "example_db",
+    "example_refine",
+    "example_query",
+    "example_use",
+    "example_db_mash",
+    "example_refine_mash",
+    "example_query_mash",
+    "example_use_mash", 
+    "example_viz"
+]
+for outDir in outputDirs:
+    deleteDir(outDir)
+
 for ref in refs:
     os.remove(ref)
 
