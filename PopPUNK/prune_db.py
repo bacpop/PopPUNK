@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018 John Lees and Nick Croucher
+# Copyright 2018-2020 John Lees and Nick Croucher
 
 # universal
 import os
@@ -11,6 +11,8 @@ from tempfile import mkstemp
 
 # import poppunk package
 from .__init__ import __version__
+
+from .sketchlib import removeFromDB
 
 from .mash import checkMashVersion
 from .mash import createDatabaseDir
@@ -113,11 +115,12 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--resketch', default=False, action='store_true', help='Resketch the non-excluded sequences '
+    oGroup.add_argument('--resketch', default=False, action='store_true', help='Resketch the non-excluded sequences (mash-only) '
                                                                                '[default = False]')
 
     # processing
     other = parser.add_argument_group('Other options')
+    other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
 
@@ -130,8 +133,14 @@ def main():
 
     # Check input ok
     args = get_options()
-    checkMashVersion(args.mash)
-    if args.resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
+    
+    resketch = args.resketch
+    if args.use_mash:
+        checkMashVersion(args.mash)
+    else:
+        resketch = True
+    
+    if resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
         sys.stderr.write("Must provide original --ref-db if using --resketch\n")
         sys.exit(1)
 
@@ -150,26 +159,29 @@ def main():
     newRefList = prune_distance_matrix(refList, remove_seqs_in, distMat, args.output)[0]
 
     if len(refList) != len(newRefList):
-        if args.resketch and args.ref_db is not None:
+        if resketch and args.ref_db is not None:
             sys.stderr.write("Resketching sequences\n")
 
-            # Write names to file
-            tmpName = mkstemp(prefix=os.path.basename(args.output), suffix=".tmp", dir=".")[1]
-            with open(tmpName, 'w') as tmpRefFile:
-                for newRefSeq in newRefList:
-                    tmpRefFile.write(newRefSeq + "\n")
+            if args.use_mash:
+                # Write names to file
+                tmpName = mkstemp(prefix=os.path.basename(args.output), suffix=".tmp", dir=".")[1]
+                with open(tmpName, 'w') as tmpRefFile:
+                    for newRefSeq in newRefList:
+                        tmpRefFile.write(newRefSeq + "\n")
 
-            # Find db properties
-            kmers = getKmersFromReferenceDatabase(args.ref_db)
-            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
+                # Find db properties
+                kmers = getKmersFromReferenceDatabase(args.ref_db)
+                sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
 
-            # Resketch all
-            createDatabaseDir(args.output, kmers)
-            constructDatabase(tmpName, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
+                # Resketch all
+                createDatabaseDir(args.output, kmers)
+                constructDatabase(tmpName, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
 
-            os.rename(args.output + ".pkl", args.output + "/" + os.path.basename(args.output) + "dists.pkl")
-            os.rename(args.output + ".npy", args.output + "/" + os.path.basename(args.output) + "dists.npy")
-            os.remove(tmpName)
+                os.rename(args.output + ".pkl", args.output + "/" + os.path.basename(args.output) + "dists.pkl")
+                os.rename(args.output + ".npy", args.output + "/" + os.path.basename(args.output) + "dists.npy")
+                os.remove(tmpName)
+            else:
+                removeFromDB(args.ref_db, args.output, remove_seqs_in)
     else:
         sys.stderr.write("No sequences to remove\n")
 

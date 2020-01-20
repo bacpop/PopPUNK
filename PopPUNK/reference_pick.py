@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018 John Lees and Nick Croucher
+# Copyright 2018-2020 John Lees and Nick Croucher
 
 # universal
 import os
@@ -19,6 +19,7 @@ from .mash import getKmersFromReferenceDatabase
 from .mash import getSketchSize
 
 from .network import extractReferences
+from .network import writeDummyReferences
 
 from .prune_db import prune_distance_matrix
 
@@ -44,11 +45,12 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--no-resketch', default=False, action='store_true', help='Do not resketch the references '
+    oGroup.add_argument('--no-resketch', default=False, action='store_true', help='Do not resketch the references (--use-mash only)'
                                                                                  '[default = False]')
 
     # processing
     other = parser.add_argument_group('Other options')
+    other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
 
@@ -61,8 +63,12 @@ def main():
 
     # Check input args ok
     args = get_options()
-    checkMashVersion(args.mash)
-    if not args.no_resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
+    resketch = !(args.no_resketch)
+    if args.use_mash:
+        checkMashVersion(args.mash)
+    else:
+        resketch = True
+    if resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
         sys.stderr.write("Must provide original --ref-db if using --resketch\n")
         sys.exit(1)
 
@@ -96,16 +102,21 @@ def main():
 
     # Resketch
     if len(nodes_to_remove) > 0:
-        if not args.no_resketch:
-            sys.stderr.write("Resketching " + str(len(newReferencesNames)) + " sequences\n")
+        if resketch:
+            if args.use_mash:
+                sys.stderr.write("Resketching " + str(len(newReferencesNames)) + " sequences\n")
 
-            # Find db properties
-            kmers = getKmersFromReferenceDatabase(args.ref_db)
-            sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
+                # Find db properties
+                kmers = getKmersFromReferenceDatabase(args.ref_db)
+                sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
 
-            # Resketch all
-            createDatabaseDir(args.output, kmers)
-            constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
+                # Resketch all
+                createDatabaseDir(args.output, kmers)
+                dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
+                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
+                os.remove(dummyRefFile)
+            else:
+                removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))
 
     else:
         sys.stderr.write("No sequences to remove\n")

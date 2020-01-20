@@ -1,4 +1,6 @@
 # vim: set fileencoding=<utf-8> :
+# Copyright 2018-2020 John Lees and Nick Croucher
+
 '''Sketchlib functions for database construction'''
 
 # universal
@@ -219,6 +221,49 @@ def joinDBs(db1, db2, output):
     hdf2.close()
     hdf_join.close()
     os.rename(join_name + ".tmp", join_name)
+
+
+def removeFromDB(db_name, out_name, removeSeqs):
+    """Join two sketch databases with the low-level HDF5 copy interface
+
+    Args:
+        db_name (str)
+            Prefix for hdf database
+        out_name (str)
+            Prefix for output (pruned) database
+        removeSeqs (list)
+            Names of sequences to remove from database
+    """
+    removeSeqs = set(removeSeqs)
+    db_file = db_name + "/" + os.path.basename(db_name) + ".h5"
+    out_file = out_name + "/" + os.path.basename(out_name) + ".tmp.h5"
+
+    hdf_in = h5py.File(db_file, 'r')
+    hdf_out = h5py.File(out_file, 'w')
+
+    try:
+        out_grp = hdf_out.create_group('sketches')
+        read_grp = hdf_in['sketches']
+        
+        removed = []
+        for dataset in read_grp:
+            if dataset not in removeSeqs:
+                out_grp.copy(read_grp[dataset], dataset)
+            else:
+                removed.append(dataset)
+    except RuntimeError as e:
+        sys.stderr.write("ERROR: " + str(e) + "\n")
+        sys.stderr.write("Error while deleting sequence " + dataset + "\n")
+        sys.exit(1)
+
+    missed = removeSeqs.difference(set(removed))
+    if len(missed) > 0:
+        sys.stderr.write("WARNING: Did not find samples to remove:\n")
+        sys.stderr.write("\t".join(missed) + "\n")
+
+    # Clean up
+    hdf_in.close()
+    hdf_out.close()
 
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,

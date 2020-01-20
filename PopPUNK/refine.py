@@ -1,4 +1,6 @@
 # vim: set fileencoding=<utf-8> :
+# Copyright 2018-2020 John Lees and Nick Croucher
+
 '''Refine mixture model using network properties'''
 
 # universal

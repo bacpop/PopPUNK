@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018 John Lees and Nick Croucher
+# Copyright 2018-2020 John Lees and Nick Croucher
 
 """Convenience wrapper for running PopPUNK directly from source tree."""
 

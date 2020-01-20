@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2018 John Lees and Nick Croucher
+# Copyright 2018-2020 John Lees and Nick Croucher
 
 """Tests for PopPUNK"""
 

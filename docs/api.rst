@@ -62,6 +62,12 @@ plot.py
 .. automodule:: PopPUNK.plot
    :members:
 
+sketchlib.py
+------------
+
+.. automodule:: PopPUNK.sketchlib
+   :members:
+
 tsne.py
 -------
 

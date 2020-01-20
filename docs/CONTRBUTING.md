@@ -1,15 +1,15 @@
 Contributing guide
 ==================
-Thanks for your interest in PopPUNK! If you are having an issue running pyseer please first check
+Thanks for your interest in PopPUNK! If you are having an issue running PopPUNK please first check
 the tutorial and troubleshooting.
 
-For further information feel free to contact the authors: john dot lees at nyumc dot org
+For further information feel free to contact the authors: poppunk at poppunk dot net
 
 Bugs/problems
 -------------
 If your problem is not addressed in the documentation please do raise an issue on github. Please give as much
 information as possible, including the command you used, the output you saw, and if possible a minimal working
-example with files you used. The saved files (e.g. .npy) will be helpful
+example with files you used. The saved files (e.g. .npy) will be helpful.
 
 Enhancements
 ------------
