@@ -200,10 +200,19 @@ def joinDBs(db1, db2, output):
 
     hdf1 = h5py.File(db1_name, 'r')
     hdf2 = h5py.File(db2_name, 'r')
-    hdf_join = h5py.File(join_name, 'w')
+    hdf_join = h5py.File(join_name + ".tmp", 'w') # add .tmp in case join_name exists
 
-    h5py.h5o.copy(hdf1.id, 'sketches', hdf_join.id, 'sketches')
-    h5py.h5o.copy(hdf2.id, 'sketches', hdf_join.id, 'sketches')
+    hdf1.copy('sketches', hdf_join)
+    join_grp = hdf_join['sketches']
+    read_grp = hdf2['sketches']
+    for dataset in read_grp:
+        join_grp.copy(read_grp[dataset], 'sketches/' + dataset)
+
+    # Clean up
+    hdf1.close()
+    hdf2.close()
+    hdf_join.close()
+    os.rename(join_name + ".tmp", join_name)
 
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,
@@ -333,7 +342,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     else:
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
 
-        if set(rNames).intersection(set(qNames)) > 0:
+        if len(set(rNames).intersection(set(qNames))) > 0:
             sys.stderr.write("Sample names in query are contained in reference database\n")
             sys.stderr.write("Unique names are required!\n")
             exit(0)

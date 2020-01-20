@@ -340,7 +340,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
     # Otherwise only calculate query-query distances for new clusters
     else:
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
-        unassigned = set(qlist).difference(assigned)
+        unassigned = set(qNames).difference(assigned)
 
         # process unassigned query sequences, if there are any
         if len(unassigned) > 1:
@@ -377,7 +377,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             shutil.rmtree(tmpDirName)
 
     # finish by updating the network
-    G.add_nodes_from(qlist)
+    G.add_nodes_from(qNames)
     G.add_edges_from(new_edges)
 
     return qlist1, distMat

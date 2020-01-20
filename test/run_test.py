@@ -30,7 +30,7 @@ subprocess.run("python ../poppunk-runner.py --refine-model --distances example_d
 
 #assign query
 sys.stderr.write("Running query assignment (--assign-query)\n")
-subprocess.run("python ../poppunk-runner.py --assign-query --q-files references.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --update-db", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --assign-query --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --update-db", shell=True, check=True)
 
 #use model
 sys.stderr.write("Running with an existing model (--use-model)\n")
@@ -58,7 +58,7 @@ subprocess.run("python ../poppunk-runner.py --refine-model --distances example_d
 
 #assign query
 sys.stderr.write("Running query assignment (--assign-query)\n")
-subprocess.run("python ../poppunk-runner.py --assign-query --q-files references.txt --distances example_db_mash/example_db_mash.dists --ref-db example_db_mash --output example_query_mash --update-db --no-stream --use-mash --mash " + mash_exec, shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --assign-query --q-files queries.txt --distances example_db_mash/example_db_mash.dists --ref-db example_db_mash --output example_query_mash --update-db --no-stream --use-mash --mash " + mash_exec, shell=True, check=True)
 
 #use model
 sys.stderr.write("Running with an existing model (--use-model)\n")
