@@ -18,7 +18,7 @@ from .models import *
 from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
-from .network import writeReferences
+from .network import writeDummyReferences
 from .network import addQueryToNetwork
 from .network import printClusters
 
@@ -241,7 +241,7 @@ def main():
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
-    sys.stderr.write("(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + ")\n")
+    sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + ")\n")
 
     #******************************#
     #*                            *#
@@ -452,10 +452,13 @@ def main():
             
             # With mash, the sketches are actually removed from the database
             if args.use_mash:
-                # Read previous database
+                # Create compatible input file
+                dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
+                # Read and overwrite previous database
                 kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
-                constructDatabase(newReferencesFile, kmers, sketch_sizes, args.output, True, args.threads,
+                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output, True, args.threads,
                                 True) # overwrite old db
+                os.remove(dummyRefFile)
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
 
@@ -624,7 +627,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         rNames = []
         if use_mash == True:
             rNames = None
-            qNames = readRfile(q_files)[1]
+            qNames = readRfile(q_files, oneSeq=True)[1]
         else:
             qNames = readRfile(q_files)[0]
             if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
@@ -668,7 +671,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                         core_only, accessory_only)
 
         # Assign clustering by adding to network
-        ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, rNames, q_files,
+        ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, q_files,
                 genomeNetwork, kmers, queryAssignments, model, output, update_db,
                 use_mash, threads)
 

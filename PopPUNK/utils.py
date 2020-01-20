@@ -23,6 +23,7 @@ def setupDBFuncs(args, kmers, min_count):
     if args.use_mash:
         from .mash import checkMashVersion
         from .mash import createDatabaseDir
+        from .mash import getKmersFromReferenceDatabase
         from .mash import joinDBs as joinDBsMash
         from .mash import constructDatabase as constructDatabaseMash
         from .mash import queryDatabase as queryDBMash
@@ -33,10 +34,10 @@ def setupDBFuncs(args, kmers, min_count):
         backend = "mash"
         version = checkMashVersion(args.mash)
 
-        joinDBs = partial(joinDBsMash, klist = kmers, mash_exec = args.mash)
         constructDatabase = partial(constructDatabaseMash, mash_exec = args.mash)
         readDBParams = partial(readMashDBParams, mash_exec = args.mash)
         queryDatabase = partial(queryDBMash, no_stream = args.no_stream, mash_exec = args.mash)
+        joinDBs = partial(joinDBsMash, klist = getKmersFromReferenceDatabase(args.output), mash_exec = args.mash)
 
 
     else:

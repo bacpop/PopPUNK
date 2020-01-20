@@ -202,11 +202,17 @@ def joinDBs(db1, db2, output):
     hdf2 = h5py.File(db2_name, 'r')
     hdf_join = h5py.File(join_name + ".tmp", 'w') # add .tmp in case join_name exists
 
-    hdf1.copy('sketches', hdf_join)
-    join_grp = hdf_join['sketches']
-    read_grp = hdf2['sketches']
-    for dataset in read_grp:
-        join_grp.copy(read_grp[dataset], 'sketches/' + dataset)
+    # Can only copy into new group, so for second file these are appended one at a time
+    try:
+        hdf1.copy('sketches', hdf_join)
+        join_grp = hdf_join['sketches']
+        read_grp = hdf2['sketches']
+        for dataset in read_grp:
+            join_grp.copy(read_grp[dataset], dataset)
+    except RuntimeError as e:
+        sys.stderr.write("ERROR: " + str(e) + "\n")
+        sys.stderr.write("Joining sketches failed, try running without --update-db\n")
+        sys.exit(1)
 
     # Clean up
     hdf1.close()

@@ -176,6 +176,28 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
+def writeDummyReferences(refList, outPrefix):
+    """Writes chosen references to file, for use with mash
+    Gives sequence name twice
+
+    Args:
+        refList (list)
+            Reference names to write
+        outPrefix (str)
+            Prefix for output file (.refs will be appended)
+
+    Returns:
+        refFileName (str)
+            The name of the file references were written to
+    """
+    # write references to file
+    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + ".mash.refs"
+    with open(refFileName, 'w') as rFile:
+        for ref in refList:
+            rFile.write("\t".join([ref, ref]) + '\n')
+
+    return refFileName
+
 def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
