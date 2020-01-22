@@ -22,6 +22,21 @@ DEFAULT_LENGTH = 2000000
 # Use partials to set up slightly different function calls between
 # both possible backends
 def setupDBFuncs(args, kmers, min_count):
+    """Wraps common database access functions from sketchlib and mash,
+    to try and make their API more similar
+
+    Args:
+        args (argparse.opts)
+            Parsed command lines options
+        kmers (list)
+            List of k-mer sizes
+        min_count (int)
+            Minimum k-mer count for reads
+
+    Returns:
+        dbFuncs (dict)
+            Functions with consistent arguments to use as the database API
+    """
     if args.use_mash:
         from .mash import checkMashVersion
         from .mash import createDatabaseDir
@@ -402,7 +417,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
         max_prob (float)
             Random match probability at minimum k-mer length
     """
-   # Genome length needed to calculate prob of random matches
+    # Genome length needed to calculate prob of random matches
     genome_length = DEFAULT_LENGTH # assume 2 Mb in the absence of other information
 
     try:
@@ -465,6 +480,8 @@ def readRfile(rFile, oneSeq=False):
         rFile (str)
             File with locations of assembly files to be sketched
         oneSeq (bool)
+            Return only the first sequence listed, rather than a list
+            (used with mash)
 
     Returns:
         names (list)
@@ -472,7 +489,6 @@ def readRfile(rFile, oneSeq=False):
         sequences (list of lists)
             Array of sequence files
     """
-    
     names = []
     sequences = []
     with open(rFile, 'rU') as refFile:

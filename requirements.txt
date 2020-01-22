@@ -1,5 +1,6 @@
 Cython>=0.26.1
 DendroPy>=4.3.0
+h5py>=2.10.0
 hdbscan>=0.8.13
 matplotlib>=2.1.2
 networkx>=2.1

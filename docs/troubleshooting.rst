@@ -88,7 +88,7 @@ estimates of distances as small k-mers will match at random.
 
 Here is an example of a fit with ``--k-step 2 --min-k 13``:
 
-.. image:: fit_example_wrong.png
+.. image:: images/fit_example_wrong.png
    :alt:  A bad fit to k-mer distances
    :align: center
 
@@ -97,7 +97,7 @@ chance of random matches (this information is written to ``STDERR``), resulting
 in the left-most point being over-estimated. Using exactly the same command,
 but changing ``--min-k 15`` fixes the issue:
 
-.. image:: fit_example_fixed.png
+.. image:: images/fit_example_fixed.png
    :alt:  A fixed fit to k-mer distances
    :align: center
 
@@ -140,7 +140,7 @@ type as discrete, then right click to autogenerate a colour scheme. You can
 also modify the node size here. In the :doc:`tutorial` example, the components
 are nicely separated and the network has high transitivity:
 
-.. image:: cytoscape.png
+.. image:: images/cytoscape.png
    :alt:  Cytoscape plot of network
    :align: center
 
@@ -153,7 +153,7 @@ They can be split under Tools -> NetworkAnalyzer -> Subnetwork Creation.
 Here is an example where an errant node is connecting two clusters into one
 large cluster, which should be split:
 
-.. image:: cytoscape_component.png
+.. image:: images/cytoscape_component.png
    :alt:  Cytoscape plot of network
    :align: center
 
@@ -183,14 +183,14 @@ perplexity <http://scikit-learn.org/stable/auto_examples/manifold/plot_t_sne_per
 In the :doc:`tutorial` example, a perplexity of 30 gives clear clustering of
 the accessory genome content, condordant with the core genome structure (`data <https://microreact.org/project/Skg0j9sjz>`__):
 
-.. image:: microreact.png
+.. image:: images/microreact.png
    :alt:  Microreact plot of results with perplexity = 30
    :align: center
 
 With a lower perplexity of 5, the clustering is too loose, and the strain
 structure cannot clearly be seen (`data <https://microreact.org/project/S1RwpK9if>`__):
 
-.. image:: microreact_perplexity5.png
+.. image:: images/microreact_perplexity5.png
    :alt:  Microreact plot of results with perplexity = 5
    :align: center
 
@@ -215,7 +215,7 @@ With the distances
 A fit with three mixture components overestimates the number of between strain
 links, and gives a network with a poor score (0.6849) and only five components:
 
-.. image:: contam_DPGMM_fit.png
+.. image:: images/contam_DPGMM_fit.png
    :alt:  A bad fit to pairwise distances
    :align: center
 
@@ -239,7 +239,7 @@ Finding which isolates contribute to these distances reveals a clear culprit::
 In this case it is sufficent to increase the number of mixture components to four,
 which no longer includes these inflated distances. This gives a score of 0.9401 and 28 components:
 
-.. image:: contam_DPGMM_better_fit.png
+.. image:: images/contam_DPGMM_better_fit.png
    :alt:  A better fit to pairwise distances
    :align: center
 
@@ -251,7 +251,7 @@ With the network
 Alternatively, the network itself can be inspected with ``--cytoscape``. Using
 the approach detailed in :ref:`cytoscape-view` gives the following view:
 
-.. image:: cytoscape_contaminant.png
+.. image:: images/cytoscape_contaminant.png
    :alt:  A better fit to pairwise distances
    :align: center
 

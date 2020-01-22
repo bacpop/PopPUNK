@@ -73,7 +73,7 @@ greater than 0.05. Looking at one of the plots ``lm_example/fit_example_1.pdf``
 shows a straight line fit, with the left most point not significantly above the
 fitted relationship:
 
-.. image:: lm_fit.png
+.. image:: images/lm_fit.png
    :alt:  Straight line fit between log(Jaccard distance) and k-mer length
    :align: center
 
@@ -83,7 +83,7 @@ A plot of core and accessory distances contains information about population str
 and about the evolution of core and accessory elements. Open
 ``lm_example/lm_example_distanceDistribution.png``:
 
-.. image:: lm_distance_dist.png
+.. image:: images/lm_distance_dist.png
    :alt:  Plot of pairwise core and accessory distances
    :align: center
 
@@ -119,7 +119,7 @@ a good fit. A high density suggests the fit was not specific enough, and too
 many points in the core-accessory plot have been included as within strain.
 Looking at the fit this proves to be true:
 
-.. image:: lm_GMM_K2.png
+.. image:: images/lm_GMM_K2.png
    :alt:  Initial fit using two components
    :align: center
 
@@ -150,7 +150,7 @@ four::
 This correctly separates the blob at the origin -- the 'within-strain'
 distances:
 
-.. image:: lm_GMM_K4.png
+.. image:: images/lm_GMM_K4.png
    :alt:  Improved fit using two components
    :align: center
 
@@ -173,7 +173,7 @@ clusters to be specified::
 
 This gives a very similar result:
 
-.. image:: lm_dbscan.png
+.. image:: images/lm_dbscan.png
    :alt:  Improved fit using dbscan
    :align: center
 
@@ -218,7 +218,7 @@ This will produce a visualisation with a core genome phylogeny on the left, and
 an embedding of the accessory distances on the right. Each sample is coloured
 by its cluster:
 
-.. image:: lm_microreact.png
+.. image:: images/lm_microreact.png
    :alt:  Microreact of Listeria monoscytogenes
    :align: center
 

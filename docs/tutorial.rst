@@ -187,7 +187,7 @@ Score                       Network score based on density and transitivity. Hig
 
 The most useful plot is `strain_db_DPGMM_fit.png` which shows the clustering:
 
-.. image:: DPGMM_fit_K2.png
+.. image:: images/DPGMM_fit_K2.png
    :alt:  2D fit to distances (K = 2)
    :align: center
 
@@ -212,7 +212,7 @@ fit as more complexity is introduced arbitrarily::
 
    Done
 
-.. image:: DPGMM_fit_K10.png
+.. image:: images/DPGMM_fit_K10.png
    :alt:  2D fit to distances (K = 10)
    :align: center
 
@@ -229,7 +229,7 @@ Drag the files `strain_db_microreact_clusters.csv`, `strain_db_perplexity5.0_acc
 (this also includes a CSV of additional metadata downloaded from EnteroBase and supplied to
 PopPUNK with ``--info-csv``).
 
-.. image:: microreact.png
+.. image:: images/microreact.png
    :alt:  Microreact plot of results
    :align: center
 
@@ -270,7 +270,7 @@ The output is as follows::
 
 In this case the fit is quite similar to the mixture model:
 
-.. image:: dbscan_fit.png
+.. image:: images/dbscan_fit.png
    :alt:  Data fitted with HDBSCAN
    :align: center
 
@@ -446,7 +446,7 @@ See this example of 616 *S.*\ |nbsp| \ *pneumoniae* genomes with the DPGMM fit. 
 first reported `here <https://www.nature.com/articles/ng.2625>`__ and can be accessed
 `here <https://www.nature.com/articles/sdata201558>`__.
 
-.. image:: pneumo_unrefined.png
+.. image:: images/pneumo_unrefined.png
    :alt:  A bad DPGMM fit
    :align: center
 
@@ -457,7 +457,7 @@ been included, and connected clusters together erroneously.
 
 The likelihood of the model fit and the decision boundary looks like this:
 
-.. image:: pneumo_likelihood.png
+.. image:: images/pneumo_likelihood.png
    :alt:  The likelihood and decision boundary of the above fit
    :align: center
 
@@ -491,13 +491,13 @@ between-strain links).
 Here is the refined fit, which has a score of 0.939, and 62 rather than 32
 components:
 
-.. image:: pneumo_refined.png
+.. image:: images/pneumo_refined.png
    :alt:  The refined fit
    :align: center
 
 Which, looking at the `microreact output <https://microreact.org/project/SJxxLMcaf>`__, is much better:
 
-.. image:: refined_microreact.png
+.. image:: images/refined_microreact.png
    :alt:  The refined fit, in microreact
    :align: center
 
@@ -784,7 +784,7 @@ placed independently, allowing the best fit in each case::
 There are three different networks, and the core and accessory boundaries will
 also be shown on the *refined_fit.png* plot as dashed gray lines:
 
-.. image:: indiv_refine.png
+.. image:: images/indiv_refine.png
    :alt:  Refining fit with core and accessory individuals independently
    :align: center
 

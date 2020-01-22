@@ -5,7 +5,7 @@
 
 PopPUNK documentation
 ==================================
-.. image:: poppunk_v2.png
+.. image:: images/poppunk_v2.png
    :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
    :align: center
 

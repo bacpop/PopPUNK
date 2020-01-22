@@ -20,4 +20,5 @@ dependencies:
   - mash
   - hdbscan
   - rapidnj
+  - h5py
   - pp-sketchlib

@@ -355,7 +355,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
             (default = 1)
 
-                    klist (list)
+        klist (list)
             List of k-mer sizes to sketch
 
     Returns:

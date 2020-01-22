@@ -45,7 +45,9 @@ autodoc_mock_imports = ["hdbscan",
                         "sklearn",
                         "matplotlib",
                         "numba",
-                        "dendropy"]
+                        "dendropy",
+                        "pp-sketchlib",
+                        "h5py"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

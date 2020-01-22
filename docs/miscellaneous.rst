@@ -3,6 +3,6 @@ Miscellaneous
 
 Rejected/alternative logos
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. image:: poppunk.png
+.. image:: images/poppunk.png
    :alt:  God save the queen
    :align: center
