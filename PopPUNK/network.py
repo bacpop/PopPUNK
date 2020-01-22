@@ -375,14 +375,20 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             tmpHandle, tmpFile = mkstemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir=tmpDirName)
             with open(tmpFile, 'w') as tFile:
                 for query in unassigned:
-                    tFile.write(query + '\t' + queryFiles[query] + '\n')
+                    if isinstance(queryFiles[query], list):
+                        seqFiles = "\t".join(queryFiles[query])
+                    elif isinstance(queryFiles[query], str):
+                        seqFiles = queryFiles[query]
+                    else:
+                        raise RuntimeError("Error with formatting of q-file")
+                    tFile.write(query + '\t' + seqFiles + '\n')
 
             # use database construction methods to find links between unassigned queries
-            sketchSize = readDBParams(queryDB)[1]
+            sketchSize = readDBParams(queryDB, kmers, None)[1]
 
             constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
-            qlist1, qlist2, distMat = queryDatabase(rNames = unassigned,
-                                                    qNames = unassigned, 
+            qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
+                                                    qNames = list(unassigned), 
                                                     dbPrefix = tmpDirName,
                                                     queryPrefix = tmpDirName,
                                                     klist = kmers,
