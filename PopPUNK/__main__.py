@@ -412,30 +412,35 @@ def main():
         #*                            *#
         #******************************#  
         # Create files for visualisations
-        if args.microreact or args.cytoscape or args.phandango or args.grapetree:
-            # generate distance matrices for outputs if required
-            combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
+        try:
+            if args.microreact or args.cytoscape or args.phandango or args.grapetree:
+                # generate distance matrices for outputs if required
+                combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
 
-            if args.microreact:
-                sys.stderr.write("Writing microreact output\n")
-                outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
-                                     args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
-            if args.phandango:
-                sys.stderr.write("Writing phandango output\n")
-                outputsForPhandango(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                                    overwrite = args.overwrite, microreact = args.microreact)
-            if args.grapetree:
-                sys.stderr.write("Writing grapetree output\n")
-                outputsForGrapetree(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                                    overwrite = args.overwrite, microreact = args.microreact)
-            if args.cytoscape:
-                sys.stderr.write("Writing cytoscape output\n")
-                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
-                if model.indiv_fitted:
-                    sys.stderr.write("Writing individual cytoscape networks\n")
-                    for dist_type in ['core', 'accessory']:
-                        outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
-                                    args.info_csv, suffix = dist_type, writeCsv = False)
+                if args.microreact:
+                    sys.stderr.write("Writing microreact output\n")
+                    outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                                        args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
+                if args.phandango:
+                    sys.stderr.write("Writing phandango output\n")
+                    outputsForPhandango(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                        overwrite = args.overwrite, microreact = args.microreact)
+                if args.grapetree:
+                    sys.stderr.write("Writing grapetree output\n")
+                    outputsForGrapetree(refList, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                                        overwrite = args.overwrite, microreact = args.microreact)
+                if args.cytoscape:
+                    sys.stderr.write("Writing cytoscape output\n")
+                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                    if model.indiv_fitted:
+                        sys.stderr.write("Writing individual cytoscape networks\n")
+                        for dist_type in ['core', 'accessory']:
+                            outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                        args.info_csv, suffix = dist_type, writeCsv = False)
+        except:
+            # Go ahead with final steps even if visualisations fail
+            # (e.g. rapidnj not found)
+            sys.stderr.write("Error creating files for visualisation:", sys.exc_info()[0])
 
         #******************************#
         #*                            *#
