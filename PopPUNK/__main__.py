@@ -211,6 +211,8 @@ def main():
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
     
     # Dict of DB access functions for assign_query (which is out of scope)
+    if no_sketchlib:
+        args.use_mash = True
     dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']

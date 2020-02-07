@@ -21,9 +21,15 @@ import numpy as np
 import sharedmem
 import networkx as nx
 from scipy import optimize
-import h5py
 
-import pp_sketchlib
+# Try to import sketchlib
+try:
+    no_sketchlib = False
+    import pp_sketchlib
+    import h5py
+except ImportError as e:
+    sys.stderr.write("Sketchlib backend not available")
+    no_sketchlib = True
 
 from .mash import fitKmerCurve
 from .utils import iterDistRows
