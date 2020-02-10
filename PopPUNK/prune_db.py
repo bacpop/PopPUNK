@@ -12,6 +12,7 @@ from tempfile import mkstemp
 # import poppunk package
 from .__init__ import __version__
 
+from .sketchlib import no_sketchlib
 from .sketchlib import removeFromDB
 
 from .mash import checkMashVersion
@@ -135,6 +136,9 @@ def main():
     args = get_options()
     
     resketch = args.resketch
+    if no_sketchlib:
+        args.use_mash = True
+
     if args.use_mash:
         checkMashVersion(args.mash)
     else:

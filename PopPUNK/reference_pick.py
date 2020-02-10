@@ -12,6 +12,9 @@ import networkx as nx
 # import poppunk package
 from .__init__ import __version__
 
+from .sketchlib import no_sketchlib
+from .sketchlib import removeFromDB
+
 from .mash import checkMashVersion
 from .mash import createDatabaseDir
 from .mash import constructDatabase
@@ -63,7 +66,10 @@ def main():
 
     # Check input args ok
     args = get_options()
-    resketch = !(args.no_resketch)
+    resketch = not args.no_resketch
+    if no_sketchlib:
+        args.use_mash = True
+    
     if args.use_mash:
         checkMashVersion(args.mash)
     else:
