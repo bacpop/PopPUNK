@@ -15,6 +15,8 @@ from .__init__ import __version__
 
 from .models import *
 
+from .sketchlib import no_sketchlib
+
 from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
