@@ -55,7 +55,7 @@ Then run with `python poppunk-runner.py`.
 
 ## Quick usage
 
-See the [https://poppunk.readthedocs.io/en/latest/quickstart.html](quickstart) guide
+See the [quickstart](https://poppunk.readthedocs.io/en/latest/quickstart.html) guide
 for a brief tutorial.
 
 
