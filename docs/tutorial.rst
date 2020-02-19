@@ -30,10 +30,10 @@ The basic command to do this is as follows::
 
    poppunk --create-db --r-files reference_list.txt --output strain_db --threads 2 --plot-fit 5
 
-Where ``references.txt`` is a list of fasta assemblies to analyse, created by,
-for example::
+Where ``references.txt`` is a list of tab separated sample names and sequence files to analyse,
+created by, for example::
 
-   ls assemblies/*.fasta > reference_list.txt
+   paste <(ls assemblies/names.txt) <(ls assemblies/*.fasta) > reference_list.txt
 
 The references will first be hashed at different k-mer lengths, then pairwise
 distances are calculated, which are finally converted into core and accessory

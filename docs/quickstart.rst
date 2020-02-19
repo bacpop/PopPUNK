@@ -17,10 +17,13 @@ from `figshare <https://doi.org/10.6084/m9.figshare.7083389>`__.
 Running PopPUNK
 ---------------
 First download the example set above, then extract the assemblies and create a
-file with a list of their locations::
+file with a list of their names and locations::
 
    tar xf listeria_example.tar.bz2
-   ls *.contigs_velvet.fa > reference_list.txt
+   paste <(ls *.contigs_velvet.fa) <(ls *.contigs_velvet.fa) > reference_list.txt
+
+The second command here generates two columns, where the names are the same as the
+filenames, but you can define whatever name you want in the first column.
 
 Now run PopPUNK::
 
