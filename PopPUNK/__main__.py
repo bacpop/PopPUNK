@@ -174,6 +174,8 @@ def get_options():
     other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
+    other.add_argument('--use-gpu', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
 
     other.add_argument('--version', action='version',

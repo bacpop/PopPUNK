@@ -21,7 +21,7 @@ DEFAULT_LENGTH = 2000000
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, kmers, min_count):
+def setupDBFuncs(args, kmers, min_count, use_gpu, gpu_id):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
@@ -62,7 +62,7 @@ def setupDBFuncs(args, kmers, min_count):
         from .sketchlib import createDatabaseDir
         from .sketchlib import joinDBs
         from .sketchlib import constructDatabase as constructDatabaseSketchlib
-        from .sketchlib import queryDatabase
+        from .sketchlib import queryDatabase as queryDatabaseSketchlib
         from .sketchlib import readDBParams
         from .sketchlib import getSeqsInDb
 
@@ -70,6 +70,7 @@ def setupDBFuncs(args, kmers, min_count):
         version = checkSketchlibVersion()
 
         constructDatabase = partial(constructDatabaseSketchlib, min_count = min_count)
+        queryDatabase = partial(queryDatabaseSketchlib, use_gpu = args.use_gpu, deviceid = args.deviceid)
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = {'createDatabaseDir': createDatabaseDir,

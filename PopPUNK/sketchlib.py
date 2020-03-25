@@ -325,7 +325,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
     pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, min_count, threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
-                  threads = 1):
+                  threads = 1, use_gpu = False, deviceid = 0):
     """Calculate core and accessory distances between query sequences and a sketched database
 
     For a reference database, runs the query against itself to find all pairwise
@@ -360,9 +360,14 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             Number of threads to use in the mash process
 
             (default = 1)
+        use_gpu (bool)
+            Use a GPU for querying
 
-        klist (list)
-            List of k-mer sizes to sketch
+            (default = False)
+        deviceid (int)
+            Index of the CUDA GPU device to use
+
+            (default = 0)
 
     Returns:
          refList (list)
@@ -381,7 +386,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         qNames = rNames
         
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist, threads)
+        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist, threads, use_gpu, deviceid)
 
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
@@ -405,6 +410,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             exit(0)
 
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, threads)
+        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, threads, use_gpu, deviceid)
 
     return(rNames, qNames, distMat)
