@@ -446,8 +446,9 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
                 if length < outlier_low or length > outlier_high:
                     outliers.append(name)
             if outliers:
-                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
-                                 "\n".join(outliers))
+                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n")
+                for outlier in outliers:
+                    sys.stderr.write('\n'.join(outlier) + '\n')
                 sys.exit(1)
 
     except FileNotFoundError as e:
