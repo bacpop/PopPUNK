@@ -433,7 +433,6 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
                         if line[0] != ">":
                             input_genome_length += len(line.rstrip())
             input_lengths.append(input_genome_length)
-            sys.stderr.write("Name: " + str(sampleAssembly) + " length: " + str(input_genome_length))
             input_names.append(sampleAssembly)
 
         # Check for outliers
