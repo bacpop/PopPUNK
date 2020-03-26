@@ -72,10 +72,15 @@ def createDatabaseDir(outPrefix, kmers):
             ref_db = h5py.File(db_file, 'r')
             for sample_name in list(ref_db['sketches'].keys()):
                 knum = ref_db['sketches/' + sample_name].attrs['kmers']
-                if not (kmers == knum).any():
+                remove_prev_db = False
+                for kmer_length in knum:
+                    if not (kmers == kmer_length).any():
+                        sys.stderr.write("Previously-calculated k-mer size " + str(kmer_length) +
+                                        " not in requested range (" + str(knum) + ")\n")
+                        remove_prev_db = True
+                        break
+                if remove_prev_db:
                     sys.stderr.write("Removing old database " + db_file + "\n")
-                    sys.stderr.write("(k-mer size " + str(knum) +
-                                    " not in requested range " + str(knum) + ")\n")
                     os.remove(db_file)
                     break
 

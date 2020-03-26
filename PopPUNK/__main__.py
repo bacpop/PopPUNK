@@ -206,17 +206,27 @@ def main():
         sys.exit(1)
 
     args = get_options()
-
-    # check kmer properties
-    if args.min_k >= args.max_k or args.min_k < 9 or args.max_k > 31 or args.k_step < 2:
-        sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size " +
-                         str(args.max_k) + "; range must be between 9 and 31, step must be at least one\n")
-        sys.exit(1)
-    kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
     
-    # Dict of DB access functions for assign_query (which is out of scope)
+    # establish method of kmer calculation
     if no_sketchlib:
         args.use_mash = True
+
+    # check kmer properties
+    if args.min_k >= args.max_k:
+        sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size\n")
+        sys.exit(1)
+    elif args.k_step < 2:
+        sys.stderr.write("Kmer size step must be at least one\n")
+        sys.exit(1)
+    elif no_sketchlib and (args.min_k < 9 or args.max_k > 31):
+        sys.stderr.write("When using Mash, Kmer size must be between 9 and 31\n")
+        sys.exit(1)
+    elif args.min_k < 5 or args.max_k > 51:
+        sys.stderr.write("Very short or very long kmers are not recommended\n")
+        sys.exit(1)
+    kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
+
+    # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']

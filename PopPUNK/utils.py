@@ -447,8 +447,9 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
                 if length < outlier_low or length > outlier_high:
                     outliers.append(name)
             if outliers:
-                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n" +
-                                 "\n".join(outliers))
+                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n")
+                for outlier in outliers:
+                    sys.stderr.write('\n'.join(outlier) + '\n')
                 sys.exit(1)
 
     except FileNotFoundError as e:
@@ -469,7 +470,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
     k_min = min(klist)
     max_prob = 1/(pow(4, k_min)/float(genome_length) + 1)
     if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
         exit(1)
 
     return (int(genome_length), max_prob)
