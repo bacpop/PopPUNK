@@ -433,6 +433,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
                         if line[0] != ">":
                             input_genome_length += len(line.rstrip())
             input_lengths.append(input_genome_length)
+            sys.stderr.write("Name: " + str(sampleAssembly) + " length: " + str(input_genome_length))
             input_names.append(sampleAssembly)
 
         # Check for outliers
@@ -469,7 +470,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
     k_min = min(klist)
     max_prob = 1/(pow(4, k_min)/float(genome_length) + 1)
     if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small; please increase to avoid nonsense results\n")
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
         exit(1)
 
     return (int(genome_length), max_prob)
