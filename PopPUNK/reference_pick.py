@@ -119,7 +119,7 @@ def main():
                 # Resketch all
                 createDatabaseDir(args.output, kmers)
                 dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
-                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output, True, args.threads, args.mash, True)
+                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output, args.estimated_length, True, args.threads, args.mash, True)
                 os.remove(dummyRefFile)
             else:
                 removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))

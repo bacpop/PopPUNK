@@ -122,6 +122,8 @@ def get_options():
                                                                          '[default = 0.5]')
     qcGroup.add_argument('--ignore-length', help='Ignore outliers in terms of assembly length '
                                                  '[default = False]', default=False, action='store_true')
+    qcGroup.add_argument('--estimated-length', default=2000000, type = int, help='Provide an integer estimated genome length when using "--ignore-length" [default = 2000000]')
+
 
     # model fitting
     modelGroup = parser.add_argument_group('Model fit options')
@@ -270,8 +272,8 @@ def main():
         if args.r_files is not None:
             # Sketch
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.ignore_length,
-                              args.threads, args.overwrite)
+            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.estimated_length, args.ignore_length, args.threads,
+                args.overwrite)
             
             # Calculate and QC distances
             if args.use_mash == True:
@@ -475,8 +477,8 @@ def main():
                 dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
                 # Read and overwrite previous database
                 kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
-                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output, True, args.threads,
-                                True) # overwrite old db
+                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output,
+                                args.estimated_length, True, args.threads, True) # overwrite old db
                 os.remove(dummyRefFile)
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
@@ -639,8 +641,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Sketch query sequences
         createDatabaseDir(output, kmers)
-        constructDatabase(q_files, kmers, sketch_sizes, output, ignore_length,
-                            threads, overwrite)
+        constructDatabase(q_files, kmers, sketch_sizes, output,
+                        args.estimated_length, ignore_length, threads, overwrite)
 
         # Find distances vs ref seqs
         rNames = []
@@ -691,7 +693,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Assign clustering by adding to network
         ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, q_files,
-                genomeNetwork, kmers, queryAssignments, model, output, update_db,
+                genomeNetwork, kmers, args.estimated_length, queryAssignments, model, output, update_db,
                 use_mash, threads)
 
         # if running simple query
@@ -721,8 +723,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             # Update the sketch database
             if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
-                constructDatabase(tmpRefFile, kmers, sketch_sizes, output, True,
-                                    threads, True) # overwrite old db
+                constructDatabase(tmpRefFile, kmers, sketch_sizes, output,
+                                    args.estimated_length, True, threads, True) # overwrite old db
                 os.remove(tmpRefFile)
             # With mash, this is the reduced DB constructed,
             # with sketchlib, all sketches

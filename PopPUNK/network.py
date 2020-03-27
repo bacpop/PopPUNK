@@ -275,8 +275,9 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
-        queryDB, queryQuery = False, use_mash = False, threads = 1):
+def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
+                        assignments, model, queryDB, queryQuery = False,
+                        use_mash = False, threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -291,6 +292,8 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             Network to add to (mutated)
         kmers (list)
             List of k-mer sizes
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
         assignments (numpy.array)
             Cluster assignment of items in qlist
         model (ClusterModel)
@@ -386,7 +389,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, assignments, model,
             # use database construction methods to find links between unassigned queries
             sketchSize = readDBParams(queryDB, kmers, None)[1]
 
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
+            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, estimated_length, True, threads, False)
             qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned), 
                                                     dbPrefix = tmpDirName,

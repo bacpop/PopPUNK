@@ -28,8 +28,6 @@ from .utils import readRfile
 
 from .plot import plot_fit
 
-DEFAULT_LENGTH = 2000000
-
 def checkMashVersion(mash_exec):
     """Checks that mash can be run, and is version 2 or higher.
     Exits if version < 2.
@@ -288,8 +286,10 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
             sys.exit(1)
 
 
-def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,
-                      threads = 1, overwrite = False, reads = False, mash_exec = 'mash'):
+def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
+                        estimated_length, ignoreLengthOutliers = False,
+                        threads = 1, overwrite = False, reads = False,
+                        mash_exec = 'mash'):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -308,6 +308,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
         ignoreLengthOutliers (bool)
             Whether to check for outlying genome lengths (and error
             if found)
@@ -335,7 +337,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
         raise NotImplementedError("Cannot use reads with mash backend")
 
     names, sequences = readRfile(assemblyList, oneSeq=True)
-    genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers) 
+    genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
 
     # create kmer databases
     if threads > len(klist):
