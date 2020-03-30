@@ -275,7 +275,7 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
+def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, adjustment_values, estimated_length,
                         assignments, model, queryDB, queryQuery = False,
                         use_mash = False, threads = 1):
     """Finds edges between queries and items in the reference database,
@@ -292,6 +292,8 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
             Network to add to (mutated)
         kmers (list)
             List of k-mer sizes
+        adjustment_values (numpy array)
+            List of k-mer matches expected by chance, per k-mer value
         estimated_length (int)
             Estimated length of genome, if not calculated from data
         assignments (numpy.array)
@@ -356,6 +358,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                 dbPrefix = queryDB, 
                                                 queryPrefix = queryDB, 
                                                 klist = kmers,
+                                                adjustment_values = adjustment_values,
                                                 self = True, 
                                                 number_plot_fits = 0, 
                                                 threads=threads)
@@ -395,6 +398,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                     dbPrefix = tmpDirName,
                                                     queryPrefix = tmpDirName,
                                                     klist = kmers,
+                                                    adjustment_values = adjustment_values,
                                                     self = True,
                                                     number_plot_fits = 0,
                                                     threads = threads)

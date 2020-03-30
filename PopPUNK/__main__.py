@@ -272,7 +272,7 @@ def main():
         if args.r_files is not None:
             # Sketch
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.estimated_length, args.ignore_length, args.threads,
+            adjustment_values = constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.estimated_length, args.ignore_length, args.threads,
                 args.overwrite)
             
             # Calculate and QC distances
@@ -287,6 +287,7 @@ def main():
                                                         dbPrefix = args.output, 
                                                         queryPrefix = args.output, 
                                                         klist = kmers,
+                                                        adjustment_values = adjustment_values,
                                                         self = True, 
                                                         number_plot_fits = args.plot_fit, 
                                                         threads=args.threads)
@@ -641,7 +642,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Sketch query sequences
         createDatabaseDir(output, kmers)
-        constructDatabase(q_files, kmers, sketch_sizes, output,
+        adjustment_values = constructDatabase(q_files, kmers, sketch_sizes, output,
                             estimated_length, ignore_length, threads, overwrite)
 
         # Find distances vs ref seqs
@@ -663,6 +664,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                     dbPrefix = ref_db,
                                                     queryPrefix = output,
                                                     klist = kmers,
+                                                    adjustment_values = adjustment_values,
                                                     self = False,
                                                     number_plot_fits = plot_fit,
                                                     threads = threads)
@@ -693,7 +695,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Assign clustering by adding to network
         ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, q_files,
-                genomeNetwork, kmers, estimated_length, queryAssignments, model, output, update_db,
+                genomeNetwork, kmers, adjustment_values, estimated_length, queryAssignments, model, output, update_db,
                 use_mash, threads)
 
         # if running simple query

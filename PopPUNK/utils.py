@@ -414,8 +414,8 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
     Returns:
         genome_length (int)
             Average length of assemblies
-        max_prob (float)
-            Random match probability at minimum k-mer length
+        adjustment_values (numpy array)
+            Random match probabilities at selected k-mer lengths
     """
     # Genome length needed to calculate prob of random matches
     genome_length = estimated_length # assume 2 Mb in the absence of other information
@@ -466,13 +466,14 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
     if genome_length > 10000000:
         sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
 
-    k_min = min(klist)
-    max_prob = 1/(pow(4, k_min)/float(genome_length) + 1)
-    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
-        exit(1)
+#    k_min = min(klist)
+    adjustment_values = np.zeros((len(klist)))
+    for i, k in enumerate(klist.tolist()):
+        adjustment_values[i] = 1/(pow(4, k)/float(genome_length) + 1)
+        if 1/(pow(4, k)/float(genome_length) + 1) > 0.05:
+            sys.stderr.write("Minimum k-mer length " + str(k) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
 
-    return (int(genome_length), max_prob)
+    return (int(genome_length), adjustment_values)
 
 def readRfile(rFile, oneSeq=False):
     """Reads in files for sketching. Names and sequence, tab separated

@@ -316,10 +316,14 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             If any reads are being used as input, do not run QC
 
             (default = False)
+            
+    Returns
+        adjustment_values (numpy array)
     """
     names, sequences = readRfile(assemblyList)
     if not reads:
-        genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
+        genome_length, adjustment_values = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
+        max_prob = np.amax(adjustment_values)
         sys.stderr.write("Worst random match probability at " + str(min(klist)) + 
                             "-mers: " + "{:.2f}".format(max_prob) + "\n")
     
@@ -330,8 +334,10 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
         os.remove(dbfilename)
 
     pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, min_count, threads)
+    
+    return adjustment_values
 
-def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
+def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, adjustment_values, self = True, number_plot_fits = 0,
                   threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
@@ -354,6 +360,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             Prefix for query mash sketch database created by :func:`~constructDatabase`
         klist (list)
             K-mer sizes to use in the calculation
+        adjustment_values (numpy.array)
+            Random match probabilities for each k-mer size
         self (bool)
             Set true if query = ref
 

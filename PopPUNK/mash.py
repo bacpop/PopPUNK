@@ -332,13 +332,16 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
 
             (default = 'mash')
 
+    Returns
+        adjustment_values (numpy array)
     """
     if reads:
         raise NotImplementedError("Cannot use reads with mash backend")
 
     names, sequences = readRfile(assemblyList, oneSeq=True)
-    genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
-
+    genome_length, adjustment_values = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
+    max_prob = np.amax(adjustment_values)
+    
     # create kmer databases
     if threads > len(klist):
         num_processes = 1
@@ -358,6 +361,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch_size,
                             genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
                             overwrite=overwrite, threads=num_threads), klist)
+
+    return adjustment_values
 
 def init_lock(l):
     """Sets a global lock to use when writing to STDERR in :func:`~runSketch`"""
@@ -435,7 +440,7 @@ def runSketch(k, assemblyList, sketch, genome_length, oPrefix, mash_exec = 'mash
         sys.stderr.write("Found existing mash database " + dbname + ".msh for k = " + str(k) + "\n")
         lock.release()
 
-def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
+def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, adjustment_values, self = True, number_plot_fits = 0,
         no_stream = False, mash_exec = 'mash', threads = 1):
     """Calculate core and accessory distances between query sequences and a sketched database
 
@@ -458,6 +463,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             Prefix for query mash sketch database created by :func:`~constructDatabase`
         klist (list)
             K-mer sizes to use in the calculation
+        adjustment_values (numpy.array)
+            Proportion of k-mers at k-mer value expected to match at random
         self (bool)
             Set true if query = ref
 
@@ -589,7 +596,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     if number_plot_fits > 0:
         examples = sample(range(number_pairs), k=number_plot_fits)
         for plot_idx, plot_example in enumerate(sorted(examples)):
-            fit = fitKmerCurve(raw[plot_example, :], klist, jacobian)
+            fit = fitKmerCurve(raw[plot_example, :], klist, jacobian, adjustment_values)
             plot_fit(klist, raw[plot_example, :], fit,
                     dbPrefix + "/fit_example_" + str(plot_idx + 1),
                     "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
@@ -609,12 +616,12 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     distMat = sharedmem.empty((number_pairs, 2))
     with sharedmem.MapReduce(np = threads) as pool:
-        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
+        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian, adjustment_values = adjustment_values), mat_chunks)
 
     return(refList, qNames, distMat)
 
 
-def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
+def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian, adjustment_values):
     """Multirow wrapper around :func:`~fitKmerCurve` to the specified rows in idxRanges
 
     Args:
@@ -629,13 +636,15 @@ def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
             List of k-mer lengths to use
         jacobian (numpy.array)
             The Jacobian for the fit, sent to :func:`~fitKmerCurve`
+        adjustment_values (numpy.array)
+            Proportion of k-mers at k-mer value expected to match at random
 
     """
     (start, end) = idxRanges
-    distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
+    distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian, adjustment_values)
 
 
-def fitKmerCurve(pairwise, klist, jacobian):
+def fitKmerCurve(pairwise, klist, jacobian, adjustment):
     """Fit the function :math:`pr = (1-a)(1-c)^k`
 
     Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``
@@ -647,6 +656,8 @@ def fitKmerCurve(pairwise, klist, jacobian):
             k-mer sizes used
         jacobian (numpy.array)
             Should be set as above (set once to try and save memory)
+        adjustment (numpy.array)
+            Proportion of k-mers at k-mer value expected to match at random
 
     Returns:
         transformed_params (numpy.array)
@@ -656,10 +667,11 @@ def fitKmerCurve(pairwise, klist, jacobian):
     # log pr = log(1-a) + k*log(1-c)
     # a = p[0]; c = p[1] (will flip on return)
     try:
+        log_adjusted_pairwise = np.log(np.subtract(pairwise, adjustment))
         distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                      x0=[0.0, -0.01],
                                      jac=lambda p, x, y: jacobian,
-                                     args=(klist, np.log(pairwise)),
+                                     args=(klist, log_adjusted_pairwise),
                                      bounds=([-np.inf, -np.inf], [0, 0]))
         transformed_params = 1 - np.exp(distFit.x)
     except ValueError as e:
