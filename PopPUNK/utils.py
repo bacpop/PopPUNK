@@ -470,7 +470,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
     adjustment_values = np.zeros((len(klist)))
     for i, k in enumerate(klist.tolist()):
         adjustment_values[i] = 1/(pow(4, k)/float(genome_length) + 1)
-        if 1/(pow(4, k)/float(genome_length) + 1) > 0.05:
+        if adjustment_values[i] > 0.05:
             sys.stderr.write("Minimum k-mer length " + str(k) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
 
     return (int(genome_length), adjustment_values)
