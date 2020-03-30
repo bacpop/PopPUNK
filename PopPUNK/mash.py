@@ -667,7 +667,9 @@ def fitKmerCurve(pairwise, klist, jacobian, adjustment):
     # log pr = log(1-a) + k*log(1-c)
     # a = p[0]; c = p[1] (will flip on return)
     try:
-        log_adjusted_pairwise = np.log(np.subtract(pairwise, adjustment))
+        vec_dist_calc = np.vectorize(correct_distance)
+        log_adjusted_pairwise = vec_dist_calc(pairwise, adjustment)
+#        log_adjusted_pairwise = np.log(np.subtract(pairwise, adjustment))
         distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                      x0=[0.0, -0.01],
                                      jac=lambda p, x, y: jacobian,
@@ -683,4 +685,21 @@ def fitKmerCurve(pairwise, klist, jacobian, adjustment):
 
     # Return core, accessory
     return(np.flipud(transformed_params))
+
+def correct_distance(o, e):
+    """Calculate the corrected log pairwise distance
+    
+    Args:
+        o (numpy float)
+            Observed k-mer matches
+        e (numpy float)
+            Expected k-mer matches
+    Returns:
+        f (numpy float)
+            Corrected log-scaled distance censored at 0
+    """
+    if o > e:
+        return np.log((o-e)/(1-e))
+    else:
+        return 0
 
