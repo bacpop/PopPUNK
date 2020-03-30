@@ -70,7 +70,7 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_fit(klist, matching, fit, out_prefix, title):
+def plot_fit(klist, matching, adj_matching, fit, out_prefix, title):
     """Draw a scatter plot (pdf) of k-mer sizes vs match probability, and the
     fit used to assign core and accessory distance
 
@@ -82,6 +82,8 @@ def plot_fit(klist, matching, fit, out_prefix, title):
             List of k-mer sizes
         matching (list)
             Proportion of matching k-mers at each klist value
+        adj_matching (list)
+            Corrected proportion of matching k-mers at each klist value
         kfit (numpy.array)
             Fit to klist and matching from :func:`~PopPUNK.mash.fitKmerCurve`
         out_prefix (str)
@@ -99,6 +101,7 @@ def plot_fit(klist, matching, fit, out_prefix, title):
 
     plt.tight_layout()
     plt.plot(klist, matching, 'o')
+    plt.plot(klist, adj_matching, 'x')
     plt.plot(k_fit, matching_fit, 'r-')
 
     plt.title(title)

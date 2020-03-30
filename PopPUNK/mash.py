@@ -596,8 +596,10 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, adjustment_value
     if number_plot_fits > 0:
         examples = sample(range(number_pairs), k=number_plot_fits)
         for plot_idx, plot_example in enumerate(sorted(examples)):
+            vec_dist_calc = np.vectorize(correct_distance_unlogged)
+            adjusted_pairwise = vec_dist_calc(raw[plot_example, :], adjustment_values)
             fit = fitKmerCurve(raw[plot_example, :], klist, jacobian, adjustment_values)
-            plot_fit(klist, raw[plot_example, :], fit,
+            plot_fit(klist, raw[plot_example, :], adjusted_pairwise, fit,
                     dbPrefix + "/fit_example_" + str(plot_idx + 1),
                     "Example fit " + str(plot_idx + 1) + " (row " + str(plot_example) + ")")
 
@@ -700,6 +702,23 @@ def correct_distance(o, e):
     """
     if o > e:
         return np.log((o-e)/(1-e))
+    else:
+        return 0
+
+def correct_distance_unlogged(o, e):
+    """Calculate the corrected log pairwise distance
+
+    Args:
+        o (numpy float)
+            Observed k-mer matches
+        e (numpy float)
+            Expected k-mer matches
+    Returns:
+        f (numpy float)
+            Corrected distance censored at 0
+    """
+    if o > e:
+        return (o-e)/(1-e)
     else:
         return 0
 
