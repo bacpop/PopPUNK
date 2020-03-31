@@ -530,7 +530,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, adjustment_value
                                          suffix=".tmp", dir=tmpDirName)
             mash_cmd += " > " + tmpName
         mash_cmd += " 2> " + os.path.basename(dbPrefix) + ".err.log"
-        sys.stderr.write(mash_cmd + "\n")
 
         try:
             if no_stream:
@@ -670,10 +669,17 @@ def fitKmerCurve(pairwise, klist, jacobian, adjustment):
     # log pr = log(1-a) + k*log(1-c)
     # a = p[0]; c = p[1] (will flip on return)
     try:
-        absolute_differences = np.subtract(pairwise,adjustment)
-        log_adjusted_pairwise = np.where(absolute_differences > 0,
-                                        np.log(absolute_differences/(1 - adjustment)),
-                                        -1e-3) # arbitrary continuity correction
+        pairwise = np.where(pairwise > adjustment,
+                            pairwise,
+                            adjustment)
+        excess_matches = np.subtract(pairwise,adjustment)
+        adjustment = adjustment[excess_matches > 0]
+        klist = klist[excess_matches > 0]
+        jacobian = jacobian[excess_matches > 0,:]
+        excess_matches = excess_matches[excess_matches > 0]
+        
+        log_adjusted_pairwise = np.log(excess_matches/(1 - adjustment))
+        
         distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
                                      x0=[0.0, -0.01],
                                      jac=lambda p, x, y: jacobian,
