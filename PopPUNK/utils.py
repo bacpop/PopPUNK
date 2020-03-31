@@ -419,7 +419,11 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
     """
     # Genome length needed to calculate prob of random matches
     genome_length = estimated_length # assume 2 Mb in the absence of other information
-
+    # Base frequencies also needed
+    base_counts = [0,0,0,0]
+    calc_freq = True
+    base_match_prob = 0
+    
     try:
         input_lengths = []
         input_names = []
@@ -432,6 +436,16 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
                     for line in exampleAssembly:
                         if line[0] != ">":
                             input_genome_length += len(line.rstrip())
+                            if calc_freq:
+                                base_counts[0] += line.count("A") + line.count("a")
+                                base_counts[1] += line.count("C") + line.count("c")
+                                base_counts[2] += line.count("G") + line.count("g")
+                                base_counts[3] += line.count("T") + line.count("t")
+                if calc_freq:
+                    for x in base_counts:
+                        # base matching probability is sum of squares of base frequencies
+                        base_match_prob += (x/input_genome_length)**2
+                calc_freq = False
             input_lengths.append(input_genome_length)
             input_names.append(sampleAssembly)
 
@@ -469,9 +483,18 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
 #    k_min = min(klist)
     adjustment_values = np.zeros((len(klist)))
     for i, k in enumerate(klist.tolist()):
-        adjustment_values[i] = 1/(pow(4, k)/float(genome_length) + 1)
-        if adjustment_values[i] > 0.05:
-            sys.stderr.write("Minimum k-mer length " + str(k) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
+        kmer_match_prob = base_match_prob**k
+        num_kmers = genome_length - k + 1
+        random_match_prob = 1-(1-kmer_match_prob)**num_kmers
+        # see https://mash.readthedocs.io/en/latest/distances.html#assessing-significance-with-p-values
+        random_match_jaccard_distance = 0
+        try:
+            random_match_jaccard_distance = (random_match_prob**2)/(2*random_match_prob - random_match_prob**2)
+        except:
+            print("Problem calculating " + str(2*random_match_prob - random_match_prob**2))
+        adjustment_values[i] = random_match_jaccard_distance
+        if adjustment_values[i] > 0.9:
+            sys.stderr.write("Minimum k-mer length " + str(k) + " is too small for sequence length " + str(genome_length) +"; gives estimated random match probability of " + str(adjustment_values[i]) + ". Please increase to avoid nonsense results.\n")
 
     return (int(genome_length), adjustment_values)
 

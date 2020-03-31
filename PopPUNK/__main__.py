@@ -215,7 +215,7 @@ def main():
     if args.min_k >= args.max_k:
         sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size\n")
         sys.exit(1)
-    elif args.k_step < 2:
+    elif args.k_step < 1:
         sys.stderr.write("Kmer size step must be at least one\n")
         sys.exit(1)
     elif no_sketchlib and (args.min_k < 9 or args.max_k > 31):
