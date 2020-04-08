@@ -547,33 +547,34 @@ def main():
             isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
 
             # extract subset of distances if requested
+            viz_subset = rlist
             if args.subset is not None:
                 viz_subset = []
                 with open(args.subset, 'r') as assemblyFiles:
                     for assembly in assemblyFiles:
                         viz_subset.append(assembly.rstrip())
 
-                # Use the same code as no full_db in assign_query to take a subset
-                dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-                nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
-                postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, nodes_to_remove,
-                                                                          complete_distMat, dists_out)
+            # Use the same code as no full_db in assign_query to take a subset
+            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
+            nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
+            postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, nodes_to_remove,
+                                                                      complete_distMat, dists_out)
 
-                rlist = viz_subset
-                combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
+            rlist = viz_subset
+            combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
 
-                # reorder subset to ensure list orders match
-                try:
-                    viz_subset = sorted(viz_subset,key=postpruning_combined_seq.index)
-                except:
-                    sys.stderr.write("Isolates in subset not found in existing database\n")
-                assert postpruning_combined_seq == viz_subset
+            # reorder subset to ensure list orders match
+            try:
+                viz_subset = sorted(viz_subset,key=postpruning_combined_seq.index)
+            except:
+                sys.stderr.write("Isolates in subset not found in existing database\n")
+            assert postpruning_combined_seq == viz_subset
 
-                # prune the network and dictionary of assignments
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
-                for clustering_type in isolateClustering:
-                    isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
-                        for viz_key in viz_subset}
+            # prune the network and dictionary of assignments
+            genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
+            for clustering_type in isolateClustering:
+                isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
+                    for viz_key in viz_subset}
 
             # generate selected visualisations
             if args.microreact:
