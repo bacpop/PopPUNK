@@ -74,7 +74,7 @@ def createDatabaseDir(outPrefix, kmers):
                 knum = ref_db['sketches/' + sample_name].attrs['kmers']
                 remove_prev_db = False
                 for kmer_length in knum:
-                    if not (kmers == kmer_length).any():
+                    if not (kmer_length in knum):
                         sys.stderr.write("Previously-calculated k-mer size " + str(kmer_length) +
                                         " not in requested range (" + str(knum) + ")\n")
                         remove_prev_db = True
