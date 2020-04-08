@@ -277,8 +277,9 @@ def removeFromDB(db_name, out_name, removeSeqs):
     hdf_out.close()
 
 
-def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOutliers = False,
-                      threads = 1, overwrite = False, reads = False, min_count = 0):
+def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
+                        ignoreLengthOutliers = False, threads = 1, overwrite = False,
+                        reads = False, min_count = 0):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -297,10 +298,11 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
         ignoreLengthOutliers (bool)
             Whether to check for outlying genome lengths (and error
             if found)
-
             (default = False)
         threads (int)
             Number of threads to use
@@ -317,7 +319,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, ignoreLengthOut
     """
     names, sequences = readRfile(assemblyList)
     if not reads:
-        genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers)
+        genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
         sys.stderr.write("Worst random match probability at " + str(min(klist)) + 
                             "-mers: " + "{:.2f}".format(max_prob) + "\n")
     

@@ -17,8 +17,6 @@ import numpy as np
 import pandas as pd
 import sharedmem
 
-DEFAULT_LENGTH = 2000000
-
 # Use partials to set up slightly different function calls between
 # both possible backends
 def setupDBFuncs(args, kmers, min_count, use_gpu, gpu_id):
@@ -397,7 +395,7 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     # return outputs
     return seqLabels, coreMat, accMat
 
-def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
+def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
@@ -411,6 +409,8 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
         ignoreLengthOutliers (bool)
             Whether to check for outlying genome lengths (and error
             if found)
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
 
     Returns:
         genome_length (int)
@@ -419,7 +419,7 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
             Random match probability at minimum k-mer length
     """
     # Genome length needed to calculate prob of random matches
-    genome_length = DEFAULT_LENGTH # assume 2 Mb in the absence of other information
+    genome_length = estimated_length # assume 2 Mb in the absence of other information
 
     try:
         input_lengths = []
@@ -454,16 +454,16 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers):
 
     except FileNotFoundError as e:
         sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
-                         "Assuming length of 2Mb for random match probs.\n")
+                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
 
     except UnicodeDecodeError as e:
         sys.stderr.write("Could not read input file. Is it zipped?\n"
-                         "Assuming length of 2Mb for random match probs.\n")
+                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
 
     # check minimum k-mer is above random probability threshold
     if genome_length <= 0:
-        genome_length = DEFAULT_LENGTH
-        sys.stderr.write("WARNING: Could not detect genome length. Assuming 2Mb\n")
+        genome_length = estimated_length
+        sys.stderr.write("WARNING: Could not detect genome length. Assuming " + str(estimated_length) + "\n")
     if genome_length > 10000000:
         sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
 
