@@ -67,7 +67,7 @@ def createDatabaseDir(outPrefix, kmers):
     # check for writing
     if os.path.isdir(outPrefix):
         # remove old database files if not needed
-        db_file = outPrefix + "/" + outPrefix + ".h5"
+        db_file = outPrefix + "/" + os.path.basename(outPrefix) + ".h5"
         if os.path.isfile(db_file):
             ref_db = h5py.File(db_file, 'r')
             for sample_name in list(ref_db['sketches'].keys()):
@@ -105,7 +105,7 @@ def getSketchSize(dbPrefix):
         sketchSize (int)
             sketch size (64x C++ definition)
     """
-    db_file = dbPrefix + "/" + dbPrefix + ".h5"
+    db_file = dbPrefix + "/" + os.path.basename(dbPrefix) + ".h5"
     ref_db = h5py.File(db_file, 'r')
     prev_sketch = 0
     for sample_name in list(ref_db['sketches'].keys()):
@@ -130,7 +130,7 @@ def getKmersFromReferenceDatabase(dbPrefix):
         kmers (list)
             List of k-mer lengths used in database
     """
-    db_file = dbPrefix + "/" + dbPrefix + ".h5"
+    db_file = dbPrefix + "/" + os.path.basename(dbPrefix) + ".h5"
     ref_db = h5py.File(db_file, 'r')
     prev_kmer_sizes = []
     for sample_name in list(ref_db['sketches'].keys()):
@@ -323,7 +323,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
         sys.stderr.write("Worst random match probability at " + str(min(klist)) + 
                             "-mers: " + "{:.2f}".format(max_prob) + "\n")
     
-    dbname = oPrefix + "/" + oPrefix
+    dbname = oPrefix + "/" + os.path.basename(oPrefix)
     dbfilename = dbname + ".h5"
     if os.path.isfile(dbfilename) and overwrite == True:
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
