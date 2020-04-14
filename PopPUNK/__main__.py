@@ -229,7 +229,7 @@ def main():
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
 
     # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count)
+    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count, args.use_gpu, args.deviceid)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
