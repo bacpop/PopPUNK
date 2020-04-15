@@ -19,7 +19,7 @@ import sharedmem
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, kmers, min_count, use_gpu, gpu_id):
+def setupDBFuncs(args, kmers, min_count):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
