@@ -229,7 +229,7 @@ def main():
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
 
     # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count, args.use_gpu, args.deviceid)
+    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
@@ -291,7 +291,7 @@ def main():
                                                         klist = kmers,
                                                         self = True, 
                                                         number_plot_fits = args.plot_fit, 
-                                                        threads=args.threads)
+                                                        threads = args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
             # Save results

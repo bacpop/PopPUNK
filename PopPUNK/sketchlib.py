@@ -26,6 +26,7 @@ from scipy import optimize
 try:
     no_sketchlib = False
     import pp_sketchlib
+    print("sketchlib in " + pp_sketchlib.__file__)
     import h5py
 except ImportError as e:
     sys.stderr.write("Sketchlib backend not available")
