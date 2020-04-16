@@ -26,7 +26,6 @@ from scipy import optimize
 try:
     no_sketchlib = False
     import pp_sketchlib
-    print("sketchlib in " + pp_sketchlib.__file__)
     import h5py
 except ImportError as e:
     sys.stderr.write("Sketchlib backend not available")
@@ -41,7 +40,7 @@ from .plot import plot_fit
 sketchlib_exe = "poppunk_sketch"
 
 def checkSketchlibVersion():
-    """Checks that sketchlib can be run, and returns versiob
+    """Checks that sketchlib can be run, and returns version
 
     Returns:
         version (str)
@@ -55,6 +54,16 @@ def checkSketchlibVersion():
             break
 
     return version
+
+def checkSketchlibLibrary():
+    """Gets the location of the sketchlib library
+
+    Returns:
+        lib (str)
+            Location of sketchlib .so/.dyld
+    """
+    sketchlib_loc = pp_sketchlib.__file__
+    return(sketchlib_loc)
 
 def createDatabaseDir(outPrefix, kmers):
     """Creates the directory to write sketches to, removing old files if unnecessary
@@ -280,7 +289,8 @@ def removeFromDB(db_name, out_name, removeSeqs):
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
                         ignoreLengthOutliers = False, threads = 1, overwrite = False,
-                        reads = False, min_count = 0):
+                        reads = False, strand_preserved = False, min_count = 0,
+                        use_exact = False):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -317,6 +327,18 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             If any reads are being used as input, do not run QC
 
             (default = False)
+        strand_preserved (bool)
+            Ignore reverse complement k-mers
+
+            (default = False)
+        min_count (int)
+            Minimum count of k-mer in reads to include
+
+            (default = 0)
+        use_exact (bool)
+            Use exact count of k-mer appearance in reads
+
+            (default = False)
     """
     names, sequences = readRfile(assemblyList)
     if not reads:
@@ -330,7 +352,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
 
-    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, min_count, threads)
+    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, 
+                                   not strand_preserved, min_count, use_exact, threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
@@ -394,7 +417,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         qNames = rNames
         
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist, threads, use_gpu, deviceid)
+        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist, 
+                                             False, threads, use_gpu, deviceid)
 
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
@@ -418,6 +442,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             exit(0)
 
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, threads, use_gpu, deviceid)
+        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, 
+                                             False, threads, use_gpu, deviceid)
 
     return(rNames, qNames, distMat)

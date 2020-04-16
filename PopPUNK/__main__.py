@@ -15,7 +15,7 @@ from .__init__ import __version__
 
 from .models import *
 
-from .sketchlib import no_sketchlib
+from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
 from .network import fetchNetwork
 from .network import constructNetwork
@@ -115,6 +115,12 @@ def get_options():
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
     kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
+    kmerGroup.add_argument('--exact-count', default=False, action='store_true',
+                           help='Use the exact k-mer counter with reads '
+                                '[default = use countmin counter]')
+    kmerGroup.add_argument('--strand-preserved', default=False, action='store_true',
+                           help='Treat input as being on the same strand, and ignore reverse complement '
+                                'k-mers [default = use canonical k-mers]')
 
     # qc options
     qcGroup = parser.add_argument_group('Quality control options')
@@ -260,7 +266,14 @@ def main():
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + ")\n")
-
+    if (dbFuncs['backend'] == 'sketchlib'):
+        sketchlib_version = dbFuncs['backend_version'].split(".")
+        if sketchlib_version[0] < 1 or sketchlib_version[0] < 3: 
+            sys.stderr.write("This version of PopPUNK requires sketchlib v1.3.0 or higher\n")
+            sys.exit(1)
+        else:
+            sys.stderr.write('\tsketchlib: ' + checkSketchlibLibrary() + '\n')
+    
     #******************************#
     #*                            *#
     #* Create database            *#
