@@ -67,7 +67,8 @@ def setupDBFuncs(args, kmers, min_count):
         backend = "sketchlib"
         version = checkSketchlibVersion()
 
-        constructDatabase = partial(constructDatabaseSketchlib, min_count = min_count)
+        constructDatabase = partial(constructDatabaseSketchlib, strand_preserved = args.strand_preserved, 
+                                    min_count = args.min_kmer_count, use_exact = args.exact_count)
         queryDatabase = partial(queryDatabaseSketchlib, use_gpu = args.use_gpu, deviceid = args.deviceid)
 
     # Dict of DB access functions for assign_query (which is out of scope)
