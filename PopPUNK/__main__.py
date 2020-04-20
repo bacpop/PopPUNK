@@ -268,14 +268,14 @@ def main():
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
-    sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + ")\n")
+    sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
     if (dbFuncs['backend'] == 'sketchlib'):
         sketchlib_version = [int(x) for x in dbFuncs['backend_version'].split(".")]
         if sketchlib_version[0] < SKETCHLIB_MAJOR or sketchlib_version[1] < SKETCHLIB_MINOR: 
             sys.stderr.write("This version of PopPUNK requires sketchlib v1.3.0 or higher\n")
             sys.exit(1)
         else:
-            sys.stderr.write('\tsketchlib: ' + checkSketchlibLibrary() + '\n')
+            sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
     
     #******************************#
     #*                            *#
