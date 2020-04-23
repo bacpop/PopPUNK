@@ -17,6 +17,8 @@ from .models import *
 
 from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
+from .lineage_clustering import cluster_into_lineages
+
 from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
@@ -87,6 +89,10 @@ def get_options():
             help='Create model at this core distance threshold',
             default=None,
             type=float)
+    mode.add_argument('--lineage-clustering',
+            help='Identify lineages within a strain',
+            default=False,
+            action='store_true')
     mode.add_argument('--use-model',
             help='Apply a fitted model to a reference database to restore database files',
             default=False,
@@ -166,6 +172,10 @@ def get_options():
                                               '[default = False]', default=False, action='store_true')
     queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
                                               '[default = False]', default=False, action='store_true')
+
+    # lineage clustering within strains
+    lineagesGroup = parser.add_argument_group('Lineage analysis options')
+    lineagesGroup.add_argument('--R',help='Maximum rank used in lineage clustering', type = int, default=1)
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -276,7 +286,7 @@ def main():
             sys.exit(1)
         else:
             sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
-    
+
     #******************************#
     #*                            *#
     #* Create database            *#
@@ -500,6 +510,31 @@ def main():
                 os.remove(dummyRefFile)
 
         nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
+
+    #******************************#
+    #*                            *#
+    #* within-strain analysis     *#
+    #*                            *#
+    #******************************#
+    sys.stderr.write("Checking options here\n\n")
+    if args.lineage_clustering:
+        sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
+        
+        distances = None
+        ref_db = None
+        if args.distances is not None and args.ref_db is not None:
+            distances = args.distances
+            ref_db = args.ref_db
+        else:
+            sys.stderr.write("Need to provide an input set of distances with --distances "
+                             "and reference database directory with --ref-db\n\n")
+            sys.exit(1)
+
+        # load distance matrix
+        refList, queryList, self, distMat = readPickle(distances)
+        
+        # run lineage clustering
+        cluster_into_lineages(distMat, args.R, args.output, rlist = refList)
 
     #*******************************#
     #*                             *#
