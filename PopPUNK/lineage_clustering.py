@@ -326,7 +326,8 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
         rlist (list)
             List of reference sequences.
         qlist (list)
-            List of query sequences.
+            List of query sequences being added to an existing clustering.
+            Should be included within rlist.
         existing_scheme (str)
             Path to pickle file containing lineage scheme to which isolates
             should be added.
@@ -342,7 +343,7 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
     distances = X[:,distance_index]
     
     # determine whether ref-ref or ref-query analysis
-    isolate_list = rlist + qlist
+    isolate_list = rlist
     row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
 #    if qlist is None:
 #        sys.stderr.write("Identifying lineages using reference sequences\n")
@@ -367,7 +368,6 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
                                                 R)
     else:
         with open(existing_scheme, 'rb') as pickle_file:
-            sys.stderr.write('Loading from stored file ' + str(existing_scheme) + '\n')
             lineage_clustering, lineage_seed, neighbours, R = pickle.load(pickle_file)
         previous_lineage_clustering = lineage_clustering # use for detecting changes
         # add new queries to lineage clustering
@@ -433,9 +433,10 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
         else:
             print('Id,Lineage__autocolor,QueryStatus', file = lFile)
             for isolate in rlist:
-                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + 'Reference', file = lFile)
-            for isolate in qlist:
-                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + 'Query', file = lFile)
+                status = 'Reference'
+                if isolate in qlist:
+                    status = 'Query'
+                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + status, file = lFile)
 
     return lineage_clustering
 

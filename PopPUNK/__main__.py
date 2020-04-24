@@ -843,7 +843,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
-                isolateClustering = cluster_into_lineages(complete_distMat, R, output, refList, ordered_queryList, expected_lineage_name,  use_accessory)
+                isolateClustering = {'combined': cluster_into_lineages(complete_distMat, R, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory)}
 
             # Prune distances to references only, if not full db
             dists_out = output + "/" + os.path.basename(output) + ".dists"
