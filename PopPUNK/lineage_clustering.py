@@ -13,6 +13,7 @@ import pickle
 
 # import poppunk package
 from .utils import iterDistRows
+from .utils import readRfile
 
 def run_lineage_clustering(lineage_clustering, lineage_clustering_information, neighbours, R, lineage_index, seed_isolate, previous_lineage_clustering, null_cluster_value):
     """ Identifies isolates corresponding to a particular
@@ -253,12 +254,16 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
     # iterate through isolates and test whether any comparisons with
     # newly-added queries replace or supplement existing neighbours
     
+    # data structures for altered entries
+    nn_new = {}
     # pre-process to extract ref-query distances first
     query_match_indices = [n for n, (r, q) in enumerate(row_labels) if q in qlist or r in qlist]
     query_row_names = [row_labels[i] for i in query_match_indices]
     query_distances = np.take(distances, query_match_indices)
     # iterate through references to update existing entries
-    for isolate in nn.keys():
+    existing_isolates = nn.keys()
+    
+    for isolate in existing_isolates:
         # get max distance to existing neighbours
         max_distance_to_ref = max(nn[isolate].values())
         # get min distance to queries
@@ -272,39 +277,41 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
             for neighbour in nn[isolate].keys():
                 lineage_clustering[neighbour] = null_cluster_value
             # update neighbour information
-            nn_old = nn.pop(isolate)
-            nn[isolate] = {}
+            nn_old = nn[isolate]
+            nn_new[isolate] = {}
             # old neighbours from existing dict
-            old_distances = list(set(nn_old.values()))
+            old_distances = list(set(nn[isolate].values()))
             # new neighbours from new distances in X
             new_distances = np.unique(ref_query_distances)
             # combine old and new distances
-            combined_ref_distances = (nn_old.values(),ref_query_distances.tolist())
+            combined_ref_distances = list(nn[isolate].values()) + ref_query_distances.tolist()
             # take top ranked distances from both
             ranked_unique_combined_ref_distances = sorted(set(combined_ref_distances))[:R]
             for distance in ranked_unique_combined_ref_distances:
                 # add old neighbours back in
                 if distance in old_distances:
-                    for neighbour,d in nn_old.items():
+                    for neighbour,d in nn[isolate].items():
                         if d == distance:
-                            nn[isolate][neighbour] = distance
+                            nn_new[isolate][neighbour] = distance
                 # add new neighbours
                 if distance in new_distances:
                     for n,d in enumerate(ref_query_distances):
                         if d == distance:
                             row_label_index = ref_query_match_indices[n]
-                            neighbour = row_label_index[row_label_index][0] if row_label_index[row_label_index][1] == isolate else row_label_index[row_label_index][1]
-                            nn[isolate][neighbour] = d
+                            neighbour = row_labels[row_label_index][0] if row_labels[row_label_index][1] == isolate else row_labels[row_label_index][1]
+                            nn_new[isolate][neighbour] = d
     # get nn for query sequences
     query_nn = generate_nearest_neighbours(distances, row_labels, qlist, R)
     # merge dicts
     for query in query_nn.keys():
         nn[query] = query_nn[query]
+    for updated in nn_new.keys():
+        nn[updated] = nn_new[updated]
     # return updated dict
     return nn, lineage_clustering
 
 
-def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_scheme = None, use_accessory = False):
+def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, existing_scheme = None, use_accessory = False):
     """ Clusters isolates into lineages based on their
     relative distances.
     
@@ -335,16 +342,16 @@ def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_sch
     distances = X[:,distance_index]
     
     # determine whether ref-ref or ref-query analysis
-    row_labels = []
-    isolate_list = []
-    if qlist is None:
-        sys.stderr.write("Identifying lineages using reference sequences\n")
-        isolate_list = rlist
-        row_labels = list(iter(iterDistRows(rlist, rlist, self = True)))
-    else:
-        sys.stderr.write("Identifying lineages from using reference and query sequences\n")
-        row_labels = list(iter(iterDistRows(rlist, qlist, self = False)))
-        isolate_list = rlist + qlist
+    isolate_list = rlist + qlist
+    row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
+#    if qlist is None:
+#        sys.stderr.write("Identifying lineages using reference sequences\n")
+#        isolate_list = rlist
+#        row_labels = list(iter(iterDistRows(rlist, rlist, self = True)))
+#    else:
+#        sys.stderr.write("Identifying lineages from using reference and query sequences\n")
+#        row_labels = list(iter(iterDistRows(rlist, qlist, self = False)))
+#        isolate_list = rlist + qlist
     
     # determine whether novel analysis or modifying existing analysis
     neighbours = {}
@@ -360,7 +367,8 @@ def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_sch
                                                 R)
     else:
         with open(existing_scheme, 'rb') as pickle_file:
-            lineage_clustering, lineage_seed, neighbours = pickle.load(pickle_file)
+            sys.stderr.write('Loading from stored file ' + str(existing_scheme) + '\n')
+            lineage_clustering, lineage_seed, neighbours, R = pickle.load(pickle_file)
         previous_lineage_clustering = lineage_clustering # use for detecting changes
         # add new queries to lineage clustering
         for q in qlist:
@@ -413,7 +421,7 @@ def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_sch
     
     # store output
     with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
-        pickle.dump([lineage_clustering, lineage_seed, neighbours], pickle_file)
+        pickle.dump([lineage_clustering, lineage_seed, neighbours, R], pickle_file)
     
     # print output
     lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
@@ -429,5 +437,66 @@ def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_sch
             for isolate in qlist:
                 print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + 'Query', file = lFile)
 
-    return 0
+    return lineage_clustering
+
+def calculateQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
+                    queryDB, use_mash = False, threads = 1):
+    """Finds edges between queries and items in the reference database,
+    and modifies the network to include them.
+
+    Args:
+        dbFuncs (list)
+            List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
+        rlist (list)
+            List of reference names
+        qfile (str)
+            File containing queries
+        kmers (list)
+            List of k-mer sizes
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
+        queryDB (str)
+            Query database location
+        use_mash (bool)
+            Use the mash backend
+        threads (int)
+            Number of threads to use if new db created
+            (default = 1)
+    Returns:
+        qlist1 (list)
+            Ordered list of queries
+        distMat (numpy.array)
+            Query-query distances
+    """
+    
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
+
+    # These are returned
+    qlist1 = None
+    distMat = None
+
+    # Set up query names
+    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
+    queryFiles = dict(zip(qList, qSeqs))
+    if use_mash == True:
+        rNames = None
+        qNames = qSeqs
+    else:
+        rNames = qList
+        qNames = rNames
+
+    # Calculate all query-query distances too, if updating database
+    qlist1, qlist2, distMat = queryDatabase(rNames = rNames,
+                                            qNames = qNames,
+                                            dbPrefix = queryDB,
+                                            queryPrefix = queryDB,
+                                            klist = kmers,
+                                            self = True,
+                                            number_plot_fits = 0,
+                                            threads=threads)
+
+    return qlist1, distMat
+
 

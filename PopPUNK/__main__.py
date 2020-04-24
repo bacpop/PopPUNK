@@ -18,6 +18,7 @@ from .models import *
 from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
 from .lineage_clustering import cluster_into_lineages
+from .lineage_clustering import calculateQueryDistances
 
 from .network import fetchNetwork
 from .network import constructNetwork
@@ -174,12 +175,15 @@ def get_options():
                                               '[default = False]', default=False, action='store_true')
     queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
                                               '[default = False]', default=False, action='store_true')
+    queryingGroup.add_argument('--assign-lineage', help='Assign to lineages rather than strains - can specify '
+                                              'lineages other than those in the reference database using "--existing-scheme"'
+                                              '[default = False]', default=False, action='store_true')
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
     lineagesGroup.add_argument('--R',help='Maximum rank used in lineage clustering [default = 1]', type = int, default = 1)
     lineagesGroup.add_argument('--use-accessory',help='Use accessory distances for lineage definitions [default = use core distances]', action = 'store_true', default = False)
-    lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions', default = None)
+    lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions', type = str, default = None)
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -536,9 +540,9 @@ def main():
         
         # run lineage clustering
         if self:
-            cluster_into_lineages(distMat, args.R, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme)
+            isolateClustering = cluster_into_lineages(distMat, args.R, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme)
         else:
-            cluster_into_lineages(distMat, args.R, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme)
+            isolateClustering = cluster_into_lineages(distMat, args.R, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme)
 
     #*******************************#
     #*                             *#
@@ -552,7 +556,7 @@ def main():
                      args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
-                     args.rapidnj, args.perplexity)
+                     args.rapidnj, args.perplexity, args.assign_lineage, args.existing_scheme, args.R, args.use_accessory)
 
     #******************************#
     #*                            *#
@@ -597,7 +601,10 @@ def main():
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
             #nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
             isolates_to_remove = set(combined_seq).difference(viz_subset)
-            postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
+            postpruning_combined_seq = sorted(viz_subset)
+            newDistMat = complete_distMat
+            if len(isolates_to_remove) > 0:
+                postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
                                                                       complete_distMat, dists_out)
 
             rlist = viz_subset
@@ -609,8 +616,6 @@ def main():
             except:
                 sys.stderr.write("Isolates in subset not found in existing database\n")
             assert postpruning_combined_seq == viz_subset
-            
-            
             
             # Either use strain definitions, lineage assignments or external clustering
             isolateClustering = {}
@@ -681,7 +686,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  kmers, sketch_sizes, ignore_length, estimated_length, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
-                 info_csv, rapidnj, perplexity):
+                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, R, use_accessory):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
@@ -740,58 +745,80 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                     threads = threads)
         qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
 
-        # Assign these distances as within or between
-        model_prefix = ref_db
-        if model_dir is not None:
-            model_prefix = model_dir
-        model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                                model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
-        queryAssignments = model.assign(distMat)
+        # Calculate query-query distances
+###################################################################################################################
+        ordered_queryList = []
+        
+        # Assign to strains or lineages, as requested
+        if assign_lineage:
 
-        # set model prefix
-        model_prefix = ref_db
-        if model_dir is not None:
-            model_prefix = model_dir
+            # Assign lineages by calculating query-query information
+            ordered_queryList, query_distMat = calculateQueryDistances(dbFuncs, refList, q_files,
+                    kmers, estimated_length, output, use_mash, threads)
+#
+#            # ASSIGN LINEAGE
+#            expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
+#            if existing_scheme:
+#                expected_lineage_name = existing_scheme
+#            combined_distances = np.concatenate((distMat,query_distMat),axis = 0)
+#            isolateClustering = cluster_into_lineages(combined_distances, R, output, rlist = refList, qlist = ordered_queryList, use_accessory = use_accessory,  existing_scheme = expected_lineage_name)
+###################################################################################################################
+        if not assign_lineage:
+            # Assign these distances as within or between strain
+            model_prefix = ref_db
+            if model_dir is not None:
+                model_prefix = model_dir
+            model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+            queryAssignments = model.assign(distMat)
 
-        # Set directories of previous fit
-        if previous_clustering is not None:
-            prev_clustering = previous_clustering
-        else:
-            prev_clustering = model_prefix
+            # set model prefix
+            model_prefix = ref_db
+            if model_dir is not None:
+                model_prefix = model_dir
 
-        # Load the network based on supplied options
-        genomeNetwork, old_cluster_file = fetchNetwork(prev_clustering, model, refList,
-                                                        core_only, accessory_only)
+            # Set directories of previous fit
+            if previous_clustering is not None:
+                prev_clustering = previous_clustering
+            else:
+                prev_clustering = model_prefix
 
-        # Assign clustering by adding to network
-        ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, q_files,
-                genomeNetwork, kmers, estimated_length, queryAssignments, model, output, update_db,
-                use_mash, threads)
+            # Load the network based on supplied options
+            genomeNetwork, old_cluster_file = fetchNetwork(prev_clustering, model, refList,
+                                                            core_only, accessory_only)
 
-        # if running simple query
-        print_full_clustering = False
-        if update_db:
-            print_full_clustering = True
-        isolateClustering = {'combined': printClusters(genomeNetwork, output + "/" + os.path.basename(output),
-                                                        old_cluster_file, external_clustering, print_full_clustering)}
+            # Assign clustering by adding to network
+            ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, q_files,
+                    genomeNetwork, kmers, estimated_length, queryAssignments, model, output, update_db,
+                    use_mash, threads)
 
-        # update_db like no full_db
-        if update_db:
+            # if running simple query
+            print_full_clustering = False
+            if update_db:
+                print_full_clustering = True
+            isolateClustering = {'combined': printClusters(genomeNetwork, output + "/" + os.path.basename(output),
+                                                            old_cluster_file, external_clustering, print_full_clustering)}
+
+        # Update DB as requested
+        if update_db or assign_lineage:
+        
+            # Check new sequences pass QC before adding them
             if not qcPass:
                 sys.stderr.write("Queries contained outlier distances, not updating database\n")
             else:
                 sys.stderr.write("Updating reference database to " + output + "\n")
 
             # Update the network + ref list
-            if full_db is False:
+            # only update network if assigning to strains
+            if full_db is False or assign_lineage is False:
                 mashOrder = refList + ordered_queryList
                 newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, output, refList)
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
+                nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
             else:
                 newQueries = ordered_queryList
-            nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
-
+            
             # Update the sketch database
             if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
@@ -800,7 +827,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 os.remove(tmpRefFile)
             # With mash, this is the reduced DB constructed,
             # with sketchlib, all sketches
-            joinDBs(ref_db, output, output) 
+            joinDBs(ref_db, output, output)
 
             # Update distance matrices with all calculated distances
             if distances == None:
@@ -812,9 +839,15 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                                 ordered_queryList, distMat, query_distMat)
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
 
+            if assign_lineage:
+                expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
+                if existing_scheme is not None:
+                    expected_lineage_name = existing_scheme
+                isolateClustering = cluster_into_lineages(complete_distMat, R, output, refList, ordered_queryList, expected_lineage_name,  use_accessory)
+
             # Prune distances to references only, if not full db
             dists_out = output + "/" + os.path.basename(output) + ".dists"
-            if full_db is False:
+            if full_db is False and assign_lineage is False:
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs
                 nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
@@ -845,8 +878,11 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
                                 queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
         if cytoscape:
-            sys.stderr.write("Writing cytoscape output\n")
-            outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
+            if assign_lineage:
+                sys.stderr.write("Cannot generate a cytoscape network from a lineage assignment")
+            else:
+                sys.stderr.write("Writing cytoscape output\n")
+                outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
 
     else:
         sys.stderr.write("Need to provide both a reference database with --ref-db and "
