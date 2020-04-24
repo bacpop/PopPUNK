@@ -107,6 +107,8 @@ def get_options():
     iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
+    iGroup.add_argument('--viz-lineages', help='CSV with lineage definitions to use for visualisation'
+                                                    'rather than strain definitions.', default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -566,6 +568,8 @@ def main():
             sys.exit(1)
 
         if args.distances is not None and args.ref_db is not None:
+            
+            # Initial processing
             # Load original distances
             with open(args.distances + ".pkl", 'rb') as pickle_file:
                 rlist, qlist, self = pickle.load(pickle_file)
@@ -579,28 +583,8 @@ def main():
                 except OSError:
                     sys.stderr.write("Cannot create output directory\n")
                     sys.exit(1)
-
-            # identify existing analysis files
-            model_prefix = args.ref_db
-            if args.model_dir is not None:
-                model_prefix = args.model_dir
-            model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                               model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
-
-            # Set directories of previous fit
-            if args.previous_clustering is not None:
-                prev_clustering = args.previous_clustering
-            else:
-                prev_clustering = os.path.dirname(args.distances + ".pkl")
-
-            # Read in network and cluster assignment
-            genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
-
-            # Use external clustering if specified
-            if args.external_clustering:
-                cluster_file = args.external_clustering
-            isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
-
+            
+            # Define set/subset to be visualised
             # extract subset of distances if requested
             viz_subset = rlist
             if args.subset is not None:
@@ -611,8 +595,9 @@ def main():
 
             # Use the same code as no full_db in assign_query to take a subset
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-            nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
-            postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, nodes_to_remove,
+            #nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
+            isolates_to_remove = set(combined_seq).difference(viz_subset)
+            postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
                                                                       complete_distMat, dists_out)
 
             rlist = viz_subset
@@ -624,12 +609,40 @@ def main():
             except:
                 sys.stderr.write("Isolates in subset not found in existing database\n")
             assert postpruning_combined_seq == viz_subset
+            
+            
+            
+            # Either use strain definitions, lineage assignments or external clustering
+            isolateClustering = {}
+            # Use external clustering if specified
+            if args.external_clustering:
+                cluster_file = args.external_clustering
+                isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
+            elif args.viz_lineages:
+                cluster_file = args.viz_lineages
+                isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
+            else:
+                # identify existing analysis files
+                model_prefix = args.ref_db
+                if args.model_dir is not None:
+                    model_prefix = args.model_dir
+                model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                                   model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+                
+                # Set directories of previous fit
+                if args.previous_clustering is not None:
+                    prev_clustering = args.previous_clustering
+                else:
+                    prev_clustering = os.path.dirname(args.distances + ".pkl")
 
-            # prune the network and dictionary of assignments
-            genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
-            for clustering_type in isolateClustering:
-                isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
-                    for viz_key in viz_subset}
+                # Read in network and cluster assignment
+                genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+
+                # prune the network and dictionary of assignments
+                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
+                for clustering_type in isolateClustering:
+                    isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
+                        for viz_key in viz_subset}
 
             # generate selected visualisations
             if args.microreact:
@@ -645,8 +658,11 @@ def main():
                 outputsForGrapetree(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             if args.cytoscape:
-                sys.stderr.write("Writing cytoscape output\n")
-                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                if args.viz_lineages or args.external_clustering:
+                    sys.stderr.write("Can only generate a network output for fitted models\n")
+                else:
+                    sys.stderr.write("Writing cytoscape output\n")
+                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
 
         else:
             # Cannot read input files
