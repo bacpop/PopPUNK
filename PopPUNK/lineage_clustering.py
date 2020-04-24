@@ -349,9 +349,16 @@ def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_sch
     # print output
     lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
     with open(lineage_output_name, 'w') as lFile:
-        print('Id,Lineage__autocolor', file = lFile)
-        for isolate in lineage_clustering.keys():
-            print(isolate + ',' + str(lineage_clustering[isolate]), file = lFile)
-    
+        if qlist is None:
+            print('Id,Lineage__autocolor', file = lFile)
+            for isolate in lineage_clustering.keys():
+                print(isolate + ',' + str(lineage_clustering[isolate]), file = lFile)
+        else:
+            print('Id,Lineage__autocolor,QueryStatus', file = lFile)
+            for isolate in rlist:
+                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + 'Reference', file = lFile)
+            for isolate in qlist:
+                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + 'Query', file = lFile)
+
     return 0
 
