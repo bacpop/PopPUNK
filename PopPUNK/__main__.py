@@ -175,7 +175,9 @@ def get_options():
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
-    lineagesGroup.add_argument('--R',help='Maximum rank used in lineage clustering', type = int, default=1)
+    lineagesGroup.add_argument('--R',help='Maximum rank used in lineage clustering [default = 1]', type = int, default = 1)
+    lineagesGroup.add_argument('--use-accessory',help='Use accessory distances for lineage definitions [default = use core distances]', action = 'store_true', default = False)
+    lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions', default = None)
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -521,20 +523,21 @@ def main():
         sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
         
         distances = None
-        ref_db = None
-        if args.distances is not None and args.ref_db is not None:
+        if args.distances is not None:
             distances = args.distances
-            ref_db = args.ref_db
         else:
-            sys.stderr.write("Need to provide an input set of distances with --distances "
-                             "and reference database directory with --ref-db\n\n")
+            sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
             sys.exit(1)
 
         # load distance matrix
         refList, queryList, self, distMat = readPickle(distances)
+        print("Queries are: " + str(queryList))
         
         # run lineage clustering
-        cluster_into_lineages(distMat, args.R, args.output, rlist = refList)
+        if self:
+            cluster_into_lineages(distMat, args.R, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme)
+        else:
+            cluster_into_lineages(distMat, args.R, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme)
 
     #*******************************#
     #*                             *#
