@@ -531,7 +531,6 @@ def main():
 
         # load distance matrix
         refList, queryList, self, distMat = readPickle(distances)
-        print("Queries are: " + str(queryList))
         
         # run lineage clustering
         if self:

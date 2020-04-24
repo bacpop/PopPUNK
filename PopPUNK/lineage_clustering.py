@@ -61,12 +61,13 @@ def run_lineage_clustering(lineage_clustering, lineage_clustering_information, n
                                     break
             # if this represents a change from the previous iteration of lineage definitions
             # then the change needs to propagate through higher-ranked members
-            if previous_lineage_clustering[isolate] == lineage_index and lineage_clustering[isolate] != lineage_index:
-                for higher_rank in lineage_clustering_information.keys():
-                    if higher_rank > rank:
-                        for higher_ranked_isolate in lineage_clustering_information[rank]:
-                            if lineage_clustering[isolate] == lineage_index:
-                                lineage_clustering[isolate] = null_cluster_value
+            if isolate in previous_lineage_clustering:
+                if previous_lineage_clustering[isolate] == lineage_index and lineage_clustering[isolate] != lineage_index:
+                    for higher_rank in lineage_clustering_information.keys():
+                        if higher_rank > rank:
+                            for higher_ranked_isolate in lineage_clustering_information[rank]:
+                                if lineage_clustering[isolate] == lineage_index:
+                                    lineage_clustering[isolate] = null_cluster_value
                 
                         
     return lineage_clustering
@@ -110,7 +111,6 @@ def get_seed_isolate(lineage_clustering, row_labels, distances, null_cluster_val
         seed_isolate = row_labels[closest_unclustered_pair_index][0] if lineage_clustering[row_labels[closest_unclustered_pair_index][0]] == null_cluster_value else row_labels[closest_unclustered_pair_index][1]
     return seed_isolate
     
-
 def get_lineage_clustering_information(seed_isolate, row_labels, distances):
     """ Generates the ranked distances needed for cluster
     definition.
@@ -235,6 +235,7 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
     # merge dicts
     for query in query_nn.keys():
         nn[query] = query_nn[query]
+    # return updated dict
     return nn
 
 
@@ -292,6 +293,9 @@ def cluster_into_lineages(X, R, output, rlist = None, qlist = None, existing_sch
         with open(existing_scheme, 'rb') as pickle_file:
             lineage_clustering, lineage_seed, neighbours = pickle.load(pickle_file)
         previous_lineage_clustering = lineage_clustering # use for detecting changes
+        # add new queries to lineage clustering
+        for q in qlist:
+            lineage_clustering[q] = null_cluster_value
         neighbours = update_nearest_neighbours(distances,
                                                 row_labels,
                                                 R,
