@@ -601,7 +601,7 @@ def main():
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
             #nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
             isolates_to_remove = set(combined_seq).difference(viz_subset)
-            postpruning_combined_seq = sorted(viz_subset)
+            postpruning_combined_seq = viz_subset
             newDistMat = complete_distMat
             if len(isolates_to_remove) > 0:
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
