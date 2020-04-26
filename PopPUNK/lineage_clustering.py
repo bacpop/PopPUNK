@@ -335,9 +335,16 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
             Option to use accessory distances rather than core distances.
             
     Returns:
-        completion_status (int)
-            0 if successful
+        lineage_clustering (dict)
+            Assignment of each isolate to a cluster.
+        lineage_seed (dict)
+            Seed isolate used to initiate each cluster.
+        neighbours (nested dict)
+            Neighbour relationships between isolates for R.
+        R (int)
+            R used to generate neigbours and clustering.
     """
+    
     # process distance matrix
     distance_index = 1 if use_accessory else 0
     distances = X[:,distance_index]
@@ -345,46 +352,112 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
     # determine whether ref-ref or ref-query analysis
     isolate_list = rlist
     row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
-#    if qlist is None:
-#        sys.stderr.write("Identifying lineages using reference sequences\n")
-#        isolate_list = rlist
-#        row_labels = list(iter(iterDistRows(rlist, rlist, self = True)))
-#    else:
-#        sys.stderr.write("Identifying lineages from using reference and query sequences\n")
-#        row_labels = list(iter(iterDistRows(rlist, qlist, self = False)))
-#        isolate_list = rlist + qlist
     
     # determine whether novel analysis or modifying existing analysis
+    use_existing = False
     neighbours = {}
     lineage_seed = {}
     null_cluster_value = len(isolate_list) + 1
     lineage_clustering = {i:null_cluster_value for i in isolate_list}
     previous_lineage_clustering = lineage_clustering
     
-    if existing_scheme is None:
+    if existing_scheme is not None:
+        with open(existing_scheme, 'rb') as pickle_file:
+            lineage_clustering, lineage_seed, neighbours, R = pickle.load(pickle_file)
+        previous_lineage_clustering = lineage_clustering # use for detecting changes
+        use_existing = True
+        # add new queries to lineage clustering
+        for q in qlist:
+            lineage_clustering[q] = null_cluster_value
+    
+    # run clustering for an individual R
+    lineage_clustering, lineage_seed, neighbours, R = run_clustering_for_R(R,
+                                                                        distances = distances,
+                                                                        neighbours = neighbours,
+                                                                        lineage_clustering = lineage_clustering,
+                                                                        lineage_seed = lineage_seed,
+                                                                        null_cluster_value = null_cluster_value,
+                                                                        qlist = qlist,
+                                                                        use_existing = use_existing)
+    
+    # store output
+    with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
+        pickle.dump([lineage_clustering, lineage_seed, neighbours, R], pickle_file)
+    
+    # print output
+    lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
+    with open(lineage_output_name, 'w') as lFile:
+        if qlist is None:
+            print('Id,Lineage__autocolor', file = lFile)
+            for isolate in lineage_clustering.keys():
+                print(isolate + ',' + str(lineage_clustering[isolate]), file = lFile)
+        else:
+            print('Id,Lineage__autocolor,QueryStatus', file = lFile)
+            for isolate in rlist:
+                status = 'Reference'
+                if isolate in qlist:
+                    status = 'Query'
+                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + status, file = lFile)
+
+    return lineage_clustering, lineage_seed, neighbours, R
+
+def run_clustering_for_R(R, distances = None, neighbours = None, lineage_clustering = None,
+                            lineage_seed = None, null_cluster_value = None, qlist = None, use_existing = False):
+    """ Clusters isolates into lineages based on their
+    relative distances using a single R to enable
+    parallelisation.
+    
+    Args:
+        R (int)
+            Integer specifying the maximum rank of neighbour used
+            for clustering. Should be changed to int list for hierarchical
+            clustering.
+        distances (numpy array)
+            Sorted distances used for analysis.
+        neighbours (nested dict)
+            Neighbour relationships between isolates for R.
+        lineage_clustering (dict)
+            Assignment of each isolate to a cluster.
+        lineage_seed (dict)
+            Seed isolate used to initiate each cluster.
+        null_cluster_value (int)
+            Used to denote as-yet-unclustered isolates.
+        qlist (list)
+            List of query sequences being added to an existing clustering.
+            Should be included within rlist.
+        use_existing (bool)
+            Whether to extend a previously generated analysis or not.
+            
+    Returns:
+        lineage_clustering (dict)
+            Assignment of each isolate to a cluster.
+        lineage_seed (dict)
+            Seed isolate used to initiate each cluster.
+        neighbours (nested dict)
+            Neighbour relationships between isolates for R.
+        R (int)
+            R used to generate neigbours and clustering.
+    """
+    
+    # identify neighbours
+    if existing_scheme:
+        neighbours, lineage_clustering = update_nearest_neighbours(distances,
+                                                                row_labels,
+                                                                R,
+                                                                qlist,
+                                                                neighbours,
+                                                                lineage_clustering,
+                                                                null_cluster_value)
+    else:
         neighbours = generate_nearest_neighbours(distances,
                                                 row_labels,
                                                 isolate_list,
                                                 R)
-    else:
-        with open(existing_scheme, 'rb') as pickle_file:
-            lineage_clustering, lineage_seed, neighbours, R = pickle.load(pickle_file)
-        previous_lineage_clustering = lineage_clustering # use for detecting changes
-        # add new queries to lineage clustering
-        for q in qlist:
-            lineage_clustering[q] = null_cluster_value
-        neighbours, lineage_clustering = update_nearest_neighbours(distances,
-                                                                    row_labels,
-                                                                    R,
-                                                                    qlist,
-                                                                    neighbours,
-                                                                    lineage_clustering,
-                                                                    null_cluster_value)
-
+        
     # run clustering
     lineage_index = 1
     while null_cluster_value in lineage_clustering.values():
-        
+    
         # get seed isolate based on minimum pairwise distances
         seed_isolate = get_seed_isolate(lineage_clustering,     # need to add in lineage seed hash
                                         row_labels,
@@ -419,25 +492,7 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
         # increment index for next lineage
         lineage_index = lineage_index + 1
     
-    # store output
-    with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
-        pickle.dump([lineage_clustering, lineage_seed, neighbours, R], pickle_file)
-    
-    # print output
-    lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
-    with open(lineage_output_name, 'w') as lFile:
-        if qlist is None:
-            print('Id,Lineage__autocolor', file = lFile)
-            for isolate in lineage_clustering.keys():
-                print(isolate + ',' + str(lineage_clustering[isolate]), file = lFile)
-        else:
-            print('Id,Lineage__autocolor,QueryStatus', file = lFile)
-            for isolate in rlist:
-                status = 'Reference'
-                if isolate in qlist:
-                    status = 'Query'
-                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + status, file = lFile)
-
+    # return clustering
     return lineage_clustering
 
 def calculateQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
