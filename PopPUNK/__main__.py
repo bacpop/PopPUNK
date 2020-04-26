@@ -527,7 +527,11 @@ def main():
     sys.stderr.write("Checking options here\n\n")
     if args.lineage_clustering:
         sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
-        
+
+        # process rankings to use
+        rank_list = sorted(args.R.split(','))
+
+        # load distances
         distances = None
         if args.distances is not None:
             distances = args.distances
@@ -535,14 +539,13 @@ def main():
             sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
             sys.exit(1)
 
-        # load distance matrix
         refList, queryList, self, distMat = readPickle(distances)
         
         # run lineage clustering
         if self:
-            isolateClustering = cluster_into_lineages(distMat, args.R, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme)
+            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme)
         else:
-            isolateClustering = cluster_into_lineages(distMat, args.R, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme)
+            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme)
 
     #*******************************#
     #*                             *#
@@ -746,7 +749,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
 
         # Calculate query-query distances
-###################################################################################################################
         ordered_queryList = []
         
         # Assign to strains or lineages, as requested
@@ -755,14 +757,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             # Assign lineages by calculating query-query information
             ordered_queryList, query_distMat = calculateQueryDistances(dbFuncs, refList, q_files,
                     kmers, estimated_length, output, use_mash, threads)
-#
-#            # ASSIGN LINEAGE
-#            expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
-#            if existing_scheme:
-#                expected_lineage_name = existing_scheme
-#            combined_distances = np.concatenate((distMat,query_distMat),axis = 0)
-#            isolateClustering = cluster_into_lineages(combined_distances, R, output, rlist = refList, qlist = ordered_queryList, use_accessory = use_accessory,  existing_scheme = expected_lineage_name)
-###################################################################################################################
+
         if not assign_lineage:
             # Assign these distances as within or between strain
             model_prefix = ref_db
@@ -840,10 +835,11 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
 
             if assign_lineage:
+                rank_list = sorted(R.split(','))
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
-                isolateClustering = {'combined': cluster_into_lineages(complete_distMat, R, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory)}
+                isolateClustering = {'combined': cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory)}
 
             # Prune distances to references only, if not full db
             dists_out = output + "/" + os.path.basename(output) + ".dists"

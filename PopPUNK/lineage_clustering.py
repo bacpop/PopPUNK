@@ -10,6 +10,7 @@ import numpy as np
 from scipy.stats import rankdata
 from collections import defaultdict
 import pickle
+from multiprocessing import Pool, Lock
 
 # import poppunk package
 from .utils import iterDistRows
@@ -311,7 +312,7 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
     return nn, lineage_clustering
 
 
-def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, existing_scheme = None, use_accessory = False):
+def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlist = None, existing_scheme = None, use_accessory = False):
     """ Clusters isolates into lineages based on their
     relative distances.
     
@@ -319,10 +320,9 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
         X (np.array)
             n x 2 array of core and accessory distances for n samples.
             This should not be subsampled.
-        R (int)
-            Integer specifying the maximum rank of neighbour used
-            for clustering. Should be changed to int list for hierarchical
-            clustering.
+        rank_list (list of int)
+            Integers specifying the maximum rank of neighbours used
+            for clustering.
         rlist (list)
             List of reference sequences.
         qlist (list)
@@ -335,17 +335,14 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
             Option to use accessory distances rather than core distances.
             
     Returns:
-        lineage_clustering (dict)
-            Assignment of each isolate to a cluster.
-        lineage_seed (dict)
-            Seed isolate used to initiate each cluster.
-        neighbours (nested dict)
-            Neighbour relationships between isolates for R.
-        R (int)
-            R used to generate neigbours and clustering.
+        combined (dict)
+            Assignment of each isolate to clusters by all ranks used.
     """
     
     # process distance matrix
+    # - this should be sorted (PyTorch allows this to be done on GPUs)
+    # - then the functions can be reimplemented to run faster on a
+    #   sorted list
     distance_index = 1 if use_accessory else 0
     distances = X[:,distance_index]
     
@@ -357,49 +354,63 @@ def cluster_into_lineages(X, R = 1, output = None, rlist = None, qlist = None, e
     use_existing = False
     neighbours = {}
     lineage_seed = {}
+    
     null_cluster_value = len(isolate_list) + 1
-    lineage_clustering = {i:null_cluster_value for i in isolate_list}
-    previous_lineage_clustering = lineage_clustering
+    for R in rank_list:
+        lineage_clustering[R] = {i:null_cluster_value for i in isolate_list}
+        previous_lineage_clustering[R] = lineage_clustering[R]
+        lineage_seed[R] = {}
     
     if existing_scheme is not None:
         with open(existing_scheme, 'rb') as pickle_file:
             lineage_clustering, lineage_seed, neighbours, R = pickle.load(pickle_file)
-        previous_lineage_clustering = lineage_clustering # use for detecting changes
+        previous_lineage_clustering[R] = lineage_clustering[R] # use for detecting changes
         use_existing = True
         # add new queries to lineage clustering
         for q in qlist:
             lineage_clustering[q] = null_cluster_value
     
     # run clustering for an individual R
-    lineage_clustering, lineage_seed, neighbours, R = run_clustering_for_R(R,
-                                                                        distances = distances,
-                                                                        neighbours = neighbours,
-                                                                        lineage_clustering = lineage_clustering,
-                                                                        lineage_seed = lineage_seed,
-                                                                        null_cluster_value = null_cluster_value,
-                                                                        qlist = qlist,
-                                                                        use_existing = use_existing)
+    # - this can be parallelised across R using multiprocessing.Pool
+    for R in rank_list:
+        lineage_clustering[R], lineage_seed[R], neighbours[R] = run_clustering_for_R(R,
+                                                                                    distances = distances,
+                                                                                    neighbours = neighbours[R],
+                                                                                    lineage_clustering = lineage_clustering[R],
+                                                                                    lineage_seed = lineage_seed[R],
+                                                                                    null_cluster_value = null_cluster_value,
+                                                                                    qlist = qlist,
+                                                                                    use_existing = use_existing)
     
     # store output
+    # - this needs to be per R
     with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
-        pickle.dump([lineage_clustering, lineage_seed, neighbours, R], pickle_file)
+        pickle.dump([lineage_clustering, lineage_seed, neighbours, rank_list], pickle_file)
     
     # print output
+    combined = {}
     lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
     with open(lineage_output_name, 'w') as lFile:
-        if qlist is None:
-            print('Id,Lineage__autocolor', file = lFile)
-            for isolate in lineage_clustering.keys():
-                print(isolate + ',' + str(lineage_clustering[isolate]), file = lFile)
-        else:
-            print('Id,Lineage__autocolor,QueryStatus', file = lFile)
-            for isolate in rlist:
-                status = 'Reference'
+        print('Id', file = lFile)
+        for R in rank_list:
+            print(',Lineage_R' + str(R) + '__autocolor', file = lFile)
+        if qlist is not None:
+            print(',Status', file = lFile)
+        for isolate in lineage_clustering[R].keys():
+            print(isolate, file = lFile)
+            for R in rank_list:
+                 print(',' + str(lineage_clustering[R][isolate]), file = lFile)
+                 if len(combined[isolate]) == 0:
+                    combined[isolate] = lineage_clustering[R][isolate]
+                 else:
+                    combined[isolate] = combined[isolate] + '-' + lineage_clustering[R][isolate]
+            if qlist is not None:
                 if isolate in qlist:
-                    status = 'Query'
-                print(isolate + ',' + str(lineage_clustering[isolate]) + ',' + status, file = lFile)
+                    print(',Added',file = lFile)
+                else:
+                    print(',Existing',file = lFile)
 
-    return lineage_clustering, lineage_seed, neighbours, R
+    return combined[R]
 
 def run_clustering_for_R(R, distances = None, neighbours = None, lineage_clustering = None,
                             lineage_seed = None, null_cluster_value = None, qlist = None, use_existing = False):
@@ -435,8 +446,6 @@ def run_clustering_for_R(R, distances = None, neighbours = None, lineage_cluster
             Seed isolate used to initiate each cluster.
         neighbours (nested dict)
             Neighbour relationships between isolates for R.
-        R (int)
-            R used to generate neigbours and clustering.
     """
     
     # identify neighbours
@@ -493,7 +502,7 @@ def run_clustering_for_R(R, distances = None, neighbours = None, lineage_cluster
         lineage_index = lineage_index + 1
     
     # return clustering
-    return lineage_clustering
+    return lineage_clustering, lineage_seed, neighbours
 
 def calculateQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
                     queryDB, use_mash = False, threads = 1):
