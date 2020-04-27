@@ -477,8 +477,11 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     # process clustering data
     nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
 
+    # get example clustering name for validation
+    example_cluster_title = list(clustering.keys())[0]
+
     for name, label in zip(nodeNames, nodeLabels):
-        if name in clustering['combined']:
+        if name in clustering[example_cluster_title]:
             if output_format == 'microreact':
                 d['id'].append(label)
                 for cluster_type in clustering:

@@ -5,6 +5,7 @@
 # universal
 import os
 import sys
+import re
 # additional
 import numpy as np
 from scipy.stats import rankdata
@@ -401,26 +402,34 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
     
     # print output
     combined = {}
+    titles_list = ['Lineage_R' + str(R)  for R in rank_list]
     lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
     with open(lineage_output_name, 'w') as lFile:
+        # print header
         lFile.write('Id')
-        for R in rank_list:
-            lFile.write(',Lineage_R' + str(R) + '__autocolor')
+        for t in titles_list:
+            lFile.write(',' + t + '__autocolor')
+            combined[t] = {}
+        lFile.write(',Overall_lineage')
+        combined['Overall_lineage'] = {}
         if qlist is not None:
-            lFile.write(',Overall_lineage,Status\n')
+            lFile.write(',Status')
+        lFile.write('\n')
+        # print lines for each isolate
         for isolate in lineage_clustering[R].keys():
             lFile.write(isolate)
-            for R in rank_list:
+            for n,R in enumerate(rank_list):
                 lFile.write(',' + str(lineage_clustering[R][isolate]))
                 lineage_string = str(lineage_clustering[R][isolate])
                 # include information on lineage clustering
+                combined[titles_list[n]][isolate] = lineage_string
                 if lineage_clustering[R][isolate] != previous_lineage_clustering[R][isolate]:
                     lineage_string = str(previous_lineage_clustering[R][isolate]) + ':' + lineage_string
                 if isolate in combined.keys():
-                    combined[isolate] = combined[isolate] + '-' + lineage_string
+                    combined['Overall_lineage'][isolate] = combined[isolate] + '-' + lineage_string
                 else:
-                    combined[isolate] = lineage_string
-            lFile.write(',' + combined[isolate])
+                    combined['Overall_lineage'][isolate] = lineage_string
+            lFile.write(',' + combined['Overall_lineage'][isolate])
             if qlist is not None:
                 if isolate in qlist:
                     lFile.write(',Added\n')
@@ -589,3 +598,34 @@ def calculateQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
     return qlist1, distMat
 
 
+def readLineages(clustCSV):
+    """Read a previous reference clustering from CSV
+
+    Args:
+        clustCSV (str)
+            File name of CSV with previous cluster assignments
+
+    Returns:
+        clusters (dict)
+            Or if return_dict is set keys are sample names,
+            values are cluster assignments.
+    """
+    clusters = {}
+    relevant_headers = []
+    header_elements = []
+
+    with open(clustCSV, 'r') as csv_file:
+        header = csv_file.readline()
+        # identify columns to include
+        header_elements = header.rstrip().split(",")
+        relevant_headers.append(header_elements.index('Overall_lineage'))
+        relevant_headers.extend([n for n,i in enumerate(header_elements) if re.search('Lineage_R',i)])
+        for h in relevant_headers:
+            clusters[header_elements[h]] = {}
+        for line in csv_file:
+            elements = line.rstrip().split(",")
+            if elements[0] != header_elements[0]:
+                for h in relevant_headers:
+                    clusters[header_elements[h]][elements[0]] = elements[h]
+
+    return clusters

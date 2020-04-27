@@ -19,6 +19,7 @@ from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
 from .lineage_clustering import cluster_into_lineages
 from .lineage_clustering import calculateQueryDistances
+from .lineage_clustering import readLineages
 
 from .network import fetchNetwork
 from .network import constructNetwork
@@ -628,7 +629,8 @@ def main():
                 isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
             elif args.viz_lineages:
                 cluster_file = args.viz_lineages
-                isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
+                #isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
+                isolateClustering = readLineages(cluster_file)
             else:
                 # identify existing analysis files
                 model_prefix = args.ref_db
@@ -648,9 +650,11 @@ def main():
 
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
-                for clustering_type in isolateClustering:
-                    isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
-                        for viz_key in viz_subset}
+                
+            # process the returned clustering
+#            for clustering_type in isolateClustering:
+#                isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
+#                    for viz_key in viz_subset}
 
             # generate selected visualisations
             if args.microreact:
