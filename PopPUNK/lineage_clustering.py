@@ -363,19 +363,21 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
     null_cluster_value = len(isolate_list) + 1
     for R in rank_list:
         lineage_clustering[R] = {i:null_cluster_value for i in isolate_list}
-        previous_lineage_clustering[R] = lineage_clustering[R]
         lineage_seed[R] = {}
         neighbours[R] = {}
     
     if existing_scheme is not None:
         with open(existing_scheme, 'rb') as pickle_file:
             lineage_clustering, lineage_seed, neighbours, rank_list = pickle.load(pickle_file)
-        previous_lineage_clustering[R] = lineage_clustering[R] # use for detecting changes
         use_existing = True
         # add new queries to lineage clustering
         for q in qlist:
             for R in rank_list:
                 lineage_clustering[R][q] = null_cluster_value
+    
+    # use for detecting changes in lineage assignation
+    for R in rank_list:
+        previous_lineage_clustering[R] = lineage_clustering[R]
     
     # run clustering for an individual R
     # - this can be parallelised across R using multiprocessing.Pool
@@ -405,15 +407,20 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
         for R in rank_list:
             lFile.write(',Lineage_R' + str(R) + '__autocolor')
         if qlist is not None:
-            lFile.write(',Status\n')
+            lFile.write(',Overall_lineage,Status\n')
         for isolate in lineage_clustering[R].keys():
             lFile.write(isolate)
             for R in rank_list:
                 lFile.write(',' + str(lineage_clustering[R][isolate]))
+                lineage_string = str(lineage_clustering[R][isolate])
+                # include information on lineage clustering
+                if lineage_clustering[R][isolate] != previous_lineage_clustering[R][isolate]:
+                    lineage_string = str(previous_lineage_clustering[R][isolate]) + ':' + lineage_string
                 if isolate in combined.keys():
-                    combined[isolate] = combined[isolate] + '-' + str(lineage_clustering[R][isolate])
+                    combined[isolate] = combined[isolate] + '-' + lineage_string
                 else:
-                    combined[isolate] = str(lineage_clustering[R][isolate])
+                    combined[isolate] = lineage_string
+            lFile.write(',' + combined[isolate])
             if qlist is not None:
                 if isolate in qlist:
                     lFile.write(',Added\n')
