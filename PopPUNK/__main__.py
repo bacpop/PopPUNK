@@ -181,7 +181,7 @@ def get_options():
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
-    lineagesGroup.add_argument('--R',help='Maximum rank used in lineage clustering [default = 1]', type = int, default = 1)
+    lineagesGroup.add_argument('--R',help='Comma separated list of ranks used in lineage clustering [default = 1]', type = str, default = "1")
     lineagesGroup.add_argument('--use-accessory',help='Use accessory distances for lineage definitions [default = use core distances]', action = 'store_true', default = False)
     lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions', type = str, default = None)
 
@@ -529,7 +529,7 @@ def main():
         sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
 
         # process rankings to use
-        rank_list = sorted(args.R.split(','))
+        rank_list = sorted([int(x) for x in args.R.split(',')])
 
         # load distances
         distances = None
@@ -835,7 +835,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
 
             if assign_lineage:
-                rank_list = sorted(R.split(','))
+                rank_list = sorted([int(x) for x in R.split(',')])
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
