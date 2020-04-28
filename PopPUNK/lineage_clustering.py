@@ -272,7 +272,7 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
     query_match_indices = [n for n, (r, q) in enumerate(row_labels) if q in qlist or r in qlist]
     query_row_names = [row_labels[i] for i in query_match_indices]
     query_distances = np.take(distances, query_match_indices)
-    print('Query distances: ' + str(query_distances))
+
     # iterate through references to update existing entries
     existing_isolates = nn.keys()
     
@@ -285,8 +285,6 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
         min_distance_to_query = np.amin(ref_query_distances)
         # if closer queries, find distances and replace
         if min_distance_to_query < max_distance_to_ref:
-            if R == 1:
-                print('Found new partner for ' + isolate + ' as min query is ' + str(min_distance_to_query) + ' and max ref is ' + str(max_distance_to_ref))
             # unset clustering of isolate and neighbours
             lineage_clustering[isolate] = null_cluster_value
             for neighbour in nn[isolate].keys():
@@ -362,6 +360,10 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
     distance_index = 1 if use_accessory else 0
     distances = X[:,distance_index]
     
+    # sort distances
+    distance_ranks = rankdata(distances, method = 'ordinal')
+    distances = distances[distance_ranks-1]
+    
     # determine whether ref-ref or ref-query analysis
     isolate_list = rlist
     
@@ -383,6 +385,11 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
     shm_distances = shared_memory.SharedMemory(create = True, size = distances.nbytes, name = 'shm_distances')
     distances_shared = np.ndarray(distances.shape, dtype = distances.dtype, buffer = shm_distances.buf)
     distances_shared[:] = distances[:]
+
+    shm_distance_ranks = shared_memory.SharedMemory(create = True, size = distance_ranks.nbytes, name = 'shm_distance_ranks')
+    distance_ranks_shared = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = shm_distance_ranks.buf)
+    distance_ranks_shared[:] = distance_ranks[:]
+
     isolate_list_shared = shared_memory.ShareableList(isolate_list, name = 'shm_isolate_list')
     
     # run clustering for an individual R
@@ -415,6 +422,9 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
     shm_distances.close()
     shm_distances.unlink()
     del shm_distances
+    shm_distance_ranks.close()
+    shm_distance_ranks.unlink()
+    del shm_distance_ranks
     isolate_list_shared.shm.close()
     isolate_list_shared.shm.unlink()
     del isolate_list_shared
@@ -491,14 +501,18 @@ def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_sc
     """
     
     # load shared memory objects
-    existing_shm = shared_memory.SharedMemory(name = 'shm_distances')
-    distances = np.ndarray(distances_length, dtype = distances_type, buffer = existing_shm.buf)
+    existing_distance_shm = shared_memory.SharedMemory(name = 'shm_distances')
+    distances = np.ndarray(distances_length, dtype = distances_type, buffer = existing_distance_shm.buf)
+    existing_rank_shm = shared_memory.SharedMemory(name = 'shm_distance_ranks')
+    distance_ranks = np.ndarray(distances_length, dtype = 'int64', buffer = existing_rank_shm.buf)
     isolate_list = shared_memory.ShareableList(name = 'shm_isolate_list')
     
     # calculate row labels
     # this is inefficient but there appears to be no way of sharing
     # strings between processes efficiently
     row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
+    # reorder by sorted distances
+    row_labels = [row_labels[i-1] for i in distance_ranks]
     
     lineage_clustering = {i:null_cluster_value for i in isolate_list}
     previous_lineage_clustering = lineage_clustering
