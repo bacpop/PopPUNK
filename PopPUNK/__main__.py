@@ -544,9 +544,9 @@ def main():
         
         # run lineage clustering
         if self:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme)
+            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
         else:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme)
+            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
 
     #*******************************#
     #*                             *#
@@ -817,7 +817,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
             else:
                 newQueries = ordered_queryList
-            
+
             # Update the sketch database
             if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
@@ -837,13 +837,14 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
                                                                 ordered_queryList, distMat, query_distMat)
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
-
+            
             if assign_lineage:
                 rank_list = sorted([int(x) for x in R.split(',')])
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
-                isolateClustering = {'combined': cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory)}
+                #isolateClustering = {'combined': cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory, threads)}
+                isolateClustering = cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory, threads)
 
             # Prune distances to references only, if not full db
             dists_out = output + "/" + os.path.basename(output) + ".dists"
