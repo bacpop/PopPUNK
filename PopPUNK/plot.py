@@ -594,7 +594,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
             pFile.write("\n")
 
     # construct tree
-    rapidnj_cmd = rapidnj + " " + phylip_name + " -i pd -o t -x " + tree_filename + ".raw"
+    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw"
     try:
         # run command
         subprocess.run(rapidnj_cmd, shell=True, check=True)
