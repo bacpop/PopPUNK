@@ -272,6 +272,7 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
     query_match_indices = [n for n, (r, q) in enumerate(row_labels) if q in qlist or r in qlist]
     query_row_names = [row_labels[i] for i in query_match_indices]
     query_distances = np.take(distances, query_match_indices)
+    print('Query distances: ' + str(query_distances))
     # iterate through references to update existing entries
     existing_isolates = nn.keys()
     
@@ -284,6 +285,8 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
         min_distance_to_query = np.amin(ref_query_distances)
         # if closer queries, find distances and replace
         if min_distance_to_query < max_distance_to_ref:
+            if R == 1:
+                print('Found new partner for ' + isolate + ' as min query is ' + str(min_distance_to_query) + ' and max ref is ' + str(max_distance_to_ref))
             # unset clustering of isolate and neighbours
             lineage_clustering[isolate] = null_cluster_value
             for neighbour in nn[isolate].keys():
@@ -374,43 +377,47 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
         lineage_clustering[R] = {i:null_cluster_value for i in isolate_list}
         lineage_seed[R] = {}
         neighbours[R] = {}
+        previous_lineage_clustering[R] = {}
+    
+    # shared memory data structures
+    shm_distances = shared_memory.SharedMemory(create = True, size = distances.nbytes, name = 'shm_distances')
+    distances_shared = np.ndarray(distances.shape, dtype = distances.dtype, buffer = shm_distances.buf)
+    distances_shared[:] = distances[:]
+    isolate_list_shared = shared_memory.ShareableList(isolate_list, name = 'shm_isolate_list')
     
     # run clustering for an individual R
     if num_processes == 1:
         for R in rank_list:
-            lineage_clustering[R], lineage_seed[R], neighbours[R] = run_clustering_for_R(R,
+            lineage_clustering[R], lineage_seed[R], neighbours[R], previous_lineage_clustering[R] = run_clustering_for_R(R,
                                                                                         null_cluster_value = null_cluster_value,
                                                                                         qlist = qlist,
                                                                                         existing_scheme = existing_scheme,
-                                                                                        distances_length = distances.size)
+                                                                                        distances_length = distances.shape,
+                                                                                        distances_type = distances.dtype)
 
 
     else:
-        # use multiprocessing
-        shm_distances = shared_memory.SharedMemory(create = True, size = distances.nbytes, name = 'shm_distances')
-        distances_shared = np.ndarray(distances.shape, dtype = distances.dtype, buffer = shm_distances.buf)
-        distances_shared[:] = distances[:]
-        isolate_list_shared = shared_memory.ShareableList(isolate_list, name = 'shm_isolate_list')
 
         with Pool(processes = num_processes) as pool:
             results = pool.map(partial(run_clustering_for_R,
                                 null_cluster_value = null_cluster_value,
                                 qlist = qlist,
                                 existing_scheme = existing_scheme,
-                                distances_length = distances.size),
+                                distances_length = distances.shape,
+                                distances_type = distances.dtype),
                                 rank_list)
         
         for n,result in enumerate(results):
             R = rank_list[n]
             lineage_clustering[R], lineage_seed[R], neighbours[R], previous_lineage_clustering[R] = result
         
-        # manage memory
-        shm_distances.close()
-        shm_distances.unlink()
-        del shm_distances
-        isolate_list_shared.shm.close()
-        isolate_list_shared.shm.unlink()
-        del isolate_list_shared
+    # manage memory
+    shm_distances.close()
+    shm_distances.unlink()
+    del shm_distances
+    isolate_list_shared.shm.close()
+    isolate_list_shared.shm.unlink()
+    del isolate_list_shared
 
     # store output
     with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
@@ -431,6 +438,7 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
         if qlist is not None:
             lFile.write(',Status')
         lFile.write('\n')
+
         # print lines for each isolate
         for isolate in lineage_clustering[R].keys():
             lFile.write(isolate)
@@ -455,15 +463,7 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
 
     return combined
 
-def make_vars_global(distances = None, row_labels = None, isolate_list = None):
-    global global_distances
-    global_distances = distances
-    global global_row_labels
-    global_row_labels = row_labels
-    global global_isolate_list
-    global_isolate_list = isolate_list
-
-def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_scheme = False, distances_length = None):
+def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_scheme = False, distances_length = None, distances_type = None):
     """ Clusters isolates into lineages based on their
     relative distances using a single R to enable
     parallelisation.
@@ -473,22 +473,8 @@ def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_sc
             Integer specifying the maximum rank of neighbour used
             for clustering. Should be changed to int list for hierarchical
             clustering.
-        distances (numpy array)
-            Sorted distances used for analysis.
-        row_labels (list of tuples)
-            Pairs of isolates labelling each distance.
-        neighbours (nested dict)
-            Neighbour relationships between isolates for R.
-        lineage_clustering (dict)
-            Assignment of each isolate to a cluster.
-        previous_lineage_clustering (dict)
-            Assignment of each isolate to a cluster before updating.
-        lineage_seed (dict)
-            Seed isolate used to initiate each cluster.
         null_cluster_value (int)
             Used to denote as-yet-unclustered isolates.
-        isolate_list (list)
-            List of isolates for lineage assignment.
         qlist (list)
             List of query sequences being added to an existing clustering.
             Should be included within rlist.
@@ -506,7 +492,7 @@ def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_sc
     
     # load shared memory objects
     existing_shm = shared_memory.SharedMemory(name = 'shm_distances')
-    distances = np.ndarray(distances_length, dtype = np.float32, buffer = existing_shm.buf)
+    distances = np.ndarray(distances_length, dtype = distances_type, buffer = existing_shm.buf)
     isolate_list = shared_memory.ShareableList(name = 'shm_isolate_list')
     
     # calculate row labels
@@ -514,10 +500,10 @@ def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_sc
     # strings between processes efficiently
     row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
     
-    neighbours = {}
+    lineage_clustering = {i:null_cluster_value for i in isolate_list}
+    previous_lineage_clustering = lineage_clustering
     lineage_seed = {}
-    lineage_clustering = {}
-    previous_lineage_clustering = {}
+    neighbours = {}
     
     if existing_scheme is not None:
         with open(existing_scheme, 'rb') as pickle_file:

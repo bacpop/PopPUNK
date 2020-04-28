@@ -651,11 +651,6 @@ def main():
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
                 
-            # process the returned clustering
-#            for clustering_type in isolateClustering:
-#                isolateClustering[clustering_type] = {viz_key: isolateClustering[clustering_type][viz_key]
-#                    for viz_key in viz_subset}
-
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
