@@ -179,6 +179,39 @@ def get_lineage_clustering_information(seed_isolate, row_labels, distances):
     return lineage_info
 
 def generate_nearest_neighbours(distances, row_labels, isolate_list, R):
+    # data structures
+    nn = {}
+    last_dist = {}
+    num_ranks = {}
+    for i in isolate_list:
+        nn[i] = {}
+        num_ranks[i] = 0
+    total_isolates = len(isolate_list)
+    completed_isolates = 0
+    index = 0
+    # iterate through distances until all nearest neighbours identified
+    while completed_isolates < total_isolates:
+        try:
+            distance = distances[index]
+        except:
+            sys.stderr.write('Not enough distances! Try reducing R\n')
+            exit(1)
+        for isolate in row_labels[index]:
+            if isolate in num_ranks.keys() and num_ranks[isolate] < R:
+                if isolate in last_dist.keys() and last_dist[isolate] != distance:
+                    num_ranks[isolate] = num_ranks[isolate] + 1
+                if num_ranks[isolate] >= R:
+                    completed_isolates = completed_isolates + 1
+                else:
+                    pair = row_labels[index][0] if row_labels[index][1] == isolate else row_labels[index][1]
+                    nn[isolate][pair] = distance
+                last_dist[isolate] = distance
+        index = index + 1
+    # return completed dict
+    return nn
+    
+
+def old_generate_nearest_neighbours(distances, row_labels, isolate_list, R):
     """ Identifies the nearest neighbours from the core
     genome distances.
     
@@ -361,8 +394,8 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
     distances = X[:,distance_index]
     
     # sort distances
-    distance_ranks = rankdata(distances, method = 'ordinal')
-    distances = distances[distance_ranks-1]
+    distance_ranks = np.argsort(distances)
+    distances = distances[distance_ranks]
     
     # determine whether ref-ref or ref-query analysis
     isolate_list = rlist
@@ -512,7 +545,7 @@ def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_sc
     # strings between processes efficiently
     row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
     # reorder by sorted distances
-    row_labels = [row_labels[i-1] for i in distance_ranks]
+    row_labels = [row_labels[i] for i in distance_ranks]
     
     lineage_clustering = {i:null_cluster_value for i in isolate_list}
     previous_lineage_clustering = lineage_clustering
