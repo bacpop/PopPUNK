@@ -86,7 +86,7 @@ def main():
     seqLabels = [r.split('/')[-1].split('.')[0] for r in refList]
 
     # generate accMat
-    accMat = np.zeros((len(seqLabels), len(seqLabels)))
+    accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
     i = 0
     j = 1
     # ref v ref (used for --create-db)

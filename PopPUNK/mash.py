@@ -607,7 +607,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         mat_chunks.append((start, end))
         start = end
 
-    distMat = sharedmem.empty((number_pairs, 2))
+    distMat = sharedmem.empty((number_pairs, 2), dtype=np.float32)
     with sharedmem.MapReduce(np = threads) as pool:
         pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
 

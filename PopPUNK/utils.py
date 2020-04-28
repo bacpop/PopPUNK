@@ -293,7 +293,7 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
 
     # create distmat
     number_pairs = int(0.5 * len(combined_list) * (len(combined_list) - 1))
-    distMat = sharedmem.empty((number_pairs, 2))
+    distMat = sharedmem.empty((number_pairs, 2), dtype=core_distMat.dtype)
 
     # extract distances
     for row in distMat:
@@ -342,8 +342,8 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     if queryList is not None:
         seqLabels = seqLabels + queryList
 
-    coreMat = np.zeros((len(seqLabels), len(seqLabels)))
-    accMat = np.zeros((len(seqLabels), len(seqLabels)))
+    coreMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
+    accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
 
     # Fill in symmetric matrices for core and accessory distances
     i = 0
