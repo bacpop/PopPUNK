@@ -67,13 +67,12 @@ def run_lineage_clustering(lineage_clustering, lineage_clustering_information, n
                     lineage_clustering[isolate] = lineage_index
                     # add neighbours of same or lower rank to lineage if unclustered
                     for isolate_neighbour in neighbours[isolate].keys():
+                        # if lineage of neighbour is higher, or it is null value (highest)
                         if lineage_clustering[isolate_neighbour] > lineage_index:
-                            for neighbour_rank in lineage_clustering_information.keys():
-                                if neighbour_rank <= rank:
-                                    if isolate_neighbour in lineage_clustering_information[neighbour_rank]:
-                                        lineage_clustering[isolate_neighbour] = lineage_index
-                                else:
-                                    break
+                            # check if rank of neighbour is lower than that of the current subject isolate
+                            for neighbour_rank in range(1,rank):
+                                if isolate_neighbour in lineage_clustering_information[neighbour_rank]:
+                                    lineage_clustering[isolate_neighbour] = lineage_index
             # if this represents a change from the previous iteration of lineage definitions
             # then the change needs to propagate through higher-ranked members
             if isolate in previous_lineage_clustering:
@@ -122,12 +121,17 @@ def get_seed_isolate(lineage_clustering, row_labels, distances, null_cluster_val
             seed_isolate = original_seed_isolate
     # else identify a new seed from the closest pair
     else:
-        for index,distance in enumerate(distances):
-            for isolate in row_labels[index]:
-                if lineage_clustering[isolate] == null_cluster_value:
-                    seed_isolate = isolate
+        for index,(distance,(isolate1,isolate2)) in enumerate(zip(distances,row_labels)):
+            if lineage_clustering[isolate1] == null_cluster_value:
+#                print('Found one!: ' + isolate1 + ' at distance ' + str(distance))
+                seed_isolate = isolate1
+                break
+            elif lineage_clustering[isolate2] == null_cluster_value:
+                seed_isolate = isolate2
+#                print('Found one!: ' + isolate2 + ' at distance ' + str(distance))
                 break
     # return identified seed isolate
+#    print('Seed: ' + seed_isolate)
     return seed_isolate
 
 def get_lineage_clustering_information(seed_isolate, row_labels, distances):
@@ -199,8 +203,6 @@ def get_lineage_clustering_information(seed_isolate, row_labels, distances):
 #    return lineage_info
 
 def generate_nearest_neighbours(distances, row_labels, isolate_list, R):
-    # clade
-    in_lineage = {'EPI_ISL_419768','EPI_ISL_420716','EPI_ISL_417108','EPI_ISL_418430','EPI_ISL_417105','EPI_ISL_417102','EPI_ISL_419747','EPI_ISL_419749','EPI_ISL_419762','EPI_ISL_418406','EPI_ISL_421207','EPI_ISL_419733','EPI_ISL_417100','EPI_ISL_419744','EPI_ISL_418408','EPI_ISL_418416','EPI_ISL_417104','EPI_ISL_420721','EPI_ISL_418418','EPI_ISL_420717','EPI_ISL_419739','EPI_ISL_414045','EPI_ISL_419731','EPI_ISL_419729','EPI_ISL_419741','EPI_ISL_417107','EPI_ISL_419748','EPI_ISL_420727','EPI_ISL_420750','EPI_ISL_418405','EPI_ISL_418412','EPI_ISL_419765','EPI_ISL_418413','EPI_ISL_420723','EPI_ISL_420742','EPI_ISL_419725','EPI_ISL_419763','EPI_ISL_418432','EPI_ISL_418431','EPI_ISL_420745','EPI_ISL_418403','EPI_ISL_420751','EPI_ISL_419760','EPI_ISL_418409','EPI_ISL_418419','EPI_ISL_418414','EPI_ISL_419743','EPI_ISL_418400','EPI_ISL_419745','EPI_ISL_420722','EPI_ISL_418402','EPI_ISL_418417','EPI_ISL_419746','EPI_ISL_420724','EPI_ISL_420746','EPI_ISL_419761','EPI_ISL_419764','EPI_ISL_417101','EPI_ISL_420714','EPI_ISL_420719','EPI_ISL_419740','EPI_ISL_417148','EPI_ISL_420748','EPI_ISL_421212','EPI_ISL_419767','EPI_ISL_420747','EPI_ISL_419783','EPI_ISL_419726','EPI_ISL_419720','EPI_ISL_416691','EPI_ISL_419713','EPI_ISL_416693','EPI_ISL_416698','EPI_ISL_417197','EPI_ISL_421213','EPI_ISL_418404','EPI_ISL_419730','EPI_ISL_417122','EPI_ISL_420720','EPI_ISL_420785','EPI_ISL_421194','EPI_ISL_418426','EPI_ISL_417988','EPI_ISL_416656','EPI_ISL_416636','EPI_ISL_413574','EPI_ISL_421191','EPI_ISL_416631','EPI_ISL_416603','EPI_ISL_419766','EPI_ISL_420729','EPI_ISL_417103','EPI_ISL_420718','EPI_ISL_419728','EPI_ISL_417192','EPI_ISL_416685','EPI_ISL_419719','EPI_ISL_416658','EPI_ISL_420749','EPI_ISL_421210','EPI_ISL_419717','EPI_ISL_416686','EPI_ISL_419723','EPI_ISL_413572','EPI_ISL_414027','EPI_ISL_414023','EPI_ISL_419727','EPI_ISL_414020','EPI_ISL_416680','EPI_ISL_417196','EPI_ISL_421203','EPI_ISL_419708','EPI_ISL_419712','EPI_ISL_419710','EPI_ISL_419716','EPI_ISL_416626','EPI_ISL_416625','EPI_ISL_417121','EPI_ISL_416688','EPI_ISL_420715','EPI_ISL_419736','EPI_ISL_418401','EPI_ISL_417987','EPI_ISL_419737','EPI_ISL_420786','EPI_ISL_417109','EPI_ISL_419718','EPI_ISL_416682','EPI_ISL_417194','EPI_ISL_419769','EPI_ISL_417106','EPI_ISL_416690','EPI_ISL_421204','EPI_ISL_419711','EPI_ISL_419714','EPI_ISL_420728'}
     # data structures
     nn = {}
     last_dist = {}
@@ -228,10 +230,10 @@ def generate_nearest_neighbours(distances, row_labels, isolate_list, R):
                     pair = row_labels[index][0] if row_labels[index][1] == isolate else row_labels[index][1]
                     nn[isolate][pair] = distance
                     # debug
-                    if R == 5 and (isolate in in_lineage and pair not in in_lineage):
-                        print('In: ' + isolate + '\tOut: ' + pair)
-                    elif R == 5 and (pair in in_lineage and isolate not in in_lineage):
-                        print('In: ' + pair + '\tOut: ' + isolate)
+#                    if R == 5 and isolate == 'EPI_ISL_419767':
+#                        print('In: ' + isolate + '\tOut: ' + pair + '\tDistance: ' + str(distance))
+#                    elif R == 5 and (pair in in_lineage and isolate not in in_lineage):
+#                        print('In: ' + pair + '\tOut: ' + isolate)
                 last_dist[isolate] = distance
         index = index + 1
     # return completed dict
