@@ -18,6 +18,48 @@ from functools import partial
 from .utils import iterDistRows
 from .utils import readRfile
 
+def cluster_neighbours_of_equal_or_lower_rank(isolate, rank, lineage_index, lineage_clustering, lineage_clustering_information, nn):
+    """ Iteratively adds neighbours of isolates of lower or equal rank
+    to a lineage if an isolate of a higher rank is added.
+    
+    Args:
+    isolate (string)
+        Isolate of higher rank added to lineage.
+    rank (int)
+        Rank of isolate added to lineage.
+    lineage_index (int)
+       Label of current lineage.
+    lineage_clustering (dict)
+       Clustering of existing dataset.
+    lineage_clustering_information (dict)
+        Dict listing isolates by ranked distance from seed.
+    nn (nested dict)
+       Pre-calculated neighbour relationships.
+        
+    Returns:
+        lineage_clustering (dict)
+            Assignment of isolates to lineages.
+    """
+    isolates_to_check = [isolate]
+    isolate_ranks = {}
+    isolate_ranks[isolate] = rank
+    
+    while len(isolates_to_check) > 0:
+        for isolate in isolates_to_check:
+            rank = isolate_ranks[isolate]
+            for isolate_neighbour in nn[isolate].keys():
+                # if lineage of neighbour is higher, or it is null value (highest)
+                if lineage_clustering[isolate_neighbour] > lineage_index:
+                    # check if rank of neighbour is lower than that of the current subject isolate
+                    for neighbour_rank in range(1,rank):
+                        if isolate_neighbour in lineage_clustering_information[neighbour_rank]:
+                            lineage_clustering[isolate_neighbour] = lineage_index
+                            isolates_to_check.append(isolate_neighbour)
+                            isolate_ranks[isolate_neighbour] = neighbour_rank
+            isolates_to_check.remove(isolate)
+
+    return lineage_clustering
+
 def run_lineage_clustering(lineage_clustering, lineage_clustering_information, neighbours, R, lineage_index, seed_isolate, previous_lineage_clustering, null_cluster_value):
     """ Identifies isolates corresponding to a particular
     lineage given a cluster seed.
@@ -66,13 +108,12 @@ def run_lineage_clustering(lineage_clustering, lineage_clustering_information, n
                     # add isolate to lineage
                     lineage_clustering[isolate] = lineage_index
                     # add neighbours of same or lower rank to lineage if unclustered
-                    for isolate_neighbour in neighbours[isolate].keys():
-                        # if lineage of neighbour is higher, or it is null value (highest)
-                        if lineage_clustering[isolate_neighbour] > lineage_index:
-                            # check if rank of neighbour is lower than that of the current subject isolate
-                            for neighbour_rank in range(1,rank):
-                                if isolate_neighbour in lineage_clustering_information[neighbour_rank]:
-                                    lineage_clustering[isolate_neighbour] = lineage_index
+                    lineage_clustering = cluster_neighbours_of_equal_or_lower_rank(isolate,
+                                                                                    rank,
+                                                                                    lineage_index,
+                                                                                    lineage_clustering,
+                                                                                    lineage_clustering_information,
+                                                                                    neighbours)
             # if this represents a change from the previous iteration of lineage definitions
             # then the change needs to propagate through higher-ranked members
             if isolate in previous_lineage_clustering:
@@ -123,15 +164,12 @@ def get_seed_isolate(lineage_clustering, row_labels, distances, null_cluster_val
     else:
         for index,(distance,(isolate1,isolate2)) in enumerate(zip(distances,row_labels)):
             if lineage_clustering[isolate1] == null_cluster_value:
-#                print('Found one!: ' + isolate1 + ' at distance ' + str(distance))
                 seed_isolate = isolate1
                 break
             elif lineage_clustering[isolate2] == null_cluster_value:
                 seed_isolate = isolate2
-#                print('Found one!: ' + isolate2 + ' at distance ' + str(distance))
                 break
     # return identified seed isolate
-#    print('Seed: ' + seed_isolate)
     return seed_isolate
 
 def get_lineage_clustering_information(seed_isolate, row_labels, distances):
@@ -166,42 +204,6 @@ def get_lineage_clustering_information(seed_isolate, row_labels, distances):
     # return information
     return lineage_info
 
-#def old_get_lineage_clustering_information(seed_isolate, row_labels, distances):
-#    """ Generates the ranked distances needed for cluster
-#    definition.
-#
-#    Args:
-#        seed_isolate (str)
-#            Isolate used to initiate lineage.
-#        row_labels (list of tuples)
-#            Pairs of isolates labelling each distance.
-#        distances (numpy array)
-#            Pairwise distances used for defining relationships.
-#
-#    Returns:
-#        lineage_info (dict)
-#            Dict listing isolates by ranked distance from seed.
-#
-#    """
-#    # data structure
-#    lineage_info = defaultdict(list)
-#    # get subset of relevant distances
-#    comparisons_involving_seed = [n for n,(pair) in enumerate(row_labels) if seed_isolate in pair]
-#    distances_to_seed = distances[comparisons_involving_seed]
-#    # get ranks of data
-#    distance_ranks = rankdata(distances_to_seed)
-#    # get partners of seed isolate in each comparison
-#    pairs_involving_seed = [row_labels[x] for x in comparisons_involving_seed]
-#    seed_partners = [r if q == seed_isolate else q for (r,q) in pairs_involving_seed]
-#    # create a dict of lists of isolates for a given rank
-#    # enables later easy iterating through ranked distances
-#    for rank in np.unique(distance_ranks):
-#        lineage_info[rank] = [seed_partners[n] for n,r in enumerate(distance_ranks) if r == rank]
-#        # debug
-#        if seed_isolate in {'EPI_ISL_416602','EPI_ISL_416650','EPI_ISL_417950','EPI_ISL_417931','EPI_ISL_416649','EPI_ISL_417975','EPI_ISL_413593','EPI_ISL_416633','EPI_ISL_416643','EPI_ISL_413592','EPI_ISL_416653'} and rank < 10:
-#            print('Rank: ' + str(rank) + '\tpair: ' + str(lineage_info[rank]) + '\tseed: ' + seed_isolate)
-#    return lineage_info
-
 def generate_nearest_neighbours(distances, row_labels, isolate_list, R):
     # data structures
     nn = {}
@@ -211,29 +213,26 @@ def generate_nearest_neighbours(distances, row_labels, isolate_list, R):
         nn[i] = {}
         num_ranks[i] = 0
     total_isolates = len(isolate_list)
+    num_distances = len(distances)
     completed_isolates = 0
     index = 0
     # iterate through distances until all nearest neighbours identified
-    while completed_isolates < total_isolates:
-        try:
-            distance = distances[index]
-        except:
-            sys.stderr.write('Not enough distances! Try reducing R\n')
-            exit(1)
+    while completed_isolates < total_isolates and index < num_distances:
+        distance = distances[index]
+        # iterate through all listed isolates
         for isolate in row_labels[index]:
             if isolate in num_ranks.keys() and num_ranks[isolate] < R:
+                # R is the number of unique distances so only increment if
+                # different from the last distance
                 if isolate in last_dist.keys() and last_dist[isolate] != distance:
                     num_ranks[isolate] = num_ranks[isolate] + 1
-                if num_ranks[isolate] >= R:
+                # if maximum number of ranks reached, mark as complete
+                if num_ranks[isolate] == R: # stop at R as counting from 0
                     completed_isolates = completed_isolates + 1
+                # if not, add as a nearest neighbour
                 else:
                     pair = row_labels[index][0] if row_labels[index][1] == isolate else row_labels[index][1]
                     nn[isolate][pair] = distance
-                    # debug
-#                    if R == 5 and isolate == 'EPI_ISL_419767':
-#                        print('In: ' + isolate + '\tOut: ' + pair + '\tDistance: ' + str(distance))
-#                    elif R == 5 and (pair in in_lineage and isolate not in in_lineage):
-#                        print('In: ' + pair + '\tOut: ' + isolate)
                 last_dist[isolate] = distance
         index = index + 1
     # return completed dict
@@ -276,11 +275,21 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
     query_match_indices = [n for n, (r, q) in enumerate(row_labels) if q in qlist or r in qlist]
     query_row_names = [row_labels[i] for i in query_match_indices]
     query_distances = np.take(distances, query_match_indices)
-
+    
+    # get nn for query sequences
+    query_nn = generate_nearest_neighbours(distances, row_labels, qlist, R)
+    # add query-query comparisons
+    for query in query_nn.keys():
+        nn[query] = query_nn[query]
+    
     # calculate max distances for each isolate
     max_distance = {}
-    for existing_isolate in nn.keys():
-        max_distance[existing_isolate] = max(nn[existing_isolate].values())
+    num_distances = {}
+    for isolate in nn.keys():
+        neighbour_distances = set(nn[isolate].values())
+        max_distance[isolate] = max(neighbour_distances)
+        num_distances[isolate] = len(neighbour_distances) # query-query comparisons may be < R
+        
     # iterate through the ref-query distances
     for index,(distance,(isolate1,isolate2)) in enumerate(zip(query_distances,query_row_names)):
         # identify ref-query matches
@@ -302,18 +311,17 @@ def update_nearest_neighbours(distances, row_labels, R, qlist, nn, lineage_clust
                 nn[ref][query] = distance
                 # delete links if no longer high ranked match
                 if distance < max_distance[ref]:
-                    to_delete = []
-                    for other in nn[ref].keys():
-                        if nn[ref][other] == max_distance[ref]:
-                            to_delete.append(other)
-                    for other in to_delete:
-                        del nn[ref][other]
+                    if num_distances[ref] == R:
+                        to_delete = []
+                        for other in nn[ref].keys():
+                            if nn[ref][other] == max_distance[ref]:
+                                to_delete.append(other)
+                        for other in to_delete:
+                            del nn[ref][other]
+                    else:
+                        # if set from query-query distances < R
+                        num_distances[ref] = num_distances[ref] + 1
                     max_distance[ref] = max(nn[ref].values())
-    # get nn for query sequences
-    query_nn = generate_nearest_neighbours(distances, row_labels, qlist, R)
-    # merge dicts
-    for query in query_nn.keys():
-        nn[query] = query_nn[query]
     # return updated dict
     return nn, lineage_clustering
 
