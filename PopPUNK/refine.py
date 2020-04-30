@@ -103,7 +103,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         local_s = scipy.optimize.minimize_scalar(newNetwork,
                         bounds=[s_range[min_idx-1], s_range[min_idx+1]],
                         method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat.shape, distMat.dtype, start_point, mean1, gradient, slope))
+                        args = (sample_names, distMat, start_point, mean1, gradient, slope))
         optimised_s = local_s.x
     else:
         optimised_s = s_range[min_idx]
