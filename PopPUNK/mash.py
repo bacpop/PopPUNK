@@ -18,9 +18,14 @@ from itertools import product
 from glob import glob
 from random import sample
 import numpy as np
-import sharedmem
 import networkx as nx
 from scipy import optimize
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 
 from .utils import iterDistRows
 from .utils import assembly_qc
@@ -502,7 +507,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         number_pairs = int(len(refList) * len(qNames))
 
     # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
-    raw = sharedmem.empty((number_pairs, len(klist)), dtype=np.float32)
+    raw = np.zeros((number_pairs, len(klist)), dtype=np.float32)
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -607,9 +612,19 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         mat_chunks.append((start, end))
         start = end
 
-    distMat = sharedmem.empty((number_pairs, 2), dtype=np.float32)
-    with sharedmem.MapReduce(np = threads) as pool:
-        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
+    # Use shared memory for large matrices
+    with SharedMemoryManager() as smm:
+        distMat = np.zeros((number_pairs, 2))
+        shm_distMat = smm.SharedMemory(create = True, size = distMat.nbytes, name = 'shm_distMat')
+        distances_shared = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
+        distances_shared[:] = distMat[:]
+        shm_raw = smm.SharedMemory(create = True, size = raw.nbytes, name = 'shm_raw') 
+        raw_shared = np.ndarray(raw.shape, dtype = raw.dtype, buffer = shm_raw.buf)
+        raw_shared[:] = raw[:]
+        
+        with Pool(processes = threads) as pool:
+            pool.map(partial(fitKmerBlock, distMat=distances_shared, raw = raw_shared, 
+                                           klist=klist, jacobian=jacobian), mat_chunks)
 
     return(refList, qNames, distMat)
 
