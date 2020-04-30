@@ -9,9 +9,9 @@ import sys
 # additional
 from functools import partial
 import numpy as np
-import sharedmem
 from numba import jit
 import scipy.optimize
+from multiprocessing import Pool, shared_memory
 
 from .network import constructNetwork
 from .network import networkSummary
@@ -73,13 +73,23 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
     global_grid_resolution = 40 # Seems to work
-    shared_dists = sharedmem.copy(distMat)
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
-    with sharedmem.MapReduce(np = num_processes) as pool:
+    
+    shm_distMat = shared_memory.SharedMemory(create = True, size = distMat.nbytes, name = 'shm_distMat')
+    distances_shared = np.ndarray(distMat.shape, dtype = np.float32, buffer = shm_distMat.buf)
+    distances_shared[:] = distMat[:]
+    
+    with Pool(processes = num_processes) as pool:
+        
         global_s = pool.map(partial(newNetwork,
-            sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1,
-            gradient=gradient, slope=slope),
-            s_range)
+                                    sample_names = sample_names,
+                                    distMat_shape = distMat.shape,
+                                    distMat_type = distMat.dtype,
+                                    start_point = start_point,
+                                    mean1 = mean1,
+                                    gradient = gradient,
+                                    slope = slope),
+                            s_range)
 
     # Local optimisation around global optimum
     min_idx = np.argmin(np.array(global_s))
@@ -88,7 +98,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         local_s = scipy.optimize.minimize_scalar(newNetwork,
                         bounds=[s_range[min_idx-1], s_range[min_idx+1]],
                         method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient, slope))
+                        args = (sample_names, distMat.shape, distMat.dtype, start_point, mean1, gradient, slope))
         optimised_s = local_s.x
     else:
         optimised_s = s_range[min_idx]
@@ -102,6 +112,11 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
     if optimal_x < 0 or optimal_y < 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
+
+    # manage memory
+    shm_distMat.close()
+    shm_distMat.unlink()
+    del shm_distMat
 
     return start_point, optimal_x, optimal_y
 
@@ -146,7 +161,7 @@ def withinBoundary(dists, x_max, y_max, slope=2):
     return(boundary_test)
 
 
-def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
+def newNetwork(s, sample_names, distMat_shape, distMat_type, start_point, mean1, gradient, slope=2):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -158,8 +173,10 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
             Distance along line between start_point and mean1 from start_point
         sample_names (list)
             Sample names corresponding to distMat (accessed by iterator)
-        distMat (numpy.array)
-            Core and accessory distances
+        distMat_shape (tuple)
+            Dimensions of distMat ndarray
+        distMat_type (numpy.array)
+            Data type in distMat array
         start_point (numpy.array)
             Initial boundary cutoff
         mean1 (numpy.array)
@@ -183,6 +200,10 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
     elif slope == 1:
         x_max = 0
         y_max = new_intercept[1]
+
+    # load distances from shared memory
+    existing_distance_shm = shared_memory.SharedMemory(name = 'shm_distMat')
+    distMat = np.ndarray(distMat_shape, dtype = distMat_type, buffer = existing_distance_shm.buf)
 
     # Make network
     boundary_assignments = withinBoundary(distMat, x_max, y_max, slope)
