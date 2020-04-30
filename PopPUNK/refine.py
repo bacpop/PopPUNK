@@ -82,7 +82,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     
     # Move distMat into shared memory
     with SharedMemoryManager() as smm:
-        shm_distMat = smm.SharedMemory(create = True, size = distMat.nbytes, name = 'shm_distMat')
+        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distances_shared = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
         distances_shared[:] = distMat[:]
         

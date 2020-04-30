@@ -615,10 +615,10 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     # Use shared memory for large matrices
     with SharedMemoryManager() as smm:
         distMat = np.zeros((number_pairs, 2))
-        shm_distMat = smm.SharedMemory(create = True, size = distMat.nbytes, name = 'shm_distMat')
+        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distances_shared = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
         distances_shared[:] = distMat[:]
-        shm_raw = smm.SharedMemory(create = True, size = raw.nbytes, name = 'shm_raw') 
+        shm_raw = smm.SharedMemory(size = raw.nbytes) 
         raw_shared = np.ndarray(raw.shape, dtype = raw.dtype, buffer = shm_raw.buf)
         raw_shared[:] = raw[:]
         
