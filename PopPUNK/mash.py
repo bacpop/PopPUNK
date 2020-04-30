@@ -617,7 +617,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         distMat = np.zeros((number_pairs, 2))
         shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distances_shared = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-        distances_shared[:] = distMat[:]
         shm_raw = smm.SharedMemory(size = raw.nbytes) 
         raw_shared = np.ndarray(raw.shape, dtype = raw.dtype, buffer = shm_raw.buf)
         raw_shared[:] = raw[:]
@@ -627,7 +626,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             pool.map(partial(fitKmerBlock, distMat=distances_shared, raw = raw_shared, 
                                            klist=klist, jacobian=jacobian), mat_chunks)
         # Copy results back before shared objects are destroyed by the manager
-        distMat[:] =  distances_shared
+        distMat[:] =  distances_shared[:]
 
     return(refList, qNames, distMat)
 
