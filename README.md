@@ -44,7 +44,7 @@ If you do not have conda you can also install through pip:
 ```
 python3 -m pip install poppunk
 ```
-You will need to be using Python 3.
+You will need to be using Python 3.8 or higher.
 
 Using both of these methods command `poppunk` will then be directly executable.
 Alternatively clone this repository:

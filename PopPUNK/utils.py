@@ -15,7 +15,6 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
-import sharedmem
 
 # Use partials to set up slightly different function calls between
 # both possible backends
@@ -293,7 +292,7 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
 
     # create distmat
     number_pairs = int(0.5 * len(combined_list) * (len(combined_list) - 1))
-    distMat = sharedmem.empty((number_pairs, 2), dtype=core_distMat.dtype)
+    distMat = np.zeros((number_pairs, 2), dtype=core_distMat.dtype)
 
     # extract distances
     for row in distMat:
