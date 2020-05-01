@@ -11,9 +11,11 @@ from functools import partial
 import numpy as np
 from numba import jit
 import scipy.optimize
+import collections
 try:
     from multiprocessing import Pool, shared_memory
     from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
 except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
@@ -83,8 +85,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Move distMat into shared memory
     with SharedMemoryManager() as smm:
         shm_distMat = smm.SharedMemory(size = distMat.nbytes)
-        distances_shared = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-        distances_shared[:] = distMat[:]
+        distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
+        distances_shared_array[:] = distMat[:]
+        distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
         
         with Pool(processes = num_processes) as pool:
             global_s = pool.map(partial(newNetwork,
@@ -173,8 +176,8 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
             Distance along line between start_point and mean1 from start_point
         sample_names (list)
             Sample names corresponding to distMat (accessed by iterator)
-        distMat (numpy.array)
-            Core and accessory distances
+        distMat (numpy.array or NumpyShared)
+            Core and accessory distances or NumpyShared describing these in sharedmem
         start_point (numpy.array)
             Initial boundary cutoff
         mean1 (numpy.array)
@@ -188,6 +191,10 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
+    if isinstance(distMat, NumpyShared):
+        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
+        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+    
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
     if slope == 2:
