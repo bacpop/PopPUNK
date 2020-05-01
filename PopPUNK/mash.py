@@ -18,9 +18,15 @@ from itertools import product
 from glob import glob
 from random import sample
 import numpy as np
-import sharedmem
 import networkx as nx
 from scipy import optimize
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 
 from .utils import iterDistRows
 from .utils import assembly_qc
@@ -502,7 +508,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         number_pairs = int(len(refList) * len(qNames))
 
     # Pre-assign array for storage. float32 sufficient accuracy for 10**4 sketch size, halves memory use
-    raw = sharedmem.empty((number_pairs, len(klist)), dtype=np.float32)
+    raw = np.zeros((number_pairs, len(klist)), dtype=np.float32)
 
     # iterate through kmer lengths
     for k_idx, k in enumerate(klist):
@@ -607,9 +613,31 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         mat_chunks.append((start, end))
         start = end
 
-    distMat = sharedmem.empty((number_pairs, 2), dtype=np.float32)
-    with sharedmem.MapReduce(np = threads) as pool:
-        pool.map(partial(fitKmerBlock, distMat=distMat, raw = raw, klist=klist, jacobian=jacobian), mat_chunks)
+    # create empty distMat that can be shared with multiple processes
+    distMat = np.zeros((number_pairs, 2), dtype=raw.dtype)
+    with SharedMemoryManager() as smm:
+        # Use shared memory for large matrices
+        shm_raw = smm.SharedMemory(size = raw.nbytes)
+        raw_shared_array = np.ndarray(raw.shape, dtype = raw.dtype, buffer = shm_raw.buf)
+        raw_shared_array[:] = raw[:]
+        raw_shared = NumpyShared(name = shm_raw.name, shape = raw.shape, dtype = raw.dtype)
+
+        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
+        distMat_shared = NumpyShared(name = shm_distMat.name, shape = (number_pairs, 2), dtype = raw.dtype)
+
+        # Run regressions
+        with Pool(processes = threads) as pool:
+            pool.map(partial(fitKmerBlock,
+                distMat = distMat_shared,
+                raw = raw_shared,
+                klist=klist,
+                jacobian=jacobian),
+            mat_chunks)
+        
+        # Copy results back before shared objects are destroyed by the manager
+        distMat_result = np.ndarray((number_pairs, 2), dtype = raw.dtype, buffer = shm_distMat.buf)
+        distMat = np.ndarray(distMat_result.shape, dtype = distMat_result.dtype)
+        distMat[:] = distMat_result[:]
 
     return(refList, qNames, distMat)
 
@@ -620,17 +648,25 @@ def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
     Args:
         idxRanges (int, int)
             Tuple of first and last row of slice to calculate
-        distMat (numpy.array)
-            sharedmem object to store core and accessory distances in (altered in place)
-        raw (numpy.array)
-            sharedmem object with proportion of k-mer matches for each query-ref pair
-            by row, columns are at k-mer lengths in klist
+        distMat (namedtuple)
+            NumpyShared containing name, shape and dtype of sharedmem distMat
+        raw (namedtuple)
+            NumpyShared containing name, shape and dtype of sharedmem raw
+            (proportion of k-mer matches for each query-ref pair
+            by row, columns are at k-mer lengths in klist)
         klist (list)
             List of k-mer lengths to use
         jacobian (numpy.array)
             The Jacobian for the fit, sent to :func:`~fitKmerCurve`
 
     """
+    # load from sharedmem and raw
+    distMat_shm = shared_memory.SharedMemory(name = distMat.name)
+    distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+    raw_shm = shared_memory.SharedMemory(name = raw.name)
+    raw = np.ndarray(raw.shape, dtype = raw.dtype, buffer = raw_shm.buf)
+    
+    # analyse
     (start, end) = idxRanges
     distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
 
