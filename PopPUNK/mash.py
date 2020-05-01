@@ -612,45 +612,45 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         mat_chunks.append((start, end))
         start = end
 
-        # create empty distMat that can be shared with multiple processes
-        distMat = np.zeros((number_pairs, 2))
-        shm_distMat = shared_memory.SharedMemory(create = True, size = distMat.nbytes, name = 'shm_distance_storage_matrix')
+    # create empty distMat that can be shared with multiple processes
+    distMat = np.zeros((number_pairs, 2), dtype=raw.dtype)
+
+    
+    with SharedMemoryManager() as smm:
+        # Use shared memory for large matrices
+        shm_raw = smm.SharedMemory(size = raw.nbytes)
+        raw_shared = np.ndarray(raw.shape, dtype = raw.dtype, buffer = shm_raw.buf)
+        raw_shared[:] = raw[:]
+
+        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distMat_shared = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
         distMat_shared[:] = distMat[:]
+
+        # Run regressions
+        with Pool(processes = threads) as pool:
+            pool.map(partial(fitKmerBlock,
+                distMat = {'name': shm_distMat.name,
+                           'shape': distMat_shared.shape,
+                           'dtype': distMat_shared.dtype},
+                raw = raw_shared,
+                klist=klist,
+                jacobian=jacobian),
+            mat_chunks)
         
-        with SharedMemoryManager() as smm:
-            # Use shared memory for large matrices
-            shm_raw = smm.SharedMemory(size = raw.nbytes)
-            raw_shared = np.ndarray(raw.shape, dtype = raw.dtype, buffer = shm_raw.buf)
-            raw_shared[:] = raw[:]
-            # Run regressions
-            with Pool(processes = threads) as pool:
-                pool.map(partial(fitKmerBlock,
-                    distMat_size = distMat_shared.shape,
-                    distMat_type = distMat_shared.dtype,
-                    raw = raw_shared,
-                    klist=klist,
-                    jacobian=jacobian),
-                mat_chunks)
-                # Copy results back before shared objects are destroyed by the manager
-                distMat[:] = distMat_shared[:]
+        # Copy results back before shared objects are destroyed by the manager
+        distMat[:] = distMat_shared[:]
 
-        # free memory
-        shm_distMat.close()
-        shm_distMat.unlink()
-        del shm_distMat
-
-        return(refList, qNames, distMat)
+    return(refList, qNames, distMat)
 
 
-def fitKmerBlock(idxRanges, distMat_size, distMat_type, raw, klist, jacobian):
+def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
     """Multirow wrapper around :func:`~fitKmerCurve` to the specified rows in idxRanges
 
     Args:
         idxRanges (int, int)
             Tuple of first and last row of slice to calculate
-        distMat (numpy.array)
-            sharedmem object to store core and accessory distances in (altered in place)
+        distMat (dict)
+            dict containing name, shape and dtype of sharedmem distMat
         raw (numpy.array)
             sharedmem object with proportion of k-mer matches for each query-ref pair
             by row, columns are at k-mer lengths in klist
@@ -660,9 +660,9 @@ def fitKmerBlock(idxRanges, distMat_size, distMat_type, raw, klist, jacobian):
             The Jacobian for the fit, sent to :func:`~fitKmerCurve`
 
     """
-    # load
-    existing_distance_shm = shared_memory.SharedMemory(name = 'shm_distance_storage_matrix')
-    distMat = np.ndarray(distMat_size, dtype = distMat_type, buffer = existing_distance_shm.buf)
+    # load from sharedmem
+    existing_distance_shm = shared_memory.SharedMemory(name = distMat['name'])
+    distMat = np.ndarray(distMat['shape'], dtype = distMat['dtype'], buffer = existing_distance_shm.buf)
     
     # analyse
     (start, end) = idxRanges
