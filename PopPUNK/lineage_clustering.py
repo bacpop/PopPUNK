@@ -11,7 +11,15 @@ import numpy as np
 from scipy.stats import rankdata
 from collections import defaultdict
 import pickle
+import collections
 from multiprocessing import Pool, Lock, Manager, RawArray, shared_memory, managers
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 from functools import partial
 
 # import poppunk package
@@ -383,52 +391,37 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
         previous_lineage_clustering[R] = {}
     
     # shared memory data structures
-    shm_distances = shared_memory.SharedMemory(create = True, size = distances.nbytes, name = 'shm_distances')
-    distances_shared = np.ndarray(distances.shape, dtype = distances.dtype, buffer = shm_distances.buf)
-    distances_shared[:] = distances[:]
+    with SharedMemoryManager() as smm:
+        # share sorted distances
+        distances_raw = smm.SharedMemory(size = distances.nbytes)
+        distances_shared_array = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_raw.buf)
+        distances_shared_array[:] = distances[:]
+        distances_shared_array = NumpyShared(name = distances_raw.name, shape = distances.shape, dtype = distances.dtype)
 
-    shm_distance_ranks = shared_memory.SharedMemory(create = True, size = distance_ranks.nbytes, name = 'shm_distance_ranks')
-    distance_ranks_shared = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = shm_distance_ranks.buf)
-    distance_ranks_shared[:] = distance_ranks[:]
+        # share distance ranks
+        distance_ranks_raw = smm.SharedMemory(size = distance_ranks.nbytes)
+        distance_ranks_shared_array = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = distance_ranks_raw.buf)
+        distance_ranks_shared_array[:] = distance_ranks[:]
+        distance_ranks_shared_array = NumpyShared(name = distance_ranks_raw.name, shape = distance_ranks.shape, dtype = distance_ranks.dtype)
 
-    isolate_list_shared = shared_memory.ShareableList(isolate_list, name = 'shm_isolate_list')
+        # share isolate list
+        isolate_list_shared = smm.ShareableList(isolate_list)
     
-    # run clustering for an individual R
-    if num_processes == 1:
-        for R in rank_list:
-            lineage_clustering[R], lineage_seed[R], neighbours[R], previous_lineage_clustering[R] = run_clustering_for_R(R,
-                                                                                        null_cluster_value = null_cluster_value,
-                                                                                        qlist = qlist,
-                                                                                        existing_scheme = existing_scheme,
-                                                                                        distances_length = distances.shape,
-                                                                                        distances_type = distances.dtype)
-
-
-    else:
-
+        # run clustering for an individual R
         with Pool(processes = num_processes) as pool:
             results = pool.map(partial(run_clustering_for_R,
                                 null_cluster_value = null_cluster_value,
                                 qlist = qlist,
                                 existing_scheme = existing_scheme,
-                                distances_length = distances.shape,
-                                distances_type = distances.dtype),
+                                distances = distances_shared_array,
+                                distance_ranks = distance_ranks_shared_array,
+                                isolates = isolate_list_shared),
                                 rank_list)
         
+        # extract results from multiprocessing pool
         for n,result in enumerate(results):
             R = rank_list[n]
             lineage_clustering[R], lineage_seed[R], neighbours[R], previous_lineage_clustering[R] = result
-        
-    # manage memory
-    shm_distances.close()
-    shm_distances.unlink()
-    del shm_distances
-    shm_distance_ranks.close()
-    shm_distance_ranks.unlink()
-    del shm_distance_ranks
-    isolate_list_shared.shm.close()
-    isolate_list_shared.shm.unlink()
-    del isolate_list_shared
 
     # store output
     with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
@@ -474,7 +467,7 @@ def cluster_into_lineages(X, rank_list = None, output = None, rlist = None, qlis
 
     return combined
 
-def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_scheme = False, distances_length = None, distances_type = None):
+def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_scheme = False, distances = None, distance_ranks = None, isolates = None):
     """ Clusters isolates into lineages based on their
     relative distances using a single R to enable
     parallelisation.
@@ -502,11 +495,11 @@ def run_clustering_for_R(R, null_cluster_value = None, qlist = None, existing_sc
     """
     
     # load shared memory objects
-    existing_distance_shm = shared_memory.SharedMemory(name = 'shm_distances')
-    distances = np.ndarray(distances_length, dtype = distances_type, buffer = existing_distance_shm.buf)
-    existing_rank_shm = shared_memory.SharedMemory(name = 'shm_distance_ranks')
-    distance_ranks = np.ndarray(distances_length, dtype = 'int64', buffer = existing_rank_shm.buf)
-    isolate_list = shared_memory.ShareableList(name = 'shm_isolate_list')
+    distances_shm = shared_memory.SharedMemory(name = distances.name)
+    distances = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_shm.buf)
+    distance_ranks_shm = shared_memory.SharedMemory(name = distance_ranks.name)
+    distance_ranks = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = distance_ranks_shm.buf)
+    isolate_list = isolates
     
     # calculate row labels
     # this is inefficient but there appears to be no way of sharing
