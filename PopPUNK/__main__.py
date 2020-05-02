@@ -281,6 +281,12 @@ def main():
     # check if working with lineages
     if args.lineage_clustering or args.assign_lineages:
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
+        if min(rank_list) == 0 or max(rank_list) > 100:
+            sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
+            exit(1)
+        if args.assign_lineages and args.existing_scheme is None:
+            sys.stderr.write('Must provide an existing scheme (--existing-scheme) if assigning to lineages\n')
+            exit(1)
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
@@ -628,7 +634,7 @@ def main():
             if args.external_clustering:
                 cluster_file = args.external_clustering
                 isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
-            elif args.viz_lineages:
+            if args.viz_lineages:
                 cluster_file = args.viz_lineages
                 #isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
                 isolateClustering = readLineages(cluster_file)
@@ -758,7 +764,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             ordered_queryList, query_distMat = calculateQueryDistances(dbFuncs, refList, q_files,
                     kmers, estimated_length, output, use_mash, threads)
 
-        if not assign_lineage:
+        else:
             # Assign these distances as within or between strain
             model_prefix = ref_db
             if model_dir is not None:
