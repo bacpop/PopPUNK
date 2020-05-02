@@ -18,6 +18,8 @@ import pandas as pd
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 
+from .sketchlib import calculateQueryQueryDistances
+
 from .utils import iterDistRows
 from .utils import readClusters
 from .utils import readExternalClusters
@@ -320,26 +322,10 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
         distMat (numpy.array)
             Query-query distances
     """
-    constructDatabase = dbFuncs['constructDatabase']
-    queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
     # initialise links data structure
     new_edges = []
     assigned = set()
-    # These are returned
-    qlist1 = None
-    distMat = None
-
-    # Set up query names
-    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
-    queryFiles = dict(zip(qList, qSeqs))
-    if use_mash == True:
-        rNames = None
-        qNames = qSeqs
-    else:
-        rNames = qList 
-        qNames = rNames
 
     # store links for each query in a list of edge tuples
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qList, self=False)):
@@ -350,17 +336,17 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
+        qlist, distMat = calculateQueryQueryDistances(dbFuncs,
+                                                        refList,
+                                                        q_files,
+                                                        kmers,
+                                                        estimated_length,
+                                                        output,
+                                                        use_mash,
+                                                        threads)
 
-        qlist1, qlist2, distMat = queryDatabase(rNames = rNames,
-                                                qNames = qNames, 
-                                                dbPrefix = queryDB, 
-                                                queryPrefix = queryDB, 
-                                                klist = kmers,
-                                                self = True, 
-                                                number_plot_fits = 0, 
-                                                threads=threads)
         queryAssignation = model.assign(distMat)
-        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
+        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist, qlist, self=True)):
             if assignment == model.within_label:
                 new_edges.append((ref, query))
 

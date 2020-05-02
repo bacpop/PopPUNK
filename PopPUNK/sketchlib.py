@@ -446,3 +446,59 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                              False, threads, use_gpu, deviceid)
 
     return(rNames, qNames, distMat)
+
+def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
+                queryDB, use_mash = False, threads = 1):
+    """Calculates distances between queries.
+
+    Args:
+        dbFuncs (list)
+            List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
+        rlist (list)
+            List of reference names
+        qfile (str)
+            File containing queries
+        kmers (list)
+            List of k-mer sizes
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
+        queryDB (str)
+            Query database location
+        use_mash (bool)
+            Use the mash backend
+        threads (int)
+            Number of threads to use if new db created
+            (default = 1)
+            
+    Returns:
+        qlist1 (list)
+            Ordered list of queries
+        distMat (numpy.array)
+            Query-query distances
+    """
+
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
+
+    # Set up query names
+    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
+    queryFiles = dict(zip(qList, qSeqs))
+    if use_mash == True:
+        rNames = None
+        qNames = qSeqs
+    else:
+        rNames = qList
+        qNames = rNames
+
+    # Calculate all query-query distances too, if updating database
+    qlist1, qlist2, distMat = queryDatabase(rNames = rNames,
+                                            qNames = qNames,
+                                            dbPrefix = queryDB,
+                                            queryPrefix = queryDB,
+                                            klist = kmers,
+                                            self = True,
+                                            number_plot_fits = 0,
+                                            threads=threads)
+
+    return qlist1, distMat

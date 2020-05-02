@@ -18,7 +18,6 @@ from .models import *
 from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
 from .lineage_clustering import cluster_into_lineages
-from .lineage_clustering import calculateQueryDistances
 from .lineage_clustering import readLineages
 
 from .network import fetchNetwork
@@ -34,6 +33,8 @@ from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
 
 from .prune_db import prune_distance_matrix
+
+from .sketchlib import calculateQueryQueryDistances
 
 from .utils import setupDBFuncs
 from .utils import storePickle
@@ -761,7 +762,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         if assign_lineage:
 
             # Assign lineages by calculating query-query information
-            ordered_queryList, query_distMat = calculateQueryDistances(dbFuncs, refList, q_files,
+            ordered_queryList, query_distMat = calculateQueryQueryDistances(dbFuncs, refList, q_files,
                     kmers, estimated_length, output, use_mash, threads)
 
         else:
