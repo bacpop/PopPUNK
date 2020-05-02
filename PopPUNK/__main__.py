@@ -95,6 +95,10 @@ def get_options():
             help='Identify lineages within a strain',
             default=False,
             action='store_true')
+    mode.add_argument('--assign-lineages',
+            help='Assign isolates to an existing lineages scheme',
+            default=False,
+            action='store_true')
     mode.add_argument('--use-model',
             help='Apply a fitted model to a reference database to restore database files',
             default=False,
@@ -176,15 +180,13 @@ def get_options():
                                               '[default = False]', default=False, action='store_true')
     queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
                                               '[default = False]', default=False, action='store_true')
-    queryingGroup.add_argument('--assign-lineage', help='Assign to lineages rather than strains - can specify '
-                                              'lineages other than those in the reference database using "--existing-scheme"'
-                                              '[default = False]', default=False, action='store_true')
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
-    lineagesGroup.add_argument('--R',help='Comma separated list of ranks used in lineage clustering [default = 1]', type = str, default = "1")
+    lineagesGroup.add_argument('--ranks',help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]', type = str, default = "1,2,3")
     lineagesGroup.add_argument('--use-accessory',help='Use accessory distances for lineage definitions [default = use core distances]', action = 'store_true', default = False)
-    lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions', type = str, default = None)
+    lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions '
+                                                        ', required with "--assign-lineages"', type = str, default = None)
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -275,6 +277,10 @@ def main():
     # for sketchlib, only supporting a single sketch size
     if not args.use_mash:
         sketch_sizes = int(round(max(sketch_sizes.values())/64))
+
+    # check if working with lineages
+    if args.lineage_clustering or args.assign_lineages:
+        rank_list = sorted([int(x) for x in args.ranks.split(',')])
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
@@ -525,15 +531,10 @@ def main():
     #* within-strain analysis     *#
     #*                            *#
     #******************************#
-    sys.stderr.write("Checking options here\n\n")
     if args.lineage_clustering:
         sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
 
-        # process rankings to use
-        rank_list = sorted([int(x) for x in args.R.split(',')])
-
         # load distances
-        distances = None
         if args.distances is not None:
             distances = args.distances
         else:
@@ -554,13 +555,13 @@ def main():
     #* below)                      *#
     #*                             *#
     #*******************************# 
-    elif args.assign_query:
+    elif args.assign_query or args.assign_lineages:
         assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
                      args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length, args.estimated_length,
                      args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
-                     args.rapidnj, args.perplexity, args.assign_lineage, args.existing_scheme, args.R, args.use_accessory)
+                     args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory)
 
     #******************************#
     #*                            *#
@@ -688,7 +689,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  kmers, sketch_sizes, ignore_length, estimated_length, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
-                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, R, use_accessory):
+                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
@@ -834,12 +835,10 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
             
             if assign_lineage:
-                rank_list = sorted([int(x) for x in R.split(',')])
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
-                #isolateClustering = {'combined': cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory, threads)}
-                isolateClustering = cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name,  use_accessory, threads)
+                isolateClustering = cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name, use_accessory, threads)
 
             # Prune distances to references only, if not full db
             dists_out = output + "/" + os.path.basename(output) + ".dists"
