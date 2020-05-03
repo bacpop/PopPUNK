@@ -208,12 +208,10 @@ def get_lineage_clustering_information(seed_isolate, row_labels, distances):
 
 def generate_nearest_neighbours(distances, row_labels, isolate_list, rank):
     # data structures
-    nn = {}
+    nn = defaultdict(dict)
     last_dist = {}
     num_ranks = {}
-    for i in isolate_list:
-        nn[i] = {}
-        num_ranks[i] = 0
+    num_ranks = {i:0  for i in isolate_list}
     total_isolates = len(isolate_list)
     num_distances = len(distances)
     completed_isolates = 0
