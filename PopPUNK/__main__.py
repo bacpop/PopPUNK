@@ -840,7 +840,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
             
             if assign_lineage:
-                expected_lineage_name = ref_db + '/' + ref_db + '_lineageClusters.pkl'
+                expected_lineage_name = ref_db + '/' + ref_db + '_lineages.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
                 isolateClustering = cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name, use_accessory, threads)

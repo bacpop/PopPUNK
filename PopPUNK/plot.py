@@ -399,7 +399,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
                         epiCsv,
                         queryList)
 
-def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None):
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None, suffix = '_Cluster'):
     """Print CSV file of clustering and optionally epi data
 
     Writes CSV output of clusters which can be used as input to microreact and cytoscape.
@@ -433,7 +433,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     if output_format == 'microreact':
         colnames = ['id']
         for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster__autocolour'
+            col_name = cluster_type + suffix + '__autocolour'
             colnames.append(col_name)
         if queryNames is not None:
             colnames.append('Status')
@@ -441,7 +441,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     elif output_format == 'phandango':
         colnames = ['id']
         for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster'
+            col_name = cluster_type + suffix
             colnames.append(col_name)
         if queryNames is not None:
             colnames.append('Status')
@@ -449,14 +449,14 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     elif output_format == 'grapetree':
         colnames = ['ID']
         for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster'
+            col_name = cluster_type + suffix
             colnames.append(col_name)
         if queryNames is not None:
             colnames.append('Status')
     elif output_format == 'cytoscape':
         colnames = ['id']
         for cluster_type in clustering:
-            col_name = cluster_type + '_Cluster'
+            col_name = cluster_type + suffix
             colnames.append(col_name)
         if queryNames is not None:
             colnames.append('Status')
@@ -485,7 +485,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
             if output_format == 'microreact':
                 d['id'].append(label)
                 for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster__autocolour"
+                    col_name = cluster_type + suffix + "__autocolour"
                     d[col_name].append(clustering[cluster_type][name])
                 if queryNames is not None:
                     if name in queryNames:
@@ -497,7 +497,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
             elif output_format == 'phandango':
                 d['id'].append(label)
                 for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster"
+                    col_name = cluster_type + suffix
                     d[col_name].append(clustering[cluster_type][name])
                 if queryNames is not None:
                     if name in queryNames:
@@ -509,7 +509,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
             elif output_format == 'grapetree':
                 d['ID'].append(label)
                 for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster"
+                    col_name = cluster_type + suffix
                     d[col_name].append(clustering[cluster_type][name])
                 if queryNames is not None:
                     if name in queryNames:
@@ -519,7 +519,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
             elif output_format == 'cytoscape':
                 d['id'].append(name)
                 for cluster_type in clustering:
-                    col_name = cluster_type + "_Cluster"
+                    col_name = cluster_type + suffix
                     d[col_name].append(clustering[cluster_type][name])
                 if queryNames is not None:
                     if name in queryNames:
@@ -530,7 +530,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
                 # avoid adding
                 if len(columns_to_be_omitted) == 0:
                     columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
-                                             'core_Cluster__autocolour', 'accessory_Cluster__autocolour']
+                                             'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
+                                             'overall_Lineage']
                     for c in d:
                         if c not in columns_to_be_omitted:
                             columns_to_be_omitted.append(c)
@@ -546,7 +547,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
         else:
             sys.stderr.write("Cannot find " + name + " in clustering\n")
             sys.exit(1)
-                
+
     # print CSV
     sys.stderr.write("Parsed data, now writing to CSV\n")
     try:

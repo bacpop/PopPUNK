@@ -23,6 +23,8 @@ except ImportError as e:
 from functools import partial
 
 # import poppunk package
+from .plot import writeClusterCsv
+
 from .utils import iterDistRows
 from .utils import readRfile
 
@@ -411,48 +413,35 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
             lineage_clustering[rank], lineage_seed[rank], neighbours[rank], previous_lineage_clustering[rank] = result
 
     # store output
-    with open(output + "/" + output + '_lineageClusters.pkl', 'wb') as pickle_file:
+    with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
         pickle.dump([lineage_clustering, lineage_seed, neighbours, rank_list], pickle_file)
     
-    # print output
-    combined = {}
-    titles_list = ['Lineage_Rank_' + str(rank) for rank in rank_list]
-    lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
-    with open(lineage_output_name, 'w') as lFile:
-        # print header
-        lFile.write('Id')
-        for t in titles_list:
-            lFile.write(',' + t + '__autocolor')
-            combined[t] = {}
-        lFile.write(',Overall_lineage')
-        combined['Overall_lineage'] = {}
-        if qlist is not None:
-            lFile.write(',Status')
-        lFile.write('\n')
+    # process multirank lineages
+    overall_lineages = {}
+    overall_lineages = {'Rank_' + str(rank):{} for rank in rank_list}
+    overall_lineages['overall'] = {}
+    for isolate in isolate_list:
+        overall_lineage = None
+        for rank in rank_list:
+            overall_lineages['Rank_' + str(rank)][isolate] = lineage_clustering[rank][isolate]
+            if overall_lineage is None:
+                overall_lineage = str(lineage_clustering[rank][isolate])
+            else:
+                overall_lineage = overall_lineage + '-' + str(lineage_clustering[rank][isolate])
+        overall_lineages['overall'][isolate] = overall_lineage
+    
+    # print output as CSV
+    writeClusterCsv(output + "/" + output + '_lineages.csv',
+                    isolate_list,
+                    isolate_list,
+                    overall_lineages,
+                    output_format = 'phandango',
+                    epiCsv = None,
+                    queryNames = qlist,
+                    suffix = '_Lineage')
 
-        # print lines for each isolate
-        for isolate in lineage_clustering[rank].keys():
-            lFile.write(isolate)
-            for n,rank in enumerate(rank_list):
-                lFile.write(',' + str(lineage_clustering[rank][isolate]))
-                lineage_string = str(lineage_clustering[rank][isolate])
-                # include information on lineage clustering
-                combined[titles_list[n]][isolate] = lineage_string
-                if lineage_clustering[rank][isolate] != previous_lineage_clustering[rank][isolate] and previous_lineage_clustering[rank][isolate] is not None:
-                    lineage_string = str(previous_lineage_clustering[rank][isolate]) + ':' + lineage_string
-                if isolate in combined['Overall_lineage'].keys():
-                    combined['Overall_lineage'][isolate] = combined['Overall_lineage'][isolate] + '-' + lineage_string
-                else:
-                    combined['Overall_lineage'][isolate] = lineage_string
-            lFile.write(',' + combined['Overall_lineage'][isolate])
-            if qlist is not None:
-                if isolate in qlist:
-                    lFile.write(',Added')
-                else:
-                    lFile.write(',Existing')
-            lFile.write('\n')
-
-    return combined
+    # return lineages
+    return overall_lineages
 
 def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distances = None, distance_ranks = None, isolates = None):
     """ Clusters isolates into lineages based on their
