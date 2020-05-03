@@ -26,6 +26,7 @@ from functools import partial
 from .plot import writeClusterCsv
 
 from .utils import iterDistRows
+from .utils import listDistInts
 from .utils import readRfile
 
 def cluster_neighbours_of_equal_or_lower_rank(isolate, rank, lineage_index, lineage_clustering, lineage_clustering_information, nn):
@@ -208,13 +209,13 @@ def get_lineage_clustering_information(seed_isolate, row_labels, distances):
     # return information
     return lineage_info
 
-def generate_nearest_neighbours(distances, row_labels, isolate_list, rank):
+def generate_nearest_neighbours(distances, row_labels, isolate_indices, rank):
     # data structures
     nn = defaultdict(dict)
     last_dist = {}
     num_ranks = {}
-    num_ranks = {i:0 for i in isolate_list}
-    total_isolates = len(isolate_list)
+    num_ranks = {i:0 for i in isolate_indices}
+    total_isolates = len(isolate_indices)
     num_distances = len(distances)
     completed_isolates = 0
     index = 0
@@ -280,6 +281,7 @@ def update_nearest_neighbours(distances, row_labels, rank, qlist, nn, lineage_cl
     # add query-query comparisons
     for query in query_nn.keys():
         nn[query] = query_nn[query]
+        print('Query: ' + str(query) + ' nn ' + str(query_nn[query]))
     
     # calculate max distances for each isolate
     max_distance = {}
@@ -375,7 +377,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
     previous_lineage_clustering = {}
     
     for rank in rank_list:
-        lineage_clustering[rank] = {i:None for i in isolate_list}
+        lineage_clustering[rank] = {i:None for i in range(0,len(isolate_list))}
         lineage_seed[rank] = {}
         neighbours[rank] = {}
         previous_lineage_clustering[rank] = {}
@@ -420,14 +422,14 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
     overall_lineages = {}
     overall_lineages = {'Rank_' + str(rank):{} for rank in rank_list}
     overall_lineages['overall'] = {}
-    for isolate in isolate_list:
+    for index,isolate in enumerate(isolate_list):
         overall_lineage = None
         for rank in rank_list:
-            overall_lineages['Rank_' + str(rank)][isolate] = lineage_clustering[rank][isolate]
+            overall_lineages['Rank_' + str(rank)][isolate] = lineage_clustering[rank][index]
             if overall_lineage is None:
-                overall_lineage = str(lineage_clustering[rank][isolate])
+                overall_lineage = str(lineage_clustering[rank][index])
             else:
-                overall_lineage = overall_lineage + '-' + str(lineage_clustering[rank][isolate])
+                overall_lineage = overall_lineage + '-' + str(lineage_clustering[rank][index])
         overall_lineages['overall'][isolate] = overall_lineage
     
     # print output as CSV
@@ -474,15 +476,16 @@ def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distanc
     distance_ranks_shm = shared_memory.SharedMemory(name = distance_ranks.name)
     distance_ranks = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = distance_ranks_shm.buf)
     isolate_list = isolates
+    isolate_indices = range(0,len(isolate_list))
     
     # calculate row labels
     # this is inefficient but there appears to be no way of sharing
     # strings between processes efficiently
-    row_labels = list(iter(iterDistRows(isolate_list, isolate_list, self = True)))
+    row_labels = listDistInts(isolate_list, isolate_list, self = True)
     # reorder by sorted distances
     row_labels = [row_labels[i] for i in distance_ranks]
     
-    lineage_clustering = {i:None for i in isolate_list}
+    lineage_clustering = {i:None for i in range(0,len(isolate_list))}
     previous_lineage_clustering = lineage_clustering
     lineage_seed = {}
     neighbours = {}
@@ -495,20 +498,21 @@ def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distanc
         lineage_seed = lineage_seed_overall[rank]
         neighbours = neighbours_overall[rank]
         # add new queries to lineage clustering
-        for q in qlist:
+        q_indices = [isolate_list.index(q) for q in qlist]
+        for q in q_indices:
             lineage_clustering[q] = None
         previous_lineage_clustering = lineage_clustering
         
         neighbours, lineage_clustering = update_nearest_neighbours(distances,
                                                                 row_labels,
                                                                 rank,
-                                                                qlist,
+                                                                q_indices,
                                                                 neighbours,
                                                                 lineage_clustering)
     else:
         neighbours = generate_nearest_neighbours(distances,
                                                 row_labels,
-                                                isolate_list,
+                                                isolate_indices,
                                                 rank)
 
     # run clustering

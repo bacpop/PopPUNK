@@ -143,9 +143,7 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             List of query sequence names.
         self (bool)
             Whether a self-comparison, used when constructing a database.
-
             Requires refSeqs == querySeqs
-
             Default is True
     Returns:
         ref, query (str, str)
@@ -162,6 +160,43 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             for ref in refSeqs:
                 yield(ref, query)
 
+def listDistInts(refSeqs, querySeqs, self=True):
+    """Gets the ref and query ID for each row of the distance matrix
+
+    Returns an iterable with ref and query ID pairs by row.
+
+    Args:
+        refSeqs (list)
+            List of reference sequence names.
+        querySeqs (list)
+            List of query sequence names.
+        self (bool)
+            Whether a self-comparison, used when constructing a database.
+            Requires refSeqs == querySeqs
+            Default is True
+    Returns:
+        ref, query (str, str)
+            Iterable of tuples with ref and query names for each distMat row.
+    """
+    dist_orders = []
+    n = 0
+    if self:
+        dist_orders = [(0,0)] * int(0.5 * len(refSeqs) * (len(refSeqs) - 1))
+        if refSeqs != querySeqs:
+            raise RuntimeError('refSeqs must equal querySeqs for db building (self = true)')
+        for i in range(0, len(refSeqs)):
+            for j in range(i + 1, len(refSeqs)):
+                dist_orders[n] = (j, i)
+                n = n + 1
+    else:
+        dist_orders = [(0,0)] * int(len(refSeqs) * (len(querySeqs)))
+        for i,query in enumerate(querySeqs):
+            for j,ref in enumerate(refSeqs):
+                dist_orders[n] = (j, i)
+                n = n + 1
+    
+    # return final list of tuples
+    return dist_orders
 
 def writeTmpFile(fileList):
     """Writes a list to a temporary file. Used for turning variable into mash
