@@ -21,8 +21,7 @@ from collections import defaultdict, Counter
 from .sketchlib import calculateQueryQueryDistances
 
 from .utils import iterDistRows
-from .utils import readClusters
-from .utils import readExternalClusters
+from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 
 def fetchNetwork(network_dir, model, refList,
@@ -402,7 +401,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     return qlist1, distMat
 
 def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True):
+                  externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -413,26 +412,24 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
             :func:`~addQueryToNetwork`)
         outPrefix (str)
             Prefix for output CSV
-
             Default = "_clusters.csv"
         oldClusterFile (str)
             CSV with previous cluster assignments.
             Pass to ensure consistency in cluster assignment name.
-
             Default = None
         externalClusterCSV (str)
             CSV with cluster assignments from any source. Will print a file
             relating these to new cluster assignments
-
             Default = None
         printRef (bool)
             If false, print only query sequences in the output
-
             Default = True
         printCSV (bool)
             Print results to file
-
             Default = True
+        clustering_type (str)
+            Type of clustering network, used for comparison with old clusters
+            Default = 'combined'
 
     Returns:
         clustering (dict)
@@ -446,7 +443,9 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
     oldNames = set()
 
     if oldClusterFile != None:
-        oldClusters = readClusters(oldClusterFile)
+#        oldClusters = readClusters(oldClusterFile)
+        oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
+        oldCluster = oldAllClusters[clustering_type]
         new_id = len(oldClusters) + 1 # 1-indexed
         while new_id in oldClusters:
             new_id += 1 # in case clusters have been merged
@@ -557,7 +556,8 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
     d = defaultdict(list)
 
     # Read in external clusters
-    extClusters = readExternalClusters(extClusterFile)
+#    extClusters = readExternalClusters(extClusterFile)
+    readIsolateTypeFromCsv(clustCSV, mode = 'external', return_dict = False)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster

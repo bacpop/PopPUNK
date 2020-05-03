@@ -211,7 +211,7 @@ def generate_nearest_neighbours(distances, row_labels, isolate_list, rank):
     nn = defaultdict(dict)
     last_dist = {}
     num_ranks = {}
-    num_ranks = {i:0  for i in isolate_list}
+    num_ranks = {i:0 for i in isolate_list}
     total_isolates = len(isolate_list)
     num_distances = len(distances)
     completed_isolates = 0
@@ -416,7 +416,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
     
     # print output
     combined = {}
-    titles_list = ['Lineage_R' + str(rank) for rank in rank_list]
+    titles_list = ['Lineage_Rank_' + str(rank) for rank in rank_list]
     lineage_output_name = output + "/" + output + "_lineage_clusters.csv"
     with open(lineage_output_name, 'w') as lFile:
         # print header
@@ -560,35 +560,3 @@ def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distanc
 
     # return clustering
     return lineage_clustering, lineage_seed, neighbours, previous_lineage_clustering
-
-def readLineages(clustCSV):
-    """Read a previous reference clustering from CSV
-
-    Args:
-        clustCSV (str)
-            File name of CSV with previous cluster assignments
-
-    Returns:
-        clusters (dict)
-            Or if return_dict is set keys are sample names,
-            values are cluster assignments.
-    """
-    clusters = {}
-    relevant_headers = []
-    header_elements = []
-
-    with open(clustCSV, 'r') as csv_file:
-        header = csv_file.readline()
-        # identify columns to include
-        header_elements = header.rstrip().split(",")
-        relevant_headers.append(header_elements.index('Overall_lineage'))
-        relevant_headers.extend([n for n,i in enumerate(header_elements) if re.search('Lineage_R',i)])
-        for h in relevant_headers:
-            clusters[header_elements[h]] = {}
-        for line in csv_file:
-            elements = line.rstrip().split(",")
-            if elements[0] != header_elements[0]:
-                for h in relevant_headers:
-                    clusters[header_elements[h]][elements[0]] = elements[h]
-
-    return clusters

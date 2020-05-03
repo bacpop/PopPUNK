@@ -18,7 +18,6 @@ from .models import *
 from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
 from .lineage_clustering import cluster_into_lineages
-from .lineage_clustering import readLineages
 
 from .network import fetchNetwork
 from .network import constructNetwork
@@ -41,10 +40,10 @@ from .utils import storePickle
 from .utils import readPickle
 from .utils import writeTmpFile
 from .utils import qcDistMat
-from .utils import readClusters
 from .utils import translate_distMat
 from .utils import update_distance_matrices
 from .utils import readRfile
+from .utils import readIsolateTypeFromCsv
 
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 1
@@ -634,11 +633,10 @@ def main():
             # Use external clustering if specified
             if args.external_clustering:
                 cluster_file = args.external_clustering
-                isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
+                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'external', return_dict = True)
             if args.viz_lineages:
                 cluster_file = args.viz_lineages
-                #isolateClustering = {'combined': readClusters(cluster_file, return_dict=True)}
-                isolateClustering = readLineages(cluster_file)
+                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'lineages', return_dict = True)
             else:
                 # identify existing analysis files
                 model_prefix = args.ref_db

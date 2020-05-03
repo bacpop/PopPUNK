@@ -214,12 +214,12 @@ def qcDistMat(distMat, refList, queryList, a_max):
     return passed
 
 
-def readClusters(clustCSV, return_dict=False):
-    """Read a previous reference clustering from CSV
+def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
+    """Read isolate types from CSV file.
 
     Args:
         clustCSV (str)
-            File name of CSV with previous cluster assignments
+            File name of CSV with isolate assignments
         return_type (str)
             If True, return a dict with sample->cluster instead
             of sets
@@ -230,45 +230,38 @@ def readClusters(clustCSV, return_dict=False):
             sets containing samples in the cluster). Or if return_dict is set keys
             are sample names, values are cluster assignments.
     """
+    # data structures
     if return_dict:
-        clusters = {}
+        clusters = defaultdict(lambda: defaultdict(str))
     else:
-        clusters = defaultdict(set)
-
-    with open(clustCSV, 'r') as csv_file:
-        header = csv_file.readline()
-        for line in csv_file:
-            (sample, clust_id) = line.rstrip().split(",")[:2]
+        clusters = defaultdict(lambda: defaultdict(set))
+    
+    # read CSV
+    clustersCsv = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
+    
+    # select relevant columns according to mode
+    if mode == 'clusters':
+        type_columns = clustersCsv.columns[clustersCsv.columns.str.contains('_Cluster')]
+    elif mode == 'lineages':
+        type_columns = clustersCsv.columns[clustersCsv.columns.str.contains('Overall_lineage') | clustersCsv.columns.str.contains('Lineage_Rank_')]
+    elif mode == 'external':
+        type_columns = range(1,len(clustersCsv.columns))
+    else:
+        sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
+        exit(1)
+        
+    # read file
+    for row in clustersCsv.itertuples():
+        for cls_idx in type_columns:
+            cluster_name = str(clustersCsv.columns[type_columns[cls_idx]])
+            cluster_name = cluster_name.replace('__autocolour','')
             if return_dict:
-                clusters[sample] = clust_id
+                clusters[cluster_name][row.Index] = str(row[cls_idx])
             else:
-                clusters[clust_id].add(sample)
+                clusters[cluster_name][str(row[cls_idx])].append([row.Index])
 
+    # return data structure
     return clusters
-
-
-def readExternalClusters(clustCSV):
-    """Read a cluster definition from CSV (does not have to be PopPUNK
-    generated clusters). Rows samples, columns clusters.
-
-    Args:
-        clustCSV (str)
-            File name of CSV with previous cluster assingments
-
-    Returns:
-        extClusters (dict)
-            Dictionary of dictionaries of cluster assignments
-            (first key cluster assignment name, second key sample, value cluster assignment)
-    """
-    extClusters = defaultdict(lambda: defaultdict(str))
-
-    extClustersFile = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
-    for row in extClustersFile.itertuples():
-        for cls_idx, cluster in enumerate(extClustersFile.columns):
-            extClusters[str(cluster)][row.Index] = str(row[cls_idx + 1])
-
-    return(extClusters)
-
 
 def translate_distMat(combined_list, core_distMat, acc_distMat):
     """Convert distances from a square form (2 NxN matrices) to a long form
