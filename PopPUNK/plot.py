@@ -478,7 +478,6 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
 
     # get example clustering name for validation
-    print('Clustering is ' + str(clustering))
     example_cluster_title = list(clustering.keys())[0]
 
     for name, label in zip(nodeNames, nodeLabels):

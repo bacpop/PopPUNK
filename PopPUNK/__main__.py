@@ -637,6 +637,7 @@ def main():
             if args.viz_lineages:
                 cluster_file = args.viz_lineages
                 isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'lineages', return_dict = True)
+                print('CLUSTERS: ' + str(isolateClustering))
             else:
                 # identify existing analysis files
                 model_prefix = args.ref_db

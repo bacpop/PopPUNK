@@ -267,7 +267,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     """
     # data structures
     if return_dict:
-        clusters = defaultdict(lambda: defaultdict(str))
+        clusters = defaultdict(dict)
     else:
         clusters = defaultdict(lambda: defaultdict(set))
     
@@ -276,9 +276,9 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     
     # select relevant columns according to mode
     if mode == 'clusters':
-        type_columns = clustersCsv.columns[clustersCsv.columns.str.contains('_Cluster')]
+        type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('_Cluster' in col)]
     elif mode == 'lineages':
-        type_columns = clustersCsv.columns[clustersCsv.columns.str.contains('Overall_lineage') | clustersCsv.columns.str.contains('Lineage_Rank_')]
+        type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Rank_' in col or 'overall' in col)]
     elif mode == 'external':
         type_columns = range(1,len(clustersCsv.columns))
     else:
@@ -288,12 +288,12 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     # read file
     for row in clustersCsv.itertuples():
         for cls_idx in type_columns:
-            cluster_name = str(clustersCsv.columns[type_columns[cls_idx]])
+            cluster_name = clustersCsv.columns[cls_idx]
             cluster_name = cluster_name.replace('__autocolour','')
             if return_dict:
-                clusters[cluster_name][row.Index] = str(row[cls_idx])
+                clusters[cluster_name][row.Index] = str(row[cls_idx + 1])
             else:
-                clusters[cluster_name][str(row[cls_idx])].append([row.Index])
+                clusters[cluster_name][str(row[cls_idx + 1])].append([row.Index])
 
     # return data structure
     return clusters

@@ -281,7 +281,6 @@ def update_nearest_neighbours(distances, row_labels, rank, qlist, nn, lineage_cl
     # add query-query comparisons
     for query in query_nn.keys():
         nn[query] = query_nn[query]
-        print('Query: ' + str(query) + ' nn ' + str(query_nn[query]))
     
     # calculate max distances for each isolate
     max_distance = {}
@@ -413,6 +412,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
         for n,result in enumerate(results):
             rank = rank_list[n]
             lineage_clustering[rank], lineage_seed[rank], neighbours[rank], previous_lineage_clustering[rank] = result
+            print('Rank: ' + str(rank) + ' seeds: ' + str(lineage_seed[rank]))
 
     # store output
     with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
@@ -496,6 +496,7 @@ def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distanc
         # focus on relevant data
         lineage_clustering = lineage_clustering_overall[rank]
         lineage_seed = lineage_seed_overall[rank]
+        print('Rank: ' + str(rank) + '\nSEEDS!: ' + str(lineage_seed))
         neighbours = neighbours_overall[rank]
         # add new queries to lineage clustering
         q_indices = [isolate_list.index(q) for q in qlist]
