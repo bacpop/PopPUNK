@@ -29,57 +29,13 @@ from .utils import iterDistRows
 from .utils import listDistInts
 from .utils import readRfile
 
-def cluster_neighbours_of_equal_or_lower_rank(isolate, rank, lineage_index, lineage_clustering, lineage_clustering_information, nn):
-    """ Iteratively adds neighbours of isolates of lower or equal rank
-    to a lineage if an isolate of a higher rank is added.
-    
-    Args:
-    isolate (string)
-        Isolate of higher rank added to lineage.
-    rank (int)
-        Rank of isolate added to lineage.
-    lineage_index (int)
-       Label of current lineage.
-    lineage_clustering (dict)
-       Clustering of existing dataset.
-    lineage_clustering_information (dict)
-        Dict listing isolates by ranked distance from seed.
-    nn (nested dict)
-       Pre-calculated neighbour relationships.
-        
-    Returns:
-        lineage_clustering (dict)
-            Assignment of isolates to lineages.
-    """
-    isolates_to_check = [isolate]
-    isolate_ranks = {}
-    isolate_ranks[isolate] = rank
-    
-    while len(isolates_to_check) > 0:
-        for isolate in isolates_to_check:
-            rank = isolate_ranks[isolate]
-            for isolate_neighbour in nn[isolate].keys():
-                # if lineage of neighbour is higher, or it is null value (highest)
-                if lineage_clustering[isolate_neighbour] is None or lineage_clustering[isolate_neighbour] > lineage_index:
-                    # check if rank of neighbour is lower than that of the current subject isolate
-                    for neighbour_rank in range(1,rank):
-                        if isolate_neighbour in lineage_clustering_information[neighbour_rank]:
-                            lineage_clustering[isolate_neighbour] = lineage_index
-                            isolates_to_check.append(isolate_neighbour)
-                            isolate_ranks[isolate_neighbour] = neighbour_rank
-            isolates_to_check.remove(isolate)
-
-    return lineage_clustering
-
-def run_lineage_clustering(lineage_clustering, lineage_clustering_information, neighbours, rank, lineage_index, seed_isolate, previous_lineage_clustering):
+def run_lineage_clustering(lineage_clustering, neighbours, rank, lineage_index, seed_isolate, previous_lineage_clustering):
     """ Identifies isolates corresponding to a particular
     lineage given a cluster seed.
     
     Args:
         lineage_clustering (dict)
            Clustering of existing dataset.
-        lineage_clustering_information (dict)
-            Dict listing isolates by ranked distance from seed.
         neighbours (nested dict)
            Pre-calculated neighbour relationships.
         rank (int)
@@ -96,43 +52,28 @@ def run_lineage_clustering(lineage_clustering, lineage_clustering_information, n
             Assignment of isolates to lineages.
     
     """
-    # first make all R neighbours of the seed part of the lineage if unclustered
-    for seed_neighbour in neighbours[seed_isolate]:
-        if lineage_clustering[seed_neighbour] is None or lineage_clustering[seed_neighbour] > lineage_index:
-            lineage_clustering[seed_neighbour] = lineage_index
-    # iterate through ranks; for each isolate, test if neighbour belongs to this cluster
-    # overwrite higher cluster values - default value is higer than number of isolates
-    # when querying, allows smaller clusters to be merged into more basal ones as connections
-    # made
-    for rank in lineage_clustering_information.keys():
-        # iterate through isolates of same rank
-        for isolate in lineage_clustering_information[rank]:
-            # test if clustered/belonging to a more peripheral cluster
+    # generate sets of neighbours based on rank
+    neighbour_set = defaultdict(frozenset)
+    for isolate in neighbours.keys():
+        neighbour_set[isolate] = frozenset(neighbours[isolate].keys())
+    # initiate lineage as the seed isolate and immediate unclustered neighbours
+    in_lineage = {seed_isolate}
+    for seed_neighbours in neighbour_set[seed_isolate]:
+        if lineage_clustering[seed_neighbours] is None or lineage_clustering[seed_neighbours] > lineage_index:
+            in_lineage.add(seed_neighbours)
+            lineage_clustering[seed_neighbours] = lineage_index
+    # iterate through other isolates until converged on a stable clustering
+    alterations = len(neighbours.keys())
+    while alterations > 0:
+        alterations = 0
+        for isolate in neighbour_set.keys():
             if lineage_clustering[isolate] is None or lineage_clustering[isolate] > lineage_index:
-                # get clusters of nearest neighbours
-                isolate_neighbour_clusters = [lineage_clustering[isolate_neighbour] for isolate_neighbour in neighbours[isolate].keys()]
-                # if a nearest neighbour is in this cluster
-                if lineage_index in isolate_neighbour_clusters:
-                    # add isolate to lineage
+                intersection_size = in_lineage.intersection(neighbour_set[isolate])
+                if intersection_size is not None and len(intersection_size) > 0:
+                    in_lineage.add(isolate)
                     lineage_clustering[isolate] = lineage_index
-                    # add neighbours of same or lower rank to lineage if unclustered
-                    lineage_clustering = cluster_neighbours_of_equal_or_lower_rank(isolate,
-                                                                                    rank,
-                                                                                    lineage_index,
-                                                                                    lineage_clustering,
-                                                                                    lineage_clustering_information,
-                                                                                    neighbours)
-            # if this represents a change from the previous iteration of lineage definitions
-            # then the change needs to propagate through higher-ranked members
-            if isolate in previous_lineage_clustering:
-                if previous_lineage_clustering[isolate] == lineage_index and lineage_clustering[isolate] != lineage_index:
-                    for higher_rank in lineage_clustering_information.keys():
-                        if higher_rank > rank:
-                            for higher_ranked_isolate in lineage_clustering_information[rank]:
-                                if lineage_clustering[isolate] == lineage_index:
-                                    lineage_clustering[isolate] = None
-                
-                        
+                    alterations = alterations + 1
+    # return final clustering
     return lineage_clustering
 
 def get_seed_isolate(lineage_clustering, row_labels, distances, lineage_index, lineage_seed):
@@ -176,38 +117,6 @@ def get_seed_isolate(lineage_clustering, row_labels, distances, lineage_index, l
                 break
     # return identified seed isolate
     return seed_isolate
-
-def get_lineage_clustering_information(seed_isolate, row_labels, distances):
-    """ Generates the ranked distances needed for cluster
-    definition.
-    
-    Args:
-        seed_isolate (str)
-            Isolate used to initiate lineage.
-        row_labels (list of tuples)
-            Pairs of isolates labelling each distance.
-        distances (numpy array)
-            Pairwise distances used for defining relationships.
-    
-    Returns:
-        lineage_info (dict)
-            Dict listing isolates by ranked distance from seed.
-    
-    """
-    # data structure
-    lineage_info = defaultdict(list)
-    rank = 0
-    last_dist = -1
-    # iterate through distances recording rank
-    for index,distance in enumerate(distances):
-        if seed_isolate in row_labels[index]:
-            if distance > last_dist:
-                rank = rank + 1
-                last_dist = distance
-            pair = row_labels[index][0] if row_labels[index][1] == seed_isolate else row_labels[index][1]
-            lineage_info[rank].append(pair)
-    # return information
-    return lineage_info
 
 def generate_nearest_neighbours(distances, row_labels, isolate_indices, rank):
     # data structures
@@ -412,7 +321,6 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
         for n,result in enumerate(results):
             rank = rank_list[n]
             lineage_clustering[rank], lineage_seed[rank], neighbours[rank], previous_lineage_clustering[rank] = result
-            print('Rank: ' + str(rank) + ' seeds: ' + str(lineage_seed[rank]))
 
     # store output
     with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
@@ -496,7 +404,6 @@ def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distanc
         # focus on relevant data
         lineage_clustering = lineage_clustering_overall[rank]
         lineage_seed = lineage_seed_overall[rank]
-        print('Rank: ' + str(rank) + '\nSEEDS!: ' + str(lineage_seed))
         neighbours = neighbours_overall[rank]
         # add new queries to lineage clustering
         q_indices = [isolate_list.index(q) for q in qlist]
@@ -534,15 +441,9 @@ def run_clustering_for_rank(rank, qlist = None, existing_scheme = False, distanc
         
             # record status of seed isolate
             lineage_clustering[seed_isolate] = lineage_index
-            
-            # get information for lineage clustering
-            lineage_clustering_information = get_lineage_clustering_information(seed_isolate,
-                                                                                row_labels,
-                                                                                distances)
-                                                                                
+                                                                                            
             # cluster the lineages
             lineage_clustering = run_lineage_clustering(lineage_clustering,
-                                                        lineage_clustering_information,
                                                         neighbours,
                                                         rank,
                                                         lineage_index,
