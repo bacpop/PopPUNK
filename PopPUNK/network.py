@@ -326,6 +326,20 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     new_edges = []
     assigned = set()
 
+    # These are returned
+    qlist1 = None
+    distMat = None
+
+    # Set up query names
+    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
+    queryFiles = dict(zip(qList, qSeqs))
+    if use_mash == True:
+        rNames = None
+        qNames = qSeqs
+    else:
+        rNames = qList
+        qNames = rNames
+
     # store links for each query in a list of edge tuples
     for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qList, self=False)):
         if assignment == model.within_label:
@@ -335,17 +349,17 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
-        qlist, distMat = calculateQueryQueryDistances(dbFuncs,
-                                                        refList,
-                                                        q_files,
+        qlist1, distMat = calculateQueryQueryDistances(dbFuncs,
+                                                        rNames,
+                                                        qfile,
                                                         kmers,
                                                         estimated_length,
-                                                        output,
+                                                        queryDB,
                                                         use_mash,
                                                         threads)
 
         queryAssignation = model.assign(distMat)
-        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist, qlist, self=True)):
+        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist1, qlist1, self=True)):
             if assignment == model.within_label:
                 new_edges.append((ref, query))
 
@@ -384,7 +398,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                     number_plot_fits = 0,
                                                     threads = threads)
             queryAssignation = model.assign(distMat)
-
+            
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             for assignment, (query1, query2) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
@@ -443,10 +457,10 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
     oldNames = set()
 
     if oldClusterFile != None:
-#        oldClusters = readClusters(oldClusterFile)
         oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
-        oldCluster = oldAllClusters[clustering_type]
-        new_id = len(oldClusters) + 1 # 1-indexed
+        oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
+        print('oldCluster is ' + str(oldClusters))
+        new_id = len(oldClusters.keys()) + 1 # 1-indexed
         while new_id in oldClusters:
             new_id += 1 # in case clusters have been merged
 

@@ -279,6 +279,7 @@ def main():
         sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
     # check if working with lineages
+    rank_list = []
     if args.lineage_clustering or args.assign_lineages:
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if min(rank_list) == 0 or max(rank_list) > 100:
@@ -653,6 +654,7 @@ def main():
 
                 # Read in network and cluster assignment
                 genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
 
                 # prune the network and dictionary of assignments
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))

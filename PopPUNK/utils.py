@@ -268,22 +268,25 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     if return_dict:
         clusters = defaultdict(dict)
     else:
-        clusters = defaultdict(lambda: defaultdict(set))
+        clusters = {}
     
     # read CSV
     clustersCsv = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
     
     # select relevant columns according to mode
     if mode == 'clusters':
-        type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('_Cluster' in col)]
+        type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Cluster' in col)]
     elif mode == 'lineages':
         type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Rank_' in col or 'overall' in col)]
     elif mode == 'external':
-        type_columns = range(1,len(clustersCsv.columns))
+        if len(clustersCsv.columns) == 1:
+            type_columns = [0]
+        elif len(clustersCsv.columns) > 1:
+            type_columns = range((len(clustersCsv.columns)-1))
     else:
         sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
         exit(1)
-        
+    
     # read file
     for row in clustersCsv.itertuples():
         for cls_idx in type_columns:
@@ -292,7 +295,9 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
             if return_dict:
                 clusters[cluster_name][row.Index] = str(row[cls_idx + 1])
             else:
-                clusters[cluster_name][str(row[cls_idx + 1])].append([row.Index])
+                if cluster_name not in clusters.keys():
+                    clusters[cluster_name] = defaultdict(set)
+                clusters[cluster_name][str(row[cls_idx + 1])].add(row.Index)
 
     # return data structure
     return clusters
