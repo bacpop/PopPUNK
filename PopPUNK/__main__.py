@@ -550,6 +550,14 @@ def main():
 
         refList, queryList, self, distMat = readPickle(distances)
         
+        # make directory for new output files
+        if not os.path.isdir(args.output):
+            try:
+                os.makedirs(args.output)
+            except OSError:
+                sys.stderr.write("Cannot create output directory\n")
+                sys.exit(1)
+        
         # run lineage clustering
         if self:
             isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
@@ -812,7 +820,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
             # Update the network + ref list
             # only update network if assigning to strains
-            if full_db is False or assign_lineage is False:
+            if full_db is False and assign_lineage is False:
                 mashOrder = refList + ordered_queryList
                 newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, output, refList)
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
