@@ -9,7 +9,7 @@ dependencies::
 Then run with ``poppunk``.
 
 .. important::
-    PopPUNK requires python3 to run (which on many default Linux installations is
+    PopPUNK requires python3.8 to run (which on many default Linux installations is
     run using ``python3`` rather than ``python``).
 
 Installing with conda (recommended)
@@ -53,7 +53,7 @@ Dependencies
 ------------
 We tested PopPUNK with the following packages:
 
-* python3 (3.6.3)
+* python3 (3.8.2)
 * ``DendroPy`` (4.3.0)
 * ``hdbscan`` (0.8.13)
 * ``matplotlib`` (2.1.2)

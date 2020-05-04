@@ -9,9 +9,16 @@ import sys
 # additional
 from functools import partial
 import numpy as np
-import sharedmem
 from numba import jit
 import scipy.optimize
+import collections
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 
 from .network import constructNetwork
 from .network import networkSummary
@@ -73,13 +80,24 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
     global_grid_resolution = 40 # Seems to work
-    shared_dists = sharedmem.copy(distMat)
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
-    with sharedmem.MapReduce(np = num_processes) as pool:
-        global_s = pool.map(partial(newNetwork,
-            sample_names=sample_names, distMat=shared_dists, start_point=start_point, mean1=mean1,
-            gradient=gradient, slope=slope),
-            s_range)
+    
+    # Move distMat into shared memory
+    with SharedMemoryManager() as smm:
+        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
+        distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
+        distances_shared_array[:] = distMat[:]
+        distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
+        
+        with Pool(processes = num_processes) as pool:
+            global_s = pool.map(partial(newNetwork,
+                                        sample_names = sample_names,
+                                        distMat = distances_shared,
+                                        start_point = start_point,
+                                        mean1 = mean1,
+                                        gradient = gradient,
+                                        slope = slope),
+                                s_range)
 
     # Local optimisation around global optimum
     min_idx = np.argmin(np.array(global_s))
@@ -158,8 +176,8 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
             Distance along line between start_point and mean1 from start_point
         sample_names (list)
             Sample names corresponding to distMat (accessed by iterator)
-        distMat (numpy.array)
-            Core and accessory distances
+        distMat (numpy.array or NumpyShared)
+            Core and accessory distances or NumpyShared describing these in sharedmem
         start_point (numpy.array)
             Initial boundary cutoff
         mean1 (numpy.array)
@@ -173,6 +191,10 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
+    if isinstance(distMat, NumpyShared):
+        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
+        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+    
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
     if slope == 2:
