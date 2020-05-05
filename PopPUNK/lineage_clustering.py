@@ -234,7 +234,7 @@ def update_nearest_neighbours(distances, row_labels, rank, qlist, nn, lineage_cl
     # return updated dict
     return nn, lineage_clustering
 
-def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
+def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
     relative distances.
     
@@ -245,7 +245,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
         rank_list (list of int)
             Integers specifying the maximum rank of neighbours used
             for clustering.
-        rlist (list)
+        isolate_list (list)
             List of reference sequences.
         qlist (list)
             List of query sequences being added to an existing clustering.
@@ -274,9 +274,6 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
     distance_ranks = np.argsort(distances)
     distances = distances[distance_ranks]
     
-    # determine whether ref-ref or ref-query analysis
-    isolate_list = rlist
-    
     # determine whether novel analysis or modifying existing analysis
     use_existing = False
     neighbours = {}
@@ -292,6 +289,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, rlist = None
     
     # shared memory data structures
     with SharedMemoryManager() as smm:
+    
         # share sorted distances
         distances_raw = smm.SharedMemory(size = distances.nbytes)
         distances_shared_array = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_raw.buf)

@@ -560,9 +560,9 @@ def main():
         
         # run lineage clustering
         if self:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
+            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
         else:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, rlist = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
+            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
 
     #*******************************#
     #*                             *#
