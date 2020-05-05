@@ -27,8 +27,6 @@ from functools import partial
 from .plot import writeClusterCsv
 
 from .utils import iterDistRows
-from .utils import listDistInts
-from .utils import readRfile
 from .utils import update_distance_matrices
 
 def get_chunk_ranges(N, nb):
