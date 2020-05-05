@@ -463,8 +463,10 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
         sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
 
     k_min = min(klist)
+    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; results will be adjusted for random match probabilities\n")
     if k_min < 6:
-        sys.stderr.write("Minimum k-mer length is 6 - any shorter is unlikely to generate sensible results.\n")
+        sys.stderr.write("Minimum k-mer length is too low; please increase to at least 6\n")
         exit(1)
 
     return (int(genome_length), max_prob)
