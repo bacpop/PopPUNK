@@ -57,7 +57,7 @@ def rank_distance_matrix(bounds, distances = None):
     Args:
         bounds (2-tuple)
             Range of rows to process in this thread.
-        distances (int)
+        distances (ndarray in shared memory)
             Shared memory object storing pairwise distances.
     
     Returns:
@@ -79,7 +79,7 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
             Rank used in analysis.
         isolates (int list)
             List of isolate indices.
-        ranks (ndarray)
+        ranks (ndarray in shared memory)
             Shared memory object pointing to ndarray of
             ranked pairwise distances.
             
@@ -111,13 +111,16 @@ def pick_seed_isolate(G, distances = None):
     Args:
         G (network)
             Network with one node per isolate.
-        distances (ndarray of pairwise distances)
+        distances (ndarray in shared memory)
             Pairwise distances between isolates.
             
     Returns:
         seed_isolate (int)
             Index of isolate selected as seed.
     """
+    # load distances from shared memory
+    distances_shm = shared_memory.SharedMemory(name = distances.name)
+    distances = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_shm.buf)
     # identify unclustered isolates
     unclustered_isolates = list(nx.isolates(G))
     # select minimum distance between unclustered isolates
@@ -355,7 +358,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
         if lineage_index in seeds.keys():
             seed_isolate = seeds[lineage_index]
         else:
-            seed_isolate = pick_seed_isolate(G, distances = distances)
+            seed_isolate = pick_seed_isolate(G, distances = distances_input)
         # skip over previously-defined seeds if amalgamated into different lineage now
         if nx.is_isolate(G, seed_isolate):
             seeds[lineage_index] = seed_isolate
