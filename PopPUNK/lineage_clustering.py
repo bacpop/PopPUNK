@@ -13,7 +13,7 @@ from collections import defaultdict
 import pickle
 import collections
 import networkx as nx
-from multiprocessing import Pool, Lock, Manager, RawArray, shared_memory, managers
+from multiprocessing import Pool, RawArray, shared_memory, managers
 try:
     from multiprocessing import Pool, shared_memory
     from multiprocessing.managers import SharedMemoryManager
@@ -30,6 +30,19 @@ from .utils import iterDistRows
 from .utils import update_distance_matrices
 
 def get_chunk_ranges(N, nb):
+    """ Calculates boundaries for dividing distances array
+    into chunks for parallelisation.
+    
+    Args:
+        N (int)
+            Number of rows in array
+        nb (int)
+            Number of blocks into which to divide array.
+    
+    Returns:
+        range_sizes (list of tuples)
+            Limits of blocks for dividing array.
+    """
     step = N / nb
     range_sizes = [(round(step*i), round(step*(i+1))) for i in range(nb)]
     # extend to end of distMat
@@ -38,6 +51,19 @@ def get_chunk_ranges(N, nb):
     return range_sizes
 
 def rank_distance_matrix(bounds, distances = None):
+    """ Ranks distances between isolates for each index (row)
+    isolate.
+    
+    Args:
+        bounds (2-tuple)
+            Range of rows to process in this thread.
+        distances (int)
+            Shared memory object storing pairwise distances.
+    
+    Returns:
+        ranks (numpy ndarray)
+            Ranks of distances for each row.
+    """
     # load distance matrix from shared memory
     distances_shm = shared_memory.SharedMemory(name = distances.name)
     distances = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_shm.buf)
@@ -46,6 +72,22 @@ def rank_distance_matrix(bounds, distances = None):
     return ranks
 
 def get_nearest_neighbours(rank, isolates = None, ranks = None):
+    """ Identifies sets of nearest neighbours for each isolate.
+    
+    Args:
+        rank (int)
+            Rank used in analysis.
+        isolates (int list)
+            List of isolate indices.
+        ranks (ndarray)
+            Shared memory object pointing to ndarray of
+            ranked pairwise distances.
+            
+    Returns:
+        nn (default dict of frozensets)
+            Dict indexed by isolates, values are a
+            frozen set of nearest neighbours.
+    """
     # data structure
     nn = {}
     # load shared ranks
@@ -63,6 +105,19 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
     
 
 def pick_seed_isolate(G, distances = None):
+    """ Identifies seed isolate from the closest pair of
+    unclustered isolates.
+    
+    Args:
+        G (network)
+            Network with one node per isolate.
+        distances (ndarray of pairwise distances)
+            Pairwise distances between isolates.
+            
+    Returns:
+        seed_isolate (int)
+            Index of isolate selected as seed.
+    """
     # identify unclustered isolates
     unclustered_isolates = list(nx.isolates(G))
     # select minimum distance between unclustered isolates
@@ -82,23 +137,18 @@ def get_lineage(G, neighbours, seed_isolate, lineage_index):
     lineage given a cluster seed.
 
     Args:
-        lineage_clustering (dict)
-           Clustering of existing dataset.
-        neighbours (nested dict)
+        G (network)
+            Network with one node per isolate.
+        neighbours (dict of frozen sets)
            Pre-calculated neighbour relationships.
-        rank (int)
-           Maximum rank of neighbours used for clustering.
+        seed_isolate (int)
+           Index of isolate selected as seed.
         lineage_index (int)
            Label of current lineage.
-        seed_isolate (str)
-           Isolate to used to initiate next lineage.
-        previous_lineage_clustering (dict)
-            Clustering of existing dataset in previous iteration.
         
     Returns:
-        lineage_clustering (dict)
-            Assignment of isolates to lineages.
-
+        G (network)
+            Network modified with new edges.
     """
     # initiate lineage as the seed isolate and immediate unclustered neighbours
     in_lineage = {seed_isolate}
@@ -135,11 +185,13 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         rank_list (list of int)
             Integers specifying the maximum rank of neighbours used
             for clustering.
+        output (string)
+            Prefix used for printing output files.
         isolate_list (list)
             List of reference sequences.
         qlist (list)
             List of query sequences being added to an existing clustering.
-            Should be included within rlist.
+            Should be included within isolate_list.
         existing_scheme (str)
             Path to pickle file containing lineage scheme to which isolates
             should be added.
@@ -149,9 +201,10 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             Number of CPUs to use for calculations.
             
     Returns:
-        combined (dict)
-            Assignment of each isolate to clusters by all ranks used.
+        overall_lineages (nested dict)
+            Dict for each rank listing the lineage of each isolate.
     """
+    
     # data structures
     lineage_clustering = defaultdict(dict)
     overall_lineage_seeds = defaultdict(dict)
