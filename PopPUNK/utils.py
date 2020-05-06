@@ -318,7 +318,7 @@ def get_shared_memory_version(d, m):
     return d_array, d_raw
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
-                             query_query_distMat = None, num_processes = 4):
+                             query_query_distMat = None, num_processes = 1):
     """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
     to a square form (2 NxN matrices), with merging of query distances if necessary.
 
@@ -389,6 +389,7 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
 
         # if query vs refdb (--assign-query), also include these comparisons
         if queryList is not None:
+        
             # query v query - symmetric
             qq_coords = defaultdict(tuple)
             i = len(refList)

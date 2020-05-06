@@ -23,8 +23,10 @@ except ImportError as e:
 from .network import constructNetwork
 from .network import networkSummary
 
+from .utils import get_chunk_ranges
+
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
-        max_move, min_move, slope = 2, no_local = False, num_processes = 1):
+        max_move, min_move, slope = 2, no_local = False, num_processes = 4):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -99,33 +101,33 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                         slope = slope),
                                 s_range)
 
-    # Local optimisation around global optimum
-    min_idx = np.argmin(np.array(global_s))
-    if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
-        sys.stderr.write("Trying to optimise score locally\n")
-        local_s = scipy.optimize.minimize_scalar(newNetwork,
-                        bounds=[s_range[min_idx-1], s_range[min_idx+1]],
-                        method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient, slope))
-        optimised_s = local_s.x
-    else:
-        optimised_s = s_range[min_idx]
+        # Local optimisation around global optimum
+        min_idx = np.argmin(np.array(global_s))
+        if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
+            sys.stderr.write("Trying to optimise score locally\n")
+            local_s = scipy.optimize.minimize_scalar(newNetwork,
+                            bounds=[s_range[min_idx-1], s_range[min_idx+1]],
+                            method='Bounded', options={'disp': True},
+                            args = (sample_names, distances_shared, start_point, mean1, gradient, slope))
+            optimised_s = local_s.x
+        else:
+            optimised_s = s_range[min_idx]
 
-    optimised_coor = transformLine(optimised_s, start_point, mean1)
-    if slope == 2:
-        optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
-    else:
-        optimal_x = optimised_coor[0]
-        optimal_y = optimised_coor[1]
+        optimised_coor = transformLine(optimised_s, start_point, mean1)
+        if slope == 2:
+            optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
+        else:
+            optimal_x = optimised_coor[0]
+            optimal_y = optimised_coor[1]
 
-    if optimal_x < 0 or optimal_y < 0:
-        raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
+        if optimal_x < 0 or optimal_y < 0:
+            raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
     return start_point, optimal_x, optimal_y
 
 
-@jit(nopython=True)
-def withinBoundary(dists, x_max, y_max, slope=2):
+#@jit(nopython=False)
+def withinBoundary(coords, dists = None, x_max = None, y_max = None, slope=2):
     """Classifies points as within or outside of a refined boundary.
     Numba JIT compiled for speed.
 
@@ -146,10 +148,14 @@ def withinBoundary(dists, x_max, y_max, slope=2):
             For each sample in dists, -1 if within-strain and 1 if between-strain.
             0 if exactly on boundary.
     """
+    # load distMat slice
+    dists_shm = shared_memory.SharedMemory(name = dists.name)
+    dists = np.ndarray(dists.shape, dtype = dists.dtype, buffer = dists_shm.buf)
+
     # See https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
     # x_max and y_max from decisionBoundary
-    boundary_test = np.ones((dists.shape[0]))
-    for row in range(boundary_test.size):
+    boundary_test = np.ones(coords[1] - coords[0])
+    for row in range(coords[0],coords[1]):
         if slope == 2:
             in_tri = dists[row, 0]*dists[row, 1] - (x_max-dists[row, 0])*(y_max-dists[row, 1])
         elif slope == 0:
@@ -158,9 +164,9 @@ def withinBoundary(dists, x_max, y_max, slope=2):
             in_tri = dists[row, 1] - y_max
 
         if in_tri < 0:
-            boundary_test[row] = -1
+            boundary_test[row - coords[0]] = -1
         elif in_tri == 0:
-            boundary_test[row] = 0
+            boundary_test[row - coords[0]] = 0
     return(boundary_test)
 
 
@@ -191,9 +197,9 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
-    if isinstance(distMat, NumpyShared):
-        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
-        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+#    if isinstance(distMat, NumpyShared):
+#        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
+#        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
     
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
@@ -207,7 +213,8 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         y_max = new_intercept[1]
 
     # Make network
-    boundary_assignments = withinBoundary(distMat, x_max, y_max, slope)
+    distMat_rows = (0,distMat.shape[0])
+    boundary_assignments = withinBoundary(distMat_rows, distMat, x_max = x_max, y_max = y_max, slope = slope)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score

@@ -16,8 +16,19 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
+import collections
+from functools import partial
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 
 from .plot import plot_scatter
+from .utils import get_chunk_ranges
+from .utils import get_shared_memory_version
 
 # BGMM
 from .bgmm import fit2dMultiGaussian
@@ -717,11 +728,11 @@ class RefineFit(ClusterFit):
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
-    def assign(self, X, slope=None):
+    def assign(self, distMat, slope=None):
         '''Assign the clustering of new samples using :func:`~PopPUNK.refine.withinBoundary`
 
         Args:
-            X (numpy.array)
+            distMat (numpy.array)
                 Core and accessory distances
             slope (int)
                 Override self.slope. Default - use self.slope
@@ -735,13 +746,37 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
+            # identify parameter set
+            x_max = self.optimal_x
+            y_max = self.optimal_y
             if slope == 2 or (slope == None and self.slope == 2):
-                y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
+#                y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
+                slope = 2
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=0)
+#                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=0)
+                x_max = self.core_boundary
+                y_max = 0
+                slope = 0
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=1)
+#                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=1)
+                x_max = 0
+                y_max = self.accessory_boundary
+                slope = 1
+
+            # run parallelised assignment
+            with SharedMemoryManager() as smm:
+                num_processes = 4
+                scaled_distMat = distMat/self.scale
+                coord_ranges = get_chunk_ranges(scaled_distMat.shape[0], num_processes)
+                scaled_distMat_array, scaled_distMat_raw = get_shared_memory_version(scaled_distMat, smm)
+            
+                with Pool(processes = num_processes) as pool:
+                    pooled_boundary_assignments = pool.map(partial(withinBoundary,
+                                                            dists = scaled_distMat_array,
+                                                            x_max = x_max,
+                                                            y_max = y_max,
+                                                            slope = slope),
+                                                            coord_ranges)
+                    y = np.concatenate(pooled_boundary_assignments)
 
         return y
-
-
