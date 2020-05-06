@@ -28,27 +28,7 @@ from .plot import writeClusterCsv
 
 from .utils import iterDistRows
 from .utils import update_distance_matrices
-
-def get_chunk_ranges(N, nb):
-    """ Calculates boundaries for dividing distances array
-    into chunks for parallelisation.
-    
-    Args:
-        N (int)
-            Number of rows in array
-        nb (int)
-            Number of blocks into which to divide array.
-    
-    Returns:
-        range_sizes (list of tuples)
-            Limits of blocks for dividing array.
-    """
-    step = N / nb
-    range_sizes = [(round(step*i), round(step*(i+1))) for i in range(nb)]
-    # extend to end of distMat
-    range_sizes[len(range_sizes) - 1] = (range_sizes[len(range_sizes) - 1][0],N)
-    # return ranges
-    return range_sizes
+from .utils import get_chunk_ranges
 
 def rank_distance_matrix(bounds, distances = None):
     """ Ranks distances between isolates for each index (row)

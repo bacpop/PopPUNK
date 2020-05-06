@@ -12,7 +12,14 @@ import subprocess
 from collections import defaultdict
 from tempfile import mkstemp
 from functools import partial
-
+import collections
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 import numpy as np
 import pandas as pd
 
@@ -304,7 +311,7 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
 
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
-                             query_query_distMat = None):
+                             query_query_distMat = None, num_processes = 1):
     """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
     to a square form (2 NxN matrices), with merging of query distances if necessary.
 
@@ -336,56 +343,95 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     if queryList is not None:
         seqLabels = seqLabels + queryList
 
-    coreMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-    accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
+    # share existing distmat
+    with SharedMemoryManager() as smm:
+        
+        # share existing distance matrix
+        distMat_raw = smm.SharedMemory(size = distMat.nbytes)
+        distMat_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_raw.buf)
+        distMat_array[:] = distMat[:]
+        distMat_array = NumpyShared(name = distMat_raw.name, shape = distMat.shape, dtype = distMat.dtype)
 
-    # Fill in symmetric matrices for core and accessory distances
-    i = 0
-    j = 1
-
-    # ref v ref (used for --create-db)
-    for row in distMat:
-        coreMat[i, j] = row[0]
-        coreMat[j, i] = coreMat[i, j]
-        accMat[i, j] = row[1]
-        accMat[j, i] = accMat[i, j]
-
-        if j == len(refList) - 1:
-            i += 1
-            j = i + 1
-        else:
-            j += 1
-
-    # if query vs refdb (--assign-query), also include these comparisons
-    if queryList is not None:
-
-        # query v query - symmetric
-        i = len(refList)
-        j = len(refList)+1
-        for row in query_query_distMat:
-            coreMat[i, j] = row[0]
-            coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = row[1]
-            accMat[j, i] = accMat[i, j]
-            if j == (len(refList) + len(queryList) - 1):
+        # create shared memory objects - core distances
+        coreMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
+        coreMat_raw = smm.SharedMemory(size = coreMat.nbytes)
+        coreMat_array = np.ndarray(coreMat.shape, dtype = coreMat.dtype, buffer = coreMat_raw.buf)
+        coreMat_array[:] = coreMat[:]
+        coreMat_array = NumpyShared(name = coreMat_raw.name, shape = coreMat.shape, dtype = coreMat.dtype)
+        
+        # create shared memory objects - core distances
+        accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
+        accMat_raw = smm.SharedMemory(size = accMat.nbytes)
+        accMat_array = np.ndarray(accMat.shape, dtype = accMat.dtype, buffer = accMat_raw.buf)
+        accMat_array[:] = accMat[:]
+        accMat_array = NumpyShared(name = accMat_raw.name, shape = accMat.shape, dtype = accMat.dtype)
+        
+        # Fill in symmetric matrices for core and accessory distances
+        i = 0
+        j = 1
+        max_j = len(refList) - 1
+        coords = defaultdict(tuple)
+        for n in range(distMat.shape[0]):
+            coords[n] = (i,j)
+            if j == max_j:
                 i += 1
                 j = i + 1
             else:
                 j += 1
+        
+        # ref v ref (used for --create-db)
+#        for row in distMat:
+#            coreMat[i, j] = row[0]
+#            coreMat[j, i] = coreMat[i, j]
+#            accMat[i, j] = row[1]
+#            accMat[j, i] = accMat[i, j]
+#
+#            if j == len(refList) - 1:
+#                i += 1
+#                j = i + 1
+#            else:
+#                j += 1
 
-        # ref v query - asymmetric
-        i = len(refList)
-        j = 0
-        for row in query_ref_distMat:
-            coreMat[i, j] = row[0]
-            coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = row[1]
-            accMat[j, i] = accMat[i, j]
-            if j == (len(refList) - 1):
-                i += 1
-                j = 0
-            else:
-                j += 1
+        # if query vs refdb (--assign-query), also include these comparisons
+        if queryList is not None:
+
+            # query v query - symmetric
+            i = len(refList)
+            j = len(refList)+1
+            max_j = (len(refList) + len(queryList) - 1)
+            for n in range(query_query_distMat.shape[0]):
+                coords[n] = (i,j)
+                if j == max_j:
+                    i += 1
+                    j = i + 1
+                else:
+                    j += 1
+
+            # ref v query - asymmetric
+            i = len(refList)
+            j = 0
+            max_j = (len(refList) - 1)
+            for row in query_ref_distMat:
+                coords[n] = (i,j)
+                if j == max_j:
+                    i += 1
+                    j = 0
+                else:
+                    j += 1
+        
+        # fill in matrices
+        coord_ranges = get_chunk_ranges(max(coords.keys()), num_processes)
+        with Pool(processes = num_processes) as pool:
+            pool.map(partial(fill_distance_matrix,
+                            coords = coords,
+                            dist = distMat_array,
+                            core = coreMat_array,
+                            acc = accMat_array),
+                            coord_ranges)
+        
+        coreMat = np.ndarray(coreMat.shape, dtype = coreMat.dtype, buffer = coreMat_raw.buf)
+        accMat = np.ndarray(accMat.shape, dtype = accMat.dtype, buffer = accMat_raw.buf)
+    print('Final: '  + str(coreMat))
 
     # return outputs
     return seqLabels, coreMat, accMat
@@ -517,3 +563,44 @@ def readRfile(rFile, oneSeq=False):
         sys.exit(1)
 
     return (names, sequences)
+
+def get_chunk_ranges(N, nb):
+    """ Calculates boundaries for dividing distances array
+    into chunks for parallelisation.
+
+    Args:
+        N (int)
+            Number of rows in array
+        nb (int)
+            Number of blocks into which to divide array.
+
+    Returns:
+        range_sizes (list of tuples)
+            Limits of blocks for dividing array.
+    """
+    step = N / nb
+    range_sizes = [(round(step*i), round(step*(i+1))) for i in range(nb)]
+    # extend to end of distMat
+    range_sizes[len(range_sizes) - 1] = (range_sizes[len(range_sizes) - 1][0],N)
+    # return ranges
+    return range_sizes
+
+def fill_distance_matrix(num_range, coords = None, dist = None, core = None, acc = None):
+    # load memory
+    dist_shm = shared_memory.SharedMemory(name = dist.name)
+    dist = np.ndarray(dist.shape, dtype = dist.dtype, buffer = dist_shm.buf)
+    
+    core_shm = shared_memory.SharedMemory(name = core.name)
+    core = np.ndarray(core.shape, dtype = core.dtype, buffer = core_shm.buf)
+
+    acc_shm = shared_memory.SharedMemory(name = acc.name)
+    acc = np.ndarray(acc.shape, dtype = acc.dtype, buffer = acc_shm.buf)
+    # iterate and fill
+    n = num_range[0]
+    for n in range(num_range[0],num_range[1]):
+        upper = coords[n]
+        lower = (coords[n][1],coords[n][0])
+        core[upper] = dist[n,0]
+        core[lower] = dist[n,0]
+        acc[upper] = dist[n,1]
+        acc[lower] = dist[n,1]
