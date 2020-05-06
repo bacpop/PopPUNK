@@ -310,8 +310,15 @@ def translate_distMat(combined_list, core_distMat, acc_distMat):
     return distMat
 
 
+def get_shared_memory_version(d, m):
+    d_raw = m.SharedMemory(size = d.nbytes)
+    d_array = np.ndarray(d.shape, dtype = d.dtype, buffer = d_raw.buf)
+    d_array[:] = d[:]
+    d_array = NumpyShared(name = d_raw.name, shape = d.shape, dtype = d.dtype)
+    return d_array, d_raw
+
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
-                             query_query_distMat = None, num_processes = 1):
+                             query_query_distMat = None, num_processes = 4):
     """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
     to a square form (2 NxN matrices), with merging of query distances if necessary.
 
@@ -347,24 +354,15 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     with SharedMemoryManager() as smm:
         
         # share existing distance matrix
-        distMat_raw = smm.SharedMemory(size = distMat.nbytes)
-        distMat_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_raw.buf)
-        distMat_array[:] = distMat[:]
-        distMat_array = NumpyShared(name = distMat_raw.name, shape = distMat.shape, dtype = distMat.dtype)
+        distMat_array, distMat_raw = get_shared_memory_version(distMat, smm)
 
         # create shared memory objects - core distances
         coreMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-        coreMat_raw = smm.SharedMemory(size = coreMat.nbytes)
-        coreMat_array = np.ndarray(coreMat.shape, dtype = coreMat.dtype, buffer = coreMat_raw.buf)
-        coreMat_array[:] = coreMat[:]
-        coreMat_array = NumpyShared(name = coreMat_raw.name, shape = coreMat.shape, dtype = coreMat.dtype)
-        
+        coreMat_array, coreMat_raw = get_shared_memory_version(coreMat, smm)
+                
         # create shared memory objects - core distances
         accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-        accMat_raw = smm.SharedMemory(size = accMat.nbytes)
-        accMat_array = np.ndarray(accMat.shape, dtype = accMat.dtype, buffer = accMat_raw.buf)
-        accMat_array[:] = accMat[:]
-        accMat_array = NumpyShared(name = accMat_raw.name, shape = accMat.shape, dtype = accMat.dtype)
+        accMat_array, accMat_raw = get_shared_memory_version(accMat, smm)
         
         # Fill in symmetric matrices for core and accessory distances
         i = 0
@@ -379,46 +377,6 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
             else:
                 j += 1
         
-        # ref v ref (used for --create-db)
-#        for row in distMat:
-#            coreMat[i, j] = row[0]
-#            coreMat[j, i] = coreMat[i, j]
-#            accMat[i, j] = row[1]
-#            accMat[j, i] = accMat[i, j]
-#
-#            if j == len(refList) - 1:
-#                i += 1
-#                j = i + 1
-#            else:
-#                j += 1
-
-        # if query vs refdb (--assign-query), also include these comparisons
-        if queryList is not None:
-
-            # query v query - symmetric
-            i = len(refList)
-            j = len(refList)+1
-            max_j = (len(refList) + len(queryList) - 1)
-            for n in range(query_query_distMat.shape[0]):
-                coords[n] = (i,j)
-                if j == max_j:
-                    i += 1
-                    j = i + 1
-                else:
-                    j += 1
-
-            # ref v query - asymmetric
-            i = len(refList)
-            j = 0
-            max_j = (len(refList) - 1)
-            for row in query_ref_distMat:
-                coords[n] = (i,j)
-                if j == max_j:
-                    i += 1
-                    j = 0
-                else:
-                    j += 1
-        
         # fill in matrices
         coord_ranges = get_chunk_ranges(max(coords.keys()), num_processes)
         with Pool(processes = num_processes) as pool:
@@ -428,11 +386,62 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
                             core = coreMat_array,
                             acc = accMat_array),
                             coord_ranges)
-        
-        coreMat = np.ndarray(coreMat.shape, dtype = coreMat.dtype, buffer = coreMat_raw.buf)
-        accMat = np.ndarray(accMat.shape, dtype = accMat.dtype, buffer = accMat_raw.buf)
-    print('Final: '  + str(coreMat))
 
+        # if query vs refdb (--assign-query), also include these comparisons
+        if queryList is not None:
+            # query v query - symmetric
+            qq_coords = defaultdict(tuple)
+            i = len(refList)
+            j = len(refList)+1
+            max_j = (len(refList) + len(queryList) - 1)
+            for n in range(query_query_distMat.shape[0]):
+                qq_coords[n] = (i,j)
+                if j == max_j:
+                    i += 1
+                    j = i + 1
+                else:
+                    j += 1
+                    
+            # fill in matrices
+            qq_coord_ranges = get_chunk_ranges(query_query_distMat.shape[0], num_processes)
+            # share existing distance matrix
+            qq_distMat_array, qq_distMat_raw = get_shared_memory_version(query_query_distMat, smm)
+            with Pool(processes = num_processes) as pool:
+                pool.map(partial(fill_distance_matrix,
+                                coords = qq_coords,
+                                dist = qq_distMat_array,
+                                core = coreMat_array,
+                                acc = accMat_array),
+                                qq_coord_ranges)
+
+            # ref v query - asymmetric
+            qr_coords = defaultdict(tuple)
+            i = len(refList)
+            j = 0
+            max_j = (len(refList) - 1)
+            for n in range(query_ref_distMat.shape[0]):
+                qr_coords[n] = (i,j)
+                if j == max_j:
+                    i += 1
+                    j = 0
+                else:
+                    j += 1
+                    
+            # fill in matrices
+            qr_coord_ranges = get_chunk_ranges(query_ref_distMat.shape[0], num_processes)
+            qr_distMat_array, qq_distMat_raw = get_shared_memory_version(query_ref_distMat, smm)
+            with Pool(processes = num_processes) as pool:
+                pool.map(partial(fill_distance_matrix,
+                                coords = qr_coords,
+                                dist = qr_distMat_array,
+                                core = coreMat_array,
+                                acc = accMat_array),
+                                qr_coord_ranges)
+
+        # copy data out of shared memory
+        coreMat[:] = np.ndarray(coreMat_array.shape, dtype=coreMat_array.dtype, buffer=coreMat_raw.buf)[:]
+        accMat[:] = np.ndarray(accMat_array.shape, dtype=accMat_array.dtype, buffer=accMat_raw.buf)[:]
+        
     # return outputs
     return seqLabels, coreMat, accMat
 
@@ -586,7 +595,7 @@ def get_chunk_ranges(N, nb):
     return range_sizes
 
 def fill_distance_matrix(num_range, coords = None, dist = None, core = None, acc = None):
-    # load memory
+    # load shared memory objects
     dist_shm = shared_memory.SharedMemory(name = dist.name)
     dist = np.ndarray(dist.shape, dtype = dist.dtype, buffer = dist_shm.buf)
     
