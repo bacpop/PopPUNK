@@ -72,6 +72,22 @@ sys.stderr.write("Running general tests\n\n")
 sys.stderr.write("Running microreact visualisations (--generate-viz)\n")
 subprocess.run("python ../poppunk-runner.py --generate-viz --distances example_db_mash/example_db_mash.dists --ref-db example_db_mash --output example_viz --microreact --subset subset.txt", shell=True, check=True)
 
+# lineage clustering
+sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")
+subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db/example_db.dists --output example_lineages --ranks 1,2,3,5", shell=True, check=True)
+
+# assign query to lineages
+sys.stderr.write("Running query assignment (--assign-lineages)\n")
+subprocess.run("python ../poppunk-runner.py --assign-lineages --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --existing-scheme example_lineages/example_lineages_lineages.pkl --output example_lineage_query --update-db", shell=True, check=True)
+
+# lineage clustering with mash
+sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")
+subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db_mash/example_db_mash.dists --output example_lineages_mash --ranks 1,2,3,5 --use-mash", shell=True, check=True)
+
+# assign query to lineages with mash
+sys.stderr.write("Running query assignment (--assign-lineages)\n")
+subprocess.run("python ../poppunk-runner.py --assign-lineages --q-files queries.txt --distances example_db_mash/example_db_mash.dists --ref-db example_db_mash --existing-scheme example_lineages_mash/example_lineages_mash_lineages.pkl --output example_lineage_mash_query --update-db --use-mash", shell=True, check=True)
+
 
 # tests of other command line programs (TODO)
 

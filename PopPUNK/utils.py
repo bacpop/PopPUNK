@@ -142,9 +142,7 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             List of query sequence names.
         self (bool)
             Whether a self-comparison, used when constructing a database.
-
             Requires refSeqs == querySeqs
-
             Default is True
     Returns:
         ref, query (str, str)
@@ -160,7 +158,6 @@ def iterDistRows(refSeqs, querySeqs, self=True):
         for query in querySeqs:
             for ref in refSeqs:
                 yield(ref, query)
-
 
 def writeTmpFile(fileList):
     """Writes a list to a temporary file. Used for turning variable into mash
@@ -213,12 +210,12 @@ def qcDistMat(distMat, refList, queryList, a_max):
     return passed
 
 
-def readClusters(clustCSV, return_dict=False):
-    """Read a previous reference clustering from CSV
+def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
+    """Read isolate types from CSV file.
 
     Args:
         clustCSV (str)
-            File name of CSV with previous cluster assignments
+            File name of CSV with isolate assignments
         return_type (str)
             If True, return a dict with sample->cluster instead
             of sets
@@ -229,45 +226,43 @@ def readClusters(clustCSV, return_dict=False):
             sets containing samples in the cluster). Or if return_dict is set keys
             are sample names, values are cluster assignments.
     """
+    # data structures
     if return_dict:
-        clusters = {}
+        clusters = defaultdict(dict)
     else:
-        clusters = defaultdict(set)
-
-    with open(clustCSV, 'r') as csv_file:
-        header = csv_file.readline()
-        for line in csv_file:
-            (sample, clust_id) = line.rstrip().split(",")[:2]
+        clusters = {}
+    
+    # read CSV
+    clustersCsv = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
+    
+    # select relevant columns according to mode
+    if mode == 'clusters':
+        type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Cluster' in col)]
+    elif mode == 'lineages':
+        type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Rank_' in col or 'overall' in col)]
+    elif mode == 'external':
+        if len(clustersCsv.columns) == 1:
+            type_columns = [0]
+        elif len(clustersCsv.columns) > 1:
+            type_columns = range((len(clustersCsv.columns)-1))
+    else:
+        sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
+        exit(1)
+    
+    # read file
+    for row in clustersCsv.itertuples():
+        for cls_idx in type_columns:
+            cluster_name = clustersCsv.columns[cls_idx]
+            cluster_name = cluster_name.replace('__autocolour','')
             if return_dict:
-                clusters[sample] = clust_id
+                clusters[cluster_name][row.Index] = str(row[cls_idx + 1])
             else:
-                clusters[clust_id].add(sample)
+                if cluster_name not in clusters.keys():
+                    clusters[cluster_name] = defaultdict(set)
+                clusters[cluster_name][str(row[cls_idx + 1])].add(row.Index)
 
+    # return data structure
     return clusters
-
-
-def readExternalClusters(clustCSV):
-    """Read a cluster definition from CSV (does not have to be PopPUNK
-    generated clusters). Rows samples, columns clusters.
-
-    Args:
-        clustCSV (str)
-            File name of CSV with previous cluster assingments
-
-    Returns:
-        extClusters (dict)
-            Dictionary of dictionaries of cluster assignments
-            (first key cluster assignment name, second key sample, value cluster assignment)
-    """
-    extClusters = defaultdict(lambda: defaultdict(str))
-
-    extClustersFile = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
-    for row in extClustersFile.itertuples():
-        for cls_idx, cluster in enumerate(extClustersFile.columns):
-            extClusters[str(cluster)][row.Index] = str(row[cls_idx + 1])
-
-    return(extClusters)
-
 
 def translate_distMat(combined_list, core_distMat, acc_distMat):
     """Convert distances from a square form (2 NxN matrices) to a long form
@@ -469,8 +464,10 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
 
     k_min = min(klist)
     max_prob = 1/(pow(4, k_min)/float(genome_length) + 1)
-    if 1/(pow(4, k_min)/float(genome_length) + 1) > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; please increase to avoid nonsense results\n")
+    if max_prob > 0.05:
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; results will be adjusted for random match probabilities\n")
+    if k_min < 6:
+        sys.stderr.write("Minimum k-mer length is too low; please increase to at least 6\n")
         exit(1)
 
     return (int(genome_length), max_prob)

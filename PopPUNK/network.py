@@ -18,9 +18,10 @@ import pandas as pd
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 
+from .sketchlib import calculateQueryQueryDistances
+
 from .utils import iterDistRows
-from .utils import readClusters
-from .utils import readExternalClusters
+from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 
 def fetchNetwork(network_dir, model, refList,
@@ -320,13 +321,11 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
         distMat (numpy.array)
             Query-query distances
     """
-    constructDatabase = dbFuncs['constructDatabase']
-    queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
     # initialise links data structure
     new_edges = []
     assigned = set()
+
     # These are returned
     qlist1 = None
     distMat = None
@@ -338,7 +337,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
         rNames = None
         qNames = qSeqs
     else:
-        rNames = qList 
+        rNames = qList
         qNames = rNames
 
     # store links for each query in a list of edge tuples
@@ -350,17 +349,17 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
+        qlist1, distMat = calculateQueryQueryDistances(dbFuncs,
+                                                        rNames,
+                                                        qfile,
+                                                        kmers,
+                                                        estimated_length,
+                                                        queryDB,
+                                                        use_mash,
+                                                        threads)
 
-        qlist1, qlist2, distMat = queryDatabase(rNames = rNames,
-                                                qNames = qNames, 
-                                                dbPrefix = queryDB, 
-                                                queryPrefix = queryDB, 
-                                                klist = kmers,
-                                                self = True, 
-                                                number_plot_fits = 0, 
-                                                threads=threads)
         queryAssignation = model.assign(distMat)
-        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
+        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist1, qlist1, self=True)):
             if assignment == model.within_label:
                 new_edges.append((ref, query))
 
@@ -399,7 +398,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                     number_plot_fits = 0,
                                                     threads = threads)
             queryAssignation = model.assign(distMat)
-
+            
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             for assignment, (query1, query2) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
@@ -416,7 +415,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     return qlist1, distMat
 
 def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True):
+                  externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -427,26 +426,24 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
             :func:`~addQueryToNetwork`)
         outPrefix (str)
             Prefix for output CSV
-
             Default = "_clusters.csv"
         oldClusterFile (str)
             CSV with previous cluster assignments.
             Pass to ensure consistency in cluster assignment name.
-
             Default = None
         externalClusterCSV (str)
             CSV with cluster assignments from any source. Will print a file
             relating these to new cluster assignments
-
             Default = None
         printRef (bool)
             If false, print only query sequences in the output
-
             Default = True
         printCSV (bool)
             Print results to file
-
             Default = True
+        clustering_type (str)
+            Type of clustering network, used for comparison with old clusters
+            Default = 'combined'
 
     Returns:
         clustering (dict)
@@ -460,8 +457,10 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
     oldNames = set()
 
     if oldClusterFile != None:
-        oldClusters = readClusters(oldClusterFile)
-        new_id = len(oldClusters) + 1 # 1-indexed
+        oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
+        oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
+        print('oldCluster is ' + str(oldClusters))
+        new_id = len(oldClusters.keys()) + 1 # 1-indexed
         while new_id in oldClusters:
             new_id += 1 # in case clusters have been merged
 
@@ -571,7 +570,8 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
     d = defaultdict(list)
 
     # Read in external clusters
-    extClusters = readExternalClusters(extClusterFile)
+#    extClusters = readExternalClusters(extClusterFile)
+    readIsolateTypeFromCsv(clustCSV, mode = 'external', return_dict = False)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster
