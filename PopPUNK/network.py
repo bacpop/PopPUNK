@@ -13,6 +13,7 @@ import operator
 import shutil
 import subprocess
 import networkx as nx
+import graph_tool.all as gt
 import numpy as np
 import pandas as pd
 from tempfile import mkstemp, mkdtemp
@@ -21,6 +22,7 @@ from collections import defaultdict, Counter
 from .sketchlib import calculateQueryQueryDistances
 
 from .utils import iterDistRows
+from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 
@@ -226,20 +228,32 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
         G (networkx.Graph)
             The resulting network
     """
+    # data structures
     connections = []
-    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+    self_comparison = True
+    num_vertices = len(rlist)
+    
+    # check if self comparison
+    if rlist != qlist:
+        self_comparison = False
+        num_vertices = num_vertices + len(qlist)
+    
+    # identify edges
+    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qlist, self = self_comparison)):
         if assignment == within_label:
             connections.append((ref, query))
 
+    # issue warning
     density_proportion = len(connections) / (0.5 * (len(rlist) * (len(rlist) + 1)))
     if density_proportion > 0.4 or len(connections) > 500000:
         sys.stderr.write("Warning: trying to create very dense network\n")
 
     # build the graph
-    G = nx.Graph()
-    G.add_nodes_from(rlist)
-    for connection in connections:
-        G.add_edge(*connection)
+    G = gt.Graph(directed = False)
+    G.add_vertex(num_vertices)
+    G.add_edge_list(connections)
+#    for connection in connections:
+#        G.add_edge(*connection)
 
     # give some summaries
     if summarise:
@@ -269,9 +283,14 @@ def networkSummary(G):
         score (float)
             A score of network fit, given by :math:`\mathrm{transitivity} * (1-\mathrm{density})`
     """
-    components = nx.number_connected_components(G)
-    density = nx.density(G)
-    transitivity = nx.transitivity(G)
+    comp, hist = gt.label_components(G)
+    components = len(set(comp.a))
+#    density = nx.density(G)
+    density = len(list(G.edges()))/(len(list(G.vertices())) * (len(list(G.vertices())) - 1))
+#    transitivity = nx.transitivity(G)
+    transitivity = gt.global_clustering(G)[0]
+    print('Transitivity: '+ str(gt.global_clustering(G)))
+    quit()
     score = transitivity * (1-density)
 
     return(components, density, transitivity, score)
