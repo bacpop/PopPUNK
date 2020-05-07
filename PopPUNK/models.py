@@ -16,6 +16,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
+from numba import prange, njit
 import collections
 from functools import partial
 try:
@@ -619,10 +620,10 @@ class RefineFit(ClusterFit):
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
 
-        y = self.assign(X)
+        y = self.assign(X, num_processes = threads)
         return y
 
-    def apply_threshold(self, X, threshold):
+    def apply_threshold(self, X, threshold, num_processes = 1):
         '''Applies a boundary threshold, given by user. Does not run
         optimisation.
 
@@ -659,7 +660,7 @@ class RefineFit(ClusterFit):
         self.threshold = True
         self.indiv_fitted = False
 
-        y = self.assign(X)
+        y = self.assign(X, num_processes = 1)
         return y
 
     def save(self):
@@ -727,8 +728,7 @@ class RefineFit(ClusterFit):
             self.max_move, self.scale, self.threshold, self.indiv_fitted, "Refined fit boundary",
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
-
-    def assign(self, distMat, slope=None):
+    def assign(self, distMat, slope = None, num_processes = 1):
         '''Assign the clustering of new samples using :func:`~PopPUNK.refine.withinBoundary`
 
         Args:
@@ -750,33 +750,39 @@ class RefineFit(ClusterFit):
             x_max = self.optimal_x
             y_max = self.optimal_y
             if slope == 2 or (slope == None and self.slope == 2):
-#                y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
                 slope = 2
             elif slope == 0 or (slope == None and self.slope == 0):
-#                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=0)
                 x_max = self.core_boundary
                 y_max = 0
                 slope = 0
             elif slope == 1 or (slope == None and self.slope == 1):
-#                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=1)
                 x_max = 0
                 y_max = self.accessory_boundary
                 slope = 1
 
             # run parallelised assignment
-            with SharedMemoryManager() as smm:
-                num_processes = 4
-                scaled_distMat = distMat/self.scale
-                coord_ranges = get_chunk_ranges(scaled_distMat.shape[0], num_processes)
-                scaled_distMat_array, scaled_distMat_raw = get_shared_memory_version(scaled_distMat, smm)
-            
-                with Pool(processes = num_processes) as pool:
-                    pooled_boundary_assignments = pool.map(partial(withinBoundary,
-                                                            dists = scaled_distMat_array,
-                                                            x_max = x_max,
-                                                            y_max = y_max,
-                                                            slope = slope),
-                                                            coord_ranges)
-                    y = np.concatenate(pooled_boundary_assignments)
+            scaled_distMat = distMat/self.scale
+            pooled_boundary_assignments = parallel_assign_boundaries(scaled_distMat = scaled_distMat,
+                                            x_max = x_max,
+                                            y_max = y_max,
+                                            slope = slope,
+                                            num_processes = num_processes)
+
+            y = np.concatenate(pooled_boundary_assignments)
 
         return y
+
+@njit(parallel=True)
+def parallel_assign_boundaries(scaled_distMat = None, x_max = None, y_max = None, slope = None, num_processes = None):
+    coord_ranges = get_chunk_ranges(scaled_distMat.shape[0], num_processes)
+    pooled_boundary_assignments = []
+    for i in range(num_processes):
+        pooled_boundary_assignments.append(np.ones(coord_ranges[i][1] - coord_ranges[i][0]))
+    for i in prange(num_processes):
+        pooled_boundary_assignments[i] = withinBoundary(coord_ranges[i],
+                                                        dists = scaled_distMat,
+                                                        x_max = x_max,
+                                                        y_max = y_max,
+                                                        slope = slope)
+    return pooled_boundary_assignments
+

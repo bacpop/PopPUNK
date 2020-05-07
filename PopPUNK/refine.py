@@ -26,7 +26,7 @@ from .network import networkSummary
 from .utils import get_chunk_ranges
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
-        max_move, min_move, slope = 2, no_local = False, num_processes = 4):
+        max_move, min_move, slope = 2, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -126,8 +126,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y
 
 
-#@jit(nopython=False)
-def withinBoundary(coords, dists = None, x_max = None, y_max = None, slope=2):
+@jit(nopython=True)
+def withinBoundary(coords, dists = None, x_max = None, y_max = None, slope = 2):
     """Classifies points as within or outside of a refined boundary.
     Numba JIT compiled for speed.
 
@@ -149,8 +149,8 @@ def withinBoundary(coords, dists = None, x_max = None, y_max = None, slope=2):
             0 if exactly on boundary.
     """
     # load distMat slice
-    dists_shm = shared_memory.SharedMemory(name = dists.name)
-    dists = np.ndarray(dists.shape, dtype = dists.dtype, buffer = dists_shm.buf)
+#    dists_shm = shared_memory.SharedMemory(name = dists.name)
+#    dists = np.ndarray(dists.shape, dtype = dists.dtype, buffer = dists_shm.buf)
 
     # See https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
     # x_max and y_max from decisionBoundary
@@ -197,9 +197,9 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
-#    if isinstance(distMat, NumpyShared):
-#        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
-#        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+    if isinstance(distMat, NumpyShared):
+        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
+        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
     
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)

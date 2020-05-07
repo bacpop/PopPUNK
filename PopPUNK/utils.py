@@ -12,6 +12,7 @@ import subprocess
 from collections import defaultdict
 from tempfile import mkstemp
 from functools import partial
+from numba import jit
 import collections
 try:
     from multiprocessing import Pool, shared_memory
@@ -574,6 +575,7 @@ def readRfile(rFile, oneSeq=False):
 
     return (names, sequences)
 
+@jit(nopython=True)
 def get_chunk_ranges(N, nb):
     """ Calculates boundaries for dividing distances array
     into chunks for parallelisation.
