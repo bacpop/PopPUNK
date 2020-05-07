@@ -425,7 +425,7 @@ def main():
                 assignments = new_model.fit(distMat, refList, model, args.pos_shift, args.neg_shift,
                         args.manual_start, args.indiv_refine, args.no_local, args.threads)
             else:
-                assignments = new_model.apply_threshold(distMat, args.threshold)
+                assignments = new_model.apply_threshold(distMat, args.threshold, args.threads)
                 
             new_model.plot(distMat)
             model = new_model

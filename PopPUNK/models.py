@@ -660,7 +660,7 @@ class RefineFit(ClusterFit):
         self.threshold = True
         self.indiv_fitted = False
 
-        y = self.assign(X, num_processes = 1)
+        y = self.assign(X, num_processes = num_processes)
         return y
 
     def save(self):
@@ -762,6 +762,7 @@ class RefineFit(ClusterFit):
 
             # run parallelised assignment
             scaled_distMat = distMat/self.scale
+            print('ASSIGNMENT USING: ' + str(num_processes))
             pooled_boundary_assignments = parallel_assign_boundaries(scaled_distMat = scaled_distMat,
                                             x_max = x_max,
                                             y_max = y_max,
