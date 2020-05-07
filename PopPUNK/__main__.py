@@ -8,6 +8,7 @@ import sys
 # additional
 import numpy as np
 import networkx as nx
+import graph_tool.all as gt
 import subprocess
 
 # import poppunk package
@@ -446,11 +447,12 @@ def main():
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
 
         # Ensure all in dists are in final network
-        networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
+        networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
         if len(networkMissing) > 0:
             sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
         isolateClustering = {fit_type: printClusters(genomeNetwork,
+                                                    refList, # assume no rlist+qlist?
                                                      args.output + "/" + os.path.basename(args.output),
                                                      externalClusterCSV = args.external_clustering)}
 
@@ -461,6 +463,7 @@ def main():
                 indivAssignments = model.assign(distMat, slope)
                 indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
                 isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
+                                                refList,
                                                  args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
                                                  externalClusterCSV = args.external_clustering)
                 nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + os.path.basename(args.output) +
@@ -806,7 +809,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             print_full_clustering = False
             if update_db:
                 print_full_clustering = True
-            isolateClustering = {'combined': printClusters(genomeNetwork, output + "/" + os.path.basename(output),
+            isolateClustering = {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
+                                                            output + "/" + os.path.basename(output),
                                                             old_cluster_file, external_clustering, print_full_clustering)}
 
         # Update DB as requested

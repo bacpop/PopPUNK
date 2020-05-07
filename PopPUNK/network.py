@@ -16,6 +16,7 @@ import networkx as nx
 import graph_tool.all as gt
 import numpy as np
 import pandas as pd
+from scipy.stats import rankdata
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 
@@ -283,14 +284,10 @@ def networkSummary(G):
         score (float)
             A score of network fit, given by :math:`\mathrm{transitivity} * (1-\mathrm{density})`
     """
-    comp, hist = gt.label_components(G)
-    components = len(set(comp.a))
-#    density = nx.density(G)
-    density = len(list(G.edges()))/(len(list(G.vertices())) * (len(list(G.vertices())) - 1))
-#    transitivity = nx.transitivity(G)
+    component_assignments, component_frequencies = gt.label_components(G)
+    components = len(component_frequencies)
+    density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
     transitivity = gt.global_clustering(G)[0]
-    print('Transitivity: '+ str(gt.global_clustering(G)))
-    quit()
     score = transitivity * (1-density)
 
     return(components, density, transitivity, score)
@@ -433,7 +430,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
 
     return qlist1, distMat
 
-def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
+def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                   externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
     """Get cluster assignments
 
@@ -472,13 +469,18 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
     if oldClusterFile == None and printRef == False:
         raise RuntimeError("Trying to print query clusters with no query sequences")
 
-    newClusters = sorted(nx.connected_components(G), key=len, reverse=True)
+    # get a sorted list of component assignments
+    newClusters = {}
+    component_assignments, component_frequencies = gt.label_components(G)
+    component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
+    for n,v in enumerate(rlist):
+        newClusters[rlist[n]] = component_frequency_ranks[component_assignments.a]
+    
     oldNames = set()
 
     if oldClusterFile != None:
         oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
         oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
-        print('oldCluster is ' + str(oldClusters))
         new_id = len(oldClusters.keys()) + 1 # 1-indexed
         while new_id in oldClusters:
             new_id += 1 # in case clusters have been merged

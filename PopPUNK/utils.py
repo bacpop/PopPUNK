@@ -187,11 +187,13 @@ def listDistInts(refSeqs, querySeqs, self=True):
         for i in range(num_ref):
             for j in range(i + 1, num_ref):
                 comparisons[n] = (j, i)
+                n = n + 1
     else:
         comparisons = [(0,0)] * (len(refSeqs) * len(querySeqs))
         for i in range(num_query):
             for j in range(num_ref):
                 comparisons[n] = (j, i)
+                n = n + 1
                 
     return comparisons
 
