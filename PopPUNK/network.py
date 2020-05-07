@@ -226,20 +226,15 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
         G (networkx.Graph)
             The resulting network
     """
-    connections = []
-    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
-        if assignment == within_label:
-            connections.append((ref, query))
 
-    density_proportion = len(connections) / (0.5 * (len(rlist) * (len(rlist) + 1)))
-    if density_proportion > 0.4 or len(connections) > 500000:
-        sys.stderr.write("Warning: trying to create very dense network\n")
-
-    # build the graph
+    # build the graph with nodes only
     G = nx.Graph()
     G.add_nodes_from(rlist)
-    for connection in connections:
-        G.add_edge(*connection)
+
+    # add edges
+    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qlist, self=True)):
+        if assignment == within_label:
+            G.add_edge(ref,query)
 
     # give some summaries
     if summarise:
