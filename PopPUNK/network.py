@@ -59,24 +59,24 @@ def fetchNetwork(network_dir, model, refList,
     # If a refined fit, may use just core or accessory distances
     if core_only and model.type == 'refine':
         model.slope = 0
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_core_graph.gpickle'
+        network_file = network_dir + "/" + os.path.basename(network_dir) + '_core_graph.gt'
         cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
         model.slope = 1
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_graph.gpickle'
+        network_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_graph.gt'
         cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_clusters.csv'
     else:
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_graph.gpickle'
+        network_file = network_dir + "/" + os.path.basename(network_dir) + '_graph.gt'
         cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_clusters.csv'
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
 
-    genomeNetwork = nx.read_gpickle(network_file)
+    genomeNetwork = gt.load_graph(network_file)
     sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
 
     # Ensure all in dists are in final network
-    networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
+    networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
     if len(networkMissing) > 0:
         sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
@@ -110,9 +110,9 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
         references = set(existingRefs)
 
     # extract cliques from network
-    cliques = list(nx.find_cliques(G))
+    cliques = [c.tolist() for c in gt.max_cliques(G)]
     # order list by size of clique
-    cliques.sort(key = len, reverse=True)
+    cliques.sort(key = len, reverse = True)
     # iterate through cliques
     for clique in cliques:
         alreadyRepresented = 0
@@ -124,40 +124,53 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
             references.add(clique[0])
 
     # Find any clusters which are represented by multiple references
-    clusters = printClusters(G, printCSV=False)
-    ref_clusters = set()
-    multi_ref_clusters = set()
-    for reference in references:
-        if clusters[reference] in ref_clusters:
-            multi_ref_clusters.add(clusters[reference])
+    # First get cluster assignments
+    clusters = printClusters(G, mashOrder, printCSV=False)
+    # Construct a dict of sets for each cluster
+    ref_clusters = [set() for c in set(clusters.items())]
+    # Iterate through references
+    for reference_index in references:
+        # Add references to the appropriate cluster
+        ref_clusters[clusters[mashOrder[reference_index]]].add(reference_index)
+
+    # Make a mask of the existing network to only retain references
+    # Use a vertex filter
+    reference_vertex = G.new_vertex_property('bool')
+    for n,vertex in enumerate(G.vertices()):
+        if n in references:
+            reference_vertex[vertex] = True
         else:
-            ref_clusters.add(clusters[reference])
+            reference_vertex[vertex] = False
+    G.set_vertex_filter(reference_vertex)
+    # Calculate component membership for reference graph
+    reference_components, reference_component_frequencies = gt.label_components(G)
+    # Record to which components references below in the reference graph
+    reference_cluster = {}
+    for reference_index in references:
+        reference_cluster[reference_index] = reference_components.a[reference_index]
 
-    # Check if these multi reference components have been split
-    if len(multi_ref_clusters) > 0:
-        # Initial reference graph
-        ref_G = G.copy()
-        ref_G.remove_nodes_from(set(ref_G.nodes).difference(references))
+    # Unset mask on network for shortest path calculations
+    G.set_vertex_filter(None)
 
-        for multi_ref_cluster in multi_ref_clusters:
-            # Get a list of nodes that need to be in the same component
-            check = []
-            for reference in references:
-                if clusters[reference] == multi_ref_cluster:
-                    check.append(reference)
-
-            # Pairwise check that nodes are in same component
+    # Check if multi-reference components have been split as a validation test
+    # First iterate through clusters
+    for cluster in ref_clusters:
+        # Identify multi-reference clusters by this length
+        if len(cluster) > 1:
+            check = list(cluster)
+            # check if these are still in the same component in the reference graph
             for i in range(len(check)):
-                component = nx.node_connected_component(ref_G, check[i])
+                component_i = reference_cluster[check[i]]
                 for j in range(i, len(check)):
                     # Add intermediate nodes
-                    if check[j] not in component:
-                        new_path = nx.shortest_path(G, check[i], check[j])
-                        for node in new_path:
-                            references.add(node)
-
+                    component_j = reference_cluster[check[j]]
+                    if component_i != component_j:
+                        vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
+                        for vertex in vertex_list:
+                            references.add(vertex)
+    
     # Order found references as in mash sketch files
-    references = [x for x in mashOrder if x in references]
+    references = [mashOrder[x] for x in sorted(references)]
     refFileName = writeReferences(references, outPrefix)
     return references, refFileName
 
@@ -470,12 +483,14 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         raise RuntimeError("Trying to print query clusters with no query sequences")
 
     # get a sorted list of component assignments
-    newClusters = {}
     component_assignments, component_frequencies = gt.label_components(G)
     component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
-    for n,v in enumerate(rlist):
-        newClusters[rlist[n]] = component_frequency_ranks[component_assignments.a]
-    
+    newClusters = [set() for rank in range(len(component_frequency_ranks))]
+    for isolate_index, isolate_name in enumerate(rlist):
+        component = component_assignments.a[isolate_index]
+        component_rank = component_frequency_ranks[component]
+        newClusters[component_rank].add(isolate_name)
+        
     oldNames = set()
 
     if oldClusterFile != None:

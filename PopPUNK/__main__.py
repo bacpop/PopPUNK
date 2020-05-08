@@ -466,8 +466,9 @@ def main():
                                                 refList,
                                                  args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
                                                  externalClusterCSV = args.external_clustering)
-                nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + os.path.basename(args.output) +
-                                                           "_" + dist_type + '_graph.gpickle')
+                indivNetworks[dist_type].save(args.output + "/" + os.path.basename(args.output) +
+                "_" + dist_type + '_graph.gt', fmt = 'gt')
+
             if args.core_only:
                 fit_type = 'core'
                 genomeNetwork = indivNetworks['core']
@@ -534,7 +535,7 @@ def main():
                                 args.estimated_length, True, args.threads, True) # overwrite old db
                 os.remove(dummyRefFile)
 
-        nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
+        genomeNetwork.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     #******************************#
     #*                            *#
@@ -829,7 +830,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, output, refList)
                 genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
-                nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
+                genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
             else:
                 newQueries = ordered_queryList
 
