@@ -169,7 +169,7 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
                             references.add(vertex)
     
     # Order found references as in mash sketch files
-    reference_names = [mashOrder[x] for x in sorted(references)]
+    reference_names = [mashOrder[int(x)] for x in sorted(references)]
     refFileName = writeReferences(reference_names, outPrefix)
     return references, reference_names, refFileName
 

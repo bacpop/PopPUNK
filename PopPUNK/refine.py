@@ -81,23 +81,16 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Trying to optimise score globally\n")
     global_grid_resolution = 40 # Seems to work
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
-    
-    # Move distMat into shared memory
-    with SharedMemoryManager() as smm:
-        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
-        distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-        distances_shared_array[:] = distMat[:]
-        distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
-        
-        with Pool(processes = num_processes) as pool:
-            global_s = pool.map(partial(newNetwork,
-                                        sample_names = sample_names,
-                                        distMat = distances_shared,
-                                        start_point = start_point,
-                                        mean1 = mean1,
-                                        gradient = gradient,
-                                        slope = slope),
-                                s_range)
+
+    # Global optimisation of boundary position
+    global_s = [newNetwork(s,
+                            sample_names = sample_names,
+                            distMat = distMat,
+                            start_point = start_point,
+                            mean1 = mean1,
+                            gradient = gradient,
+                            slope = slope)
+                            for s in s_range]
 
     # Local optimisation around global optimum
     min_idx = np.argmin(np.array(global_s))
