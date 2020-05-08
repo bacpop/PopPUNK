@@ -24,7 +24,6 @@ try:  # sklearn >= 0.22
 except ImportError:
     from sklearn.neighbors.kde import KernelDensity
 import dendropy
-import networkx as nx
 
 def plot_scatter(X, scale, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
@@ -385,7 +384,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
         graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
     else:
         graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
-    nx.write_graphml(G, outPrefix + "/" + graph_file_name)
+    G.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
 
     # Write CSV of metadata
     if writeCsv:

@@ -18,7 +18,6 @@ from itertools import product
 from glob import glob
 from random import sample
 import numpy as np
-import networkx as nx
 from scipy import optimize
 
 # Try to import sketchlib
