@@ -519,10 +519,11 @@ def main():
         #******************************# 
         # extract limited references from clique by default
         if not args.full_db:
-            newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
-            nodes_to_remove = set(refList).difference(newReferencesNames)
-            genomeNetwork.remove_nodes_from(nodes_to_remove)
-            prune_distance_matrix(refList, nodes_to_remove, distMat,
+            newReferencesIndices, newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
+            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
+            genomeNetwork.remove_vertex(list(nodes_to_remove))
+            names_to_remove = [refList[n] for n in nodes_to_remove]
+            prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
             
             # With mash, the sketches are actually removed from the database
