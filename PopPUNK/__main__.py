@@ -637,7 +637,6 @@ def main():
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
                                                                       complete_distMat, dists_out)
 
-            rlist = viz_subset
             combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
 
             # reorder subset to ensure list orders match
@@ -669,13 +668,6 @@ def main():
                     prev_clustering = args.previous_clustering
                 else:
                     prev_clustering = os.path.dirname(args.distances + ".pkl")
-
-                # Read in network and cluster assignment
-                genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
-                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-
-                # prune the network and dictionary of assignments
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
                 
             # generate selected visualisations
             if args.microreact:
@@ -695,6 +687,19 @@ def main():
                     sys.stderr.write("Can only generate a network output for fitted models\n")
                 else:
                     sys.stderr.write("Writing cytoscape output\n")
+                    # Read in network and cluster assignment
+                    genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+                    isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+
+                    # mask the network and dictionary of assignments
+                    viz_vertex = G.new_vertex_property('bool')
+                    for n,vertex in enumerate(G.vertices()):
+                        if rlist[n] in viz_subset:
+                            viz_vertex[vertex] = True
+                        else:
+                            viz_vertex[vertex] = False
+                    G.set_vertex_filter(viz_vertex)
+                    # write output
                     outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
 
         else:
