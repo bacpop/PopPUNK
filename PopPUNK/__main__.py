@@ -448,9 +448,9 @@ def main():
         #*                            *#
         #* network construction       *#
         #*                            *#
-        #******************************#  
+        #******************************#
+        
         genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
-
         # Ensure all in dists are in final network
         networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
         if len(networkMissing) > 0:
@@ -656,7 +656,7 @@ def main():
                 cluster_file = args.viz_lineages
                 isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'lineages', return_dict = True)
             else:
-                # identify existing analysis files
+#                # identify existing analysis files
                 model_prefix = args.ref_db
                 if args.model_dir is not None:
                     model_prefix = args.model_dir
@@ -668,7 +668,11 @@ def main():
                     prev_clustering = args.previous_clustering
                 else:
                     prev_clustering = os.path.dirname(args.distances + ".pkl")
-                
+                    
+                # load clustering
+                cluster_file = args.ref_db + '/' + args.ref_db + '_clusters.csv'
+                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
