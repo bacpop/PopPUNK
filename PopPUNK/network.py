@@ -72,7 +72,7 @@ def fetchNetwork(network_dir, model, refList,
                              "a refined fit. Using the combined distances.\n")
 
     genomeNetwork = gt.load_graph(network_file)
-    sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
+    sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # Ensure all in dists are in final network
     networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
