@@ -109,8 +109,9 @@ def pick_seed_isolate(lineage_assignation, distances = None):
     unclustered isolates.
     
     Args:
-        G (network)
-            Network with one node per isolate.
+        lineage_assignation (dict)
+            Dict of lineage assignments (int) of each
+            isolate index (int).
         distances (ndarray in shared memory)
             Pairwise distances between isolates.
             
@@ -140,8 +141,9 @@ def get_lineage(lineage_assignation, neighbours, seed_isolate, lineage_index):
     lineage given a cluster seed.
 
     Args:
-        G (network)
-            Network with one node per isolate.
+        lineage_assignation (dict)
+            Dict of lineage assignments (int) of each
+            isolate index (int).
         neighbours (dict of frozen sets)
            Pre-calculated neighbour relationships.
         seed_isolate (int)
@@ -150,8 +152,12 @@ def get_lineage(lineage_assignation, neighbours, seed_isolate, lineage_index):
            Label of current lineage.
         
     Returns:
-        G (network)
-            Network modified with new edges.
+        lineage_assignation (dict)
+            Dict of lineage assignments (int) of each
+            isolate index (int).
+        edges_to_add (set of tuples)
+            Edges to add to network describing lineages
+            of this rank.
     """
     # initiate lineage as the seed isolate and immediate unclustered neighbours
     in_lineage = {seed_isolate}
@@ -348,8 +354,8 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
             Assignment of each isolate to a cluster.
         lineage_seed (dict)
             Seed isolate used to initiate each cluster.
-        neighbours (nested dict)
-            Neighbour relationships between isolates for R.
+        connections (set of tuples)
+            Edges to add to network describing lineages.
     """    
     # load shared memory objects
     distances_shm = shared_memory.SharedMemory(name = distances_input.name)
