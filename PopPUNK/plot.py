@@ -388,7 +388,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
 
     # Write CSV of metadata
     if writeCsv:
-        refNames = G.nodes(data=False)
+        refNames = G.vertices
         seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
         writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
                         refNames,

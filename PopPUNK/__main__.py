@@ -104,7 +104,6 @@ def get_options():
             default=False,
             action='store_true')
 
-
     # input options
     iGroup = parser.add_argument_group('Input files')
     iGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
@@ -248,7 +247,7 @@ def main():
         sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size\n")
         sys.exit(1)
     elif args.k_step < 2:
-        sys.stderr.write("Kmer size step must be at least one\n")
+        sys.stderr.write("Kmer size step must be at least two\n")
         sys.exit(1)
     elif no_sketchlib and (args.min_k < 9 or args.max_k > 31):
         sys.stderr.write("When using Mash, Kmer size must be between 9 and 31\n")
@@ -362,7 +361,7 @@ def main():
     #*                            *#
     #******************************#    
     # refine model also needs to run all model steps
-    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run:
+    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run or args.lineage_clustering:
         # Set up saved data from first step, if easy_run mode
         if args.easy_run:
             distances = dists_out
@@ -374,9 +373,10 @@ def main():
                 sys.stderr.write("Mode: Using previous model with a reference database\n\n")
             elif args.threshold:
                 sys.stderr.write("Mode: Applying a core distance threshold\n\n")
-            else:
+            elif args.refine_model:
                 sys.stderr.write("Mode: Refining model fit using network properties\n\n")
-
+            elif args.lineage_clustering:
+                sys.stderr.write("Mode: Identifying lineages from neighbouring isolates\n\n")
             if args.distances is not None and args.ref_db is not None:
                 distances = args.distances
                 ref_db = args.ref_db
@@ -441,8 +441,9 @@ def main():
             assignments = model.assign(distMat)
             model.plot(distMat, assignments)
 
-        fit_type = 'combined'
-        model.save()
+        if not args.lineage_clustering: # change this once lineage clustering is refined as a model
+            fit_type = 'combined'
+            model.save()
         
         #******************************#
         #*                            *#
@@ -450,36 +451,75 @@ def main():
         #*                            *#
         #******************************#
         
-        genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
-        # Ensure all in dists are in final network
-        networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
-        if len(networkMissing) > 0:
-            sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+        if not args.lineage_clustering:
+            genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
+            # Ensure all in dists are in final network
+            networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
+            if len(networkMissing) > 0:
+                sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
-        isolateClustering = {fit_type: printClusters(genomeNetwork,
-                                                    refList, # assume no rlist+qlist?
-                                                     args.output + "/" + os.path.basename(args.output),
-                                                     externalClusterCSV = args.external_clustering)}
+            isolateClustering = {fit_type: printClusters(genomeNetwork,
+                                                        refList, # assume no rlist+qlist?
+                                                         args.output + "/" + os.path.basename(args.output),
+                                                         externalClusterCSV = args.external_clustering)}
 
-        # Write core and accessory based clusters, if they worked
-        if model.indiv_fitted:
+            # Write core and accessory based clusters, if they worked
+            if model.indiv_fitted:
+                indivNetworks = {}
+                for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
+                    indivAssignments = model.assign(distMat, slope)
+                    indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
+                    isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
+                                                    refList,
+                                                     args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
+                                                     externalClusterCSV = args.external_clustering)
+                    indivNetworks[dist_type].save(args.output + "/" + os.path.basename(args.output) +
+                    "_" + dist_type + '_graph.gt', fmt = 'gt')
+
+                if args.core_only:
+                    fit_type = 'core'
+                    genomeNetwork = indivNetworks['core']
+                elif args.accessory_only:
+                    fit_type = 'accessory'
+                    genomeNetwork = indivNetworks['accessory']
+
+        #******************************#
+        #*                            *#
+        #* lineages analysis          *#
+        #*                            *#
+        #******************************#
+        
+        if args.lineage_clustering:
+
+            # load distances
+            if args.distances is not None:
+                distances = args.distances
+            else:
+                sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
+                sys.exit(1)
+
+            refList, queryList, self, distMat = readPickle(distances)
+            
+            # make directory for new output files
+            if not os.path.isdir(args.output):
+                try:
+                    os.makedirs(args.output)
+                except OSError:
+                    sys.stderr.write("Cannot create output directory\n")
+                    sys.exit(1)
+            
+            # run lineage clustering
+            if self:
+                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
+            else:
+                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
+                
+            # load networks
             indivNetworks = {}
-            for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                indivAssignments = model.assign(distMat, slope)
-                indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
-                isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
-                                                refList,
-                                                 args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
-                                                 externalClusterCSV = args.external_clustering)
-                indivNetworks[dist_type].save(args.output + "/" + os.path.basename(args.output) +
-                "_" + dist_type + '_graph.gt', fmt = 'gt')
-
-            if args.core_only:
-                fit_type = 'core'
-                genomeNetwork = indivNetworks['core']
-            elif args.accessory_only:
-                fit_type = 'accessory'
-                genomeNetwork = indivNetworks['accessory']
+            for rank in rank_list:
+                indivNetworks[rank] = gt.load_graph(args.output + "/" + args.output + '_rank_' + str(rank) + '_lineages.gt')
+                if rank == min(rank_list):
+                    genomeNetwork = indivNetworks[rank]
 
         #******************************#
         #*                            *#
@@ -506,16 +546,21 @@ def main():
                                         overwrite = args.overwrite, microreact = args.microreact)
                 if args.cytoscape:
                     sys.stderr.write("Writing cytoscape output\n")
-                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
-                    if model.indiv_fitted:
-                        sys.stderr.write("Writing individual cytoscape networks\n")
-                        for dist_type in ['core', 'accessory']:
-                            outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
-                                        args.info_csv, suffix = dist_type, writeCsv = False)
+                    if args.lineage_clustering:
+                        for rank in rank_list:
+                            outputsForCytoscape(indivNetworks[rank], isolateClustering, args.output,
+                                        args.info_csv, suffix = 'rank_' + str(rank), writeCsv = False)
+                    else:
+                        outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                        if model.indiv_fitted:
+                            sys.stderr.write("Writing individual cytoscape networks\n")
+                            for dist_type in ['core', 'accessory']:
+                                outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                            args.info_csv, suffix = dist_type, writeCsv = False)
         except:
             # Go ahead with final steps even if visualisations fail
             # (e.g. rapidnj not found)
-            sys.stderr.write("Error creating files for visualisation:", sys.exc_info()[0])
+            sys.stderr.write("Error creating files for visualisation: " + str(sys.exc_info()[0]))
 
         #******************************#
         #*                            *#
@@ -542,37 +587,6 @@ def main():
                 os.remove(dummyRefFile)
 
         genomeNetwork.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
-
-    #******************************#
-    #*                            *#
-    #* within-strain analysis     *#
-    #*                            *#
-    #******************************#
-    if args.lineage_clustering:
-        sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
-
-        # load distances
-        if args.distances is not None:
-            distances = args.distances
-        else:
-            sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
-            sys.exit(1)
-
-        refList, queryList, self, distMat = readPickle(distances)
-        
-        # make directory for new output files
-        if not os.path.isdir(args.output):
-            try:
-                os.makedirs(args.output)
-            except OSError:
-                sys.stderr.write("Cannot create output directory\n")
-                sys.exit(1)
-        
-        # run lineage clustering
-        if self:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
-        else:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
 
     #*******************************#
     #*                             *#
@@ -601,7 +615,7 @@ def main():
             sys.stderr.write("Must specify at least one type of visualisation to output\n")
             sys.exit(1)
 
-        if args.distances is not None and args.ref_db is not None:
+        if args.distances is not None and (args.ref_db is not None or args.lineage_clustering):
             
             # Initial processing
             # Load original distances
@@ -656,7 +670,7 @@ def main():
                 cluster_file = args.viz_lineages
                 isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'lineages', return_dict = True)
             else:
-#                # identify existing analysis files
+                # identify existing analysis files
                 model_prefix = args.ref_db
                 if args.model_dir is not None:
                     model_prefix = args.model_dir
