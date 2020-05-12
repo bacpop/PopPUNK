@@ -12,7 +12,7 @@ from scipy.stats import rankdata
 from collections import defaultdict
 import pickle
 import collections
-import networkx as nx
+import graph_tool.all as gt
 from multiprocessing import Pool, RawArray, shared_memory, managers
 try:
     from multiprocessing import Pool, shared_memory
@@ -104,7 +104,7 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
     return nn
     
 
-def pick_seed_isolate(G, distances = None):
+def pick_seed_isolate(lineage_assignation, distances = None):
     """ Identifies seed isolate from the closest pair of
     unclustered isolates.
     
@@ -122,7 +122,7 @@ def pick_seed_isolate(G, distances = None):
     distances_shm = shared_memory.SharedMemory(name = distances.name)
     distances = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_shm.buf)
     # identify unclustered isolates
-    unclustered_isolates = list(nx.isolates(G))
+    unclustered_isolates = [isolate for isolate,lineage in lineage_assignation.items() if lineage == 0]
     # select minimum distance between unclustered isolates
     minimum_distance_between_unclustered_isolates = np.amin(distances[unclustered_isolates,unclustered_isolates],axis = 0)
     # select occurrences of this distance
@@ -135,7 +135,7 @@ def pick_seed_isolate(G, distances = None):
     # return unclustered isolate with minimum distance to another isolate
     return seed_isolate
 
-def get_lineage(G, neighbours, seed_isolate, lineage_index):
+def get_lineage(lineage_assignation, neighbours, seed_isolate, lineage_index):
     """ Identifies isolates corresponding to a particular
     lineage given a cluster seed.
 
@@ -155,27 +155,28 @@ def get_lineage(G, neighbours, seed_isolate, lineage_index):
     """
     # initiate lineage as the seed isolate and immediate unclustered neighbours
     in_lineage = {seed_isolate}
-    G.nodes[seed_isolate]['lineage'] = lineage_index
+    lineage_assignation[seed_isolate] = lineage_index
+    edges_to_add = set()
     for seed_neighbour in neighbours[seed_isolate]:
-        if nx.is_isolate(G, seed_neighbour):
-            G.add_edge(seed_isolate, seed_neighbour)
-            G.nodes[seed_neighbour]['lineage'] = lineage_index
+        if lineage_assignation[seed_neighbour] == 0:
+            edges_to_add.add((seed_isolate, seed_neighbour))
             in_lineage.add(seed_neighbour)
+            lineage_assignation[seed_neighbour] = lineage_index
     # iterate through other isolates until converged on a stable clustering
     alterations = len(neighbours.keys())
     while alterations > 0:
         alterations = 0
         for isolate in neighbours.keys():
-            if nx.is_isolate(G, isolate):
+            if lineage_assignation[isolate] == 0:
                 intersection_size = in_lineage.intersection(neighbours[isolate])
                 if intersection_size is not None and len(intersection_size) > 0:
                     for i in intersection_size:
-                        G.add_edge(isolate, i)
-                        G.nodes[isolate]['lineage'] = lineage_index
+                        edges_to_add.add((isolate, i))
                     in_lineage.add(isolate)
+                    lineage_assignation[isolate] = lineage_index
                     alterations = alterations + 1
     # return final clustering
-    return G
+    return lineage_assignation, edges_to_add
 
 def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
@@ -209,12 +210,12 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     """
     
     # data structures
-    lineage_clustering = defaultdict(dict)
+    lineage_assignation = defaultdict(dict)
     overall_lineage_seeds = defaultdict(dict)
     overall_lineages = defaultdict(dict)
     if existing_scheme is not None:
         with open(existing_scheme, 'rb') as pickle_file:
-            lineage_clustering, overall_lineage_seeds, rank_list = pickle.load(pickle_file)
+            lineage_assignation, overall_lineage_seeds, rank_list = pickle.load(pickle_file)
 
     # generate square distance matrix
     seqLabels, coreMat, accMat = update_distance_matrices(isolate_list, distMat)
@@ -258,24 +259,46 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         distance_ranks_shared_array = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = distance_ranks_raw.buf)
         distance_ranks_shared_array[:] = distance_ranks[:]
         distance_ranks_shared_array = NumpyShared(name = distance_ranks_raw.name, shape = distance_ranks.shape, dtype = distance_ranks.dtype)
-                
+        
+        # alter parallelisation of graph-tools to account for multiprocessing
+        num_gt_processes = 1
+        if num_processes > len(rank_list):
+            num_gt_processes = max(1,int(num_processes/len(rank_list)))
+            num_mp_processes = rank_list
+        else:
+            num_mp_processes = num_processes
+        
         # parallelise neighbour identification for each rank
-        with Pool(processes = num_processes) as pool:
+        with Pool(processes = num_mp_processes) as pool:
             results = pool.map(partial(run_clustering_for_rank,
                                 distances_input = distances_shared_array,
                                 distance_ranks_input = distance_ranks_shared_array,
                                 isolates = isolate_list_shared,
                                 previous_seeds = overall_lineage_seeds),
                                 rank_list)
-        
-        # extract results from multiprocessing pool
+
+        # extract results from multiprocessing pool and save output network
         for n,result in enumerate(results):
+            
+            # get results per rank
             rank = rank_list[n]
-            lineage_clustering[rank], overall_lineage_seeds[rank] = result
+            lineage_assignation[rank], overall_lineage_seeds[rank], connections = result
+
+            # create graph structure with internal vertex property map
+            # storing lineage assignation cannot load boost.python within spawned
+            # processes so have to run network analysis separately
+            G = gt.Graph()
+            G.add_vertex(len(isolate_list))
+
+            # store results in network
+            G.add_edge_list(connections)
+
+            # save network
+            G.save(file_name = output + "/" + output + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
 
     # store output
     with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
-        pickle.dump([lineage_clustering, overall_lineage_seeds, rank_list], pickle_file)
+        pickle.dump([lineage_assignation, overall_lineage_seeds, rank_list], pickle_file)
     
     # process multirank lineages
     overall_lineages = {}
@@ -284,11 +307,11 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     for index,isolate in enumerate(isolate_list):
         overall_lineage = None
         for rank in rank_list:
-            overall_lineages['Rank_' + str(rank)][isolate] = lineage_clustering[rank][index]
+            overall_lineages['Rank_' + str(rank)][isolate] = lineage_assignation[rank][index]
             if overall_lineage is None:
-                overall_lineage = str(lineage_clustering[rank][index])
+                overall_lineage = str(lineage_assignation[rank][index])
             else:
-                overall_lineage = overall_lineage + '-' + str(lineage_clustering[rank][index])
+                overall_lineage = overall_lineage + '-' + str(lineage_assignation[rank][index])
         overall_lineages['overall'][isolate] = overall_lineage
     
     # print output as CSV
@@ -321,14 +344,13 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
             Whether to extend a previously generated analysis or not.
             
     Returns:
-        lineage_clustering (dict)
+        lineage_assignation (dict)
             Assignment of each isolate to a cluster.
         lineage_seed (dict)
             Seed isolate used to initiate each cluster.
         neighbours (nested dict)
             Neighbour relationships between isolates for R.
-    """
-    
+    """    
     # load shared memory objects
     distances_shm = shared_memory.SharedMemory(name = distances_input.name)
     distances = np.ndarray(distances_input.shape, dtype = distances_input.dtype, buffer = distances_shm.buf)
@@ -336,17 +358,12 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     distance_ranks = np.ndarray(distance_ranks_input.shape, dtype = distance_ranks_input.dtype, buffer = distance_ranks_shm.buf)
     isolate_list = isolates
     isolate_indices = range(0,len(isolate_list))
-
+    
     # load previous scheme
     seeds = {}
     if previous_seeds is not None:
         seeds = previous_seeds[rank]
-
-    # create graph structure
-    G = nx.Graph()
-    G.add_nodes_from(isolate_indices)
-    G.nodes.data('lineage', default = 0)
-    
+   
     # identify nearest neighbours
     nn = get_nearest_neighbours(rank,
                             ranks = distance_ranks_input,
@@ -354,19 +371,20 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     
     # iteratively identify lineages
     lineage_index = 1
-    while nx.number_of_isolates(G) > 0:
+    connections = set()
+    lineage_assignation = {isolate:0 for isolate in isolate_list}
+    
+    while 0 in lineage_assignation.values():
         if lineage_index in seeds.keys():
             seed_isolate = seeds[lineage_index]
         else:
-            seed_isolate = pick_seed_isolate(G, distances = distances_input)
+            seed_isolate = pick_seed_isolate(lineage_assignation, distances = distances_input)
         # skip over previously-defined seeds if amalgamated into different lineage now
-        if nx.is_isolate(G, seed_isolate):
+        if lineage_assignation[seed_isolate] == 0:
             seeds[lineage_index] = seed_isolate
-            G = get_lineage(G, nn, seed_isolate, lineage_index)
+            lineage_assignation, added_connections = get_lineage(lineage_assignation, nn, seed_isolate, lineage_index)
+            connections.update(added_connections)
         lineage_index = lineage_index + 1
-
-    # identify components and name lineages
-    lineage_clustering = {node:nodedata for (node, nodedata) in G.nodes(data='lineage')}
-
+    
     # return clustering
-    return lineage_clustering, seeds
+    return lineage_assignation, seeds, connections
