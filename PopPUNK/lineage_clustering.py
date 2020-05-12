@@ -266,16 +266,19 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         distance_ranks_shared_array[:] = distance_ranks[:]
         distance_ranks_shared_array = NumpyShared(name = distance_ranks_raw.name, shape = distance_ranks.shape, dtype = distance_ranks.dtype)
         
-        # alter parallelisation of graph-tools to account for multiprocessing
-        num_gt_processes = 1
-        if num_processes > len(rank_list):
-            num_gt_processes = max(1,int(num_processes/len(rank_list)))
-            num_mp_processes = rank_list
-        else:
-            num_mp_processes = num_processes
+        # build a graph framework for network outputs
+        # create graph structure with internal vertex property map
+        # storing lineage assignation cannot load boost.python within spawned
+        # processes so have to run network analysis separately
+        G = gt.Graph()
+        G.add_vertex(len(isolate_list))
+        # add sequence labels for visualisation
+        vid = G.new_vertex_property('string',
+                                    vals = [i.split('/')[-1].split('.')[0] for i in isolate_list])
+        G.vp.id = vid
         
         # parallelise neighbour identification for each rank
-        with Pool(processes = num_mp_processes) as pool:
+        with Pool(processes = num_processes) as pool:
             results = pool.map(partial(run_clustering_for_rank,
                                 distances_input = distances_shared_array,
                                 distance_ranks_input = distance_ranks_shared_array,
@@ -284,23 +287,19 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
                                 rank_list)
 
         # extract results from multiprocessing pool and save output network
+        nn = defaultdict(dict)
         for n,result in enumerate(results):
-            
             # get results per rank
             rank = rank_list[n]
-            lineage_assignation[rank], overall_lineage_seeds[rank], connections = result
-
-            # create graph structure with internal vertex property map
-            # storing lineage assignation cannot load boost.python within spawned
-            # processes so have to run network analysis separately
-            G = gt.Graph()
-            G.add_vertex(len(isolate_list))
-
+            lineage_assignation[rank], overall_lineage_seeds[rank], nn[rank], connections = result
+            # produce nearest neighbour network for alternative downstream analyses
+            make_nn_network(G,nn[rank],output,rank)
             # store results in network
             G.add_edge_list(connections)
-
             # save network
             G.save(file_name = output + "/" + output + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
+            # clear edges
+            G.clear_edges()
 
     # store output
     with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
@@ -393,4 +392,26 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
         lineage_index = lineage_index + 1
     
     # return clustering
-    return lineage_assignation, seeds, connections
+    return lineage_assignation, seeds, nn, connections
+
+def make_nn_network(G,nn,output,rank):
+    """Output all nearest neighbour relationships for
+    deeper analysis of lineage analyses.
+    Args:
+        G (graph-tools network)
+        
+        nn (nested dict)
+        
+        output (str)
+        
+        rank (int)
+    
+    Returns:
+        Void
+    """
+    edges_to_add = set()
+    for i in nn.keys():
+        for j in nn[i]:
+            edges_to_add.add((i,j))
+    G.add_edge_list(edges_to_add)
+    G.save(file_name = output + "/" + output + '_nearestNeighbours_rank_' + str(rank) + '_lineages.graphml', fmt = 'graphml')
