@@ -89,100 +89,18 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
             frozen set of nearest neighbours.
     """
     # data structure
-    nn = {}
+    nn = set()
     # load shared ranks
     ranks_shm = shared_memory.SharedMemory(name = ranks.name)
     ranks = np.ndarray(ranks.shape, dtype = ranks.dtype, buffer = ranks_shm.buf)
     # apply along axis
     for i in isolates:
-        nn[i] = defaultdict(frozenset)
         isolate_ranks = ranks[i,:]
         closest_ranked = np.ravel(np.where(isolate_ranks <= rank))
-        neighbours = frozenset(closest_ranked.tolist())
-        nn[i] = neighbours
+        for j in closest_ranked.tolist():
+            nn.add((i,j))
     # return dict
     return nn
-    
-
-def pick_seed_isolate(lineage_assignation, distances = None):
-    """ Identifies seed isolate from the closest pair of
-    unclustered isolates.
-    
-    Args:
-        lineage_assignation (dict)
-            Dict of lineage assignments (int) of each
-            isolate index (int).
-        distances (ndarray in shared memory)
-            Pairwise distances between isolates.
-            
-    Returns:
-        seed_isolate (int)
-            Index of isolate selected as seed.
-    """
-    # load distances from shared memory
-    distances_shm = shared_memory.SharedMemory(name = distances.name)
-    distances = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_shm.buf)
-    # identify unclustered isolates
-    unclustered_isolates = [isolate for isolate,lineage in lineage_assignation.items() if lineage == 0]
-    # select minimum distance between unclustered isolates
-    minimum_distance_between_unclustered_isolates = np.amin(distances[unclustered_isolates,unclustered_isolates],axis = 0)
-    # select occurrences of this distance
-    minimum_distance_coordinates = np.where(distances == minimum_distance_between_unclustered_isolates)
-    # identify case where both isolates are unclustered
-    for i in range(len(minimum_distance_coordinates[0])):
-        if minimum_distance_coordinates[0][i] in unclustered_isolates and minimum_distance_coordinates[1][i] in unclustered_isolates:
-            seed_isolate = minimum_distance_coordinates[0][i]
-            break
-    # return unclustered isolate with minimum distance to another isolate
-    return seed_isolate
-
-def get_lineage(lineage_assignation, neighbours, seed_isolate, lineage_index):
-    """ Identifies isolates corresponding to a particular
-    lineage given a cluster seed.
-
-    Args:
-        lineage_assignation (dict)
-            Dict of lineage assignments (int) of each
-            isolate index (int).
-        neighbours (dict of frozen sets)
-           Pre-calculated neighbour relationships.
-        seed_isolate (int)
-           Index of isolate selected as seed.
-        lineage_index (int)
-           Label of current lineage.
-        
-    Returns:
-        lineage_assignation (dict)
-            Dict of lineage assignments (int) of each
-            isolate index (int).
-        edges_to_add (set of tuples)
-            Edges to add to network describing lineages
-            of this rank.
-    """
-    # initiate lineage as the seed isolate and immediate unclustered neighbours
-    in_lineage = {seed_isolate}
-    lineage_assignation[seed_isolate] = lineage_index
-    edges_to_add = set()
-    for seed_neighbour in neighbours[seed_isolate]:
-        if lineage_assignation[seed_neighbour] == 0:
-            edges_to_add.add((seed_isolate, seed_neighbour))
-            in_lineage.add(seed_neighbour)
-            lineage_assignation[seed_neighbour] = lineage_index
-    # iterate through other isolates until converged on a stable clustering
-    alterations = len(neighbours.keys())
-    while alterations > 0:
-        alterations = 0
-        for isolate in neighbours.keys():
-            if lineage_assignation[isolate] == 0:
-                intersection_size = in_lineage.intersection(neighbours[isolate])
-                if intersection_size is not None and len(intersection_size) > 0:
-                    for i in intersection_size:
-                        edges_to_add.add((isolate, i))
-                    in_lineage.add(isolate)
-                    lineage_assignation[isolate] = lineage_index
-                    alterations = alterations + 1
-    # return final clustering
-    return lineage_assignation, edges_to_add
 
 def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
@@ -219,9 +137,14 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     lineage_assignation = defaultdict(dict)
     overall_lineage_seeds = defaultdict(dict)
     overall_lineages = defaultdict(dict)
+    max_existing_cluster = {rank:1 for rank in rank_list}
+    
+    # load existing scheme if supplied
     if existing_scheme is not None:
         with open(existing_scheme, 'rb') as pickle_file:
             lineage_assignation, overall_lineage_seeds, rank_list = pickle.load(pickle_file)
+        for rank in rank_list:
+            max_existing_cluster[rank] = max(lineage_assignation[rank].values()) + 1
 
     # generate square distance matrix
     seqLabels, coreMat, accMat = update_distance_matrices(isolate_list, distMat)
@@ -270,7 +193,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         # create graph structure with internal vertex property map
         # storing lineage assignation cannot load boost.python within spawned
         # processes so have to run network analysis separately
-        G = gt.Graph()
+        G = gt.Graph(directed = False)
         G.add_vertex(len(isolate_list))
         # add sequence labels for visualisation
         vid = G.new_vertex_property('string',
@@ -279,11 +202,9 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         
         # parallelise neighbour identification for each rank
         with Pool(processes = num_processes) as pool:
-            results = pool.map(partial(run_clustering_for_rank,
-                                distances_input = distances_shared_array,
-                                distance_ranks_input = distance_ranks_shared_array,
-                                isolates = isolate_list_shared,
-                                previous_seeds = overall_lineage_seeds),
+            results = pool.map(partial(get_nearest_neighbours,
+                                ranks = distance_ranks_shared_array,
+                                isolates = isolate_list_shared),
                                 rank_list)
 
         # extract results from multiprocessing pool and save output network
@@ -291,11 +212,41 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         for n,result in enumerate(results):
             # get results per rank
             rank = rank_list[n]
-            lineage_assignation[rank], overall_lineage_seeds[rank], nn[rank], connections = result
-            # produce nearest neighbour network for alternative downstream analyses
-            make_nn_network(G,nn[rank],output,rank)
+            # get neigbours
+            edges_to_add = result
             # store results in network
-            G.add_edge_list(connections)
+            G.add_edge_list(edges_to_add)
+            # calculate connectivity of each vertex
+            vertex_out_degrees = G.get_out_degrees(G.get_vertices())
+            # identify components and rank by frequency
+            components, component_frequencies = gt.label_components(G)
+            component_frequency_ranks = (len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)).tolist()
+            # construct a name translation table
+            # begin with previously defined clusters
+            component_name = [None] * len(component_frequencies)
+            for seed in overall_lineage_seeds[rank]:
+                isolate_index = isolate_list.index(seed)
+                component_number = components[isolate_index]
+                if component_name[component_number] is None or component_name[component_number] > overall_lineage_seeds[rank][seed]:
+                    component_name[component_number] = overall_lineage_seeds[rank][seed]
+            # name remaining components in rank order
+            for component_rank in range(len(component_frequency_ranks)):
+#                component_number = component_frequency_ranks[np.where(component_frequency_ranks == component_rank)]
+                component_number = component_frequency_ranks.index(component_rank)
+                if component_name[component_number] is None:
+                    component_name[component_number] = max_existing_cluster[rank]
+                    # find seed isolate
+                    component_max_degree = np.amax(vertex_out_degrees[np.where(components.a == component_number)])
+                    seed_isolate_index = int(np.where((components.a == component_number) & (vertex_out_degrees == component_max_degree))[0][0])
+                    seed_isolate = isolate_list[seed_isolate_index]
+                    overall_lineage_seeds[rank][seed_isolate] = max_existing_cluster[rank]
+                    # increment
+                    max_existing_cluster[rank] = max_existing_cluster[rank] + 1
+            # store assignments
+            for isolate_index,isolate_name in enumerate(isolate_list):
+                original_component = components.a[isolate_index]
+                renamed_component = component_name[original_component]
+                lineage_assignation[rank][isolate_name] = renamed_component
             # save network
             G.save(file_name = output + "/" + output + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
             # clear edges
@@ -312,11 +263,11 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     for index,isolate in enumerate(isolate_list):
         overall_lineage = None
         for rank in rank_list:
-            overall_lineages['Rank_' + str(rank)][isolate] = lineage_assignation[rank][index]
+            overall_lineages['Rank_' + str(rank)][isolate] = lineage_assignation[rank][isolate]
             if overall_lineage is None:
-                overall_lineage = str(lineage_assignation[rank][index])
+                overall_lineage = str(lineage_assignation[rank][isolate])
             else:
-                overall_lineage = overall_lineage + '-' + str(lineage_assignation[rank][index])
+                overall_lineage = overall_lineage + '-' + str(lineage_assignation[rank][isolate])
         overall_lineages['overall'][isolate] = overall_lineage
     
     # print output as CSV
@@ -393,25 +344,3 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     
     # return clustering
     return lineage_assignation, seeds, nn, connections
-
-def make_nn_network(G,nn,output,rank):
-    """Output all nearest neighbour relationships for
-    deeper analysis of lineage analyses.
-    Args:
-        G (graph-tools network)
-        
-        nn (nested dict)
-        
-        output (str)
-        
-        rank (int)
-    
-    Returns:
-        Void
-    """
-    edges_to_add = set()
-    for i in nn.keys():
-        for j in nn[i]:
-            edges_to_add.add((i,j))
-    G.add_edge_list(edges_to_add)
-    G.save(file_name = output + "/" + output + '_nearestNeighbours_rank_' + str(rank) + '_lineages.graphml', fmt = 'graphml')
