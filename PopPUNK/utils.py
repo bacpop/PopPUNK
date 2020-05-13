@@ -211,7 +211,7 @@ def writeTmpFile(fileList):
     tmpName = mkstemp(suffix=".tmp", dir=".")[1]
     with open(tmpName, 'w') as tmpFile:
         for fileName in fileList:
-            tmpFile.write(fileName + "\n")
+            tmpFile.write(fileName + '\t' + fileName + "\n")
 
     return tmpName
 
@@ -396,7 +396,6 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
 
     # if query vs refdb (--assign-query), also include these comparisons
     if queryList is not None:
-
         # query v query - symmetric
         i = len(refList)
         j = len(refList)+1
@@ -555,3 +554,19 @@ def readRfile(rFile, oneSeq=False):
         sys.exit(1)
 
     return (names, sequences)
+
+def isolateNameToLabel(names):
+    """Function to process isolate names to labels
+    appropriate for visualisation.
+    
+    Args:
+        names (list)
+            List of isolate names.
+    Returns:
+        labels (list)
+            List of isolate labels.
+    """
+    # useful to have as a function in case we
+    # want to remove certain characters
+    labels = [name.split('/')[-1].split('.')[0] for name in names]
+    return labels

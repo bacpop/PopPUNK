@@ -25,6 +25,8 @@ from .utils import iterDistRows
 from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
+from .utils import setupDBFuncs
+from .utils import isolateNameToLabel
 
 def fetchNetwork(network_dir, model, refList,
                   core_only = False, accessory_only = False):
@@ -105,73 +107,88 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
     """
     if existingRefs == None:
         references = set()
+        reference_indices = []
     else:
         references = set(existingRefs)
-
+        index_lookup = {v:k for k,v in enumerate(mashOrder)}
+        reference_indices = [index_lookup[r] for r in references]
+    
     # extract cliques from network
-    cliques = [c.tolist() for c in gt.max_cliques(G)]
+    cliques_in_overall_graph = [c.tolist() for c in gt.max_cliques(G)]
     # order list by size of clique
-    cliques.sort(key = len, reverse = True)
+    cliques_in_overall_graph.sort(key = len, reverse = True)
     # iterate through cliques
-    for clique in cliques:
+    for clique in cliques_in_overall_graph:
         alreadyRepresented = 0
         for node in clique:
-            if node in references:
+            if node in reference_indices:
                 alreadyRepresented = 1
                 break
         if alreadyRepresented == 0:
-            references.add(clique[0])
+            reference_indices.append(clique[0])
 
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
-    clusters = printClusters(G, mashOrder, printCSV=False)
+    clusters_in_overall_graph = printClusters(G, mashOrder, printCSV=False)
     # Construct a dict of sets for each cluster
-    ref_clusters = [set() for c in set(clusters.items())]
+    reference_clusters_in_overall_graph = [set() for c in set(clusters_in_overall_graph.items())]
     # Iterate through references
-    for reference_index in references:
+    for reference_index in reference_indices:
         # Add references to the appropriate cluster
-        ref_clusters[clusters[mashOrder[reference_index]]].add(reference_index)
+        reference_clusters_in_overall_graph[clusters_in_overall_graph[mashOrder[reference_index]]].add(reference_index)
 
-    # Make a mask of the existing network to only retain references
-    # Use a vertex filter
+    # Use a vertex filter to extract the subgraph of refences
+    # as a graphview
     reference_vertex = G.new_vertex_property('bool')
     for n,vertex in enumerate(G.vertices()):
-        if n in references:
+        if n in reference_indices:
             reference_vertex[vertex] = True
         else:
             reference_vertex[vertex] = False
-    G.set_vertex_filter(reference_vertex)
+#    G.set_vertex_filter(reference_vertex)
+    G_ref = gt.GraphView(G, vfilt = reference_vertex)
+    G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
     # Calculate component membership for reference graph
-    reference_components, reference_component_frequencies = gt.label_components(G)
+#    reference_graph_components, reference_graph_component_frequencies = gt.label_components(G_ref)
+    clusters_in_reference_graph = printClusters(G, mashOrder, printCSV=False)
     # Record to which components references below in the reference graph
-    reference_cluster = {}
-    for reference_index in references:
-        reference_cluster[reference_index] = reference_components.a[reference_index]
+    reference_clusters_in_reference_graph = {}
+    for reference_index in reference_indices:
+        reference_clusters_in_reference_graph[mashOrder[reference_index]] = clusters_in_reference_graph[mashOrder[reference_index]]
 
     # Unset mask on network for shortest path calculations
-    G.set_vertex_filter(None)
+#    G.set_vertex_filter(None)
 
     # Check if multi-reference components have been split as a validation test
     # First iterate through clusters
-    for cluster in ref_clusters:
+    network_update_required = False
+    for cluster in reference_clusters_in_overall_graph:
         # Identify multi-reference clusters by this length
         if len(cluster) > 1:
             check = list(cluster)
             # check if these are still in the same component in the reference graph
             for i in range(len(check)):
-                component_i = reference_cluster[check[i]]
+                component_i = reference_clusters_in_reference_graph[mashOrder[check[i]]]
                 for j in range(i, len(check)):
                     # Add intermediate nodes
-                    component_j = reference_cluster[check[j]]
+                    component_j = reference_clusters_in_reference_graph[mashOrder[check[j]]]
                     if component_i != component_j:
+                        network_update_required = True
                         vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
+                        # update reference list
                         for vertex in vertex_list:
-                            references.add(vertex)
+                            reference_vertex[vertex] = True
+                            reference_indices.add(int(vertex))
+    
+    # update reference graph if vertices have been added
+    if network_update_required:
+        G_ref = gt.GraphView(G, vfilt = reference_vertex)
+        G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
     
     # Order found references as in mash sketch files
-    reference_names = [mashOrder[int(x)] for x in sorted(references)]
+    reference_names = [mashOrder[int(x)] for x in sorted(reference_indices)]
     refFileName = writeReferences(reference_names, outPrefix)
-    return references, reference_names, refFileName
+    return reference_indices, reference_names, refFileName, G_ref
 
 def writeReferences(refList, outPrefix):
     """Writes chosen references to file
@@ -244,31 +261,29 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
     # data structures
     connections = []
     self_comparison = True
-    num_vertices = len(rlist)
+    vertex_labels = rlist
     
     # check if self comparison
     if rlist != qlist:
         self_comparison = False
-        num_vertices = num_vertices + len(qlist)
+        vertex_labels.append(qlist)
     
     # identify edges
     for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qlist, self = self_comparison)):
         if assignment == within_label:
             connections.append((ref, query))
 
-    # issue warning
-    density_proportion = len(connections) / (0.5 * (len(rlist) * (len(rlist) + 1)))
-    if density_proportion > 0.4 or len(connections) > 500000:
-        sys.stderr.write("Warning: trying to create very dense network\n")
-
     # build the graph
     G = gt.Graph(directed = False)
-    G.add_vertex(num_vertices)
+    G.add_vertex(len(vertex_labels))
     G.add_edge_list(connections)
-#    for connection in connections:
-#        G.add_edge(*connection)
 
-    # give some summaries
+    # add isolate ID to network
+    vid = G.new_vertex_property('string',
+                                vals = isolateNameToLabel(vertex_labels))
+    G.vp.id = vid
+
+    # print some summaries
     if summarise:
         (components, density, transitivity, score) = networkSummary(G)
         sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
@@ -349,6 +364,11 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
         distMat (numpy.array)
             Query-query distances
     """
+    # initalise functions
+    readDBParams = dbFuncs['readDBParams']
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
 
     # initialise links data structure
     new_edges = []
@@ -360,19 +380,24 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
 
     # Set up query names
     qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
-    queryFiles = dict(zip(qList, qSeqs))
     if use_mash == True:
         rNames = None
-        qNames = qSeqs
+        qNames = [i.split('/')[-1].split('.')[0] for i in qSeqs]
+        # mash must use sequence file names for both testing for
+        # assignment and for generating a new database
+        queryFiles = dict(zip(qSeqs, qSeqs))
     else:
         rNames = qList
         qNames = rNames
+        queryFiles = dict(zip(qNames, qSeqs))
 
     # store links for each query in a list of edge tuples
-    for assignment, (ref, query) in zip(assignments, iterDistRows(rlist, qList, self=False)):
+    ref_count = len(rlist)
+    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qNames, self = False)):
         if assignment == model.within_label:
-            new_edges.append((ref, query))
-            assigned.add(query)
+            # query index needs to be adjusted for existing vertices in network
+            new_edges.append((ref, query + ref_count))
+            assigned.add(qSeqs[query])
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
@@ -387,15 +412,15 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                         threads)
 
         queryAssignation = model.assign(distMat)
-        for assignment, (ref, query) in zip(queryAssignation, iterDistRows(qlist1, qlist1, self=True)):
+        for assignment, (ref, query) in zip(queryAssignation, listDistInts(qNames, qNames, self = True)):
             if assignment == model.within_label:
-                new_edges.append((ref, query))
+                new_edges.append((ref + ref_count, query + ref_count))
 
     # Otherwise only calculate query-query distances for new clusters
     else:
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
-        unassigned = set(qNames).difference(assigned)
-
+        unassigned = set(qSeqs).difference(assigned)
+        query_indices = {k:v+ref_count for v,k in enumerate(qSeqs)}
         # process unassigned query sequences, if there are any
         if len(unassigned) > 1:
             sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
@@ -415,8 +440,8 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
 
             # use database construction methods to find links between unassigned queries
             sketchSize = readDBParams(queryDB, kmers, None)[1]
-
             constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, estimated_length, True, threads, False)
+
             qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned), 
                                                     dbPrefix = tmpDirName,
@@ -425,20 +450,27 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                     self = True,
                                                     number_plot_fits = 0,
                                                     threads = threads)
+
             queryAssignation = model.assign(distMat)
             
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
-            for assignment, (query1, query2) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self=True)):
+            # have to use names and link to query list in order to match to node indices
+            for assignment, (query1, query2) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self = True)):
                 if assignment == model.within_label:
-                    new_edges.append((query1, query2))
+                    new_edges.append((query_indices[query1], query_indices[query2]))
 
             # remove directory
             shutil.rmtree(tmpDirName)
 
     # finish by updating the network
-    G.add_nodes_from(qNames)
-    G.add_edges_from(new_edges)
+    G.save('before.graphml',fmt='graphml')
+    G.add_vertex(len(qNames))
+    G.add_edge_list(new_edges)
+    # including the vertex ID property map
+    for i,q in enumerate(qNames):
+        G.vp.id[i + len(rlist)] = q
+    G.save('after.graphml',fmt='graphml')
 
     return qlist1, distMat
 

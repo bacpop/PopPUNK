@@ -569,9 +569,9 @@ def main():
         #******************************# 
         # extract limited references from clique by default
         if not args.full_db:
-            newReferencesIndices, newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
+            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
-            genomeNetwork.remove_vertex(list(nodes_to_remove))
+#            genomeNetwork.remove_vertex(list(nodes_to_remove))
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
@@ -796,7 +796,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Calculate query-query distances
         ordered_queryList = []
-        
+
         # Assign to strains or lineages, as requested
         if assign_lineage:
 
@@ -854,8 +854,9 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             # only update network if assigning to strains
             if full_db is False and assign_lineage is False:
                 mashOrder = refList + ordered_queryList
-                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, output, refList)
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
+                newRepresentativesIndices, newRepresentativesNames, newRepresentativesFile, genomeNetwork = extractReferences(genomeNetwork, mashOrder, output, refList)
+#                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
+                isolates_to_remove = set(mashOrder).difference(newRepresentativesNames)
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
             else:
@@ -865,7 +866,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, output,
-                                    args.estimated_length, True, threads, True) # overwrite old db
+                                    estimated_length, True, threads, True) # overwrite old db
                 os.remove(tmpRefFile)
             # With mash, this is the reduced DB constructed,
             # with sketchlib, all sketches
@@ -892,7 +893,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             if full_db is False and assign_lineage is False:
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs
-                nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
+                nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
                 # This function also writes out the new distance matrix
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove,
                                                                                 complete_distMat, dists_out)

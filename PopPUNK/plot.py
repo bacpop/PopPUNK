@@ -528,7 +528,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
                     else:
                         d['Status'].append("Reference")
             elif output_format == 'cytoscape':
-                d['id'].append(name)
+                d['id'].append(label)
                 for cluster_type in clustering:
                     col_name = cluster_type + suffix
                     d[col_name].append(clustering[cluster_type][name])
