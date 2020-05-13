@@ -356,7 +356,7 @@ def get_grid(minimum, maximum, resolution):
     return(xx, yy, xy)
 
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True):
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -379,6 +379,19 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
             Whether to print CSV file to accompany network
 
     """
+    # get list of isolate names
+    isolate_names = list(G.vp.id)
+    
+    # mask network if subsetting
+    if viz_subset is not None:
+        viz_vertex = G.new_vertex_property('bool')
+        for n,vertex in enumerate(G.vertices()):
+            if isolate_names[n] in viz_subset:
+                viz_vertex[vertex] = True
+            else:
+                viz_vertex[vertex] = False
+        G.set_vertex_filter(viz_vertex)
+    
     # write graph file
     if suffix is None:
         graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
@@ -388,10 +401,9 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
 
     # Write CSV of metadata
     if writeCsv:
-        refNames = G.vertices
-        seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
+        seqLabels = [i.split('/')[-1].split('.')[0] for i in isolate_names]
         writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
-                        refNames,
+                        isolate_names,
                         seqLabels,
                         clustering,
                         'cytoscape',

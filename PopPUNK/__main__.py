@@ -615,7 +615,7 @@ def main():
             sys.stderr.write("Must specify at least one type of visualisation to output\n")
             sys.exit(1)
 
-        if args.distances is not None and (args.ref_db is not None or args.lineage_clustering):
+        if args.distances is not None and args.ref_db is not None:
             
             # Initial processing
             # Load original distances
@@ -701,24 +701,22 @@ def main():
                 outputsForGrapetree(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             if args.cytoscape:
-                if args.viz_lineages or args.external_clustering:
-                    sys.stderr.write("Can only generate a network output for fitted models\n")
+                sys.stderr.write("Writing cytoscape output\n")
+                if args.viz_lineages:
+                    for rank in isolateClustering.keys():
+                        numeric_rank = rank.split('_')[1]
+                        if numeric_rank.isdigit():
+                            genomeNetwork = gt.load_graph(args.ref_db + '/' + args.ref_db + '_rank_' + str(numeric_rank) + '_lineages.gt')
+                            outputsForCytoscape(genomeNetwork, isolateClustering, args.output,
+                                        args.info_csv, suffix = 'rank_' + str(rank), viz_subset = viz_subset)
                 else:
-                    sys.stderr.write("Writing cytoscape output\n")
-                    # Read in network and cluster assignment
                     genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
-                    isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-
-                    # mask the network and dictionary of assignments
-                    viz_vertex = G.new_vertex_property('bool')
-                    for n,vertex in enumerate(G.vertices()):
-                        if rlist[n] in viz_subset:
-                            viz_vertex[vertex] = True
-                        else:
-                            viz_vertex[vertex] = False
-                    G.set_vertex_filter(viz_vertex)
-                    # write output
-                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
+                    if model.indiv_fitted:
+                        sys.stderr.write("Writing individual cytoscape networks\n")
+                        for dist_type in ['core', 'accessory']:
+                            outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                        args.info_csv, suffix = dist_type, viz_subset = viz_subset)
 
         else:
             # Cannot read input files
@@ -922,9 +920,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
                                 queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
         if cytoscape:
-            if assign_lineage:
-                sys.stderr.write("Cannot generate a cytoscape network from a lineage assignment")
-            else:
                 sys.stderr.write("Writing cytoscape output\n")
                 outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
 
