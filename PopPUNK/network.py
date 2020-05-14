@@ -381,15 +381,14 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     # Set up query names
     qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
     if use_mash == True:
-        rNames = None
-        qNames = isolateNameToLabel(qSeqs)
         # mash must use sequence file names for both testing for
         # assignment and for generating a new database
-        queryFiles = dict(zip(qSeqs, qSeqs))
+        rNames = None
+        qNames = isolateNameToLabel(qSeqs)
     else:
         rNames = qList
         qNames = rNames
-        queryFiles = dict(zip(qNames, qSeqs))
+    queryFiles = dict(zip(qNames, qSeqs))
 
     # store links for each query in a list of edge tuples
     ref_count = len(rlist)
