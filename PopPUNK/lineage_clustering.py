@@ -197,7 +197,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
         G.add_vertex(len(isolate_list))
         # add sequence labels for visualisation
         vid = G.new_vertex_property('string',
-                                    vals = [i.split('/')[-1].split('.')[0] for i in isolate_list])
+                                    vals = isolate_list)
         G.vp.id = vid
         
         # parallelise neighbour identification for each rank
@@ -269,7 +269,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             else:
                 overall_lineage = overall_lineage + '-' + str(lineage_assignation[rank][isolate])
         overall_lineages['overall'][isolate] = overall_lineage
-    
+    print('ISOLATES: ' + str(overall_lineages))
     # print output as CSV
     writeClusterCsv(output + "/" + output + '_lineages.csv',
                     isolate_list,
@@ -314,7 +314,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     distance_ranks = np.ndarray(distance_ranks_input.shape, dtype = distance_ranks_input.dtype, buffer = distance_ranks_shm.buf)
     isolate_list = isolates
     isolate_indices = range(0,len(isolate_list))
-    
+
     # load previous scheme
     seeds = {}
     if previous_seeds is not None:

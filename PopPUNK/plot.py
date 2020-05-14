@@ -25,6 +25,8 @@ except ImportError:
     from sklearn.neighbors.kde import KernelDensity
 import dendropy
 
+from .utils import isolateNameToLabel
+
 def plot_scatter(X, scale, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
 
@@ -401,7 +403,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
 
     # Write CSV of metadata
     if writeCsv:
-        seqLabels = [i.split('/')[-1].split('.')[0] for i in isolate_names]
+        seqLabels = isolateNameToLabel(isolate_names)
         writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
                         isolate_names,
                         seqLabels,
@@ -479,14 +481,11 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     d = defaultdict(list)
     if epiCsv is not None:
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
-        epiData.index = [i.split('/')[-1].split('.')[0] for i in epiData.index]
+        epiData.index = isolateNameToLabel(epiData.index)
         for e in epiData.columns.values:
             colnames.append(str(e))
 
     columns_to_be_omitted = []
-
-    # process clustering data
-    nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
 
     # get example clustering name for validation
     example_cluster_title = list(clustering.keys())[0]
@@ -668,7 +667,7 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
     from .tsne import generate_tsne
 
     # generate sequence labels
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
+    seqLabels = isolateNameToLabel(combined_list)
 
     # check CSV before calculating other outputs
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
@@ -762,7 +761,7 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Avoid regenerating tree if already built for microreact (default = False)
     """
     # generate sequence labels
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
+    seqLabels = isolateNameToLabel(combined_list)
 
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
@@ -813,7 +812,7 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Avoid regenerating tree if already built for microreact (default = False).
     """
     # generate sequence labels
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
+    seqLabels = isolateNameToLabel(combined_list)
 
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",

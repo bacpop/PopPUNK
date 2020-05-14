@@ -280,7 +280,7 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
 
     # add isolate ID to network
     vid = G.new_vertex_property('string',
-                                vals = isolateNameToLabel(vertex_labels))
+                                vals = vertex_labels)
     G.vp.id = vid
 
     # print some summaries
@@ -382,7 +382,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
     if use_mash == True:
         rNames = None
-        qNames = [i.split('/')[-1].split('.')[0] for i in qSeqs]
+        qNames = isolateNameToLabel(qSeqs)
         # mash must use sequence file names for both testing for
         # assignment and for generating a new database
         queryFiles = dict(zip(qSeqs, qSeqs))
@@ -468,7 +468,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     G.add_vertex(len(qNames))
     G.add_edge_list(new_edges)
     # including the vertex ID property map
-    for i,q in enumerate(qNames):
+    for i,q in enumerate(qSeqs):
         G.vp.id[i + len(rlist)] = q
     G.save('after.graphml',fmt='graphml')
 

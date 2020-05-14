@@ -855,7 +855,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             if full_db is False and assign_lineage is False:
                 mashOrder = refList + ordered_queryList
                 newRepresentativesIndices, newRepresentativesNames, newRepresentativesFile, genomeNetwork = extractReferences(genomeNetwork, mashOrder, output, refList)
-#                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
                 isolates_to_remove = set(mashOrder).difference(newRepresentativesNames)
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
