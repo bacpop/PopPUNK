@@ -181,7 +181,7 @@ def listDistInts(refSeqs, querySeqs, self=True):
     num_ref = len(refSeqs)
     num_query = len(querySeqs)
     if self:
-        comparisons = [(0,0)] * (num_ref * (num_ref-1))
+        comparisons = [(0,0)] * int((num_ref * (num_ref-1)) * 0.5)
         if refSeqs != querySeqs:
             raise RuntimeError('refSeqs must equal querySeqs for db building (self = true)')
         for i in range(num_ref):
