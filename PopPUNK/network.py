@@ -396,7 +396,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
             new_edges.append((ref, query + ref_count))
-            assigned.add(queryFiles[qNames[query]])
+            assigned.add(qNames[query])
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
