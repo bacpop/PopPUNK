@@ -269,7 +269,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             else:
                 overall_lineage = overall_lineage + '-' + str(lineage_assignation[rank][isolate])
         overall_lineages['overall'][isolate] = overall_lineage
-    print('ISOLATES: ' + str(overall_lineages))
+
     # print output as CSV
     writeClusterCsv(output + "/" + output + '_lineages.csv',
                     isolate_list,
