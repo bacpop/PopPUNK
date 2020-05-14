@@ -74,7 +74,7 @@ subprocess.run("python ../poppunk-runner.py --generate-viz --distances example_d
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")
-subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db/example_db.dists --output example_lineages --ranks 1,2,3,5", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db/example_db.dists --output example_lineages --ranks 1,2,3,5 --ref-db example_db", shell=True, check=True)
 
 # assign query to lineages
 sys.stderr.write("Running query assignment (--assign-lineages)\n")
@@ -82,7 +82,7 @@ subprocess.run("python ../poppunk-runner.py --assign-lineages --q-files queries.
 
 # lineage clustering with mash
 sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")
-subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db_mash/example_db_mash.dists --output example_lineages_mash --ranks 1,2,3,5 --use-mash", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db_mash/example_db_mash.dists --output example_lineages_mash --ranks 1,2,3,5  --ref-db example_db --use-mash", shell=True, check=True)
 
 # assign query to lineages with mash
 sys.stderr.write("Running query assignment (--assign-lineages)\n")
