@@ -39,20 +39,6 @@ conda config --add channels bioconda
 conda config --add channels conda-forge
 ```
 
-### Through pip
-If you do not have conda you can also install through pip:
-```
-python3 -m pip install poppunk
-```
-You will need to be using Python 3.8 or higher.
-
-Using both of these methods command `poppunk` will then be directly executable.
-Alternatively clone this repository:
-```
-git clone git@github.com:johnlees/PopPUNK.git
-```
-Then run with `python poppunk-runner.py`.
-
 ## Quick usage
 
 See the [quickstart](https://poppunk.readthedocs.io/en/latest/quickstart.html) guide

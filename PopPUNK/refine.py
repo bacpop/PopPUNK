@@ -9,7 +9,6 @@ import sys
 # additional
 from functools import partial
 import numpy as np
-from numba import jit
 import scipy.optimize
 import collections
 try:
@@ -19,6 +18,7 @@ try:
 except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
+import pp_sketchlib
 
 from .network import constructNetwork
 from .network import networkSummary
@@ -81,14 +81,14 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Trying to optimise score globally\n")
     global_grid_resolution = 40 # Seems to work
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
-    
+
     # Move distMat into shared memory
     with SharedMemoryManager() as smm:
         shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
         distances_shared_array[:] = distMat[:]
         distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
-        
+
         with Pool(processes = num_processes) as pool:
             global_s = pool.map(partial(newNetwork,
                                         sample_names = sample_names,
@@ -124,47 +124,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y
 
 
-@jit(nopython=True)
-def withinBoundary(dists, x_max, y_max, slope=2):
-    """Classifies points as within or outside of a refined boundary.
-    Numba JIT compiled for speed.
-
-    Also used to assign new points in :func:`~PopPUNK.models.RefineFit.assign`
-
-    Args:
-        dists (numpy.array)
-            Core and accessory distances to classify
-        x_max (float)
-            The x-axis intercept from :func:`~decisionBoundary`
-        y_max (float)
-            The y-axis intercept from :func:`~decisionBoundary`
-        slope (int)
-            Set to 0 for a vertical line, 1 for a horizontal line, or
-            2 to use a slope
-    Returns:
-        signs (numpy.array)
-            For each sample in dists, -1 if within-strain and 1 if between-strain.
-            0 if exactly on boundary.
-    """
-    # See https://stackoverflow.com/questions/2049582/how-to-determine-if-a-point-is-in-a-2d-triangle
-    # x_max and y_max from decisionBoundary
-    boundary_test = np.ones((dists.shape[0]))
-    for row in range(boundary_test.size):
-        if slope == 2:
-            in_tri = dists[row, 0]*dists[row, 1] - (x_max-dists[row, 0])*(y_max-dists[row, 1])
-        elif slope == 0:
-            in_tri = dists[row, 0] - x_max
-        elif slope == 1:
-            in_tri = dists[row, 1] - y_max
-
-        if in_tri < 0:
-            boundary_test[row] = -1
-        elif in_tri == 0:
-            boundary_test[row] = 0
-    return(boundary_test)
-
-
-def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
+def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2, cpus = 1):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -187,6 +147,8 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         slope (int)
             Set to 0 for a vertical line, 1 for a horizontal line, or
             2 to use a slope
+        cpus (int)
+            Number of CPUs to use for calculating assignment
     Returns:
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
@@ -194,7 +156,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
     if isinstance(distMat, NumpyShared):
         distMat_shm = shared_memory.SharedMemory(name = distMat.name)
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
-    
+
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
     if slope == 2:
@@ -207,7 +169,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2):
         y_max = new_intercept[1]
 
     # Make network
-    boundary_assignments = withinBoundary(distMat, x_max, y_max, slope)
+    boundary_assignments = pp_sketchlib.assignThreshold(distMat, slope, x_max, y_max, cpus)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score

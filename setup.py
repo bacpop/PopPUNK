@@ -68,7 +68,6 @@ setup(
                       'scipy',
                       'scikit-learn',
                       'DendroPy',
-                      'numba',
                       'pandas',
                       'networkx>=2.0',
                       'matplotlib',
