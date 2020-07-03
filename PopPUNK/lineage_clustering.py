@@ -179,7 +179,9 @@ def get_lineage(G, neighbours, seed_isolate, lineage_index):
     # return final clustering
     return G
 
-def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
+def cluster_into_lineages(distMat, rank_list = None, output = None,
+    isolate_list = None, qlist = None, existing_scheme = None,
+    use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
     relative distances.
 
