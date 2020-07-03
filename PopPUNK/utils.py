@@ -43,7 +43,7 @@ def setupDBFuncs(args, kmers, min_count):
         from .mash import queryDatabase as queryDBMash
         from .mash import readMashDBParams
         from .mash import getSeqsInDb
-    
+
         # check mash is installed
         backend = "mash"
         version = checkMashVersion(args.mash)
@@ -66,7 +66,7 @@ def setupDBFuncs(args, kmers, min_count):
         backend = "sketchlib"
         version = checkSketchlibVersion()
 
-        constructDatabase = partial(constructDatabaseSketchlib, strand_preserved = args.strand_preserved, 
+        constructDatabase = partial(constructDatabaseSketchlib, strand_preserved = args.strand_preserved,
                                     min_count = args.min_kmer_count, use_exact = args.exact_count)
         queryDatabase = partial(queryDatabaseSketchlib, use_gpu = args.use_gpu, deviceid = args.deviceid)
 
@@ -80,7 +80,7 @@ def setupDBFuncs(args, kmers, min_count):
                'backend': backend,
                'backend_version': version
                }
-    
+
     return dbFuncs
 
 def storePickle(rlist, qlist, self, X, pklName):
@@ -231,10 +231,10 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
         clusters = defaultdict(dict)
     else:
         clusters = {}
-    
+
     # read CSV
     clustersCsv = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
-    
+
     # select relevant columns according to mode
     if mode == 'clusters':
         type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Cluster' in col)]
@@ -248,7 +248,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     else:
         sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
         exit(1)
-    
+
     # read file
     for row in clustersCsv.itertuples():
         for cls_idx in type_columns:
@@ -263,44 +263,6 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
 
     # return data structure
     return clusters
-
-def translate_distMat(combined_list, core_distMat, acc_distMat):
-    """Convert distances from a square form (2 NxN matrices) to a long form
-    (1 matrix with n_comparisons rows and 2 columns).
-
-    Args:
-        combined_list
-            Combined list of references followed by queries (list)
-        core_distMat (numpy.array)
-            NxN core distances
-        acc_distMat (numpy.array)
-            NxN accessory distances
-
-    Returns:
-        distMat (numpy.array)
-            Distances in long form
-    """
-
-    # indices
-    i = 0
-    j = 1
-
-    # create distmat
-    number_pairs = int(0.5 * len(combined_list) * (len(combined_list) - 1))
-    distMat = np.zeros((number_pairs, 2), dtype=core_distMat.dtype)
-
-    # extract distances
-    for row in distMat:
-        row[0] = core_distMat[i, j]
-        row[1] = acc_distMat[i, j]
-
-        if j == len(combined_list) - 1:
-            i += 1
-            j = i + 1
-        else:
-            j += 1
-
-    return distMat
 
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
@@ -497,7 +459,7 @@ def readRfile(rFile, oneSeq=False):
                 sys.stderr.write("Input reference list is misformatted\n"
                                  "Must contain sample name and file, tab separated\n")
                 sys.exit(1)
-            
+
             names.append(rFields[0])
             sample_files = []
             for sequence in rFields[1:]:
