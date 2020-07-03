@@ -303,16 +303,16 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         seqLabels = seqLabels + queryList
 
     if queryList == None:
-        coreMat = pp_sketchlib.longToSquare(distMat[:, 0], threads)
-        accMat = pp_sketchlib.longToSquare(distMat[:, 1], threads)
+        coreMat = pp_sketchlib.longToSquare(distMat[:, [0]], threads)
+        accMat = pp_sketchlib.longToSquare(distMat[:, [1]], threads)
     else:
-        coreMat = pp_sketchlib.longToSquareMulti(distMat[:, 0],
-                                                 query_ref_distMat[:, 0],
-                                                 query_query_distMat[:, 0],
+        coreMat = pp_sketchlib.longToSquareMulti(distMat[:, [0]],
+                                                 query_ref_distMat[:, [0]],
+                                                 query_query_distMat[:, [0]],
                                                  threads)
-        accMat = pp_sketchlib.longToSquareMulti(distMat[:, 1],
-                                                 query_ref_distMat[:, 1],
-                                                 query_query_distMat[:, 1],
+        accMat = pp_sketchlib.longToSquareMulti(distMat[:, [1]],
+                                                 query_ref_distMat[:, [1]],
+                                                 query_query_distMat[:, [1]],
                                                  threads)
 
     # return outputs
