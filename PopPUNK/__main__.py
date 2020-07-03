@@ -483,7 +483,8 @@ def main():
         try:
             if args.microreact or args.cytoscape or args.phandango or args.grapetree:
                 # generate distance matrices for outputs if required
-                combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
+                combined_seq, core_distMat, acc_distMat = \
+                    update_distance_matrices(refList, distMat, threads = args.threads)
 
                 if args.microreact:
                     sys.stderr.write("Writing microreact output\n")
@@ -600,7 +601,9 @@ def main():
             with open(args.distances + ".pkl", 'rb') as pickle_file:
                 rlist, qlist, self = pickle.load(pickle_file)
                 complete_distMat = np.load(args.distances + ".npy")
-                combined_seq, core_distMat, acc_distMat = update_distance_matrices(rlist, complete_distMat)
+                combined_seq, core_distMat, acc_distMat = \
+                    update_distance_matrices(rlist, complete_distMat,
+                                             threads = args.threads)
 
             # make directory for new output files
             if not os.path.isdir(args.output):
@@ -630,7 +633,9 @@ def main():
                                                                       complete_distMat, dists_out)
 
             rlist = viz_subset
-            combined_seq, core_distMat, acc_distMat = update_distance_matrices(viz_subset, newDistMat)
+            combined_seq, core_distMat, acc_distMat = \
+                update_distance_matrices(viz_subset, newDistMat,
+                                         threads = args.threads)
 
             # reorder subset to ensure list orders match
             try:
@@ -847,8 +852,10 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             else:
                 distanceFiles = distances
             refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
-            combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
-                                                                ordered_queryList, distMat, query_distMat)
+            combined_seq, core_distMat, acc_distMat = \
+                update_distance_matrices(refList, ref_distMat,
+                                         ordered_queryList, distMat,
+                                         query_distMat, threads = threads)
             complete_distMat = \
                 np.hstack((pp_sketchlib.squareToLong(core_distMat, threads),
                            pp_sketchlib.squareToLong(acc_distMat, threads)))

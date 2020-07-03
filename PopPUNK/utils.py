@@ -16,6 +16,8 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
+import pp_sketchlib
+
 # Use partials to set up slightly different function calls between
 # both possible backends
 def setupDBFuncs(args, kmers, min_count):
@@ -266,7 +268,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
 
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
-                             query_query_distMat = None):
+                             query_query_distMat = None, threads = 1):
     """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
     to a square form (2 NxN matrices), with merging of query distances if necessary.
 
@@ -285,6 +287,8 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         query_query_distMat (numpy.array)
             Two column long form list of core and accessory distances
             for pairwise comparisons between query sequences
+        threads (int)
+            Number of threads to use
 
     Returns:
         seqLabels (list)
@@ -298,56 +302,18 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     if queryList is not None:
         seqLabels = seqLabels + queryList
 
-    coreMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-    accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-
-    # Fill in symmetric matrices for core and accessory distances
-    i = 0
-    j = 1
-
-    # ref v ref (used for --create-db)
-    for row in distMat:
-        coreMat[i, j] = row[0]
-        coreMat[j, i] = coreMat[i, j]
-        accMat[i, j] = row[1]
-        accMat[j, i] = accMat[i, j]
-
-        if j == len(refList) - 1:
-            i += 1
-            j = i + 1
-        else:
-            j += 1
-
-    # if query vs refdb (--assign-query), also include these comparisons
-    if queryList is not None:
-
-        # query v query - symmetric
-        i = len(refList)
-        j = len(refList)+1
-        for row in query_query_distMat:
-            coreMat[i, j] = row[0]
-            coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = row[1]
-            accMat[j, i] = accMat[i, j]
-            if j == (len(refList) + len(queryList) - 1):
-                i += 1
-                j = i + 1
-            else:
-                j += 1
-
-        # ref v query - asymmetric
-        i = len(refList)
-        j = 0
-        for row in query_ref_distMat:
-            coreMat[i, j] = row[0]
-            coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = row[1]
-            accMat[j, i] = accMat[i, j]
-            if j == (len(refList) - 1):
-                i += 1
-                j = 0
-            else:
-                j += 1
+    if queryList == None:
+        coreMat = pp_sketchlib.longToSquare(distMat[:, 0], threads)
+        accMat = pp_sketchlib.longToSquare(distMat[:, 1], threads)
+    else:
+        coreMat = pp_sketchlib.longToSquareMulti(distMat[:, 0],
+                                                 query_ref_distMat[:, 0],
+                                                 query_query_distMat[:, 0],
+                                                 threads)
+        accMat = pp_sketchlib.longToSquareMulti(distMat[:, 1],
+                                                 query_ref_distMat[:, 1],
+                                                 query_query_distMat[:, 1],
+                                                 threads)
 
     # return outputs
     return seqLabels, coreMat, accMat
