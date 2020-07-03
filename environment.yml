@@ -13,7 +13,6 @@ dependencies:
   - pandas
   - scikit-learn
   - dendropy
-  - numba
   - matplotlib
   - networkx
   - mash

@@ -23,6 +23,8 @@ except ImportError as e:
     sys.exit(0)
 from functools import partial
 
+import pp_sketchlib
+
 # import poppunk package
 from .plot import writeClusterCsv
 
@@ -32,13 +34,13 @@ from .utils import update_distance_matrices
 def get_chunk_ranges(N, nb):
     """ Calculates boundaries for dividing distances array
     into chunks for parallelisation.
-    
+
     Args:
         N (int)
             Number of rows in array
         nb (int)
             Number of blocks into which to divide array.
-    
+
     Returns:
         range_sizes (list of tuples)
             Limits of blocks for dividing array.
@@ -53,13 +55,13 @@ def get_chunk_ranges(N, nb):
 def rank_distance_matrix(bounds, distances = None):
     """ Ranks distances between isolates for each index (row)
     isolate.
-    
+
     Args:
         bounds (2-tuple)
             Range of rows to process in this thread.
         distances (ndarray in shared memory)
             Shared memory object storing pairwise distances.
-    
+
     Returns:
         ranks (numpy ndarray)
             Ranks of distances for each row.
@@ -73,7 +75,7 @@ def rank_distance_matrix(bounds, distances = None):
 
 def get_nearest_neighbours(rank, isolates = None, ranks = None):
     """ Identifies sets of nearest neighbours for each isolate.
-    
+
     Args:
         rank (int)
             Rank used in analysis.
@@ -82,7 +84,7 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
         ranks (ndarray in shared memory)
             Shared memory object pointing to ndarray of
             ranked pairwise distances.
-            
+
     Returns:
         nn (default dict of frozensets)
             Dict indexed by isolates, values are a
@@ -102,18 +104,18 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
         nn[i] = neighbours
     # return dict
     return nn
-    
+
 
 def pick_seed_isolate(G, distances = None):
     """ Identifies seed isolate from the closest pair of
     unclustered isolates.
-    
+
     Args:
         G (network)
             Network with one node per isolate.
         distances (ndarray in shared memory)
             Pairwise distances between isolates.
-            
+
     Returns:
         seed_isolate (int)
             Index of isolate selected as seed.
@@ -148,7 +150,7 @@ def get_lineage(G, neighbours, seed_isolate, lineage_index):
            Index of isolate selected as seed.
         lineage_index (int)
            Label of current lineage.
-        
+
     Returns:
         G (network)
             Network modified with new edges.
@@ -177,10 +179,12 @@ def get_lineage(G, neighbours, seed_isolate, lineage_index):
     # return final clustering
     return G
 
-def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
+def cluster_into_lineages(distMat, rank_list = None, output = None,
+    isolate_list = None, qlist = None, existing_scheme = None,
+    use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
     relative distances.
-    
+
     Args:
         distMat (np.array)
             n x 2 array of core and accessory distances for n samples.
@@ -202,12 +206,12 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             Option to use accessory distances rather than core distances.
         num_processes (int)
             Number of CPUs to use for calculations.
-            
+
     Returns:
         overall_lineages (nested dict)
             Dict for each rank listing the lineage of each isolate.
     """
-    
+
     # data structures
     lineage_clustering = defaultdict(dict)
     overall_lineage_seeds = defaultdict(dict)
@@ -217,7 +221,8 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             lineage_clustering, overall_lineage_seeds, rank_list = pickle.load(pickle_file)
 
     # generate square distance matrix
-    seqLabels, coreMat, accMat = update_distance_matrices(isolate_list, distMat)
+    seqLabels, coreMat, accMat = \
+        update_distance_matrices(isolate_list, distMat, threads = num_processes)
     if use_accessory:
         distances = accMat
     else:
@@ -227,19 +232,19 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     except:
         sys.stderr.write('Isolates in wrong order?')
         exit(1)
-        
+
     # list indices and set self-self to Inf
     isolate_indices = [n for n,i in enumerate(isolate_list)]
     for i in isolate_indices:
         distances[i,i] = np.Inf
-    
+
     # get ranks of distances per row
     chunk_boundaries = get_chunk_ranges(distances.shape[0], num_processes)
     with SharedMemoryManager() as smm:
-    
+
         # share isolate list
         isolate_list_shared = smm.ShareableList(isolate_indices)
-    
+
         # create shared memory object for distances
         distances_raw = smm.SharedMemory(size = distances.nbytes)
         distances_shared_array = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_raw.buf)
@@ -251,14 +256,14 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             ranked_array = pool.map(partial(rank_distance_matrix,
                                 distances = distances_shared_array),
                                 chunk_boundaries)
-        
+
         # concatenate ranks into shared memory
         distance_ranks = np.concatenate(ranked_array)
         distance_ranks_raw = smm.SharedMemory(size = distance_ranks.nbytes)
         distance_ranks_shared_array = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = distance_ranks_raw.buf)
         distance_ranks_shared_array[:] = distance_ranks[:]
         distance_ranks_shared_array = NumpyShared(name = distance_ranks_raw.name, shape = distance_ranks.shape, dtype = distance_ranks.dtype)
-                
+
         # parallelise neighbour identification for each rank
         with Pool(processes = num_processes) as pool:
             results = pool.map(partial(run_clustering_for_rank,
@@ -267,7 +272,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
                                 isolates = isolate_list_shared,
                                 previous_seeds = overall_lineage_seeds),
                                 rank_list)
-        
+
         # extract results from multiprocessing pool
         for n,result in enumerate(results):
             rank = rank_list[n]
@@ -276,7 +281,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     # store output
     with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
         pickle.dump([lineage_clustering, overall_lineage_seeds, rank_list], pickle_file)
-    
+
     # process multirank lineages
     overall_lineages = {}
     overall_lineages = {'Rank_' + str(rank):{} for rank in rank_list}
@@ -290,7 +295,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             else:
                 overall_lineage = overall_lineage + '-' + str(lineage_clustering[rank][index])
         overall_lineages['overall'][isolate] = overall_lineage
-    
+
     # print output as CSV
     writeClusterCsv(output + "/" + output + '_lineages.csv',
                     isolate_list,
@@ -319,7 +324,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
             Should be included within rlist.
         use_existing (bool)
             Whether to extend a previously generated analysis or not.
-            
+
     Returns:
         lineage_clustering (dict)
             Assignment of each isolate to a cluster.
@@ -328,7 +333,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
         neighbours (nested dict)
             Neighbour relationships between isolates for R.
     """
-    
+
     # load shared memory objects
     distances_shm = shared_memory.SharedMemory(name = distances_input.name)
     distances = np.ndarray(distances_input.shape, dtype = distances_input.dtype, buffer = distances_shm.buf)
@@ -346,12 +351,12 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     G = nx.Graph()
     G.add_nodes_from(isolate_indices)
     G.nodes.data('lineage', default = 0)
-    
+
     # identify nearest neighbours
     nn = get_nearest_neighbours(rank,
                             ranks = distance_ranks_input,
                             isolates = isolate_list)
-    
+
     # iteratively identify lineages
     lineage_index = 1
     while nx.number_of_isolates(G) > 0:

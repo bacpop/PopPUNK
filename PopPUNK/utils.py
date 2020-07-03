@@ -16,6 +16,8 @@ from functools import partial
 import numpy as np
 import pandas as pd
 
+import pp_sketchlib
+
 # Use partials to set up slightly different function calls between
 # both possible backends
 def setupDBFuncs(args, kmers, min_count):
@@ -43,7 +45,7 @@ def setupDBFuncs(args, kmers, min_count):
         from .mash import queryDatabase as queryDBMash
         from .mash import readMashDBParams
         from .mash import getSeqsInDb
-    
+
         # check mash is installed
         backend = "mash"
         version = checkMashVersion(args.mash)
@@ -66,7 +68,7 @@ def setupDBFuncs(args, kmers, min_count):
         backend = "sketchlib"
         version = checkSketchlibVersion()
 
-        constructDatabase = partial(constructDatabaseSketchlib, strand_preserved = args.strand_preserved, 
+        constructDatabase = partial(constructDatabaseSketchlib, strand_preserved = args.strand_preserved,
                                     min_count = args.min_kmer_count, use_exact = args.exact_count)
         queryDatabase = partial(queryDatabaseSketchlib, use_gpu = args.use_gpu, deviceid = args.deviceid)
 
@@ -80,7 +82,7 @@ def setupDBFuncs(args, kmers, min_count):
                'backend': backend,
                'backend_version': version
                }
-    
+
     return dbFuncs
 
 def storePickle(rlist, qlist, self, X, pklName):
@@ -231,10 +233,10 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
         clusters = defaultdict(dict)
     else:
         clusters = {}
-    
+
     # read CSV
     clustersCsv = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
-    
+
     # select relevant columns according to mode
     if mode == 'clusters':
         type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Cluster' in col)]
@@ -248,7 +250,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     else:
         sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
         exit(1)
-    
+
     # read file
     for row in clustersCsv.itertuples():
         for cls_idx in type_columns:
@@ -264,47 +266,9 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     # return data structure
     return clusters
 
-def translate_distMat(combined_list, core_distMat, acc_distMat):
-    """Convert distances from a square form (2 NxN matrices) to a long form
-    (1 matrix with n_comparisons rows and 2 columns).
-
-    Args:
-        combined_list
-            Combined list of references followed by queries (list)
-        core_distMat (numpy.array)
-            NxN core distances
-        acc_distMat (numpy.array)
-            NxN accessory distances
-
-    Returns:
-        distMat (numpy.array)
-            Distances in long form
-    """
-
-    # indices
-    i = 0
-    j = 1
-
-    # create distmat
-    number_pairs = int(0.5 * len(combined_list) * (len(combined_list) - 1))
-    distMat = np.zeros((number_pairs, 2), dtype=core_distMat.dtype)
-
-    # extract distances
-    for row in distMat:
-        row[0] = core_distMat[i, j]
-        row[1] = acc_distMat[i, j]
-
-        if j == len(combined_list) - 1:
-            i += 1
-            j = i + 1
-        else:
-            j += 1
-
-    return distMat
-
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
-                             query_query_distMat = None):
+                             query_query_distMat = None, threads = 1):
     """Convert distances from long form (1 matrix with n_comparisons rows and 2 columns)
     to a square form (2 NxN matrices), with merging of query distances if necessary.
 
@@ -323,6 +287,8 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         query_query_distMat (numpy.array)
             Two column long form list of core and accessory distances
             for pairwise comparisons between query sequences
+        threads (int)
+            Number of threads to use
 
     Returns:
         seqLabels (list)
@@ -336,56 +302,18 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     if queryList is not None:
         seqLabels = seqLabels + queryList
 
-    coreMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-    accMat = np.zeros((len(seqLabels), len(seqLabels)), dtype=distMat.dtype)
-
-    # Fill in symmetric matrices for core and accessory distances
-    i = 0
-    j = 1
-
-    # ref v ref (used for --create-db)
-    for row in distMat:
-        coreMat[i, j] = row[0]
-        coreMat[j, i] = coreMat[i, j]
-        accMat[i, j] = row[1]
-        accMat[j, i] = accMat[i, j]
-
-        if j == len(refList) - 1:
-            i += 1
-            j = i + 1
-        else:
-            j += 1
-
-    # if query vs refdb (--assign-query), also include these comparisons
-    if queryList is not None:
-
-        # query v query - symmetric
-        i = len(refList)
-        j = len(refList)+1
-        for row in query_query_distMat:
-            coreMat[i, j] = row[0]
-            coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = row[1]
-            accMat[j, i] = accMat[i, j]
-            if j == (len(refList) + len(queryList) - 1):
-                i += 1
-                j = i + 1
-            else:
-                j += 1
-
-        # ref v query - asymmetric
-        i = len(refList)
-        j = 0
-        for row in query_ref_distMat:
-            coreMat[i, j] = row[0]
-            coreMat[j, i] = coreMat[i, j]
-            accMat[i, j] = row[1]
-            accMat[j, i] = accMat[i, j]
-            if j == (len(refList) - 1):
-                i += 1
-                j = 0
-            else:
-                j += 1
+    if queryList == None:
+        coreMat = pp_sketchlib.longToSquare(distMat[:, [0]], threads)
+        accMat = pp_sketchlib.longToSquare(distMat[:, [1]], threads)
+    else:
+        coreMat = pp_sketchlib.longToSquareMulti(distMat[:, [0]],
+                                                 query_ref_distMat[:, [0]],
+                                                 query_query_distMat[:, [0]],
+                                                 threads)
+        accMat = pp_sketchlib.longToSquareMulti(distMat[:, [1]],
+                                                 query_ref_distMat[:, [1]],
+                                                 query_query_distMat[:, [1]],
+                                                 threads)
 
     # return outputs
     return seqLabels, coreMat, accMat
@@ -463,9 +391,11 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
         sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
 
     k_min = min(klist)
-    max_prob = 1/(pow(4, k_min)/float(genome_length) + 1)
+    j1 = 1 - pow(1 - 1/(pow(4, k_min)), float(genome_length))
+    max_prob = (j1 * j1) / (2 * j1 - j1 * j1)
     if max_prob > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is too small for genome length " + str(genome_length) +"; results will be adjusted for random match probabilities\n")
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is small relative to genome length " +
+            str(genome_length) +"; results will be adjusted for random match probabilities\n")
     if k_min < 6:
         sys.stderr.write("Minimum k-mer length is too low; please increase to at least 6\n")
         exit(1)
@@ -497,7 +427,7 @@ def readRfile(rFile, oneSeq=False):
                 sys.stderr.write("Input reference list is misformatted\n"
                                  "Must contain sample name and file, tab separated\n")
                 sys.exit(1)
-            
+
             names.append(rFields[0])
             sample_files = []
             for sequence in rFields[1:]:
