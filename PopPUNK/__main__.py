@@ -509,7 +509,7 @@ def main():
         except:
             # Go ahead with final steps even if visualisations fail
             # (e.g. rapidnj not found)
-            sys.stderr.write("Error creating files for visualisation:", sys.exc_info()[0])
+            sys.stderr.write("Error creating files for visualisation:" + str(sys.exc_info()[0]))
 
         #******************************#
         #*                            *#
