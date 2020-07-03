@@ -23,6 +23,8 @@ except ImportError as e:
     sys.exit(0)
 from functools import partial
 
+import pp_sketchlib
+
 # import poppunk package
 from .plot import writeClusterCsv
 
@@ -32,13 +34,13 @@ from .utils import update_distance_matrices
 def get_chunk_ranges(N, nb):
     """ Calculates boundaries for dividing distances array
     into chunks for parallelisation.
-    
+
     Args:
         N (int)
             Number of rows in array
         nb (int)
             Number of blocks into which to divide array.
-    
+
     Returns:
         range_sizes (list of tuples)
             Limits of blocks for dividing array.
@@ -53,13 +55,13 @@ def get_chunk_ranges(N, nb):
 def rank_distance_matrix(bounds, distances = None):
     """ Ranks distances between isolates for each index (row)
     isolate.
-    
+
     Args:
         bounds (2-tuple)
             Range of rows to process in this thread.
         distances (ndarray in shared memory)
             Shared memory object storing pairwise distances.
-    
+
     Returns:
         ranks (numpy ndarray)
             Ranks of distances for each row.
@@ -73,7 +75,7 @@ def rank_distance_matrix(bounds, distances = None):
 
 def get_nearest_neighbours(rank, isolates = None, ranks = None):
     """ Identifies sets of nearest neighbours for each isolate.
-    
+
     Args:
         rank (int)
             Rank used in analysis.
@@ -82,7 +84,7 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
         ranks (ndarray in shared memory)
             Shared memory object pointing to ndarray of
             ranked pairwise distances.
-            
+
     Returns:
         nn (default dict of frozensets)
             Dict indexed by isolates, values are a
@@ -105,7 +107,7 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
 def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
     relative distances.
-    
+
     Args:
         distMat (np.array)
             n x 2 array of core and accessory distances for n samples.
@@ -127,12 +129,12 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             Option to use accessory distances rather than core distances.
         num_processes (int)
             Number of CPUs to use for calculations.
-            
+
     Returns:
         overall_lineages (nested dict)
             Dict for each rank listing the lineage of each isolate.
     """
-    
+
     # data structures
     lineage_assignation = defaultdict(dict)
     overall_lineage_seeds = defaultdict(dict)
@@ -147,7 +149,8 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             max_existing_cluster[rank] = max(lineage_assignation[rank].values()) + 1
 
     # generate square distance matrix
-    seqLabels, coreMat, accMat = update_distance_matrices(isolate_list, distMat)
+    seqLabels, coreMat, accMat = \
+        update_distance_matrices(isolate_list, distMat, threads = num_processes)
     if use_accessory:
         distances = accMat
     else:
@@ -157,19 +160,19 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
     except:
         sys.stderr.write('Isolates in wrong order?')
         exit(1)
-        
+
     # list indices and set self-self to Inf
     isolate_indices = [n for n,i in enumerate(isolate_list)]
     for i in isolate_indices:
         distances[i,i] = np.Inf
-    
+
     # get ranks of distances per row
     chunk_boundaries = get_chunk_ranges(distances.shape[0], num_processes)
     with SharedMemoryManager() as smm:
-    
+
         # share isolate list
         isolate_list_shared = smm.ShareableList(isolate_indices)
-    
+
         # create shared memory object for distances
         distances_raw = smm.SharedMemory(size = distances.nbytes)
         distances_shared_array = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_raw.buf)
@@ -181,7 +184,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
             ranked_array = pool.map(partial(rank_distance_matrix,
                                 distances = distances_shared_array),
                                 chunk_boundaries)
-        
+
         # concatenate ranks into shared memory
         distance_ranks = np.concatenate(ranked_array)
         distance_ranks_raw = smm.SharedMemory(size = distance_ranks.nbytes)
@@ -209,6 +212,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list
 
         # extract results from multiprocessing pool and save output network
         nn = defaultdict(dict)
+
         for n,result in enumerate(results):
             # get results per rank
             rank = rank_list[n]
@@ -298,7 +302,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
             Should be included within rlist.
         use_existing (bool)
             Whether to extend a previously generated analysis or not.
-            
+
     Returns:
         lineage_assignation (dict)
             Assignment of each isolate to a cluster.
@@ -307,6 +311,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
         connections (set of tuples)
             Edges to add to network describing lineages.
     """    
+
     # load shared memory objects
     distances_shm = shared_memory.SharedMemory(name = distances_input.name)
     distances = np.ndarray(distances_input.shape, dtype = distances_input.dtype, buffer = distances_shm.buf)
@@ -319,12 +324,12 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     seeds = {}
     if previous_seeds is not None:
         seeds = previous_seeds[rank]
-   
+
     # identify nearest neighbours
     nn = get_nearest_neighbours(rank,
                             ranks = distance_ranks_input,
                             isolates = isolate_list)
-    
+
     # iteratively identify lineages
     lineage_index = 1
     connections = set()

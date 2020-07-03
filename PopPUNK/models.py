@@ -17,6 +17,8 @@ import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
 
+import pp_sketchlib
+
 from .plot import plot_scatter
 
 # BGMM
@@ -36,7 +38,6 @@ from .plot import plot_dbscan_results
 # refine
 from .refine import refineFit
 from .refine import likelihoodBoundary
-from .refine import withinBoundary
 from .refine import readManualStart
 from .plot import plot_refined_results
 
@@ -717,8 +718,8 @@ class RefineFit(ClusterFit):
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
-    def assign(self, X, slope=None):
-        '''Assign the clustering of new samples using :func:`~PopPUNK.refine.withinBoundary`
+    def assign(self, X, slope=None, cpus=1):
+        '''Assign the clustering of new samples
 
         Args:
             X (numpy.array)
@@ -728,6 +729,8 @@ class RefineFit(ClusterFit):
 
                 Set to 0 for a vertical line, 1 for a horizontal line, or
                 2 to use a slope
+            cpus (int)
+                Number of threads to use
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -736,11 +739,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if slope == 2 or (slope == None and self.slope == 2):
-                y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
+                y = pp_sketchlib.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=0)
+                y = pp_sketchlib.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=1)
+                y = pp_sketchlib.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
 
         return y
 

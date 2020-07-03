@@ -10,6 +10,9 @@ import numpy as np
 import graph_tool.all as gt
 import subprocess
 
+# required from v2.1.1 onwards (no mash support)
+import pp_sketchlib
+
 # import poppunk package
 from .__init__ import __version__
 
@@ -40,14 +43,13 @@ from .utils import storePickle
 from .utils import readPickle
 from .utils import writeTmpFile
 from .utils import qcDistMat
-from .utils import translate_distMat
 from .utils import update_distance_matrices
 from .utils import readRfile
 from .utils import readIsolateTypeFromCsv
 
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 1
-SKETCHLIB_MINOR = 3
+SKETCHLIB_MINOR = 4
 
 #******************************#
 #*                            *#
@@ -212,21 +214,21 @@ def get_options():
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
 
-                       
+
     # combine
     args = parser.parse_args()
-    
+
     # ensure directories do not have trailing forward slash
     for arg in [args.ref_db,args.model_dir,args.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
-                       
+
     return args
 
 def main():
     """Main function. Parses cmd line args and runs in the specified mode.
     """
-    
+
     #******************************#
     #*                            *#
     #* Check command options      *#
@@ -237,7 +239,7 @@ def main():
         sys.exit(1)
 
     args = get_options()
-    
+
     # establish method of kmer calculation
     if no_sketchlib:
         args.use_mash = True
@@ -308,7 +310,7 @@ def main():
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
     if (dbFuncs['backend'] == 'sketchlib'):
         sketchlib_version = [int(x) for x in dbFuncs['backend_version'].split(".")]
-        if sketchlib_version[0] < SKETCHLIB_MAJOR or sketchlib_version[1] < SKETCHLIB_MINOR: 
+        if sketchlib_version[0] < SKETCHLIB_MAJOR or sketchlib_version[1] < SKETCHLIB_MINOR:
             sys.stderr.write("This version of PopPUNK requires sketchlib v1.3.0 or higher\n")
             sys.exit(1)
         else:
@@ -318,7 +320,7 @@ def main():
     #*                            *#
     #* Create database            *#
     #*                            *#
-    #******************************#    
+    #******************************#
     if args.create_db or args.easy_run:
         if args.create_db:
             sys.stderr.write("Mode: Building new database from input sequences\n")
@@ -329,21 +331,21 @@ def main():
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.estimated_length, args.ignore_length, args.threads,
                 args.overwrite)
-            
+
             # Calculate and QC distances
             if args.use_mash == True:
                 rNames = None
                 qNames = readRfile(args.r_files, oneSeq=True)[1]
             else:
-                rNames = readRfile(args.r_files)[0] 
+                rNames = readRfile(args.r_files)[0]
                 qNames = rNames
             refList, queryList, distMat = queryDatabase(rNames = rNames,
-                                                        qNames = qNames, 
-                                                        dbPrefix = args.output, 
-                                                        queryPrefix = args.output, 
+                                                        qNames = qNames,
+                                                        dbPrefix = args.output,
+                                                        queryPrefix = args.output,
                                                         klist = kmers,
-                                                        self = True, 
-                                                        number_plot_fits = args.plot_fit, 
+                                                        self = True,
+                                                        number_plot_fits = args.plot_fit,
                                                         threads = args.threads)
             qcDistMat(distMat, refList, queryList, args.max_a_dist)
 
@@ -359,7 +361,7 @@ def main():
     #* model fit and network      *#
     #* construction               *#
     #*                            *#
-    #******************************#    
+    #******************************#
     # refine model also needs to run all model steps
     if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run or args.lineage_clustering:
         # Set up saved data from first step, if easy_run mode
@@ -410,7 +412,7 @@ def main():
         #*                            *#
         #* model fit                  *#
         #*                            *#
-        #******************************#    
+        #******************************#
         # Run selected model here, or if easy run DBSCAN followed by refinement
         if args.fit_model or args.easy_run:
             # Run DBSCAN model
@@ -432,7 +434,7 @@ def main():
                         args.manual_start, args.indiv_refine, args.no_local, args.threads)
             else:
                 assignments = new_model.apply_threshold(distMat, args.threshold)
-                
+
             new_model.plot(distMat)
             model = new_model
 
@@ -483,6 +485,7 @@ def main():
                     fit_type = 'accessory'
                     genomeNetwork = indivNetworks['accessory']
 
+
         #******************************#
         #*                            *#
         #* lineages analysis          *#
@@ -525,12 +528,13 @@ def main():
         #*                            *#
         #* external visualisations    *#
         #*                            *#
-        #******************************#  
+        #******************************#
         # Create files for visualisations
         try:
             if args.microreact or args.cytoscape or args.phandango or args.grapetree:
                 # generate distance matrices for outputs if required
-                combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, distMat)
+                combined_seq, core_distMat, acc_distMat = \
+                    update_distance_matrices(refList, distMat, threads = args.threads)
 
                 if args.microreact:
                     sys.stderr.write("Writing microreact output\n")
@@ -566,7 +570,7 @@ def main():
         #*                            *#
         #* clique pruning             *#
         #*                            *#
-        #******************************# 
+        #******************************#
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
@@ -575,7 +579,7 @@ def main():
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
-            
+
             # With mash, the sketches are actually removed from the database
             if args.use_mash:
                 # Create compatible input file
@@ -593,7 +597,7 @@ def main():
     #* query assignment (function  *#
     #* below)                      *#
     #*                             *#
-    #*******************************# 
+    #*******************************#
     elif args.assign_query or args.assign_lineages:
         assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
                      args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length, args.estimated_length,
@@ -606,7 +610,7 @@ def main():
     #*                            *#
     #* generate viz mode          *#
     #*                            *#
-    #******************************#  
+    #******************************#
     # generate visualisation files from existing database
     elif args.generate_viz:
         if args.microreact or args.phandango or args.grapetree or args.cytoscape:
@@ -616,13 +620,15 @@ def main():
             sys.exit(1)
 
         if args.distances is not None and args.ref_db is not None:
-            
+
             # Initial processing
             # Load original distances
             with open(args.distances + ".pkl", 'rb') as pickle_file:
                 rlist, qlist, self = pickle.load(pickle_file)
                 complete_distMat = np.load(args.distances + ".npy")
-                combined_seq, core_distMat, acc_distMat = update_distance_matrices(rlist, complete_distMat)
+                combined_seq, core_distMat, acc_distMat = \
+                    update_distance_matrices(rlist, complete_distMat,
+                                             threads = args.threads)
 
             # make directory for new output files
             if not os.path.isdir(args.output):
@@ -631,7 +637,7 @@ def main():
                 except OSError:
                     sys.stderr.write("Cannot create output directory\n")
                     sys.exit(1)
-            
+
             # Define set/subset to be visualised
             # extract subset of distances if requested
             viz_subset = rlist
@@ -659,7 +665,7 @@ def main():
             except:
                 sys.stderr.write("Isolates in subset not found in existing database\n")
             assert postpruning_combined_seq == viz_subset
-            
+
             # Either use strain definitions, lineage assignments or external clustering
             isolateClustering = {}
             # Use external clustering if specified
@@ -676,7 +682,7 @@ def main():
                     model_prefix = args.model_dir
                 model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
-                
+
                 # Set directories of previous fit
                 if args.previous_clustering is not None:
                     prev_clustering = args.previous_clustering
@@ -730,7 +736,7 @@ def main():
 #*                             *#
 #* query assignment            *#
 #*                             *#
-#*******************************# 
+#*******************************#
 def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
                  kmers, sketch_sizes, ignore_length, estimated_length, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
@@ -785,7 +791,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
 
         refList, queryList, distMat = queryDatabase(rNames = rNames,
-                                                    qNames = qNames, 
+                                                    qNames = qNames,
                                                     dbPrefix = ref_db,
                                                     queryPrefix = output,
                                                     klist = kmers,
@@ -843,7 +849,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Update DB as requested
         if update_db or assign_lineage:
-        
+
             # Check new sequences pass QC before adding them
             if not qcPass:
                 sys.stderr.write("Queries contained outlier distances, not updating database\n")
@@ -877,10 +883,14 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             else:
                 distanceFiles = distances
             refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
-            combined_seq, core_distMat, acc_distMat = update_distance_matrices(refList, ref_distMat,
-                                                                ordered_queryList, distMat, query_distMat)
-            complete_distMat = translate_distMat(combined_seq, core_distMat, acc_distMat)
-            
+            combined_seq, core_distMat, acc_distMat = \
+                update_distance_matrices(refList, ref_distMat,
+                                         ordered_queryList, distMat,
+                                         query_distMat, threads = threads)
+            complete_distMat = \
+                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads),
+                           pp_sketchlib.squareToLong(acc_distMat, threads)))
+
             if assign_lineage:
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineages.pkl'
                 if existing_scheme is not None:

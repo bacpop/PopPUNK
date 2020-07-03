@@ -263,7 +263,7 @@ def removeFromDB(db_name, out_name, removeSeqs):
     try:
         out_grp = hdf_out.create_group('sketches')
         read_grp = hdf_in['sketches']
-        
+
         removed = []
         for dataset in read_grp:
             if dataset not in removeSeqs:
@@ -341,16 +341,16 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
     names, sequences = readRfile(assemblyList)
     if not reads:
         genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
-        sys.stderr.write("Worst random match probability at " + str(min(klist)) + 
+        sys.stderr.write("Worst random match probability at " + str(min(klist)) +
                             "-mers: " + "{:.2f}".format(max_prob) + "\n")
-    
+
     dbname = oPrefix + "/" + os.path.basename(oPrefix)
     dbfilename = dbname + ".h5"
     if os.path.isfile(dbfilename) and overwrite == True:
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
 
-    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size, 
+    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size,
                                    not strand_preserved, min_count, use_exact, threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
@@ -413,10 +413,10 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         if dbPrefix != queryPrefix:
             raise RuntimeError("Must use same db for self query")
         qNames = rNames
-        
+
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist, 
-                                             False, threads, use_gpu, deviceid)
+        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist,
+                                             True, False, threads, use_gpu, deviceid)
 
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
@@ -440,8 +440,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             exit(0)
 
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist, 
-                                             False, threads, use_gpu, deviceid)
+        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
+                                             True, False, threads, use_gpu, deviceid)
 
     return(rNames, qNames, distMat)
 
@@ -467,7 +467,7 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
         threads (int)
             Number of threads to use if new db created
             (default = 1)
-            
+
     Returns:
         qlist1 (list)
             Ordered list of queries

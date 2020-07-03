@@ -43,7 +43,6 @@ autodoc_mock_imports = ["hdbscan",
                         "scipy",
                         "sklearn",
                         "matplotlib",
-                        "numba",
                         "dendropy",
                         "pp-sketchlib",
                         "h5py"]

@@ -442,7 +442,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
             constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, estimated_length, True, threads, False)
 
             qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
-                                                    qNames = list(unassigned), 
+                                                    qNames = list(unassigned),
                                                     dbPrefix = tmpDirName,
                                                     queryPrefix = tmpDirName,
                                                     klist = kmers,
@@ -451,7 +451,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
                                                     threads = threads)
 
             queryAssignation = model.assign(distMat)
-            
+
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             # have to use names and link to query list in order to match to node indices
