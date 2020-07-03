@@ -51,7 +51,6 @@ subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances exa
 sys.stderr.write("Running query assignment (--assign-lineages)\n")
 subprocess.run("python ../poppunk-runner.py --assign-lineages --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --existing-scheme example_lineages/example_lineages_lineages.pkl --output example_lineage_query --update-db", shell=True, check=True)
 
-
 # tests of other command line programs (TODO)
 
 sys.stderr.write("Tests completed\n")
