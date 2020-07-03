@@ -12,10 +12,6 @@ if not os.path.isfile("12754_4#89.contigs_velvet.fa"):
     sys.stderr.write("Extracting example dataset\n")
     subprocess.run("tar xf example_set.tar.bz2", shell=True, check=True)
 
-# tests with sketchlib backend
-sys.stderr.write("Running tests with sketchlib backend\n\n")
-
-
 #easy run
 sys.stderr.write("Running database creation + DBSCAN model fit + fit refinement (--easy-run)\n")
 subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db", shell=True, check=True)
@@ -35,9 +31,6 @@ subprocess.run("python ../poppunk-runner.py --assign-query --q-files queries.txt
 #use model
 sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --distances example_db/example_db.dists --output example_use", shell=True, check=True)
-
-# general tests
-sys.stderr.write("Running general tests\n\n")
 
 #generate viz
 sys.stderr.write("Running microreact visualisations (--generate-viz)\n")

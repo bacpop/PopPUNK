@@ -459,7 +459,6 @@ def printClusters(G, outPrefix = "_clusters.csv", oldClusterFile = None,
     if oldClusterFile != None:
         oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
         oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
-        print('oldCluster is ' + str(oldClusters))
         new_id = len(oldClusters.keys()) + 1 # 1-indexed
         while new_id in oldClusters:
             new_id += 1 # in case clusters have been merged
