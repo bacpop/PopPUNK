@@ -32,14 +32,8 @@ subprocess.run("python ../poppunk-runner.py --assign-query --q-files queries.txt
 sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --distances example_db/example_db.dists --output example_use --overwrite", shell=True, check=True)
 
-<<<<<<< HEAD
 # general tests
 sys.stderr.write("Running general tests\n\n")
-=======
-#generate viz
-sys.stderr.write("Running microreact visualisations (--generate-viz)\n")
-subprocess.run("python ../poppunk-runner.py --generate-viz --distances example_db_mash/example_db_mash.dists --ref-db example_db_mash --output example_viz --microreact --subset subset.txt --overwrite", shell=True, check=True)
->>>>>>> a661bd3cf83811a443817f8065e1e9d7b5e41c22
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")
