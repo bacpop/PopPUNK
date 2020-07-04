@@ -888,14 +888,20 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                          ordered_queryList, distMat,
                                          query_distMat, threads = threads)
             complete_distMat = \
-                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads),
-                           pp_sketchlib.squareToLong(acc_distMat, threads)))
+                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                           pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
             if assign_lineage:
                 expected_lineage_name = ref_db + '/' + ref_db + '_lineages.pkl'
                 if existing_scheme is not None:
                     expected_lineage_name = existing_scheme
-                isolateClustering = cluster_into_lineages(complete_distMat, rank_list, output, combined_seq, ordered_queryList, expected_lineage_name, use_accessory, threads)
+                isolateClustering = cluster_into_lineages(complete_distMat,
+                                                          rank_list, output,
+                                                          combined_seq,
+                                                          ordered_queryList,
+                                                          expected_lineage_name,
+                                                          use_accessory,
+                                                          threads)
 
             # Prune distances to references only, if not full db
             dists_out = output + "/" + os.path.basename(output) + ".dists"

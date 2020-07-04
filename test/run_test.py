@@ -12,10 +12,6 @@ if not os.path.isfile("12754_4#89.contigs_velvet.fa"):
     sys.stderr.write("Extracting example dataset\n")
     subprocess.run("tar xf example_set.tar.bz2", shell=True, check=True)
 
-# tests with sketchlib backend
-sys.stderr.write("Running tests with sketchlib backend\n\n")
-
-
 #easy run
 sys.stderr.write("Running database creation + DBSCAN model fit + fit refinement (--easy-run)\n")
 subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db --overwrite", shell=True, check=True)
@@ -36,8 +32,14 @@ subprocess.run("python ../poppunk-runner.py --assign-query --q-files queries.txt
 sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --distances example_db/example_db.dists --output example_use --overwrite", shell=True, check=True)
 
+<<<<<<< HEAD
 # general tests
 sys.stderr.write("Running general tests\n\n")
+=======
+#generate viz
+sys.stderr.write("Running microreact visualisations (--generate-viz)\n")
+subprocess.run("python ../poppunk-runner.py --generate-viz --distances example_db_mash/example_db_mash.dists --ref-db example_db_mash --output example_viz --microreact --subset subset.txt --overwrite", shell=True, check=True)
+>>>>>>> a661bd3cf83811a443817f8065e1e9d7b5e41c22
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")

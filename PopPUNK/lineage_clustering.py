@@ -104,7 +104,83 @@ def get_nearest_neighbours(rank, isolates = None, ranks = None):
     # return dict
     return nn
 
-def cluster_into_lineages(distMat, rank_list = None, output = None, isolate_list = None, qlist = None, existing_scheme = None, use_accessory = False, num_processes = 1):
+
+def pick_seed_isolate(G, distances = None):
+    """ Identifies seed isolate from the closest pair of
+    unclustered isolates.
+
+    Args:
+        G (network)
+            Network with one node per isolate.
+        distances (ndarray in shared memory)
+            Pairwise distances between isolates.
+
+    Returns:
+        seed_isolate (int)
+            Index of isolate selected as seed.
+    """
+    # load distances from shared memory
+    distances_shm = shared_memory.SharedMemory(name = distances.name)
+    distances = np.ndarray(distances.shape, dtype = distances.dtype, buffer = distances_shm.buf)
+    # identify unclustered isolates
+    unclustered_isolates = list(nx.isolates(G))
+    # select minimum distance between unclustered isolates
+    minimum_distance_between_unclustered_isolates = np.amin(distances[unclustered_isolates,unclustered_isolates],axis = 0)
+    # select occurrences of this distance
+    minimum_distance_coordinates = np.where(distances == minimum_distance_between_unclustered_isolates)
+    # identify case where both isolates are unclustered
+    for i in range(len(minimum_distance_coordinates[0])):
+        if minimum_distance_coordinates[0][i] in unclustered_isolates and minimum_distance_coordinates[1][i] in unclustered_isolates:
+            seed_isolate = minimum_distance_coordinates[0][i]
+            break
+    # return unclustered isolate with minimum distance to another isolate
+    return seed_isolate
+
+def get_lineage(G, neighbours, seed_isolate, lineage_index):
+    """ Identifies isolates corresponding to a particular
+    lineage given a cluster seed.
+
+    Args:
+        G (network)
+            Network with one node per isolate.
+        neighbours (dict of frozen sets)
+           Pre-calculated neighbour relationships.
+        seed_isolate (int)
+           Index of isolate selected as seed.
+        lineage_index (int)
+           Label of current lineage.
+
+    Returns:
+        G (network)
+            Network modified with new edges.
+    """
+    # initiate lineage as the seed isolate and immediate unclustered neighbours
+    in_lineage = {seed_isolate}
+    G.nodes[seed_isolate]['lineage'] = lineage_index
+    for seed_neighbour in neighbours[seed_isolate]:
+        if nx.is_isolate(G, seed_neighbour):
+            G.add_edge(seed_isolate, seed_neighbour)
+            G.nodes[seed_neighbour]['lineage'] = lineage_index
+            in_lineage.add(seed_neighbour)
+    # iterate through other isolates until converged on a stable clustering
+    alterations = len(neighbours.keys())
+    while alterations > 0:
+        alterations = 0
+        for isolate in neighbours.keys():
+            if nx.is_isolate(G, isolate):
+                intersection_size = in_lineage.intersection(neighbours[isolate])
+                if intersection_size is not None and len(intersection_size) > 0:
+                    for i in intersection_size:
+                        G.add_edge(isolate, i)
+                        G.nodes[isolate]['lineage'] = lineage_index
+                    in_lineage.add(isolate)
+                    alterations = alterations + 1
+    # return final clustering
+    return G
+
+def cluster_into_lineages(distMat, rank_list = None, output = None,
+    isolate_list = None, qlist = None, existing_scheme = None,
+    use_accessory = False, num_processes = 1):
     """ Clusters isolates into lineages based on their
     relative distances.
 
