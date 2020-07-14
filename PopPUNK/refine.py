@@ -67,6 +67,12 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
                       + "," + "{:.2f}".format(start_point[1]) + ")\n")
 
+    # calculate distance between start point and means if none is supplied
+    if min_move is None:
+        min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5
+    if max_move is None:
+        max_move = ((mean1[0] - start_point[0])**2 + (mean1[1] - start_point[1])**2)**0.5
+    
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
 
@@ -121,7 +127,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     if optimal_x < 0 or optimal_y < 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
-    return start_point, optimal_x, optimal_y
+    return start_point, optimal_x, optimal_y, min_move, max_move
 
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2, cpus = 1):
@@ -298,5 +304,4 @@ def decisionBoundary(intercept, gradient):
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
-
 

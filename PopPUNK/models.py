@@ -586,7 +586,7 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
-        self.start_point, self.optimal_x, self.optimal_y = refineFit(X/self.scale,
+        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = refineFit(X/self.scale,
                 sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                 slope = 2, no_local = no_local, num_processes = threads)
         self.fitted = True
@@ -597,13 +597,14 @@ class RefineFit(ClusterFit):
         if indiv_refine:
             try:
                 sys.stderr.write("Refining core and accessory separately\n")
-
-                start_point, self.core_boundary, core_acc = refineFit(X/self.scale, sample_names, self.start_s,
-                        self.mean0, self.mean1, self.max_move, self.min_move, slope = 0, no_local = no_local,
-                        num_processes = threads)
-                start_point, acc_core, self.accessory_boundary = refineFit(X/self.scale, sample_names, self.start_s,
-                        self.mean0, self.mean1, self.max_move, self.min_move, slope = 1, no_local = no_local,
-                        num_processes = threads)
+                # optimise core distance boundary
+                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = refineFit(X/self.scale,
+                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                slope = 0, no_local = no_local,num_processes = threads)
+                # optimise accessory distance boundary
+                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = refineFit(X/self.scale,
+                sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move, slope = 1,
+                no_local = no_local, num_processes = threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
