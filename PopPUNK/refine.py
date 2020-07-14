@@ -72,7 +72,6 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5
     if max_move is None:
         max_move = ((mean1[0] - start_point[0])**2 + (mean1[1] - start_point[1])**2)**0.5
-    print('Start: ' + str(start_point) + '\nMean0: ' + str(mean0) + '\nMean1: ' + str(mean1) + "\nMax move is " + str(max_move) + '\nMin move is: ' + str(min_move))
     
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
@@ -305,5 +304,4 @@ def decisionBoundary(intercept, gradient):
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
-
 
