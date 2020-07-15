@@ -145,19 +145,14 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
             reference_vertex[vertex] = True
         else:
             reference_vertex[vertex] = False
-#    G.set_vertex_filter(reference_vertex)
     G_ref = gt.GraphView(G, vfilt = reference_vertex)
     G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
     # Calculate component membership for reference graph
-#    reference_graph_components, reference_graph_component_frequencies = gt.label_components(G_ref)
     clusters_in_reference_graph = printClusters(G, mashOrder, printCSV=False)
     # Record to which components references below in the reference graph
     reference_clusters_in_reference_graph = {}
     for reference_index in reference_indices:
         reference_clusters_in_reference_graph[mashOrder[reference_index]] = clusters_in_reference_graph[mashOrder[reference_index]]
-
-    # Unset mask on network for shortest path calculations
-#    G.set_vertex_filter(None)
 
     # Check if multi-reference components have been split as a validation test
     # First iterate through clusters
@@ -635,7 +630,6 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
     d = defaultdict(list)
 
     # Read in external clusters
-#    extClusters = readExternalClusters(extClusterFile)
     readIsolateTypeFromCsv(clustCSV, mode = 'external', return_dict = False)
 
     # Go through each cluster (as defined by poppunk) and find the external
