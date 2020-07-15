@@ -575,7 +575,7 @@ def main():
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
-#            genomeNetwork.remove_vertex(list(nodes_to_remove))
+#            
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
