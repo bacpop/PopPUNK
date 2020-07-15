@@ -461,7 +461,7 @@ def main():
                 sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
             isolateClustering = {fit_type: printClusters(genomeNetwork,
-                                                        refList, # assume no rlist+qlist?
+                                                         refList,
                                                          args.output + "/" + os.path.basename(args.output),
                                                          externalClusterCSV = args.external_clustering)}
 
