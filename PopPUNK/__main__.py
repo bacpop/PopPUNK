@@ -712,7 +712,7 @@ def main():
                     for rank in isolateClustering.keys():
                         numeric_rank = rank.split('_')[1]
                         if numeric_rank.isdigit():
-                            genomeNetwork = gt.load_graph(args.ref_db + '/' + args.ref_db + '_rank_' + str(numeric_rank) + '_lineages.gt')
+                            genomeNetwork = gt.load_graph(args.ref_db + '/' + os.path.basename(args.ref_db) + '_rank_' + str(numeric_rank) + '_lineages.gt')
                             outputsForCytoscape(genomeNetwork, isolateClustering, args.output,
                                         args.info_csv, suffix = 'rank_' + str(rank), viz_subset = viz_subset)
                 else:
