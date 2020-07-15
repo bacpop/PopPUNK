@@ -615,7 +615,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             end += 1
         mat_chunks.append((start, end))
         start = end
-    
     # create empty distMat that can be shared with multiple processes
     distMat = np.zeros((number_pairs, 2), dtype=raw.dtype)
     with SharedMemoryManager() as smm:
