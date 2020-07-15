@@ -692,7 +692,7 @@ def main():
                 # load clustering
                 cluster_file = args.ref_db + '/' + args.ref_db + '_clusters.csv'
                 isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-
+                cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
