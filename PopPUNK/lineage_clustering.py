@@ -311,7 +311,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
                     component_name[component_number] = overall_lineage_seeds[rank][seed]
             # name remaining components in rank order
             for component_rank in range(len(component_frequency_ranks)):
-#                component_number = component_frequency_ranks[np.where(component_frequency_ranks == component_rank)]
+#                
                 component_number = component_frequency_ranks.index(component_rank)
                 if component_name[component_number] is None:
                     component_name[component_number] = max_existing_cluster[rank]
