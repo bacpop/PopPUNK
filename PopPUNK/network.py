@@ -84,7 +84,7 @@ def fetchNetwork(network_dir, model, refList,
     return (genomeNetwork, cluster_file)
 
 
-def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
+def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -92,7 +92,7 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
        Args:
            G (graph)
                A network used to define clusters from :func:`~constructNetwork`
-           mashOrder (list)
+           dbOrder (list)
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
                Prefix for output file (.refs will be appended)
@@ -110,7 +110,7 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
         reference_indices = []
     else:
         references = set(existingRefs)
-        index_lookup = {v:k for k,v in enumerate(mashOrder)}
+        index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = [index_lookup[r] for r in references]
     
     # extract cliques from network
@@ -129,13 +129,13 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
 
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
-    clusters_in_overall_graph = printClusters(G, mashOrder, printCSV=False)
+    clusters_in_overall_graph = printClusters(G, dbOrder, printCSV=False)
     # Construct a dict of sets for each cluster
     reference_clusters_in_overall_graph = [set() for c in set(clusters_in_overall_graph.items())]
     # Iterate through references
     for reference_index in reference_indices:
         # Add references to the appropriate cluster
-        reference_clusters_in_overall_graph[clusters_in_overall_graph[mashOrder[reference_index]]].add(reference_index)
+        reference_clusters_in_overall_graph[clusters_in_overall_graph[dbOrder[reference_index]]].add(reference_index)
 
     # Use a vertex filter to extract the subgraph of refences
     # as a graphview
@@ -148,11 +148,11 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
     G_ref = gt.GraphView(G, vfilt = reference_vertex)
     G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
     # Calculate component membership for reference graph
-    clusters_in_reference_graph = printClusters(G, mashOrder, printCSV=False)
+    clusters_in_reference_graph = printClusters(G, dbOrder, printCSV=False)
     # Record to which components references below in the reference graph
     reference_clusters_in_reference_graph = {}
     for reference_index in reference_indices:
-        reference_clusters_in_reference_graph[mashOrder[reference_index]] = clusters_in_reference_graph[mashOrder[reference_index]]
+        reference_clusters_in_reference_graph[dbOrder[reference_index]] = clusters_in_reference_graph[dbOrder[reference_index]]
 
     # Check if multi-reference components have been split as a validation test
     # First iterate through clusters
@@ -163,10 +163,10 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
             check = list(cluster)
             # check if these are still in the same component in the reference graph
             for i in range(len(check)):
-                component_i = reference_clusters_in_reference_graph[mashOrder[check[i]]]
+                component_i = reference_clusters_in_reference_graph[dbOrder[check[i]]]
                 for j in range(i, len(check)):
                     # Add intermediate nodes
-                    component_j = reference_clusters_in_reference_graph[mashOrder[check[j]]]
+                    component_j = reference_clusters_in_reference_graph[dbOrder[check[j]]]
                     if component_i != component_j:
                         network_update_required = True
                         vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
@@ -181,7 +181,7 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
         G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
     
     # Order found references as in mash sketch files
-    reference_names = [mashOrder[int(x)] for x in sorted(reference_indices)]
+    reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
     refFileName = writeReferences(reference_names, outPrefix)
     return reference_indices, reference_names, refFileName, G_ref
 
