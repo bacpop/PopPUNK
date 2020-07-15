@@ -311,7 +311,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
                     component_name[component_number] = overall_lineage_seeds[rank][seed]
             # name remaining components in rank order
             for component_rank in range(len(component_frequency_ranks)):
-#                component_number = component_frequency_ranks[np.where(component_frequency_ranks == component_rank)]
+#                
                 component_number = component_frequency_ranks.index(component_rank)
                 if component_name[component_number] is None:
                     component_name[component_number] = max_existing_cluster[rank]
@@ -328,7 +328,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
                 renamed_component = component_name[original_component]
                 lineage_assignation[rank][isolate_name] = renamed_component
             # save network
-            G.save(file_name = output + "/" + output + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
+            G.save(file_name = output + "/" + os.path.basename(output) + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
             # clear edges
             G.clear_edges()
 
