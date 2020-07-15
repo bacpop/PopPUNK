@@ -442,10 +442,6 @@ def main():
         if args.use_model:
             assignments = model.assign(distMat)
             model.plot(distMat, assignments)
-
-        if not args.lineage_clustering: # change this once lineage clustering is refined as a model
-            fit_type = 'combined'
-            model.save()
         
         #******************************#
         #*                            *#
@@ -460,6 +456,7 @@ def main():
             if len(networkMissing) > 0:
                 sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
+            fit_type = None
             isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                          refList,
                                                          args.output + "/" + os.path.basename(args.output),
