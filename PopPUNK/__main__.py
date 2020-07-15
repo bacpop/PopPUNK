@@ -657,7 +657,7 @@ def main():
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
                                                                       complete_distMat, dists_out)
 
-            combined_seq, core_distMat, acc_distMat = \	
+            combined_seq, core_distMat, acc_distMat = \
                 update_distance_matrices(viz_subset, newDistMat,	
                                          threads = args.threads)
 
