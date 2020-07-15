@@ -59,7 +59,7 @@ We tested PopPUNK with the following packages:
 * ``DendroPy`` (4.3.0)
 * ``hdbscan`` (0.8.13)
 * ``matplotlib`` (2.1.2)
-* ``networkx`` (2.1)
+* ``graph-tool`` (2.31)
 * ``numpy`` (1.14.1)
 * ``pandas`` (0.22.0)
 * ``scikit-learn`` (0.19.1)
@@ -69,4 +69,3 @@ We tested PopPUNK with the following packages:
 Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
 if producing output with ``--microreact`` and ``--rapidnj`` options. We used
 v2.3.2.
-

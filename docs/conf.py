@@ -38,7 +38,7 @@ extensions = ['sphinx.ext.autodoc',
 # Causes a problem with rtd: https://github.com/pypa/setuptools/issues/1694
 autodoc_mock_imports = ["hdbscan",
                         "numpy",
-                        "networkx",
+                        "graph-tool",
                         "pandas",
                         "scipy",
                         "sklearn",
