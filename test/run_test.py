@@ -32,6 +32,10 @@ subprocess.run("python ../poppunk-runner.py --assign-query --q-files queries.txt
 sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --distances example_db/example_db.dists --output example_use --overwrite", shell=True, check=True)
 
+#generate viz
+sys.stderr.write("Running microreact visualisations (--generate-viz)\n")
+subprocess.run("python ../poppunk-runner.py --generate-viz --distances example_db/example_db.dists --ref-db example_db --output example_viz --microreact --subset subset.txt", shell=True, check=True)
+
 # general tests
 sys.stderr.write("Running general tests\n\n")
 
