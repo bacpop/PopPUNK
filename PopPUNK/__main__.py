@@ -518,7 +518,7 @@ def main():
             # load networks
             indivNetworks = {}
             for rank in rank_list:
-                indivNetworks[rank] = gt.load_graph(args.output + "/" + args.output + '_rank_' + str(rank) + '_lineages.gt')
+                indivNetworks[rank] = gt.load_graph(args.output + "/" + os.path.basename(args.output) + '_rank_' + str(rank) + '_lineages.gt')
                 if rank == min(rank_list):
                     genomeNetwork = indivNetworks[rank]
 
