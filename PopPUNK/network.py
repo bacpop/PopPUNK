@@ -463,13 +463,12 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
             shutil.rmtree(tmpDirName)
 
     # finish by updating the network
-    G.save('before.graphml',fmt='graphml')
     G.add_vertex(len(qNames))
     G.add_edge_list(new_edges)
+    
     # including the vertex ID property map
     for i,q in enumerate(qSeqs):
         G.vp.id[i + len(rlist)] = q
-    G.save('after.graphml',fmt='graphml')
 
     return qlist1, distMat
 
