@@ -328,7 +328,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
                 renamed_component = component_name[original_component]
                 lineage_assignation[rank][isolate_name] = renamed_component
             # save network
-            G.save(file_name = output + "/" + output + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
+            G.save(file_name = output + "/" + os.path.basename(output) + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
             # clear edges
             G.clear_edges()
 
