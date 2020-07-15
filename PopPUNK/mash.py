@@ -627,7 +627,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
         shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distMat_shared = NumpyShared(name = shm_distMat.name, shape = (number_pairs, 2), dtype = raw.dtype)
-        
         # Run regressions
         with Pool(processes = threads) as pool:
             pool.map(partial(fitKmerBlock,
@@ -713,4 +712,3 @@ def fitKmerCurve(pairwise, klist, jacobian):
 
     # Return core, accessory
     return(np.flipud(transformed_params))
-
