@@ -32,8 +32,8 @@ def fetchNetwork(network_dir, model, refList,
                   core_only = False, accessory_only = False):
     """Load the network based on input options
 
-       Returns the network as a networkx, and sets the slope parameter of
-       the passed model object.
+       Returns the network as a graph-tool format graph, and sets
+       the slope parameter of the passed model object.
 
        Args:
             network_dir (str)
@@ -52,7 +52,7 @@ def fetchNetwork(network_dir, model, refList,
                 [default = False]
 
        Returns:
-            genomeNetwork (nx.Graph)
+            genomeNetwork (graph)
                 The loaded network
             cluster_file (str)
                 The CSV of cluster assignments corresponding to this network
@@ -90,7 +90,7 @@ def extractReferences(G, mashOrder, outPrefix, existingRefs = None):
        Writes chosen references to file by calling :func:`~writeReferences`
 
        Args:
-           G (networkx.Graph)
+           G (graph)
                A network used to define clusters from :func:`~constructNetwork`
            mashOrder (list)
                The order of files in the sketches, so returned references are in the same order
@@ -255,7 +255,7 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
             (default = True)
 
     Returns:
-        G (networkx.Graph)
+        G (graph)
             The resulting network
     """
     # data structures
@@ -298,7 +298,7 @@ def networkSummary(G):
     """Provides summary values about the network
 
     Args:
-        G (networkx.Graph)
+        G (graph)
             The network of strains from :func:`~constructNetwork`
 
     Returns:
@@ -332,7 +332,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
             List of reference names
         qfile (str)
             File containing queries
-        G (networkx.Graph)
+        G (graph)
             Network to add to (mutated)
         kmers (list)
             List of k-mer sizes
@@ -480,7 +480,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
     Also writes assignments to a CSV file
 
     Args:
-        G (networkx.Graph)
+        G (graph)
             Network used to define clusters (from :func:`~constructNetwork` or
             :func:`~addQueryToNetwork`)
         outPrefix (str)

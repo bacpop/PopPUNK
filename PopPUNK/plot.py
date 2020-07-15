@@ -362,7 +362,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
-        G (networkx.Graph)
+        G (graph)
             The network to write from :func:`~PopPUNK.network.constructNetwork`
         clustering (dict)
             Dictionary of cluster assignments (keys are nodeNames).
