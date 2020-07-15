@@ -409,15 +409,15 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     # iteratively identify lineages
     lineage_index = 1
     connections = set()
-    lineage_assignation = {isolate:0 for isolate in isolate_list}
+    lineage_assignation = {isolate:None for isolate in isolate_list}
     
-    while 0 in lineage_assignation.values():
+    while None in lineage_assignation.values():
         if lineage_index in seeds.keys():
             seed_isolate = seeds[lineage_index]
         else:
             seed_isolate = pick_seed_isolate(lineage_assignation, distances = distances_input)
         # skip over previously-defined seeds if amalgamated into different lineage now
-        if lineage_assignation[seed_isolate] == 0:
+        if lineage_assignation[seed_isolate] is None:
             seeds[lineage_index] = seed_isolate
             lineage_assignation, added_connections = get_lineage(lineage_assignation, nn, seed_isolate, lineage_index)
             connections.update(added_connections)
