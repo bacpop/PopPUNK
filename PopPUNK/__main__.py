@@ -454,7 +454,8 @@ def main():
             # Ensure all in dists are in final network
             networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
             if len(networkMissing) > 0:
-                sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+                missing_isolates = [refList[m] for m in networkMissing]
+                sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
 
             fit_type = None
             isolateClustering = {fit_type: printClusters(genomeNetwork,
