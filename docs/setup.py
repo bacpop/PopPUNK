@@ -29,12 +29,12 @@ def find_version(*file_paths):
 here = path.abspath(path.dirname(__file__))
 
 
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(here, '..', 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
     name='poppunk',
-    version=find_version("PopPUNK/__init__.py"),
+    version=find_version("../PopPUNK/__init__.py"),
     description='PopPUNK (POPulation Partitioning Using Nucleotide Kmers)',
     long_description=long_description,
     long_description_content_type='text/markdown',
