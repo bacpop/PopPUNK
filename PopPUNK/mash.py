@@ -18,7 +18,6 @@ from itertools import product
 from glob import glob
 from random import sample
 import numpy as np
-import networkx as nx
 from scipy import optimize
 try:
     from multiprocessing import Pool, shared_memory
@@ -542,10 +541,10 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             # Check mash output is consistent with expected order
             # This is ok in all tests, but best to check and exit in case something changes between mash versions
             expected_names = iterDistRows(refList, qNames, self)
-
             prev_ref = ""
             skip = 0
             skipped = 0
+            
             for line in mashOut:
                 # Skip the first row with self and symmetric elements
                 if skipped < skip:
@@ -602,17 +601,20 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     # run pairwise analyses across kmer lengths, mutating distMat
     # Create range of rows that each thread will work with
+    # if there is only one pair, apply_along_axis will not work
+    if threads > number_pairs:
+        threads = number_pairs
     rows_per_thread = int(number_pairs / threads)
     big_threads = number_pairs % threads
     start = 0
     mat_chunks = []
+
     for thread in range(threads):
         end = start + rows_per_thread
         if thread < big_threads:
             end += 1
         mat_chunks.append((start, end))
         start = end
-
     # create empty distMat that can be shared with multiple processes
     distMat = np.zeros((number_pairs, 2), dtype=raw.dtype)
     with SharedMemoryManager() as smm:
@@ -624,7 +626,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
         shm_distMat = smm.SharedMemory(size = distMat.nbytes)
         distMat_shared = NumpyShared(name = shm_distMat.name, shape = (number_pairs, 2), dtype = raw.dtype)
-
         # Run regressions
         with Pool(processes = threads) as pool:
             pool.map(partial(fitKmerBlock,
@@ -668,7 +669,10 @@ def fitKmerBlock(idxRanges, distMat, raw, klist, jacobian):
     
     # analyse
     (start, end) = idxRanges
-    distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
+    if raw.shape[0] == 1:
+        distMat[start:end, :] = fitKmerCurve(raw[0,:], klist, jacobian)
+    else:
+        distMat[start:end, :] = np.apply_along_axis(fitKmerCurve, 1, raw[start:end, :], klist, jacobian)
 
 
 def fitKmerCurve(pairwise, klist, jacobian):
@@ -707,4 +711,3 @@ def fitKmerCurve(pairwise, klist, jacobian):
 
     # Return core, accessory
     return(np.flipud(transformed_params))
-

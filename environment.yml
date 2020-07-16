@@ -20,3 +20,4 @@ dependencies:
   - rapidnj
   - h5py
   - pp-sketchlib
+  - graph-tool

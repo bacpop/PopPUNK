@@ -24,7 +24,8 @@ try:  # sklearn >= 0.22
 except ImportError:
     from sklearn.neighbors.kde import KernelDensity
 import dendropy
-import networkx as nx
+
+from .utils import isolateNameToLabel
 
 def plot_scatter(X, scale, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
@@ -357,11 +358,11 @@ def get_grid(minimum, maximum, resolution):
     return(xx, yy, xy)
 
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True):
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
-        G (networkx.Graph)
+        G (graph)
             The network to write from :func:`~PopPUNK.network.constructNetwork`
         clustering (dict)
             Dictionary of cluster assignments (keys are nodeNames).
@@ -380,19 +381,31 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
             Whether to print CSV file to accompany network
 
     """
+    # get list of isolate names
+    isolate_names = list(G.vp.id)
+    
+    # mask network if subsetting
+    if viz_subset is not None:
+        viz_vertex = G.new_vertex_property('bool')
+        for n,vertex in enumerate(G.vertices()):
+            if isolate_names[n] in viz_subset:
+                viz_vertex[vertex] = True
+            else:
+                viz_vertex[vertex] = False
+        G.set_vertex_filter(viz_vertex)
+    
     # write graph file
     if suffix is None:
         graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
     else:
         graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
-    nx.write_graphml(G, outPrefix + "/" + graph_file_name)
+    G.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
 
     # Write CSV of metadata
     if writeCsv:
-        refNames = G.nodes(data=False)
-        seqLabels = [r.split('/')[-1].split('.')[0] for r in refNames]
+        seqLabels = isolateNameToLabel(isolate_names)
         writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
-                        refNames,
+                        isolate_names,
                         seqLabels,
                         clustering,
                         'cytoscape',
@@ -468,14 +481,11 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
     d = defaultdict(list)
     if epiCsv is not None:
         epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
-        epiData.index = [i.split('/')[-1].split('.')[0] for i in epiData.index]
+        epiData.index = isolateNameToLabel(epiData.index)
         for e in epiData.columns.values:
             colnames.append(str(e))
 
     columns_to_be_omitted = []
-
-    # process clustering data
-    nodeLabels = [r.split('/')[-1].split('.')[0] for r in nodeNames]
 
     # get example clustering name for validation
     example_cluster_title = list(clustering.keys())[0]
@@ -517,7 +527,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
                     else:
                         d['Status'].append("Reference")
             elif output_format == 'cytoscape':
-                d['id'].append(name)
+                d['id'].append(label)
                 for cluster_type in clustering:
                     col_name = cluster_type + suffix
                     d[col_name].append(clustering[cluster_type][name])
@@ -657,7 +667,7 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
     from .tsne import generate_tsne
 
     # generate sequence labels
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
+    seqLabels = isolateNameToLabel(combined_list)
 
     # check CSV before calculating other outputs
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
@@ -751,7 +761,7 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Avoid regenerating tree if already built for microreact (default = False)
     """
     # generate sequence labels
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
+    seqLabels = isolateNameToLabel(combined_list)
 
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
@@ -802,7 +812,7 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Avoid regenerating tree if already built for microreact (default = False).
     """
     # generate sequence labels
-    seqLabels = [r.split('/')[-1].split('.')[0] for r in combined_list]
+    seqLabels = isolateNameToLabel(combined_list)
 
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",

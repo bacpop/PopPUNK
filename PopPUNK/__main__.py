@@ -7,7 +7,7 @@ import os
 import sys
 # additional
 import numpy as np
-import networkx as nx
+import graph_tool.all as gt
 import subprocess
 
 # required from v2.1.1 onwards (no mash support)
@@ -105,7 +105,6 @@ def get_options():
             help='Apply a fitted model to a reference database to restore database files',
             default=False,
             action='store_true')
-
 
     # input options
     iGroup = parser.add_argument_group('Input files')
@@ -249,7 +248,7 @@ def main():
     if args.min_k >= args.max_k:
         sys.stderr.write("Minimum kmer size " + str(args.min_k) + " must be smaller than maximum kmer size\n")
         sys.exit(1)
-    elif args.k_step < 2:
+    elif args.k_step < 1:
         sys.stderr.write("Kmer size step must be at least one\n")
         sys.exit(1)
     elif no_sketchlib and (args.min_k < 9 or args.max_k > 31):
@@ -299,6 +298,12 @@ def main():
         args.output = args.output[:-1]
     if args.ref_db is not None and args.ref_db.endswith('/'):
         args.ref_db = args.ref_db[:-1]
+
+    # Check on parallelisation of graph-tools
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(args.threads)
+        sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
+        sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
@@ -358,7 +363,7 @@ def main():
     #*                            *#
     #******************************#
     # refine model also needs to run all model steps
-    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run:
+    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run or args.lineage_clustering:
         # Set up saved data from first step, if easy_run mode
         if args.easy_run:
             distances = dists_out
@@ -370,9 +375,10 @@ def main():
                 sys.stderr.write("Mode: Using previous model with a reference database\n\n")
             elif args.threshold:
                 sys.stderr.write("Mode: Applying a core distance threshold\n\n")
-            else:
+            elif args.refine_model:
                 sys.stderr.write("Mode: Refining model fit using network properties\n\n")
-
+            elif args.lineage_clustering:
+                sys.stderr.write("Mode: Identifying lineages from neighbouring isolates\n\n")
             if args.distances is not None and args.ref_db is not None:
                 distances = args.distances
                 ref_db = args.ref_db
@@ -419,6 +425,8 @@ def main():
                 model = BGMMFit(args.output)
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)
+            # save model
+            model.save()
 
         # Run model refinement
         if args.refine_model or args.threshold or args.easy_run:
@@ -436,43 +444,85 @@ def main():
         if args.use_model:
             assignments = model.assign(distMat)
             model.plot(distMat, assignments)
-
-        fit_type = 'combined'
-        model.save()
-
+        
         #******************************#
         #*                            *#
         #* network construction       *#
         #*                            *#
         #******************************#
-        genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
+        
+        if not args.lineage_clustering:
+            genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
+            # Ensure all in dists are in final network
+            networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
+            if len(networkMissing) > 0:
+                missing_isolates = [refList[m] for m in networkMissing]
+                sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
 
-        # Ensure all in dists are in final network
-        networkMissing = set(refList).difference(list(genomeNetwork.nodes()))
-        if len(networkMissing) > 0:
-            sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+            fit_type = None
+            isolateClustering = {fit_type: printClusters(genomeNetwork,
+                                                         refList,
+                                                         args.output + "/" + os.path.basename(args.output),
+                                                         externalClusterCSV = args.external_clustering)}
 
-        isolateClustering = {fit_type: printClusters(genomeNetwork,
-                                                     args.output + "/" + os.path.basename(args.output),
-                                                     externalClusterCSV = args.external_clustering)}
+            # Write core and accessory based clusters, if they worked
+            if model.indiv_fitted:
+                indivNetworks = {}
+                for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
+                    indivAssignments = model.assign(distMat, slope)
+                    indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
+                    isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
+                                                    refList,
+                                                     args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
+                                                     externalClusterCSV = args.external_clustering)
+                    indivNetworks[dist_type].save(args.output + "/" + os.path.basename(args.output) +
+                    "_" + dist_type + '_graph.gt', fmt = 'gt')
 
-        # Write core and accessory based clusters, if they worked
-        if model.indiv_fitted:
+                if args.core_only:
+                    fit_type = 'core'
+                    genomeNetwork = indivNetworks['core']
+                elif args.accessory_only:
+                    fit_type = 'accessory'
+                    genomeNetwork = indivNetworks['accessory']
+
+
+        #******************************#
+        #*                            *#
+        #* lineages analysis          *#
+        #*                            *#
+        #******************************#
+        
+        if args.lineage_clustering:
+
+            # load distances
+            if args.distances is not None:
+                distances = args.distances
+            else:
+                sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
+                sys.exit(1)
+
+            refList, queryList, self, distMat = readPickle(distances)
+            
+            # make directory for new output files
+            if not os.path.isdir(args.output):
+                try:
+                    os.makedirs(args.output)
+                except OSError:
+                    sys.stderr.write("Cannot create output directory\n")
+                    sys.exit(1)
+            
+            # run lineage clustering
+            if self:
+                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
+            else:
+                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
+                
+            # load networks
             indivNetworks = {}
-            for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                indivAssignments = model.assign(distMat, slope)
-                indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
-                isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
-                                                 args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
-                                                 externalClusterCSV = args.external_clustering)
-                nx.write_gpickle(indivNetworks[dist_type], args.output + "/" + os.path.basename(args.output) +
-                                                           "_" + dist_type + '_graph.gpickle')
-            if args.core_only:
-                fit_type = 'core'
-                genomeNetwork = indivNetworks['core']
-            elif args.accessory_only:
-                fit_type = 'accessory'
-                genomeNetwork = indivNetworks['accessory']
+            for rank in rank_list:
+                indivNetworks[rank] = gt.load_graph(args.output + "/" + os.path.basename(args.output) + '_rank_' + str(rank) + '_lineages.gt')
+                if rank == min(rank_list):
+                    genomeNetwork = indivNetworks[rank]
 
         #******************************#
         #*                            *#
@@ -500,16 +550,21 @@ def main():
                                         overwrite = args.overwrite, microreact = args.microreact)
                 if args.cytoscape:
                     sys.stderr.write("Writing cytoscape output\n")
-                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
-                    if model.indiv_fitted:
-                        sys.stderr.write("Writing individual cytoscape networks\n")
-                        for dist_type in ['core', 'accessory']:
-                            outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
-                                        args.info_csv, suffix = dist_type, writeCsv = False)
+                    if args.lineage_clustering:
+                        for rank in rank_list:
+                            outputsForCytoscape(indivNetworks[rank], isolateClustering, args.output,
+                                        args.info_csv, suffix = 'rank_' + str(rank), writeCsv = False)
+                    else:
+                        outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                        if model.indiv_fitted:
+                            sys.stderr.write("Writing individual cytoscape networks\n")
+                            for dist_type in ['core', 'accessory']:
+                                outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                            args.info_csv, suffix = dist_type, writeCsv = False)
         except:
             # Go ahead with final steps even if visualisations fail
             # (e.g. rapidnj not found)
-            sys.stderr.write("Error creating files for visualisation:" + str(sys.exc_info()[0]))
+            sys.stderr.write("Error creating files for visualisation: " + str(sys.exc_info()[0]))
 
         #******************************#
         #*                            *#
@@ -518,10 +573,11 @@ def main():
         #******************************#
         # extract limited references from clique by default
         if not args.full_db:
-            newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
-            nodes_to_remove = set(refList).difference(newReferencesNames)
-            genomeNetwork.remove_nodes_from(nodes_to_remove)
-            prune_distance_matrix(refList, nodes_to_remove, distMat,
+            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
+            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
+#            
+            names_to_remove = [refList[n] for n in nodes_to_remove]
+            prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
 
             # With mash, the sketches are actually removed from the database
@@ -534,38 +590,7 @@ def main():
                                 args.estimated_length, True, args.threads, True) # overwrite old db
                 os.remove(dummyRefFile)
 
-        nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
-
-    #******************************#
-    #*                            *#
-    #* within-strain analysis     *#
-    #*                            *#
-    #******************************#
-    if args.lineage_clustering:
-        sys.stderr.write("Mode: Identifying lineages within a clade\n\n")
-
-        # load distances
-        if args.distances is not None:
-            distances = args.distances
-        else:
-            sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
-            sys.exit(1)
-
-        refList, queryList, self, distMat = readPickle(distances)
-
-        # make directory for new output files
-        if not os.path.isdir(args.output):
-            try:
-                os.makedirs(args.output)
-            except OSError:
-                sys.stderr.write("Cannot create output directory\n")
-                sys.exit(1)
-
-        # run lineage clustering
-        if self:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
-        else:
-            isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
+        genomeNetwork.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     #*******************************#
     #*                             *#
@@ -632,9 +657,8 @@ def main():
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(rlist, isolates_to_remove,
                                                                       complete_distMat, dists_out)
 
-            rlist = viz_subset
             combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(viz_subset, newDistMat,
+                update_distance_matrices(viz_subset, newDistMat,	
                                          threads = args.threads)
 
             # reorder subset to ensure list orders match
@@ -666,14 +690,11 @@ def main():
                     prev_clustering = args.previous_clustering
                 else:
                     prev_clustering = os.path.dirname(args.distances + ".pkl")
-
-                # Read in network and cluster assignment
-                genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+                    
+                # load clustering
+                cluster_file = args.ref_db + '/' + args.ref_db + '_clusters.csv'
                 isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-
-                # prune the network and dictionary of assignments
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(viz_subset))
-
+                cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
@@ -688,11 +709,22 @@ def main():
                 outputsForGrapetree(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
                                     overwrite = args.overwrite, microreact = args.microreact)
             if args.cytoscape:
-                if args.viz_lineages or args.external_clustering:
-                    sys.stderr.write("Can only generate a network output for fitted models\n")
+                sys.stderr.write("Writing cytoscape output\n")
+                if args.viz_lineages:
+                    for rank in isolateClustering.keys():
+                        numeric_rank = rank.split('_')[1]
+                        if numeric_rank.isdigit():
+                            genomeNetwork = gt.load_graph(args.ref_db + '/' + os.path.basename(args.ref_db) + '_rank_' + str(numeric_rank) + '_lineages.gt')
+                            outputsForCytoscape(genomeNetwork, isolateClustering, args.output,
+                                        args.info_csv, suffix = 'rank_' + str(rank), viz_subset = viz_subset)
                 else:
-                    sys.stderr.write("Writing cytoscape output\n")
-                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv)
+                    genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+                    outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
+                    if model.indiv_fitted:
+                        sys.stderr.write("Writing individual cytoscape networks\n")
+                        for dist_type in ['core', 'accessory']:
+                            outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                                        args.info_csv, suffix = dist_type, viz_subset = viz_subset)
 
         else:
             # Cannot read input files
@@ -813,7 +845,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             print_full_clustering = False
             if update_db:
                 print_full_clustering = True
-            isolateClustering = {'combined': printClusters(genomeNetwork, output + "/" + os.path.basename(output),
+            isolateClustering = {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
+                                                            output + "/" + os.path.basename(output),
                                                             old_cluster_file, external_clustering, print_full_clustering)}
 
         # Update DB as requested
@@ -828,11 +861,11 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             # Update the network + ref list
             # only update network if assigning to strains
             if full_db is False and assign_lineage is False:
-                mashOrder = refList + ordered_queryList
-                newRepresentativesNames, newRepresentativesFile = extractReferences(genomeNetwork, mashOrder, output, refList)
-                genomeNetwork.remove_nodes_from(set(genomeNetwork.nodes).difference(newRepresentativesNames))
+                dbOrder = refList + ordered_queryList
+                newRepresentativesIndices, newRepresentativesNames, newRepresentativesFile, genomeNetwork = extractReferences(genomeNetwork, dbOrder, output, refList)
+                isolates_to_remove = set(dbOrder).difference(newRepresentativesNames)
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
-                nx.write_gpickle(genomeNetwork, output + "/" + os.path.basename(output) + '_graph.gpickle')
+                genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
             else:
                 newQueries = ordered_queryList
 
@@ -840,7 +873,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, output,
-                                    args.estimated_length, True, threads, True) # overwrite old db
+                                    estimated_length, True, threads, True) # overwrite old db
                 os.remove(tmpRefFile)
             # With mash, this is the reduced DB constructed,
             # with sketchlib, all sketches
@@ -877,7 +910,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             if full_db is False and assign_lineage is False:
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs
-                nodes_to_remove = set(combined_seq).difference(genomeNetwork.nodes)
+                nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
                 # This function also writes out the new distance matrix
                 postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove,
                                                                                 complete_distMat, dists_out)
@@ -905,9 +938,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
                                 queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
         if cytoscape:
-            if assign_lineage:
-                sys.stderr.write("Cannot generate a cytoscape network from a lineage assignment")
-            else:
                 sys.stderr.write("Writing cytoscape output\n")
                 outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
 

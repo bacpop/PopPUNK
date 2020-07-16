@@ -10,27 +10,6 @@ installing or running the software please raise an issue on github.
 Error/warning messages
 ----------------------
 
-Errors in graph.py
-^^^^^^^^^^^^^^^^^^
-If you get an ``AttributeError``::
-
-    AttributeError: 'Graph' object has no attribute 'node'
-
-Then your ``networkx`` package is out of date. Its version needs to be at >=v2.0.
-
-Trying to create a very large network
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-When using ``--refine-model`` you may see the message::
-
-    Warning: trying to create very large network
-
-One or more times. This is triggered if :math:`5 \times 10^5` edges or greater than 40%
-of the maximum possible number of edges have been added into the network. This suggests that
-the boundary is too large including too many links as within sample. This isn't necessarily a
-problem as it can occur at the edge of the optimisation range, so will not be the final optimised
-result. However, if you have a large number of samples it may make this step run very slowly
-and/or use a lot of memory. If that is the case, decrease ``--pos-shift``.
-
 Row name mismatch
 ^^^^^^^^^^^^^^^^^
 PopPUNK may throw::
@@ -236,7 +215,7 @@ Finding which isolates contribute to these distances reveals a clear culprit::
        1 14412_4_10
       28 14412_4_15
 
-In this case it is sufficent to increase the number of mixture components to four,
+In this case it is sufficient to increase the number of mixture components to four,
 which no longer includes these inflated distances. This gives a score of 0.9401 and 28 components:
 
 .. image:: images/contam_DPGMM_better_fit.png
@@ -301,4 +280,3 @@ resources. Here are some tips based on these experiences:
 
 Another option for scaling is to run ``--create-db`` with a smaller initial set (not
 using the ``--full-db`` command), then use ``--assign-query`` to add to this.
-
