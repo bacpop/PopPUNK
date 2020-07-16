@@ -329,7 +329,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
                 lineage_assignation[rank][isolate_name] = renamed_component
             # save network
             G.save(file_name = output + "/" + os.path.basename(output) + '_rank_' + str(rank) + '_lineages.gt', fmt = 'gt')
-            # clear edges
+            # clear edges - nodes in graph can be reused but edges differ between ranks
             G.clear_edges()
 
     # store output
