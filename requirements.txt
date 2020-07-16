@@ -1,10 +1,1 @@
 Cython>=0.26.1
-DendroPy>=4.3.0
-h5py>=2.10.0
-hdbscan>=0.8.13
-matplotlib>=2.1.2
-graph-tool>=2.31
-numpy>=1.14.1
-pandas>=0.22.0
-scikit-learn>=0.19.1
-scipy>=1.0.0
