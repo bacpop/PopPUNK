@@ -130,11 +130,12 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
     clusters_in_overall_graph = printClusters(G, dbOrder, printCSV=False)
-    # Construct a dict of sets for each cluster
+    # Construct a dict containing one empty set for each cluster
     reference_clusters_in_overall_graph = [set() for c in set(clusters_in_overall_graph.items())]
     # Iterate through references
     for reference_index in reference_indices:
-        # Add references to the appropriate cluster
+        # Add references to the originally empty set for the appropriate cluster
+        # Allows enumeration of the number of references per cluster
         reference_clusters_in_overall_graph[clusters_in_overall_graph[dbOrder[reference_index]]].add(reference_index)
 
     # Use a vertex filter to extract the subgraph of refences
