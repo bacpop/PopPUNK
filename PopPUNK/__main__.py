@@ -425,6 +425,8 @@ def main():
                 model = BGMMFit(args.output)
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)
+            # save model
+            model.save()
 
         # Run model refinement
         if args.refine_model or args.threshold or args.easy_run:
