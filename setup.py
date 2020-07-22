@@ -69,7 +69,6 @@ setup(
                       'scikit-learn',
                       'DendroPy',
                       'pandas',
-                      'graph-tool',
                       'matplotlib',
                       'hdbscan'],
     test_suite="test",
