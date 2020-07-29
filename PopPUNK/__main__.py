@@ -439,6 +439,8 @@ def main():
 
             new_model.plot(distMat)
             model = new_model
+            # save model
+            model.save()
 
         # Load and apply a previous model of any type
         if args.use_model:
