@@ -479,18 +479,23 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
 
     # process epidemiological data
     d = defaultdict(list)
+    
+    # process epidemiological data without duplicating names
+    # used by PopPUNK
+    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
+    'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
+    'overall_Lineage']
     if epiCsv is not None:
-        epiData = pd.read_csv(epiCsv, index_col = 0, quotechar='"')
-        epiData.index = isolateNameToLabel(epiData.index)
+        epiData = pd.read_csv(epiCsv, index_col = False, quotechar='"')
+        epiData.index = isolateNameToLabel(epiData.iloc[:,0])
         for e in epiData.columns.values:
-            colnames.append(str(e))
-
-    columns_to_be_omitted = []
+            if e not in columns_to_be_omitted:
+                colnames.append(str(e))
 
     # get example clustering name for validation
     example_cluster_title = list(clustering.keys())[0]
 
-    for name, label in zip(nodeNames, nodeLabels):
+    for name, label in zip(nodeNames, isolateNameToLabel(nodeLabels)):
         if name in clustering[example_cluster_title]:
             if output_format == 'microreact':
                 d['id'].append(label)
@@ -537,14 +542,6 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
                     else:
                         d['Status'].append("Reference")
             if epiCsv is not None:
-                # avoid adding
-                if len(columns_to_be_omitted) == 0:
-                    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
-                                             'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
-                                             'overall_Lineage']
-                    for c in d:
-                        if c not in columns_to_be_omitted:
-                            columns_to_be_omitted.append(c)
                 if label in epiData.index:
                     for col, value in zip(epiData.columns.values, epiData.loc[label].values):
                         if col not in columns_to_be_omitted:
