@@ -661,7 +661,8 @@ class RefineFit(ClusterFit):
             np.savez(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.npz',
              intercept=np.array([self.optimal_x, self.optimal_y]),
              core_acc_intercepts=np.array([self.core_boundary, self.accessory_boundary]),
-             scale=self.scale)
+             scale=self.scale,
+             indiv_fitted=self.indiv_fitted)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([None, self.type], pickle_file)
 
@@ -681,7 +682,10 @@ class RefineFit(ClusterFit):
         self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
         self.scale = fit_npz['scale']
         self.fitted = True
-        self.indiv_fitted = False # Do not output multiple microreacts
+        if 'indiv_fitted' in fit_npz:
+            self.indiv_fitted = fit_npz['indiv_fitted']
+        else:
+            self.indiv_fitted = False # historical behaviour for backward compatibility
         if np.isnan(self.optimal_y) and np.isnan(self.accessory_boundary):
             self.threshold = True
 

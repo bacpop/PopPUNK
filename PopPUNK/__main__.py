@@ -461,7 +461,7 @@ def main():
                 missing_isolates = [refList[m] for m in networkMissing]
                 sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
 
-            fit_type = None
+            fit_type = model.type
             isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                          refList,
                                                          args.output + "/" + os.path.basename(args.output),
@@ -576,8 +576,7 @@ def main():
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
-            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
-#            
+            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)            
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
@@ -684,19 +683,33 @@ def main():
                 model_prefix = args.ref_db
                 if args.model_dir is not None:
                     model_prefix = args.model_dir
-                model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                                   model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+                try:
+                    sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
+                    model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
+                                       model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+                except:
+                    sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
+                    exit()
 
                 # Set directories of previous fit
                 if args.previous_clustering is not None:
                     prev_clustering = args.previous_clustering
                 else:
                     prev_clustering = os.path.dirname(args.distances + ".pkl")
-                    
+                
                 # load clustering
-                cluster_file = args.ref_db + '/' + args.ref_db + '_clusters.csv'
-                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-                cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
+                if model.indiv_fitted:
+                    cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
+                    isolateClustering['refine'] = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+                    isolateClustering['refine'] = isolateClustering['refine']['Cluster']
+                    for type in ['accessory','core']:
+                        cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_' + type + '_clusters.csv'
+                        isolateClustering[type] = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+                        isolateClustering[type] = isolateClustering[type]['Cluster']
+                else:
+                    cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
+                    isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+                    
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
