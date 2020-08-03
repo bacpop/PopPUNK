@@ -738,7 +738,9 @@ def main():
                     if model.indiv_fitted:
                         sys.stderr.write("Writing individual cytoscape networks\n")
                         for dist_type in ['core', 'accessory']:
-                            outputsForCytoscape(indivNetworks[dist_type], isolateClustering, args.output,
+                            indiv_network = gt.load_graph(args.ref_db + "/" + os.path.basename(args.ref_db) +
+                            "_" + dist_type + '_graph.gt')
+                            outputsForCytoscape(indiv_network, isolateClustering, args.output,
                                         args.info_csv, suffix = dist_type, viz_subset = viz_subset)
 
         else:
