@@ -394,6 +394,11 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
                 viz_vertex[vertex] = False
         G.set_vertex_filter(viz_vertex)
     
+    # edit names
+    edited_names = isolateNameToLabel(G.vp.id)
+    for n,v in enumerate(G.vertices()):
+        G.vp.id[v] = edited_names[n]
+
     # write graph file
     if suffix is None:
         graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
