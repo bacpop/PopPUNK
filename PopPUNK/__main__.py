@@ -295,6 +295,14 @@ def main():
     if not args.use_mash:
         sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
+    # check that sequnce QC options make sense
+    qc_filter_options = ['stop','prune','continue']
+    if args.qc_filter not in qc_filter_options:
+        sys.stderr.write('QC filter option must be one of ' + ' '.join(qc_filter_options) + '\n')
+        sys.exit(1)
+    if (args.lower_length is not None and args.upper_length is None) or (args.lower_length is None and args.upper_length is not None):
+        sys.stderr.write('Need to provide both a lower and an upper limit for sequence length QC\n')
+
     # check if working with lineages
     rank_list = []
     if args.lineage_clustering or args.assign_lineages:
