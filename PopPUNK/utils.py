@@ -15,6 +15,7 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import h5py
 
 import pp_sketchlib
 
@@ -499,18 +500,16 @@ def isolateNameToLabel(names):
     return labels
 
 
-def sketchlib_assembly_qc(assemblyList, dbname, klist, ignoreLengthOutliers, estimated_length,
+def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, estimated_length,
                  qc_filter, retain_failures, length_sigma, lower_length, upper_length, prop_n, upper_n):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
-    Calls a hard sys.exit(1) if failing!
-
     Args:
         assemblyList (str)
             File with locations of assembly files to be sketched
-        dbname (str)
-            Name of database
+        prefix (str)
+            Prefix of output files
         klist (list)
             List of k-mer sizes to sketch
         ignoreLengthOutliers (bool)
@@ -538,59 +537,84 @@ def sketchlib_assembly_qc(assemblyList, dbname, klist, ignoreLengthOutliers, est
     Returns:
         genome_length (int)
             Average length of assemblies
-        max_prob (float)
-            Random match probability at minimum k-mer length
     """
     # Genome length needed to calculate prob of random matches
     genome_length = estimated_length # assume 2 Mb in the absence of other information
 
+    # open databases
+    db_name = prefix + "/" + os.path.basename(prefix) + '.h5'
+    filtered_db_name = prefix + "/" + 'filtered.' + os.path.basename(prefix) + '.h5'
+    failed_db_name = prefix + "/" + 'failed.' + os.path.basename(prefix) + '.h5'
+    hdf_in = h5py.File(db_name, 'r')
+    # new database file if pruning
+    if qc_filter == 'prune':
+        hdf_out = h5py.File(filtered_db_name, 'w')
+    # retain sketches of failed samples
+    if retain_failures:
+        hdf_fail = h5py.File(failed_db_name, 'w')
+    
+    # process data structures
+    read_grp = hdf_in['sketches']
+    if qc_filter == 'prune':
+        out_grp = hdf_out.create_group('sketches')
+    if retain_failures:
+        fail_grp = hdf_fail.create_group('sketches')
+    seq_length = {}
+    seq_ambiguous = {}
+    seq_excluded = {}
+    removed = []
+    
+    # iterate through sketches
+    for dataset in read_grp:
+        # test thresholds
+        remove = False
+        seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
+        seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+        
+    # calculate thresholds
+    if not ignoreLengthOutliers:
+        # get mean length
+        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+        mean_genome_length = np.mean(genome_lengths)
+        # calculate length threshold
+        if lower_length is None:
+            lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
+            upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
+
+        # iterate through and filter
+        example_assembly = None
+        for dataset in seq_length.keys():
+        
+            # retain an example assembly
+            if example_assembly is None:
+                example_assembly = dataset
+            
+            # determine if sequence passes filters
+            remove = False
+            if seq_length[dataset] >= lower_length and seq_length[dataset] <= upper_length:
+                remove = True
+            if upper_n is not None and seq_ambiguous[dataset] > upper_n:
+                remove = True
+            elif seq_ambiguous[dataset] > prop_n * seq_length[dataset]:
+                remove = True
+
+            # write to files
+            if remove:
+                if retain_failures:
+                    fail_grp.copy(read_grp[dataset], dataset)
+            else:
+                if qc_filter == 'prune':
+                    out_grp.copy(read_grp[dataset], dataset)
+    
+        # replace original database
+        if qc_filter == 'prune':
+            subprocess.run('mv ' + filtered_db_name + ' ' + db_name, shell = True, check = True)
+    
+    # calculate random matches
+    db_kmers = hdf_in['sketches'][example_assembly].attrs['kmers']
+    use_rc = False
     try:
-        input_lengths = []
-        input_names = []
-        for sampleAssembly in assemblyList:
-            if type(sampleAssembly) != list:
-                sampleAssembly = [sampleAssembly]
-            for assemblyFile in sampleAssembly:
-                input_genome_length = 0
-                with open(assemblyFile, 'r') as exampleAssembly:
-                    for line in exampleAssembly:
-                        if line[0] != ">":
-                            input_genome_length += len(line.rstrip())
-            input_lengths.append(input_genome_length)
-            input_names.append(sampleAssembly)
+        use_rc = hdf_in['sketches'][example_assembly].attrs['use_rc']
+    pp_sketchlib.addRandom(db_name, seq_length.keys(), db_kmers, use_rc, 1)
 
-        # Check for outliers
-        outliers = []
-        if not ignoreLengthOutliers:
-            genome_length = np.mean(np.array(input_lengths))
-            if lower_length is None:
-                lower_length = genome_length - length_sigma*np.std(input_lengths)
-                upper_length = genome_length + length_sigma*np.std(input_lengths)
-            for length, name in zip(input_lengths, input_names):
-                if length < lower_length or length > upper_length:
-                    outliers.append(name)
-            if outliers:
-                sys.stderr.write("Genomes with outlying lengths detected\n")
-                for outlier in outliers:
-                    sys.stderr.write('\n'.join(outlier) + '\n')
-                if qc_filter == 'stop':
-                    sys.exit(1)
-                elif qc_filter == 'prune':
-                    # avoid circular import
-                    from .sketchlib import removeFromDB
-                    removeFromDB(dbname, dbname, outliers)
-
-    except FileNotFoundError as e:
-        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
-                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
-
-    except UnicodeDecodeError as e:
-        sys.stderr.write("Could not read input file. Is it zipped?\n"
-                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
-
-    # check minimum k-mer is above random probability threshold
-    if genome_length <= 0:
-        genome_length = estimated_length
-        sys.stderr.write("WARNING: Could not detect genome length. Assuming " + str(estimated_length) + "\n")
-
-    return (int(genome_length))
+    return (int(mean_genome_length))

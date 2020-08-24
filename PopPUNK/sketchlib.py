@@ -288,7 +288,7 @@ def removeFromDB(db_name, out_name, removeSeqs):
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
                         ignoreLengthOutliers = False, threads = 1, overwrite = False,
                         reads = False, strand_preserved = False, min_count = 0,
-                        use_exact = False, qc_filter = 'continue', retain_failures = False,
+                        use_exact = False, qc_filter = 'stop', retain_failures = False,
                         length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
                         upper_n = None):
     """Sketch the input assemblies at the requested k-mer lengths
@@ -364,9 +364,9 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
 
     # QC sequences
     if not reads:
-        genome_length = sketchlib_assembly_qc(sequences, dbname, klist, ignoreLengthOutliers,
-                                                        estimated_length, qc_filter, retain_failures, length_sigma,
-                                                        lower_length, upper_length, prop_n, upper_n)
+        genome_length = sketchlib_assembly_qc(sequences, oPrefix, klist, ignoreLengthOutliers,
+                                              estimated_length, qc_filter, retain_failures, length_sigma,
+                                              lower_length, upper_length, prop_n, upper_n)
 
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,

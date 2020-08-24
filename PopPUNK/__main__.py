@@ -132,6 +132,7 @@ def get_options():
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
+    kmerGroup.add_argument('--reads', default = False, help='Input files are reads', action = 'store_true')
     kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
     kmerGroup.add_argument('--exact-count', default=False, action='store_true',
                            help='Use the exact k-mer counter with reads '
@@ -354,7 +355,10 @@ def main():
             # Sketch
             createDatabaseDir(args.output, kmers)
             constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.estimated_length, args.ignore_length, args.threads,
-                args.overwrite)
+                args.overwrite, reads = args.reads, strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
+                use_exact = args.exact_count, qc_filter = args.qc_filter, retain_failures = args.retain_failures,
+                length_sigma = args.length_sigma, lower_length = args.lower_length, upper_length = args.upper_length, prop_n = args.prop_n,
+                upper_n = args.upper_n)
 
             # Calculate and QC distances
             if args.use_mash == True:
@@ -787,7 +791,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
                  # added extra arguments for constructing sketchlib libraries
                  reads = False, strand_preserved = False, min_count = 0,
-                 use_exact = False, qc_filter = 'continue', retain_failures = False,
+                 use_exact = False, qc_filter = 'stop', retain_failures = False,
                  length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
                  upper_n = None):
     """Code for assign query mode. Written as a separate function so it can be called
