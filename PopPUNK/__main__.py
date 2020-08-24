@@ -142,25 +142,26 @@ def get_options():
 
     # qc options
     qcGroup = parser.add_argument_group('Quality control options')
-    qcGroup.add_argument('--qc-filter', help='Continue analysis but report genomes failing QC filters'
-                                                '[default = stop analysis]', default=False, action='store_true')
+    qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
+                                                '(analyse data passing QC), or "continue" (analyse all data)',
+                                                default='stop', type = str)
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters'
                                                 '[default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
-                                                default = 0.5, type=float)
+                                                default = 0.5, type = float)
     qcGroup.add_argument('--ignore-length', help='Ignore outliers in terms of assembly length '
-                                                '[default = False]', default=False, action='store_true')
+                                                '[default = False]', default=False, action = 'store_true')
     qcGroup.add_argument('--estimated-length', help='Provide an integer estimated genome length when using '
                                                 '"--ignore-length" [default = 2000000]', default=2000000, type = int)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
     qcGroup.add_argument('--lower-length', help='Lower length below which sequences will be excluded',
-                                                default=None, type=int)
+                                                default=None, type = int)
     qcGroup.add_argument('--upper-length', help='Upper length above which sequences will be excluded',
-                                                default=None, type=int)
-    qcGroup.add_argument('--n-sigma', help='Number of standard deviations of ambiguous base frequency distribution '
-                                                'beyond which sequences will be excluded [default = 5]', default = 5,
-                                                type = int)
+                                                default=None, type = int)
+    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
+                                                ' [default = 0.1]', default = 0.1,
+                                                type = float)
     qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
                                                 default=None, type = int)
 
