@@ -784,7 +784,12 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  kmers, sketch_sizes, ignore_length, estimated_length, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
-                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory):
+                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
+                 # added extra arguments for constructing sketchlib libraries
+                 reads = False, strand_preserved = False, min_count = 0,
+                 use_exact = False, qc_filter = 'continue', retain_failures = False,
+                 length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
+                 upper_n = None):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
@@ -816,14 +821,19 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Sketch query sequences
         createDatabaseDir(output, kmers)
-        constructDatabase(q_files, kmers, sketch_sizes, output,
-                            estimated_length, ignore_length, threads, overwrite)
 
         # Find distances vs ref seqs
         rNames = []
         if use_mash == True:
             rNames = None
             qNames = readRfile(q_files, oneSeq=True)[1]
+            # construct database and QC
+            constructDatabase(q_files, kmers, sketch_sizes, output,
+                                estimated_length, ignore_length, threads, overwrite,
+                                reads, strand_preserved, min_count,
+                                use_exact, qc_filter, retain_failures,
+                                length_sigma, lower_length, upper_length, prop_n,
+                                upper_n)
         else:
             qNames = readRfile(q_files)[0]
             if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
@@ -832,7 +842,13 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                         rNames.append(reference.rstrip())
             else:
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
+            # construct database and QC
+            constructDatabase(q_files, kmers, sketch_sizes, output,
+                                estimated_length, ignore_length, threads, overwrite,
+                                )
 
+
+        # run query
         refList, queryList, distMat = queryDatabase(rNames = rNames,
                                                     qNames = qNames,
                                                     dbPrefix = ref_db,
@@ -841,6 +857,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                     self = False,
                                                     number_plot_fits = plot_fit,
                                                     threads = threads)
+    
+        # QC distance matrix
         qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
 
         # Calculate query-query distances

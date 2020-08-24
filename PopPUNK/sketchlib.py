@@ -364,11 +364,9 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
 
     # QC sequences
     if not reads:
-        genome_length, max_prob = sketchlib_assembly_qc(sequences, dbname, klist, ignoreLengthOutliers,
+        genome_length = sketchlib_assembly_qc(sequences, dbname, klist, ignoreLengthOutliers,
                                                         estimated_length, qc_filter, retain_failures, length_sigma,
                                                         lower_length, upper_length, prop_n, upper_n)
-        sys.stderr.write("Worst random match probability at " + str(min(klist)) +
-                            "-mers: " + "{:.2f}".format(max_prob) + "\n")
 
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
@@ -396,24 +394,19 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             K-mer sizes to use in the calculation
         self (bool)
             Set true if query = ref
-
             (default = True)
         number_plot_fits (int)
             If > 0, the number of k-mer length fits to plot (saved as pdfs).
             Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`
-
             (default = 0)
         threads (int)
             Number of threads to use in the mash process
-
             (default = 1)
         use_gpu (bool)
             Use a GPU for querying
-
             (default = False)
         deviceid (int)
             Index of the CUDA GPU device to use
-
             (default = 0)
 
     Returns:
