@@ -497,3 +497,112 @@ def isolateNameToLabel(names):
     # want to remove certain characters
     labels = [name.split('/')[-1].split('.')[0] for name in names]
     return labels
+
+
+def sketchlib_assembly_qc(assemblyList, dbname, klist, ignoreLengthOutliers, estimated_length,
+                 qc_filter, retain_failures, length_sigma, lower_length, upper_length, prop_n, upper_n):
+    """Calculates random match probability based on means of genomes
+    in assemblyList, and looks for length outliers.
+
+    Calls a hard sys.exit(1) if failing!
+
+    Args:
+        assemblyList (str)
+            File with locations of assembly files to be sketched
+        dbname (str)
+            Name of database
+        klist (list)
+            List of k-mer sizes to sketch
+        ignoreLengthOutliers (bool)
+            Whether to check for outlying genome lengths (and error
+            if found)
+        estimated_length (int)
+            Estimated length of genome, if not calculated from data
+        qc_filter (string)
+            Behaviour on identifying sequences failing QC
+        retain_failures (bool)
+            Keep sketches of genomes that fail QC separate from main
+            database
+        length_sigma (int)
+            Number of SDs of length distribution beyond which sequences
+            are excluded
+        lower_length (int)
+            Threshold length below which sequences are excluded
+        upper_length (int)
+            Threshold length above which sequences are excluded
+        prop_n (float)
+            Proportion of ambiguous bases above which sequences are excluded
+        upper_n (int)
+            Number of ambiguous bases above which sequences are excluded
+
+    Returns:
+        genome_length (int)
+            Average length of assemblies
+        max_prob (float)
+            Random match probability at minimum k-mer length
+    """
+    # Genome length needed to calculate prob of random matches
+    genome_length = estimated_length # assume 2 Mb in the absence of other information
+
+    try:
+        input_lengths = []
+        input_names = []
+        for sampleAssembly in assemblyList:
+            if type(sampleAssembly) != list:
+                sampleAssembly = [sampleAssembly]
+            for assemblyFile in sampleAssembly:
+                input_genome_length = 0
+                with open(assemblyFile, 'r') as exampleAssembly:
+                    for line in exampleAssembly:
+                        if line[0] != ">":
+                            input_genome_length += len(line.rstrip())
+            input_lengths.append(input_genome_length)
+            input_names.append(sampleAssembly)
+
+        # Check for outliers
+        outliers = []
+        if not ignoreLengthOutliers:
+            genome_length = np.mean(np.array(input_lengths))
+            if lower_length is None:
+                lower_length = genome_length - length_sigma*np.std(input_lengths)
+                upper_length = genome_length + length_sigma*np.std(input_lengths)
+            for length, name in zip(input_lengths, input_names):
+                if length < lower_length or length > upper_length:
+                    outliers.append(name)
+            if outliers:
+                sys.stderr.write("Genomes with outlying lengths detected\n")
+                for outlier in outliers:
+                    sys.stderr.write('\n'.join(outlier) + '\n')
+                if qc_filter == 'stop':
+                    sys.exit(1)
+                elif qc_filter == 'prune':
+                    # avoid circular import
+                    from .sketchlib import removeFromDB
+                    removeFromDB(dbname, dbname, outliers)
+
+    except FileNotFoundError as e:
+        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
+                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
+
+    except UnicodeDecodeError as e:
+        sys.stderr.write("Could not read input file. Is it zipped?\n"
+                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
+
+    # check minimum k-mer is above random probability threshold
+    if genome_length <= 0:
+        genome_length = estimated_length
+        sys.stderr.write("WARNING: Could not detect genome length. Assuming " + str(estimated_length) + "\n")
+    if genome_length > 10000000:
+        sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
+
+    k_min = min(klist)
+    j1 = 1 - pow(1 - 1/(pow(4, k_min)), float(genome_length))
+    max_prob = (j1 * j1) / (2 * j1 - j1 * j1)
+    if max_prob > 0.05:
+        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is small relative to genome length " +
+            str(genome_length) +"; results will be adjusted for random match probabilities\n")
+    if k_min < 6:
+        sys.stderr.write("Minimum k-mer length is too low; please increase to at least 6\n")
+        exit(1)
+
+    return (int(genome_length), max_prob)

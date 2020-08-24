@@ -32,6 +32,7 @@ except ImportError as e:
 from .mash import fitKmerCurve
 from .utils import iterDistRows
 from .utils import assembly_qc
+from .utils import sketchlib_assembly_qc
 from .utils import readRfile
 from .plot import plot_fit
 
@@ -284,11 +285,12 @@ def removeFromDB(db_name, out_name, removeSeqs):
     hdf_in.close()
     hdf_out.close()
 
-
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
                         ignoreLengthOutliers = False, threads = 1, overwrite = False,
                         reads = False, strand_preserved = False, min_count = 0,
-                        use_exact = False):
+                        use_exact = False, qc_filter = 'continue', retain_failures = False,
+                        length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
+                        upper_n = None):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -314,44 +316,60 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             if found)
             (default = False)
         threads (int)
-            Number of threads to use
-
-            (default = 1)
+            Number of threads to use (default = 1)
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
-
             (default = False)
         reads (bool)
             If any reads are being used as input, do not run QC
-
             (default = False)
         strand_preserved (bool)
-            Ignore reverse complement k-mers
-
-            (default = False)
+            Ignore reverse complement k-mers (default = False)
         min_count (int)
             Minimum count of k-mer in reads to include
-
             (default = 0)
         use_exact (bool)
             Use exact count of k-mer appearance in reads
-
             (default = False)
+        qc_filter (string)
+            Behaviour on identifying sequences failing QC
+        retain_failures (bool)
+            Keep sketches of genomes that fail QC separate from main
+            database
+        length_sigma (int)
+            Number of SDs of length distribution beyond which sequences
+            are excluded
+        lower_length (int)
+            Threshold length below which sequences are excluded
+        upper_length (int)
+            Threshold length above which sequences are excluded
+        prop_n (float)
+            Proportion of ambiguous bases above which sequences are excluded
+        upper_n (int)
+            Number of ambiguous bases above which sequences are excluded
     """
+    # read file names
     names, sequences = readRfile(assemblyList)
-    if not reads:
-        genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
-        sys.stderr.write("Worst random match probability at " + str(min(klist)) +
-                            "-mers: " + "{:.2f}".format(max_prob) + "\n")
 
+    # create directory
     dbname = oPrefix + "/" + os.path.basename(oPrefix)
     dbfilename = dbname + ".h5"
     if os.path.isfile(dbfilename) and overwrite == True:
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
 
+    # generate sketches
     pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size,
                                    not strand_preserved, min_count, use_exact, threads)
+
+    # QC sequences
+    if not reads:
+        genome_length, max_prob = sketchlib_assembly_qc(sequences, dbname, klist, ignoreLengthOutliers,
+                                                        estimated_length, qc_filter, retain_failures, length_sigma,
+                                                        lower_length, upper_length, prop_n, upper_n)
+        sys.stderr.write("Worst random match probability at " + str(min(klist)) +
+                            "-mers: " + "{:.2f}".format(max_prob) + "\n")
+
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
