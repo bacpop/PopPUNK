@@ -315,7 +315,7 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers, estimated_length,
+def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
                         assignments, model, queryDB, queryQuery = False,
                         use_mash = False, threads = 1):
     """Finds edges between queries and items in the reference database,
@@ -334,8 +334,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers, estimated_length,
             Network to add to (mutated)
         kmers (list)
             List of k-mer sizes
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
         assignments (numpy.array)
             Cluster assignment of items in qlist
         model (ClusterModel)
@@ -409,7 +407,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers, estimated_length,
                                                         rNames,
                                                         qNames,
                                                         kmers,
-                                                        estimated_length,
                                                         queryDB,
                                                         use_mash,
                                                         threads)
@@ -444,7 +441,7 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers, estimated_length,
 
             # use database construction methods to find links between unassigned queries
             sketchSize = readDBParams(queryDB, kmers, None)[1]
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, estimated_length, True, threads, False)
+            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
 
             qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),

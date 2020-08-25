@@ -149,8 +149,6 @@ def get_options():
                                                 'separate database [default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
-    qcGroup.add_argument('--estimated-length', help='Provide an integer estimated genome length for QC',
-                                                default=None, type = int)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -351,7 +349,6 @@ def main():
             createDatabaseDir(args.output, kmers)
             seq_names = constructDatabase(args.r_files, kmers, sketch_sizes,
                 args.output,
-                args.estimated_length,
                 args.threads,
                 args.overwrite,
                 strand_preserved = args.strand_preserved,
@@ -620,7 +617,7 @@ def main():
                 # Read and overwrite previous database
                 kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
                 constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output,
-                                args.estimated_length, True, args.threads, True) # overwrite old db
+                                True, args.threads, True) # overwrite old db
                 os.remove(dummyRefFile)
 
         genomeNetwork.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
@@ -633,7 +630,7 @@ def main():
     #*******************************#
     elif args.assign_query or args.assign_lineages:
         assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
-                     args.microreact, args.cytoscape, kmers, sketch_sizes, args.estimated_length,
+                     args.microreact, args.cytoscape, kmers, sketch_sizes,
                      args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
@@ -793,7 +790,7 @@ def main():
 #*                             *#
 #*******************************#
 def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
-                 kmers, sketch_sizes, estimated_length, threads, use_mash, mash, overwrite,
+                 kmers, sketch_sizes, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
@@ -840,7 +837,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             rNames = None
             # construct database and QC
             qNames = constructDatabase(q_files, kmers, sketch_sizes, output,
-                                estimated_length, threads, overwrite)
+                                threads, overwrite)
         else:
             if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
                 with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
@@ -849,7 +846,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             else:
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
             # construct database and QC
-            qNames = constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
+            qNames = constructDatabase(q_files, kmers, sketch_sizes, output,
                                 threads, overwrite,
                                 strand_preserved = strand_preserved,
                                 min_count = min_count,
@@ -882,7 +879,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
             # Assign lineages by calculating query-query information
             ordered_queryList, query_distMat = calculateQueryQueryDistances(dbFuncs, refList, qNames,
-                    kmers, estimated_length, output, use_mash, threads)
+                    kmers, output, use_mash, threads)
 
         else:
             # Assign these distances as within or between strain
@@ -910,7 +907,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, queryList, q_files,
-                    genomeNetwork, kmers, estimated_length, queryAssignments, model, output, update_db,
+                    genomeNetwork, kmers, queryAssignments, model, output, update_db,
                     use_mash, threads)
 
             # if running simple query
@@ -945,7 +942,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             if newQueries != queryList and use_mash:
                 tmpRefFile = writeTmpFile(newQueries)
                 constructDatabase(tmpRefFile, kmers, sketch_sizes, output,
-                                    estimated_length, True, threads, True) # overwrite old db
+                                    True, threads, True) # overwrite old db
                 os.remove(tmpRefFile)
             # With mash, this is the reduced DB constructed,
             # with sketchlib, all sketches

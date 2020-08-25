@@ -284,7 +284,7 @@ def removeFromDB(db_name, out_name, removeSeqs):
     hdf_in.close()
     hdf_out.close()
 
-def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
+def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         threads = 1, overwrite = False,
                         strand_preserved = False, min_count = 0,
                         use_exact = False, qc_filter = 'stop', retain_failures = False,
@@ -308,8 +308,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
         threads (int)
             Number of threads to use (default = 1)
         overwrite (bool)
@@ -354,7 +352,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
     
     # QC sequences
     filtered_names = sketchlib_assembly_qc(oPrefix, klist,
-                                          estimated_length, qc_filter, retain_failures, length_sigma,
+                                          qc_filter, retain_failures, length_sigma,
                                           length_range, prop_n, upper_n,
                                           strand_preserved, threads)
 
@@ -448,7 +446,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     return(rNames, qNames, distMat)
 
-def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers, estimated_length,
+def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers,
                 queryDB, use_mash = False, threads = 1):
     """Calculates distances between queries.
 
@@ -461,8 +459,6 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers, estimated_length,
             List of query names
         kmers (list)
             List of k-mer sizes
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
         queryDB (str)
             Query database location
         use_mash (bool)

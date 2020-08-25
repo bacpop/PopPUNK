@@ -416,7 +416,7 @@ def isolateNameToLabel(names):
     return labels
 
 
-def sketchlib_assembly_qc(prefix, klist, estimated_length,
+def sketchlib_assembly_qc(prefix, klist,
                  qc_filter, retain_failures, length_sigma, length_range, prop_n,
                  upper_n, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
@@ -427,8 +427,6 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
             Prefix of output files
         klist (list)
             List of k-mer sizes to sketch
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
         qc_filter (string)
             Behaviour on identifying sequences failing QC
         retain_failures (bool)
@@ -454,9 +452,6 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
         genome_length (int)
             Average length of assemblies
     """
-    # Genome length needed to calculate prob of random matches
-    if estimated_length is not None:
-        mean_genome_length = estimated_length # assume 2 Mb in the absence of other information
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
@@ -495,10 +490,9 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
                 retained.append(dataset)
 
         # calculate thresholds
-        # get mean length if not using user-supplied estimation
-        if estimated_length is None:
-            genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-            mean_genome_length = np.mean(genome_lengths)
+        # get mean length
+        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+        mean_genome_length = np.mean(genome_lengths)
         
         # calculate length threshold unless user-supplied
         if length_range[0] is None:
