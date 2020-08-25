@@ -293,6 +293,13 @@ def main():
     if not args.use_mash:
         sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
+    # if a length range is specified, check it makes sense
+    if args.length_range[0] is not None:
+        if args.length_range[0] >= args.length_range[1]:
+            sys.stderr.write('Ensure the specified length range is space-separated argument of'
+            ' length 2, with the lower value first\n')
+            sys.exit(1)
+
     # check if working with lineages
     rank_list = []
     if args.lineage_clustering or args.assign_lineages:
