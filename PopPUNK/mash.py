@@ -292,7 +292,7 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         estimated_length,
-                        threads = 1, overwrite = False, reads = False,
+                        threads = 1, overwrite = False,
                         mash_exec = 'mash'):
     """Sketch the input assemblies at the requested k-mer lengths
 
@@ -320,11 +320,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             (default = 1)
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
-
-            (default = False)
-        reads (bool)
-            If reads are being used as input
-
             (default = False)
         mash_exec (str)
             Location of mash executable

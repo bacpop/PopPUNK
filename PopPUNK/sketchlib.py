@@ -286,7 +286,7 @@ def removeFromDB(db_name, out_name, removeSeqs):
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
                         threads = 1, overwrite = False,
-                        reads = False, strand_preserved = False, min_count = 0,
+                        strand_preserved = False, min_count = 0,
                         use_exact = False, qc_filter = 'stop', retain_failures = False,
                         length_sigma = 5, length_range = [None,None], prop_n = 0.1,
                         upper_n = None):
@@ -314,9 +314,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             Number of threads to use (default = 1)
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
-            (default = False)
-        reads (bool)
-            If any reads are being used as input, do not run QC
             (default = False)
         strand_preserved (bool)
             Ignore reverse complement k-mers (default = False)
@@ -356,14 +353,10 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
                                    not strand_preserved, min_count, use_exact, threads)
     
     # QC sequences
-    if reads:
-        # will need to define reads QC function here
-        filtered_names = names
-    else:
-        filtered_names = sketchlib_assembly_qc(oPrefix, klist,
-                                              estimated_length, qc_filter, retain_failures, length_sigma,
-                                              length_range, prop_n, upper_n,
-                                              strand_preserved, threads)
+    filtered_names = sketchlib_assembly_qc(oPrefix, klist,
+                                          estimated_length, qc_filter, retain_failures, length_sigma,
+                                          length_range, prop_n, upper_n,
+                                          strand_preserved, threads)
 
     # return filtered file names
     return filtered_names

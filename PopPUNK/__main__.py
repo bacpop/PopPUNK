@@ -132,7 +132,6 @@ def get_options():
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
-    kmerGroup.add_argument('--reads', default = False, help='Input files are reads', action = 'store_true')
     kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
     kmerGroup.add_argument('--exact-count', default=False, action='store_true',
                            help='Use the exact k-mer counter with reads '
@@ -355,7 +354,6 @@ def main():
                 args.estimated_length,
                 args.threads,
                 args.overwrite,
-                reads = args.reads,
                 strand_preserved = args.strand_preserved,
                 min_count = args.min_kmer_count,
                 use_exact = args.exact_count,
@@ -640,7 +638,7 @@ def main():
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory,
-                     reads = args.reads, strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
+                     strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
                      use_exact = args.exact_count, qc_filter = args.qc_filter, retain_failures = args.retain_failures,
                      length_sigma = args.length_sigma, length_range = args.length_range, prop_n = args.prop_n,
                      upper_n = args.upper_n)
@@ -800,7 +798,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
                  # added extra arguments for constructing sketchlib libraries
-                 reads = False, strand_preserved = False, min_count = 0,
+                 strand_preserved = False, min_count = 0,
                  use_exact = False, qc_filter = 'stop', retain_failures = False,
                  length_sigma = 5, length_range = [None,None], prop_n = 0.1,
                  upper_n = None):
@@ -853,7 +851,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             # construct database and QC
             qNames = constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
                                 threads, overwrite,
-                                reads = reads,
                                 strand_preserved = strand_preserved,
                                 min_count = min_count,
                                 use_exact = use_exact,
