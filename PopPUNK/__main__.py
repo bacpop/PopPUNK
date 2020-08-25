@@ -277,6 +277,16 @@ def main():
     queryDatabase = dbFuncs['queryDatabase']
     readDBParams = dbFuncs['readDBParams']
 
+    # Dict of QC options for passing to database construction and querying functions
+    qc_dict = {
+        'qc_filter': args.qc_filter,
+        'retain_failures': args.retain_failures,
+        'length_sigma': args.length_sigma,
+        'length_range': args.length_range,
+        'prop_n': args.prop_n,
+        'upper_n': args.upper_n
+    }
+
     # define sketch sizes, store in hash in case one day
     # different kmers get different hash sizes
     sketch_sizes = {}

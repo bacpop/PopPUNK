@@ -285,8 +285,8 @@ def removeFromDB(db_name, out_name, removeSeqs):
     hdf_out.close()
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
-                        threads = 1, overwrite = False,
-                        strand_preserved = False, min_count,
+                        threads, overwrite,
+                        strand_preserved, min_count,
                         use_exact, qc_filter, retain_failures,
                         length_sigma, length_range, prop_n,
                         upper_n):
