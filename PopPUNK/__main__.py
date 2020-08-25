@@ -795,10 +795,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
                  # added extra arguments for constructing sketchlib libraries
-                 strand_preserved = False, min_count = 0,
-                 use_exact = False, qc_filter = 'stop', retain_failures = False,
-                 length_sigma = 5, length_range = [None,None], prop_n = 0.1,
-                 upper_n = None):
+                 strand_preserved, min_count, use_exact, qc_filter, retain_failures,
+                 length_sigma, length_range, prop_n, upper_n):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """

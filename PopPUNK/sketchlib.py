@@ -286,10 +286,10 @@ def removeFromDB(db_name, out_name, removeSeqs):
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         threads = 1, overwrite = False,
-                        strand_preserved = False, min_count = 0,
-                        use_exact = False, qc_filter = 'stop', retain_failures = False,
-                        length_sigma = 5, length_range = [None,None], prop_n = 0.1,
-                        upper_n = None):
+                        strand_preserved = False, min_count,
+                        use_exact, qc_filter, retain_failures,
+                        length_sigma, length_range, prop_n,
+                        upper_n):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
