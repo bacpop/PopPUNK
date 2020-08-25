@@ -470,86 +470,99 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
         failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
         hdf_fail = h5py.File(failed_db_name, 'w')
     
-    # process data structures
-    read_grp = hdf_in['sketches']
-    if qc_filter == 'prune':
-        out_grp = hdf_out.create_group('sketches')
-    if retain_failures:
-        fail_grp = hdf_fail.create_group('sketches')
-    seq_length = {}
-    seq_ambiguous = {}
-    seq_excluded = {}
-    removed = []
-    retained = []
-    
-    # iterate through sketches
-    for dataset in read_grp:
-        # test thresholds
-        remove = False
-        seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-        seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
-        # if no filtering to be undertaken, retain all sequences
-        if qc_filter == 'continue':
-            retained.append(dataset)
-
-    # calculate thresholds
-    # get mean length if not using user-supplied estimation
-    if estimated_length is None:
-        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-        mean_genome_length = np.mean(genome_lengths)
-    
-    # calculate length threshold unless user-supplied
-    if length_range[0] is None:
-        lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
-        upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
-    else:
-        lower_length, upper_length = length_range
-
-    # open file to report QC failures
-    with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
-    
-        # iterate through and filter
-        failed_sample = False
-        for dataset in seq_length.keys():
-                    
-            # determine if sequence passes filters
-            remove = False
-            if seq_length[dataset] < lower_length:
-                remove = True
-                qc_file.write(dataset + '\tBelow lower length threshold\n')
-            elif seq_length[dataset] > upper_length:
-                qc_file.write(dataset + '\tAbove upper length threshold\n')
-            if upper_n is not None and seq_ambiguous[dataset] > upper_n:
-                remove = True
-                qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-            elif seq_ambiguous[dataset] > prop_n * seq_length[dataset]:
-                remove = True
-                qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-
-            # write to files
-            if remove:
-                sys.stderr.write(dataset + ' failed QC\n')
-                failed_sample = True
-                if retain_failures:
-                    fail_grp.copy(read_grp[dataset], dataset)
-            else:
-                if qc_filter == 'prune':
-                    out_grp.copy(read_grp[dataset], dataset)
-                    retained.append(dataset)
-    
-        # get kmers from original database
-        db_kmers = hdf_in['sketches'][retained[0]].attrs['kmers']
-        
-        # close files
-        hdf_in.close()
+    # try/except structure to prevent h5 corruption
+    try:
+        # process data structures
+        read_grp = hdf_in['sketches']
         if qc_filter == 'prune':
-            hdf_out.close()
+            out_grp = hdf_out.create_group('sketches')
         if retain_failures:
-            hdf_fail.close()
+            fail_grp = hdf_fail.create_group('sketches')
+        seq_length = {}
+        seq_ambiguous = {}
+        seq_excluded = {}
+        removed = []
+        retained = []
+        
+        # iterate through sketches
+        for dataset in read_grp:
+            # test thresholds
+            remove = False
+            seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
+            seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+            # if no filtering to be undertaken, retain all sequences
+            if qc_filter == 'continue':
+                retained.append(dataset)
+
+        # calculate thresholds
+        # get mean length if not using user-supplied estimation
+        if estimated_length is None:
+            genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+            mean_genome_length = np.mean(genome_lengths)
+        
+        # calculate length threshold unless user-supplied
+        if length_range[0] is None:
+            lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
+            upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
+        else:
+            lower_length, upper_length = length_range
+
+        # open file to report QC failures
+        with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
+        
+            # iterate through and filter
+            failed_sample = False
+            for dataset in seq_length.keys():
+                        
+                # determine if sequence passes filters
+                remove = False
+                if seq_length[dataset] < lower_length:
+                    remove = True
+                    qc_file.write(dataset + '\tBelow lower length threshold\n')
+                elif seq_length[dataset] > upper_length:
+                    qc_file.write(dataset + '\tAbove upper length threshold\n')
+                if upper_n is not None and seq_ambiguous[dataset] > upper_n:
+                    remove = True
+                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
+                elif seq_ambiguous[dataset] > prop_n * seq_length[dataset]:
+                    remove = True
+                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
+
+                # write to files
+                if remove:
+                    sys.stderr.write(dataset + ' failed QC\n')
+                    failed_sample = True
+                    if retain_failures:
+                        fail_grp.copy(read_grp[dataset], dataset)
+                else:
+                    if qc_filter == 'prune':
+                        out_grp.copy(read_grp[dataset], dataset)
+                        retained.append(dataset)
+        
+            # get kmers from original database
+            db_kmers = hdf_in['sketches'][retained[0]].attrs['kmers']
+            
+            # close files
+            hdf_in.close()
+            if qc_filter == 'prune':
+                hdf_out.close()
+            if retain_failures:
+                hdf_fail.close()
     
         # replace original database with pruned version
         if qc_filter == 'prune':
             os.rename(filtered_db_name, db_name)
+    
+    # if failure still close files to avoid corruption
+    except:
+        hdf_in.close()
+        if qc_filter == 'prune':
+           hdf_out.close()
+        if retain_failures:
+           hdf_fail.close()
+        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
+        sys.exit(1)
+    
     
     # stop if at least one sample fails QC and option is not continue/prune
     if failed_sample and qc_filter == 'stop':
