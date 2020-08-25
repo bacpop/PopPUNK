@@ -833,11 +833,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             qNames = readRfile(q_files, oneSeq=True)[1]
             # construct database and QC
             constructDatabase(q_files, kmers, sketch_sizes, output,
-                                estimated_length, ignore_length, threads, overwrite,
-                                reads, strand_preserved, min_count,
-                                use_exact, qc_filter, retain_failures,
-                                length_sigma, lower_length, upper_length, prop_n,
-                                upper_n)
+                                estimated_length, ignore_length, threads, overwrite)
         else:
             qNames = readRfile(q_files)[0]
             if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
@@ -847,10 +843,11 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             else:
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
             # construct database and QC
-            constructDatabase(q_files, kmers, sketch_sizes, output,
-                                estimated_length, ignore_length, threads, overwrite,
-                                )
-
+            constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
+                                ignore_length, threads, overwrite, reads, strand_preserved,
+                                min_count, use_exact, qc_filter, retain_failures,
+                                length_sigma, lower_length, upper_length, prop_n,
+                                upper_n)
 
         # run query
         refList, queryList, distMat = queryDatabase(rNames = rNames,
