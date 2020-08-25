@@ -855,7 +855,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             else:
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
             # construct database and QC
-            constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
+            qNames = constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
                                 ignore_length, threads, overwrite,
                                 reads = reads,
                                 strand_preserved = strand_preserved,

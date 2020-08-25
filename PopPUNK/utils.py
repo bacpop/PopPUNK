@@ -547,9 +547,9 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
     genome_length = estimated_length # assume 2 Mb in the absence of other information
 
     # open databases
-    db_name = prefix + "/" + os.path.basename(prefix) + '.h5'
-    filtered_db_name = prefix + "/" + 'filtered.' + os.path.basename(prefix) + '.h5'
-    failed_db_name = prefix + "/" + 'failed.' + os.path.basename(prefix) + '.h5'
+    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+    filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
+    failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
     hdf_in = h5py.File(db_name, 'r')
     # new database file if pruning
     if qc_filter == 'prune':
@@ -581,10 +581,12 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
             retained.append(dataset)
         
     # calculate thresholds
-    if not ignoreLengthOutliers:
+    with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
+    
         # get mean length
         genome_lengths = np.fromiter(seq_length.values(), dtype = int)
         mean_genome_length = np.mean(genome_lengths)
+        
         # calculate length threshold
         if lower_length is None:
             lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
@@ -592,20 +594,27 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
 
         # iterate through and filter
         example_assembly = None
+        failed_sample = False
         for dataset in seq_length.keys():
                     
             # determine if sequence passes filters
             remove = False
-            if seq_length[dataset] < lower_length or seq_length[dataset] > upper_length:
+            if seq_length[dataset] < lower_length:
                 remove = True
+                qc_file.write(dataset + '\tBelow lower length threshold\n')
+            elif seq_length[dataset] > upper_length:
+                qc_file.write(dataset + '\tAbove upper length threshold\n')
             if upper_n is not None and seq_ambiguous[dataset] > upper_n:
                 remove = True
+                qc_file.write(dataset + '\tAmbiguous sequence too high\n')
             elif seq_ambiguous[dataset] > prop_n * seq_length[dataset]:
                 remove = True
+                qc_file.write(dataset + '\tAmbiguous sequence too high\n')
 
             # write to files
             if remove:
-                print('Removing ' + dataset)
+                sys.stderr.write(dataset + ' failed QC\n')
+                failed_sample = True
                 if retain_failures:
                     fail_grp.copy(read_grp[dataset], dataset)
             else:
@@ -620,10 +629,18 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
         if qc_filter == 'prune':
             subprocess.run('mv ' + filtered_db_name + ' ' + db_name, shell = True, check = True)
     
-    # calculate random matches
+    # stop if samples fails QC
+    if failed_sample and qc_filter == 'stop':
+        sys.stderr.write('Sequences failed QC filters - details in ' + prefix + '/' + os.path.basename(prefix) + '_qcreport.txt\n')
+        sys.exit(1)
+    
+    # calculate random matches if sequences pass QC matches
+    if example_assembly is None:
+        sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
+        sys.exit(1)
     db_kmers = hdf_in['sketches'][example_assembly].attrs['kmers']
     use_rc = not strand_preserved
     db_name_prefix = prefix + '/' + os.path.basename(prefix)
     pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
-
+    
     return retained

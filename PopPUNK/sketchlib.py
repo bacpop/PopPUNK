@@ -361,7 +361,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
     # generate sketches
     pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size,
                                    not strand_preserved, min_count, use_exact, threads)
-
+    
     # QC sequences
     if reads:
         # will need to define reads QC function here
