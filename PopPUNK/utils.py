@@ -645,6 +645,11 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, estimated_length,
         sys.exit(1)
     use_rc = not strand_preserved
     db_name_prefix = prefix + '/' + os.path.basename(prefix)
+    # remove random matches if already present
+    hdf_in = h5py.File(db_name, 'r+')
+    if 'random' in hdf_in:
+        del hdf_in['random']
+    hdf_in.close()
     pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
     
     return retained
