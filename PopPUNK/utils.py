@@ -416,9 +416,7 @@ def isolateNameToLabel(names):
     return labels
 
 
-def sketchlib_assembly_qc(prefix, klist,
-                 qc_filter, retain_failures, length_sigma, length_range, prop_n,
-                 upper_n, strand_preserved, threads):
+def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
@@ -427,41 +425,27 @@ def sketchlib_assembly_qc(prefix, klist,
             Prefix of output files
         klist (list)
             List of k-mer sizes to sketch
-        qc_filter (string)
-            Behaviour on identifying sequences failing QC
-        retain_failures (bool)
-            Keep sketches of genomes that fail QC separate from main
-            database
-        length_sigma (int)
-            Number of SDs of length distribution beyond which sequences
-            are excluded
-        lower_length (int)
-            Threshold length below which sequences are excluded
-        upper_length (int)
-            Threshold length above which sequences are excluded
-        prop_n (float)
-            Proportion of ambiguous bases above which sequences are excluded
-        upper_n (int)
-            Number of ambiguous bases above which sequences are excluded
+        qc_dict (dict)
+            Dictionary of QC parameters
         strand_preserved (bool)
             Ignore reverse complement k-mers (default = False)
         threads (int)
             Number of threads to use in parallelisation
 
     Returns:
-        genome_length (int)
-            Average length of assemblies
+        retained (list)
+            List of sequences passing QC filters
     """
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
     hdf_in = h5py.File(db_name, 'r')
     # new database file if pruning
-    if qc_filter == 'prune':
+    if qc_dict['qc_filter'] == 'prune':
         filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
         hdf_out = h5py.File(filtered_db_name, 'w')
     # retain sketches of failed samples
-    if retain_failures:
+    if qc_dict['retain_failures']:
         failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
         hdf_fail = h5py.File(failed_db_name, 'w')
     
@@ -469,9 +453,9 @@ def sketchlib_assembly_qc(prefix, klist,
     try:
         # process data structures
         read_grp = hdf_in['sketches']
-        if qc_filter == 'prune':
+        if qc_dict['qc_filter'] == 'prune':
             out_grp = hdf_out.create_group('sketches')
-        if retain_failures:
+        if qc_dict['retain_failures']:
             fail_grp = hdf_fail.create_group('sketches')
         seq_length = {}
         seq_ambiguous = {}
@@ -486,7 +470,7 @@ def sketchlib_assembly_qc(prefix, klist,
             seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
             seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
             # if no filtering to be undertaken, retain all sequences
-            if qc_filter == 'continue':
+            if qc_dict['qc_filter'] == 'continue':
                 retained.append(dataset)
 
         # calculate thresholds
@@ -495,11 +479,11 @@ def sketchlib_assembly_qc(prefix, klist,
         mean_genome_length = np.mean(genome_lengths)
         
         # calculate length threshold unless user-supplied
-        if length_range[0] is None:
-            lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
-            upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
+        if qc_dict['length_range'][0] is None:
+            lower_length = mean_genome_length - qc_dict['length_sigma']*np.std(genome_lengths)
+            upper_length = mean_genome_length + qc_dict['length_sigma']*np.std(genome_lengths)
         else:
-            lower_length, upper_length = length_range
+            lower_length, upper_length = qc_dict['length_range']
 
         # open file to report QC failures
         with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
@@ -515,10 +499,10 @@ def sketchlib_assembly_qc(prefix, klist,
                     qc_file.write(dataset + '\tBelow lower length threshold\n')
                 elif seq_length[dataset] > upper_length:
                     qc_file.write(dataset + '\tAbove upper length threshold\n')
-                if upper_n is not None and seq_ambiguous[dataset] > upper_n:
+                if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
                     remove = True
                     qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-                elif seq_ambiguous[dataset] > prop_n * seq_length[dataset]:
+                elif seq_ambiguous[dataset] > qc_dict['prop_n'] * seq_length[dataset]:
                     remove = True
                     qc_file.write(dataset + '\tAmbiguous sequence too high\n')
 
@@ -526,10 +510,10 @@ def sketchlib_assembly_qc(prefix, klist,
                 if remove:
                     sys.stderr.write(dataset + ' failed QC\n')
                     failed_sample = True
-                    if retain_failures:
+                    if qc_dict['retain_failures']:
                         fail_grp.copy(read_grp[dataset], dataset)
                 else:
-                    if qc_filter == 'prune':
+                    if qc_dict['qc_filter'] == 'prune':
                         out_grp.copy(read_grp[dataset], dataset)
                         retained.append(dataset)
         
@@ -538,28 +522,28 @@ def sketchlib_assembly_qc(prefix, klist,
             
             # close files
             hdf_in.close()
-            if qc_filter == 'prune':
+            if qc_dict['qc_filter'] == 'prune':
                 hdf_out.close()
-            if retain_failures:
+            if qc_dict['retain_failures']:
                 hdf_fail.close()
-    
+
         # replace original database with pruned version
-        if qc_filter == 'prune':
+        if qc_dict['qc_filter'] == 'prune':
             os.rename(filtered_db_name, db_name)
     
     # if failure still close files to avoid corruption
     except:
         hdf_in.close()
-        if qc_filter == 'prune':
+        if qc_dict['qc_filter'] == 'prune':
            hdf_out.close()
-        if retain_failures:
+        if qc_dict['retain_failures']:
            hdf_fail.close()
         sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
         sys.exit(1)
     
     
     # stop if at least one sample fails QC and option is not continue/prune
-    if failed_sample and qc_filter == 'stop':
+    if failed_sample and qc_dict['qc_filter'] == 'stop':
         sys.stderr.write('Sequences failed QC filters - details in ' + prefix + '/' + os.path.basename(prefix) + '_qcreport.txt\n')
         sys.exit(1)
     

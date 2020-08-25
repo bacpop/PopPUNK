@@ -287,9 +287,7 @@ def removeFromDB(db_name, out_name, removeSeqs):
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         threads, overwrite,
                         strand_preserved, min_count,
-                        use_exact, qc_filter, retain_failures,
-                        length_sigma, length_range, prop_n,
-                        upper_n):
+                        use_exact, qc_dict):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -321,20 +319,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         use_exact (bool)
             Use exact count of k-mer appearance in reads
             (default = False)
-        qc_filter (string)
-            Behaviour on identifying sequences failing QC
-        retain_failures (bool)
-            Keep sketches of genomes that fail QC separate from main
-            database
-        length_sigma (int)
-            Number of SDs of length distribution beyond which sequences
-            are excluded
-        length_range (list of two ints)
-            Threshold lengths outside of which sequences are excluded
-        prop_n (float)
-            Proportion of ambiguous bases above which sequences are excluded
-        upper_n (int)
-            Number of ambiguous bases above which sequences are excluded
+        qc_dict (dict)
+            Dict containg QC settings
     """
     # read file names
     names, sequences = readRfile(assemblyList)
@@ -351,10 +337,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                                    not strand_preserved, min_count, use_exact, threads)
     
     # QC sequences
-    filtered_names = sketchlib_assembly_qc(oPrefix, klist,
-                                          qc_filter, retain_failures, length_sigma,
-                                          length_range, prop_n, upper_n,
-                                          strand_preserved, threads)
+    filtered_names = sketchlib_assembly_qc(oPrefix, klist, qc_dict, strand_preserved, threads)
 
     # return filtered file names
     return filtered_names

@@ -364,12 +364,7 @@ def main():
                 strand_preserved = args.strand_preserved,
                 min_count = args.min_kmer_count,
                 use_exact = args.exact_count,
-                qc_filter = args.qc_filter,
-                retain_failures = args.retain_failures,
-                length_sigma = args.length_sigma,
-                length_range = args.length_range,
-                prop_n = args.prop_n,
-                upper_n = args.upper_n)
+                qc_dict = qc_dict)
 
             # Calculate and QC distances
             if args.use_mash == True:
@@ -646,9 +641,7 @@ def main():
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory,
                      strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
-                     use_exact = args.exact_count, qc_filter = args.qc_filter, retain_failures = args.retain_failures,
-                     length_sigma = args.length_sigma, length_range = args.length_range, prop_n = args.prop_n,
-                     upper_n = args.upper_n)
+                     use_exact = args.exact_count, qc_dict = qc_dict)
 
     #******************************#
     #*                            *#
@@ -805,8 +798,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
                  # added extra arguments for constructing sketchlib libraries
-                 strand_preserved, min_count, use_exact, qc_filter, retain_failures,
-                 length_sigma, length_range, prop_n, upper_n):
+                 strand_preserved, min_count, use_exact, qc_dict):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
@@ -859,12 +851,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                 strand_preserved = strand_preserved,
                                 min_count = min_count,
                                 use_exact = use_exact,
-                                qc_filter = qc_filter,
-                                retain_failures = retain_failures,
-                                length_sigma = length_sigma,
-                                length_range = length_range,
-                                prop_n = prop_n,
-                                upper_n = upper_n)
+                                qc_dict = qc_dict)
 
         # run query
         refList, queryList, distMat = queryDatabase(rNames = rNames,
