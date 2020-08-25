@@ -352,21 +352,33 @@ def main():
         elif args.easy_run:
             sys.stderr.write("Mode: Creating clusters from assemblies (create_db & fit_model)\n")
         if args.r_files is not None:
-            # Sketch
+            # generate sketches and QC sequences
             createDatabaseDir(args.output, kmers)
-            constructDatabase(args.r_files, kmers, sketch_sizes, args.output, args.estimated_length, args.ignore_length, args.threads,
-                args.overwrite, reads = args.reads, strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
-                use_exact = args.exact_count, qc_filter = args.qc_filter, retain_failures = args.retain_failures,
-                length_sigma = args.length_sigma, lower_length = args.lower_length, upper_length = args.upper_length, prop_n = args.prop_n,
+            seq_names = constructDatabase(args.r_files, kmers, sketch_sizes,
+                args.output,
+                args.estimated_length,
+                args.ignore_length,
+                args.threads,
+                args.overwrite,
+                reads = args.reads,
+                strand_preserved = args.strand_preserved,
+                min_count = args.min_kmer_count,
+                use_exact = args.exact_count,
+                qc_filter = args.qc_filter,
+                retain_failures = args.retain_failures,
+                length_sigma = args.length_sigma,
+                lower_length = args.lower_length,
+                upper_length = args.upper_length,
+                prop_n = args.prop_n,
                 upper_n = args.upper_n)
 
             # Calculate and QC distances
             if args.use_mash == True:
                 rNames = None
-                qNames = readRfile(args.r_files, oneSeq=True)[1]
+                qNames = seq_names
             else:
-                rNames = readRfile(args.r_files)[0]
-                qNames = rNames
+                rNames = seq_names
+                qNames = seq_names
             refList, queryList, distMat = queryDatabase(rNames = rNames,
                                                         qNames = qNames,
                                                         dbPrefix = args.output,
@@ -844,10 +856,18 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
             # construct database and QC
             constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
-                                ignore_length, threads, overwrite, reads, strand_preserved,
-                                min_count, use_exact, qc_filter, retain_failures,
-                                length_sigma, lower_length, upper_length, prop_n,
-                                upper_n)
+                                ignore_length, threads, overwrite,
+                                reads = reads,
+                                strand_preserved = strand_preserved,
+                                min_count = min_count,
+                                use_exact = use_exact,
+                                qc_filter = qc_filter,
+                                retain_failures = retain_failures,
+                                length_sigma = length_sigma,
+                                lower_length = lower_length,
+                                upper_length = upper_length,
+                                prop_n = prop_n,
+                                upper_n = upper_n)
 
         # run query
         refList, queryList, distMat = queryDatabase(rNames = rNames,

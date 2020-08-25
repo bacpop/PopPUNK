@@ -363,12 +363,17 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
                                    not strand_preserved, min_count, use_exact, threads)
 
     # QC sequences
-    if not reads:
-        genome_length = sketchlib_assembly_qc(sequences, oPrefix, klist, ignoreLengthOutliers,
+    if reads:
+        # will need to define reads QC function here
+        filtered_names = names
+    else:
+        filtered_names = sketchlib_assembly_qc(sequences, oPrefix, klist, ignoreLengthOutliers,
                                               estimated_length, qc_filter, retain_failures, length_sigma,
                                               lower_length, upper_length, prop_n, upper_n,
                                               strand_preserved, threads)
 
+    # return filtered file names
+    return filtered_names
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):

@@ -626,4 +626,4 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
     db_name_prefix = prefix + '/' + os.path.basename(prefix)
     pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
 
-    return (int(mean_genome_length))
+    return retained

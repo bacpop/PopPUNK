@@ -363,6 +363,9 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch_size,
                             genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
                             overwrite=overwrite, threads=num_threads), klist)
+                            
+    # return sequence names
+    return sequences
 
 def init_lock(l):
     """Sets a global lock to use when writing to STDERR in :func:`~runSketch`"""
