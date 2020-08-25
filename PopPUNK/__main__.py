@@ -154,8 +154,9 @@ def get_options():
                                                 default=None, type = int)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
-    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded',
-                                                default=[None,None], type = int, nargs = 2)
+    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
+                                                '[two values needed - lower and upper bounds]', default=[None,None],
+                                                type = int, nargs = 2)
     qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
                                                 ' [default = 0.1]', default = 0.1,
                                                 type = float)
