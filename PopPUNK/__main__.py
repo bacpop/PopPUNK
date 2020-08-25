@@ -145,7 +145,7 @@ def get_options():
     qcGroup = parser.add_argument_group('Quality control options')
     qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
                                                 '(analyse data passing QC), or "continue" (analyse all data)',
-                                                default='stop', type = str)
+                                                default='stop', type = str, choices=['stop', 'prune', 'continue'])
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters'
                                                 '[default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
