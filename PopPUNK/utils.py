@@ -460,14 +460,14 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
-    failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
     hdf_in = h5py.File(db_name, 'r')
     # new database file if pruning
     if qc_filter == 'prune':
+        filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
         hdf_out = h5py.File(filtered_db_name, 'w')
     # retain sketches of failed samples
     if retain_failures:
+        failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
         hdf_fail = h5py.File(failed_db_name, 'w')
     
     # process data structures
@@ -493,25 +493,24 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
             retained.append(dataset)
 
     # calculate thresholds
+    # get mean length if not using user-supplied estimation
+    if estimated_length is None:
+        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+        mean_genome_length = np.mean(genome_lengths)
+    
+    # calculate length threshold unless user-supplied
+    if lower_length is None:
+        lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
+        upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
+
+    # open file to report QC failures
     with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
     
-        # get mean length if not using user-supplied estimation
-        if estimated_length is None:
-            genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-            mean_genome_length = np.mean(genome_lengths)
-        
-        # calculate length threshold unless user-supplied
-        if lower_length is None:
-            lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
-            upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
-
         # iterate through and filter
-        example_assembly = None
         failed_sample = False
         for dataset in seq_length.keys():
                     
             # determine if sequence passes filters
-            remove = False
             if seq_length[dataset] < lower_length:
                 remove = True
                 qc_file.write(dataset + '\tBelow lower length threshold\n')
@@ -534,12 +533,9 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
                 if qc_filter == 'prune':
                     out_grp.copy(read_grp[dataset], dataset)
                     retained.append(dataset)
-                # retain an example assembly
-                if example_assembly is None:
-                    example_assembly = dataset
     
         # get kmers from original database
-        db_kmers = hdf_in['sketches'][example_assembly].attrs['kmers']
+        db_kmers = hdf_in['sketches'][retained[0]].attrs['kmers']
         
         # close files
         hdf_in.close()
@@ -550,7 +546,7 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
     
         # replace original database with pruned version
         if qc_filter == 'prune':
-            subprocess.run('mv ' + filtered_db_name + ' ' + db_name, shell = True, check = True)
+            os.rename(filtered_db_name, db_name)
     
     # stop if at least one sample fails QC and option is not continue/prune
     if failed_sample and qc_filter == 'stop':
@@ -558,7 +554,7 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
         sys.exit(1)
     
     # calculate random matches if any sequences pass QC filters
-    if example_assembly is None:
+    if len(retained) == 0:
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)
     use_rc = not strand_preserved
