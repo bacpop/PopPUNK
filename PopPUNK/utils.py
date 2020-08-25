@@ -502,7 +502,7 @@ def isolateNameToLabel(names):
 
 def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, estimated_length,
                  qc_filter, retain_failures, length_sigma, lower_length, upper_length, prop_n,
-                 upper_n, threads):
+                 upper_n, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
@@ -534,6 +534,8 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
             Proportion of ambiguous bases above which sequences are excluded
         upper_n (int)
             Number of ambiguous bases above which sequences are excluded
+        strand_preserved (bool)
+            Ignore reverse complement k-mers (default = False)
         threads (int)
             Number of threads to use in parallelisation
 
@@ -620,11 +622,7 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
     
     # calculate random matches
     db_kmers = hdf_in['sketches'][example_assembly].attrs['kmers']
-    use_rc = False
-    try:
-        use_rc = hdf_in['sketches'][example_assembly].attrs['use_rc']
-    except:
-        sys.stderr.write('No information on whether sketches are strand-specified\n')
+    use_rc = not strand_preserved
     db_name_prefix = prefix + '/' + os.path.basename(prefix)
     pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
 

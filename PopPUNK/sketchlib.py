@@ -366,7 +366,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
     if not reads:
         genome_length = sketchlib_assembly_qc(sequences, oPrefix, klist, ignoreLengthOutliers,
                                               estimated_length, qc_filter, retain_failures, length_sigma,
-                                              lower_length, upper_length, prop_n, upper_n, threads)
+                                              lower_length, upper_length, prop_n, upper_n,
+                                              strand_preserved, threads)
 
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
