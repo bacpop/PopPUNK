@@ -573,7 +573,7 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, estimated_length,
         # if no filtering to be undertaken, retain all sequences
         if qc_filter == 'continue':
             retained.append(dataset)
-        
+
     # calculate thresholds
     with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
     
@@ -620,6 +620,16 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, estimated_length,
                 if example_assembly is None:
                     example_assembly = dataset
     
+        # get kmers from original database
+        db_kmers = hdf_in['sketches'][example_assembly].attrs['kmers']
+        
+        # close files
+        hdf_in.close()
+        if qc_filter == 'prune':
+            hdf_out.close()
+        if retain_failures:
+            hdf_fail.close()
+    
         # replace original database with pruned version
         if qc_filter == 'prune':
             subprocess.run('mv ' + filtered_db_name + ' ' + db_name, shell = True, check = True)
@@ -633,7 +643,6 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, estimated_length,
     if example_assembly is None:
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)
-    db_kmers = hdf_in['sketches'][example_assembly].attrs['kmers']
     use_rc = not strand_preserved
     db_name_prefix = prefix + '/' + os.path.basename(prefix)
     pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
