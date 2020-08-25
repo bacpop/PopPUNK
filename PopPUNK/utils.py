@@ -563,6 +563,7 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
     seq_ambiguous = {}
     seq_excluded = {}
     removed = []
+    retained = []
     
     # iterate through sketches
     for dataset in read_grp:
@@ -570,6 +571,9 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
         remove = False
         seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
         seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+        # if no filtering to be undertaken, retain all sequences
+        if qc_filter == 'continue':
+            retained.append(dataset)
         
     # calculate thresholds
     if not ignoreLengthOutliers:
@@ -591,7 +595,7 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
             
             # determine if sequence passes filters
             remove = False
-            if seq_length[dataset] >= lower_length and seq_length[dataset] <= upper_length:
+            if seq_length[dataset] < lower_length or seq_length[dataset] > upper_length:
                 remove = True
             if upper_n is not None and seq_ambiguous[dataset] > upper_n:
                 remove = True
@@ -600,11 +604,13 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
 
             # write to files
             if remove:
+                print('Removing ' + dataset)
                 if retain_failures:
                     fail_grp.copy(read_grp[dataset], dataset)
             else:
                 if qc_filter == 'prune':
                     out_grp.copy(read_grp[dataset], dataset)
+                    retained.append(dataset)
     
         # replace original database
         if qc_filter == 'prune':
@@ -615,6 +621,11 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
     use_rc = False
     try:
         use_rc = hdf_in['sketches'][example_assembly].attrs['use_rc']
-    pp_sketchlib.addRandom(db_name, seq_length.keys(), db_kmers, use_rc, 1)
+    except:
+        sys.stderr.write('No information on whether sketches are strand-specified\n')
+    
+    print('Retained: ' + str(retained))
+    db_name_prefix = prefix + "/" + os.path.basename(prefix)
+    pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, 1)
 
     return (int(mean_genome_length))
