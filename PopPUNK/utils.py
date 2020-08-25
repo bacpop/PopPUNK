@@ -588,11 +588,7 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
         # iterate through and filter
         example_assembly = None
         for dataset in seq_length.keys():
-        
-            # retain an example assembly
-            if example_assembly is None:
-                example_assembly = dataset
-            
+                    
             # determine if sequence passes filters
             remove = False
             if seq_length[dataset] < lower_length or seq_length[dataset] > upper_length:
@@ -611,6 +607,9 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
                 if qc_filter == 'prune':
                     out_grp.copy(read_grp[dataset], dataset)
                     retained.append(dataset)
+                # retain an example assembly
+                if example_assembly is None:
+                    example_assembly = dataset
     
         # replace original database
         if qc_filter == 'prune':
@@ -623,9 +622,7 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
         use_rc = hdf_in['sketches'][example_assembly].attrs['use_rc']
     except:
         sys.stderr.write('No information on whether sketches are strand-specified\n')
-    
-    print('Retained: ' + str(retained))
-    db_name_prefix = prefix + "/" + os.path.basename(prefix)
+    db_name_prefix = prefix + '/' + os.path.basename(prefix)
     pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, 1)
 
     return (int(mean_genome_length))
