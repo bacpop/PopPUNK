@@ -363,7 +363,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
         # will need to define reads QC function here
         filtered_names = names
     else:
-        filtered_names = sketchlib_assembly_qc(sequences, oPrefix, klist,
+        filtered_names = sketchlib_assembly_qc(oPrefix, klist,
                                               estimated_length, qc_filter, retain_failures, length_sigma,
                                               lower_length, upper_length, prop_n, upper_n,
                                               strand_preserved, threads)

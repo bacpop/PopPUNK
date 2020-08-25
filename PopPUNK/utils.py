@@ -416,15 +416,13 @@ def isolateNameToLabel(names):
     return labels
 
 
-def sketchlib_assembly_qc(assemblyList, prefix, klist, estimated_length,
+def sketchlib_assembly_qc(prefix, klist, estimated_length,
                  qc_filter, retain_failures, length_sigma, lower_length, upper_length, prop_n,
                  upper_n, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
     Args:
-        assemblyList (str)
-            File with locations of assembly files to be sketched
         prefix (str)
             Prefix of output files
         klist (list)
