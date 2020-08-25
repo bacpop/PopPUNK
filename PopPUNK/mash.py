@@ -28,7 +28,6 @@ except ImportError as e:
     sys.exit(0)
 
 from .utils import iterDistRows
-from .utils import assembly_qc
 from .utils import readRfile
 
 from .plot import plot_fit

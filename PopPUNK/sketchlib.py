@@ -31,7 +31,6 @@ except ImportError as e:
 
 from .mash import fitKmerCurve
 from .utils import iterDistRows
-from .utils import assembly_qc
 from .utils import sketchlib_assembly_qc
 from .utils import readRfile
 from .plot import plot_fit
