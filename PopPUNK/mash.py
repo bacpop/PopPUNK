@@ -292,7 +292,7 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
 
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
-                        estimated_length, ignoreLengthOutliers = False,
+                        estimated_length,
                         threads = 1, overwrite = False, reads = False,
                         mash_exec = 'mash'):
     """Sketch the input assemblies at the requested k-mer lengths
@@ -315,11 +315,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             Output prefix for resulting sketch files
         estimated_length (int)
             Estimated length of genome, if not calculated from data
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
-
-            (default = False)
         threads (int)
             Number of threads to use
 
@@ -342,7 +337,10 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         raise NotImplementedError("Cannot use reads with mash backend")
 
     names, sequences = readRfile(assemblyList, oneSeq=True)
-    genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
+    if estimated_length is None:
+        sys.stderr.write('Need to provide an estimated length if using reads with mash\n')
+    else:
+        genome_length, max_prob = assembly_qc(sequences, klist, estimated_length)
 
     # create kmer databases
     if threads > len(klist):

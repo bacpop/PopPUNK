@@ -353,7 +353,7 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     # return outputs
     return seqLabels, coreMat, accMat
 
-def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
+def assembly_qc(assemblyList, klist, estimated_length):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
@@ -364,9 +364,6 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
             File with locations of assembly files to be sketched
         klist (list)
             List of k-mer sizes to sketch
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
         estimated_length (int)
             Estimated length of genome, if not calculated from data
 
@@ -397,18 +394,17 @@ def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
         # Check for outliers
         outliers = []
         sigma = 5
-        if not ignoreLengthOutliers:
-            genome_length = np.mean(np.array(input_lengths))
-            outlier_low = genome_length - sigma*np.std(input_lengths)
-            outlier_high = genome_length + sigma*np.std(input_lengths)
-            for length, name in zip(input_lengths, input_names):
-                if length < outlier_low or length > outlier_high:
-                    outliers.append(name)
-            if outliers:
-                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n")
-                for outlier in outliers:
-                    sys.stderr.write('\n'.join(outlier) + '\n')
-                sys.exit(1)
+        genome_length = np.mean(np.array(input_lengths))
+        outlier_low = genome_length - sigma*np.std(input_lengths)
+        outlier_high = genome_length + sigma*np.std(input_lengths)
+        for length, name in zip(input_lengths, input_names):
+            if length < outlier_low or length > outlier_high:
+                outliers.append(name)
+        if outliers:
+            sys.stderr.write("ERROR: Genomes with outlying lengths detected\n")
+            for outlier in outliers:
+                sys.stderr.write('\n'.join(outlier) + '\n')
+            sys.exit(1)
 
     except FileNotFoundError as e:
         sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
@@ -500,7 +496,7 @@ def isolateNameToLabel(names):
     return labels
 
 
-def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, estimated_length,
+def sketchlib_assembly_qc(assemblyList, prefix, klist, estimated_length,
                  qc_filter, retain_failures, length_sigma, lower_length, upper_length, prop_n,
                  upper_n, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
@@ -513,9 +509,6 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
             Prefix of output files
         klist (list)
             List of k-mer sizes to sketch
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
         estimated_length (int)
             Estimated length of genome, if not calculated from data
         qc_filter (string)
@@ -544,7 +537,8 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
             Average length of assemblies
     """
     # Genome length needed to calculate prob of random matches
-    genome_length = estimated_length # assume 2 Mb in the absence of other information
+    if estimated_length is not None:
+        mean_genome_length = estimated_length # assume 2 Mb in the absence of other information
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
@@ -583,11 +577,12 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
     # calculate thresholds
     with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
     
-        # get mean length
-        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-        mean_genome_length = np.mean(genome_lengths)
+        # get mean length if not using user-supplied estimation
+        if estimated_length is None:
+            genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+            mean_genome_length = np.mean(genome_lengths)
         
-        # calculate length threshold
+        # calculate length threshold unless user-supplied
         if lower_length is None:
             lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
             upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
@@ -625,16 +620,16 @@ def sketchlib_assembly_qc(assemblyList, prefix, klist, ignoreLengthOutliers, est
                 if example_assembly is None:
                     example_assembly = dataset
     
-        # replace original database
+        # replace original database with pruned version
         if qc_filter == 'prune':
             subprocess.run('mv ' + filtered_db_name + ' ' + db_name, shell = True, check = True)
     
-    # stop if samples fails QC
+    # stop if at least one sample fails QC and option is not continue/prune
     if failed_sample and qc_filter == 'stop':
         sys.stderr.write('Sequences failed QC filters - details in ' + prefix + '/' + os.path.basename(prefix) + '_qcreport.txt\n')
         sys.exit(1)
     
-    # calculate random matches if sequences pass QC matches
+    # calculate random matches if any sequences pass QC filters
     if example_assembly is None:
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)

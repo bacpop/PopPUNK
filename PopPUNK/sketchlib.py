@@ -286,7 +286,7 @@ def removeFromDB(db_name, out_name, removeSeqs):
     hdf_out.close()
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
-                        ignoreLengthOutliers = False, threads = 1, overwrite = False,
+                        threads = 1, overwrite = False,
                         reads = False, strand_preserved = False, min_count = 0,
                         use_exact = False, qc_filter = 'stop', retain_failures = False,
                         length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
@@ -311,10 +311,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             Output prefix for resulting sketch files
         estimated_length (int)
             Estimated length of genome, if not calculated from data
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
-            (default = False)
         threads (int)
             Number of threads to use (default = 1)
         overwrite (bool)
@@ -367,7 +363,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
         # will need to define reads QC function here
         filtered_names = names
     else:
-        filtered_names = sketchlib_assembly_qc(sequences, oPrefix, klist, ignoreLengthOutliers,
+        filtered_names = sketchlib_assembly_qc(sequences, oPrefix, klist,
                                               estimated_length, qc_filter, retain_failures, length_sigma,
                                               lower_length, upper_length, prop_n, upper_n,
                                               strand_preserved, threads)
@@ -462,7 +458,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     return(rNames, qNames, distMat)
 
-def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
+def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers, estimated_length,
                 queryDB, use_mash = False, threads = 1):
     """Calculates distances between queries.
 
@@ -471,8 +467,8 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
         rlist (list)
             List of reference names
-        qfile (str)
-            File containing queries
+        qlist (list)
+            List of query names
         kmers (list)
             List of k-mer sizes
         estimated_length (int)
@@ -497,13 +493,11 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
     readDBParams = dbFuncs['readDBParams']
 
     # Set up query names
-    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
-    queryFiles = dict(zip(qList, qSeqs))
     if use_mash == True:
         rNames = None
-        qNames = qSeqs
+        qNames = qlist
     else:
-        rNames = qList
+        rNames = qlist
         qNames = rNames
 
     # Calculate all query-query distances too, if updating database
@@ -514,6 +508,6 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
                                             klist = kmers,
                                             self = True,
                                             number_plot_fits = 0,
-                                            threads=threads)
+                                            threads = threads)
 
     return qlist1, distMat

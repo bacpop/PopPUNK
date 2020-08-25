@@ -150,10 +150,8 @@ def get_options():
                                                 '[default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
-    qcGroup.add_argument('--ignore-length', help='Ignore outliers in terms of assembly length '
-                                                '[default = False]', default=False, action = 'store_true')
-    qcGroup.add_argument('--estimated-length', help='Provide an integer estimated genome length when using '
-                                                '"--ignore-length" [default = 2000000]', default=2000000, type = int)
+    qcGroup.add_argument('--estimated-length', help='Provide an integer estimated genome length for QC',
+                                                default=None, type = int)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
     qcGroup.add_argument('--lower-length', help='Lower length below which sequences will be excluded',
@@ -357,7 +355,6 @@ def main():
             seq_names = constructDatabase(args.r_files, kmers, sketch_sizes,
                 args.output,
                 args.estimated_length,
-                args.ignore_length,
                 args.threads,
                 args.overwrite,
                 reads = args.reads,
@@ -641,11 +638,15 @@ def main():
     #*******************************#
     elif args.assign_query or args.assign_lineages:
         assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
-                     args.microreact, args.cytoscape, kmers, sketch_sizes, args.ignore_length, args.estimated_length,
+                     args.microreact, args.cytoscape, kmers, sketch_sizes, args.estimated_length,
                      args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
-                     args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory)
+                     args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory,
+                     reads = args.reads, strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
+                     use_exact = args.exact_count, qc_filter = args.qc_filter, retain_failures = args.retain_failures,
+                     length_sigma = args.length_sigma, lower_length = args.lower_length, upper_length = args.upper_length, prop_n = args.prop_n,
+                     upper_n = args.upper_n)
 
     #******************************#
     #*                            *#
@@ -797,7 +798,7 @@ def main():
 #*                             *#
 #*******************************#
 def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
-                 kmers, sketch_sizes, ignore_length, estimated_length, threads, use_mash, mash, overwrite,
+                 kmers, sketch_sizes, estimated_length, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
@@ -842,12 +843,10 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         rNames = []
         if use_mash == True:
             rNames = None
-            qNames = readRfile(q_files, oneSeq=True)[1]
             # construct database and QC
-            constructDatabase(q_files, kmers, sketch_sizes, output,
-                                estimated_length, ignore_length, threads, overwrite)
+            qNames = constructDatabase(q_files, kmers, sketch_sizes, output,
+                                estimated_length, threads, overwrite)
         else:
-            qNames = readRfile(q_files)[0]
             if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
                 with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
                     for reference in refFile:
@@ -856,7 +855,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
             # construct database and QC
             qNames = constructDatabase(q_files, kmers, sketch_sizes, output, estimated_length,
-                                ignore_length, threads, overwrite,
+                                threads, overwrite,
                                 reads = reads,
                                 strand_preserved = strand_preserved,
                                 min_count = min_count,
@@ -889,7 +888,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         if assign_lineage:
 
             # Assign lineages by calculating query-query information
-            ordered_queryList, query_distMat = calculateQueryQueryDistances(dbFuncs, refList, q_files,
+            ordered_queryList, query_distMat = calculateQueryQueryDistances(dbFuncs, refList, qNames,
                     kmers, estimated_length, output, use_mash, threads)
 
         else:
@@ -917,7 +916,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                             core_only, accessory_only)
 
             # Assign clustering by adding to network
-            ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, q_files,
+            ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, queryList, q_files,
                     genomeNetwork, kmers, estimated_length, queryAssignments, model, output, update_db,
                     use_mash, threads)
 
