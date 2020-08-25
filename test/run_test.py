@@ -16,6 +16,10 @@ if not os.path.isfile("12754_4#89.contigs_velvet.fa"):
 sys.stderr.write("Running database creation + DBSCAN model fit + fit refinement (--easy-run)\n")
 subprocess.run("python ../poppunk-runner.py --easy-run --r-files references.txt --min-k 13 --k-step 3 --output example_db --full-db --qc-filter prune --overwrite", shell=True, check=True)
 
+# create database with different QC options
+sys.stderr.write("Running database QC test (--create-db)\n")
+subprocess.run("python ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_qc --full-db --qc-filter continue --length-range 2000000 3000000 --overwrite", shell=True, check=True)
+
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model)\n")
 subprocess.run("python ../poppunk-runner.py --fit-model --distances example_db/example_db.dists --ref-db example_db --output example_db --full-db --K 4 --microreact --cytoscape --overwrite", shell=True, check=True)
