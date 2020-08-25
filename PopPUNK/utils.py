@@ -417,7 +417,7 @@ def isolateNameToLabel(names):
 
 
 def sketchlib_assembly_qc(prefix, klist, estimated_length,
-                 qc_filter, retain_failures, length_sigma, lower_length, upper_length, prop_n,
+                 qc_filter, retain_failures, length_sigma, length_range, prop_n,
                  upper_n, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
@@ -499,9 +499,11 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
         mean_genome_length = np.mean(genome_lengths)
     
     # calculate length threshold unless user-supplied
-    if lower_length is None:
+    if length_range[0] is None:
         lower_length = mean_genome_length - length_sigma*np.std(genome_lengths)
         upper_length = mean_genome_length + length_sigma*np.std(genome_lengths)
+    else:
+        lower_length, upper_length = length_range
 
     # open file to report QC failures
     with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
@@ -511,6 +513,7 @@ def sketchlib_assembly_qc(prefix, klist, estimated_length,
         for dataset in seq_length.keys():
                     
             # determine if sequence passes filters
+            remove = False
             if seq_length[dataset] < lower_length:
                 remove = True
                 qc_file.write(dataset + '\tBelow lower length threshold\n')

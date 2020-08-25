@@ -288,7 +288,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
                         threads = 1, overwrite = False,
                         reads = False, strand_preserved = False, min_count = 0,
                         use_exact = False, qc_filter = 'stop', retain_failures = False,
-                        length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
+                        length_sigma = 5, length_range = [None,None], prop_n = 0.1,
                         upper_n = None):
     """Sketch the input assemblies at the requested k-mer lengths
 
@@ -334,10 +334,8 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
         length_sigma (int)
             Number of SDs of length distribution beyond which sequences
             are excluded
-        lower_length (int)
-            Threshold length below which sequences are excluded
-        upper_length (int)
-            Threshold length above which sequences are excluded
+        length_range (list of two ints)
+            Threshold lengths outside of which sequences are excluded
         prop_n (float)
             Proportion of ambiguous bases above which sequences are excluded
         upper_n (int)
@@ -364,7 +362,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
     else:
         filtered_names = sketchlib_assembly_qc(oPrefix, klist,
                                               estimated_length, qc_filter, retain_failures, length_sigma,
-                                              lower_length, upper_length, prop_n, upper_n,
+                                              length_range, prop_n, upper_n,
                                               strand_preserved, threads)
 
     # return filtered file names

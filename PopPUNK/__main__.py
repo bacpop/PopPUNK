@@ -154,10 +154,8 @@ def get_options():
                                                 default=None, type = int)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
-    qcGroup.add_argument('--lower-length', help='Lower length below which sequences will be excluded',
-                                                default=None, type = int)
-    qcGroup.add_argument('--upper-length', help='Upper length above which sequences will be excluded',
-                                                default=None, type = int)
+    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded',
+                                                default=[None,None], type = int, nargs = 2)
     qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
                                                 ' [default = 0.1]', default = 0.1,
                                                 type = float)
@@ -294,14 +292,6 @@ def main():
     if not args.use_mash:
         sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
-    # check that sequnce QC options make sense
-    qc_filter_options = ['stop','prune','continue']
-    if args.qc_filter not in qc_filter_options:
-        sys.stderr.write('QC filter option must be one of ' + ' '.join(qc_filter_options) + '\n')
-        sys.exit(1)
-    if (args.lower_length is not None and args.upper_length is None) or (args.lower_length is None and args.upper_length is not None):
-        sys.stderr.write('Need to provide both a lower and an upper limit for sequence length QC\n')
-
     # check if working with lineages
     rank_list = []
     if args.lineage_clustering or args.assign_lineages:
@@ -364,8 +354,7 @@ def main():
                 qc_filter = args.qc_filter,
                 retain_failures = args.retain_failures,
                 length_sigma = args.length_sigma,
-                lower_length = args.lower_length,
-                upper_length = args.upper_length,
+                length_range = args.length_range,
                 prop_n = args.prop_n,
                 upper_n = args.upper_n)
 
@@ -645,7 +634,7 @@ def main():
                      args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory,
                      reads = args.reads, strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
                      use_exact = args.exact_count, qc_filter = args.qc_filter, retain_failures = args.retain_failures,
-                     length_sigma = args.length_sigma, lower_length = args.lower_length, upper_length = args.upper_length, prop_n = args.prop_n,
+                     length_sigma = args.length_sigma, length_range = args.length_range, prop_n = args.prop_n,
                      upper_n = args.upper_n)
 
     #******************************#
@@ -805,7 +794,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  # added extra arguments for constructing sketchlib libraries
                  reads = False, strand_preserved = False, min_count = 0,
                  use_exact = False, qc_filter = 'stop', retain_failures = False,
-                 length_sigma = 5, lower_length = None, upper_length = None, prop_n = 0.1,
+                 length_sigma = 5, length_range = [None,None], prop_n = 0.1,
                  upper_n = None):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
@@ -863,8 +852,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                 qc_filter = qc_filter,
                                 retain_failures = retain_failures,
                                 length_sigma = length_sigma,
-                                lower_length = lower_length,
-                                upper_length = upper_length,
+                                length_range = length_range,
                                 prop_n = prop_n,
                                 upper_n = upper_n)
 
