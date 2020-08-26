@@ -315,7 +315,7 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
+def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
                         assignments, model, queryDB, queryQuery = False,
                         use_mash = False, threads = 1):
     """Finds edges between queries and items in the reference database,
@@ -326,14 +326,14 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
         rlist (list)
             List of reference names
-        qfile (str)
-            File containing queries
+        qList (list)
+            List of query names
+        qFile (list)
+            File of query sequences
         G (graph)
             Network to add to (mutated)
         kmers (list)
             List of k-mer sizes
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
         assignments (numpy.array)
             Cluster assignment of items in qlist
         model (ClusterModel)
@@ -342,13 +342,11 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
             Query database location
         queryQuery (bool)
             Add in all query-query distances
-
             (default = False)
         use_mash (bool)
             Use the mash backend
         no_stream (bool)
             Don't stream mash output
-
             (default = False)
         threads (int)
             Number of threads to use if new db created
@@ -375,16 +373,24 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
     distMat = None
 
     # Set up query names
-    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
     if use_mash == True:
         # mash must use sequence file names for both testing for
         # assignment and for generating a new database
         rNames = None
-        qNames = isolateNameToLabel(qSeqs)
+        qNames = qList
     else:
         rNames = qList
         qNames = rNames
-    queryFiles = dict(zip(qNames, qSeqs))
+
+    # identify query sequence files
+    qSeqs = []
+    queryFiles = {}
+    with open(qFile, 'r') as qfile:
+        for line in qfile.readlines():
+            info = line.rstrip().split()
+            if info[0] in qNames:
+                qSeqs.append(info[1])
+                queryFiles[info[0]] = info[1]
 
     # store links for each query in a list of edge tuples
     ref_count = len(rlist)
@@ -399,9 +405,8 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
         sys.stderr.write("Calculating all query-query distances\n")
         qlist1, distMat = calculateQueryQueryDistances(dbFuncs,
                                                         rNames,
-                                                        qfile,
+                                                        qNames,
                                                         kmers,
-                                                        estimated_length,
                                                         queryDB,
                                                         use_mash,
                                                         threads)
@@ -413,6 +418,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
 
     # Otherwise only calculate query-query distances for new clusters
     else:
+        
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
         unassigned = set(qSeqs).difference(assigned)
         query_indices = {k:v+ref_count for v,k in enumerate(qSeqs)}
@@ -435,7 +441,7 @@ def addQueryToNetwork(dbFuncs, rlist, qfile, G, kmers, estimated_length,
 
             # use database construction methods to find links between unassigned queries
             sketchSize = readDBParams(queryDB, kmers, None)[1]
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, estimated_length, True, threads, False)
+            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
 
             qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),

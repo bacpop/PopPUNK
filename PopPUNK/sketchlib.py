@@ -31,7 +31,7 @@ except ImportError as e:
 
 from .mash import fitKmerCurve
 from .utils import iterDistRows
-from .utils import assembly_qc
+from .utils import sketchlib_assembly_qc
 from .utils import readRfile
 from .plot import plot_fit
 
@@ -284,11 +284,10 @@ def removeFromDB(db_name, out_name, removeSeqs):
     hdf_in.close()
     hdf_out.close()
 
-
-def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_length,
-                        ignoreLengthOutliers = False, threads = 1, overwrite = False,
-                        reads = False, strand_preserved = False, min_count = 0,
-                        use_exact = False):
+def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
+                        threads, overwrite,
+                        strand_preserved, min_count,
+                        use_exact, qc_dict):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -307,51 +306,41 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix, estimated_lengt
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
-            (default = False)
         threads (int)
-            Number of threads to use
-
-            (default = 1)
+            Number of threads to use (default = 1)
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
-
-            (default = False)
-        reads (bool)
-            If any reads are being used as input, do not run QC
-
             (default = False)
         strand_preserved (bool)
-            Ignore reverse complement k-mers
-
-            (default = False)
+            Ignore reverse complement k-mers (default = False)
         min_count (int)
             Minimum count of k-mer in reads to include
-
             (default = 0)
         use_exact (bool)
             Use exact count of k-mer appearance in reads
-
             (default = False)
+        qc_dict (dict)
+            Dict containg QC settings
     """
+    # read file names
     names, sequences = readRfile(assemblyList)
-    if not reads:
-        genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
-        sys.stderr.write("Worst random match probability at " + str(min(klist)) +
-                            "-mers: " + "{:.2f}".format(max_prob) + "\n")
 
+    # create directory
     dbname = oPrefix + "/" + os.path.basename(oPrefix)
     dbfilename = dbname + ".h5"
     if os.path.isfile(dbfilename) and overwrite == True:
         sys.stderr.write("Overwriting db: " + dbfilename + "\n")
         os.remove(dbfilename)
 
+    # generate sketches
     pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size,
                                    not strand_preserved, min_count, use_exact, threads)
+    
+    # QC sequences
+    filtered_names = sketchlib_assembly_qc(oPrefix, klist, qc_dict, strand_preserved, threads)
+
+    # return filtered file names
+    return filtered_names
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
@@ -378,24 +367,19 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             K-mer sizes to use in the calculation
         self (bool)
             Set true if query = ref
-
             (default = True)
         number_plot_fits (int)
             If > 0, the number of k-mer length fits to plot (saved as pdfs).
             Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`
-
             (default = 0)
         threads (int)
             Number of threads to use in the mash process
-
             (default = 1)
         use_gpu (bool)
             Use a GPU for querying
-
             (default = False)
         deviceid (int)
             Index of the CUDA GPU device to use
-
             (default = 0)
 
     Returns:
@@ -445,7 +429,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     return(rNames, qNames, distMat)
 
-def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
+def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers,
                 queryDB, use_mash = False, threads = 1):
     """Calculates distances between queries.
 
@@ -454,12 +438,10 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
         rlist (list)
             List of reference names
-        qfile (str)
-            File containing queries
+        qlist (list)
+            List of query names
         kmers (list)
             List of k-mer sizes
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
         queryDB (str)
             Query database location
         use_mash (bool)
@@ -480,13 +462,11 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
     readDBParams = dbFuncs['readDBParams']
 
     # Set up query names
-    qList, qSeqs = readRfile(qfile, oneSeq = use_mash)
-    queryFiles = dict(zip(qList, qSeqs))
     if use_mash == True:
         rNames = None
-        qNames = qSeqs
+        qNames = qlist
     else:
-        rNames = qList
+        rNames = qlist
         qNames = rNames
 
     # Calculate all query-query distances too, if updating database
@@ -497,6 +477,6 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qfile, kmers, estimated_length,
                                             klist = kmers,
                                             self = True,
                                             number_plot_fits = 0,
-                                            threads=threads)
+                                            threads = threads)
 
     return qlist1, distMat

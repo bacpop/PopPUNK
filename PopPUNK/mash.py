@@ -28,7 +28,6 @@ except ImportError as e:
     sys.exit(0)
 
 from .utils import iterDistRows
-from .utils import assembly_qc
 from .utils import readRfile
 
 from .plot import plot_fit
@@ -292,8 +291,7 @@ def joinDBs(db1, db2, output, klist, mash_exec = 'mash'):
 
 
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
-                        estimated_length, ignoreLengthOutliers = False,
-                        threads = 1, overwrite = False, reads = False,
+                        threads = 1, overwrite = False,
                         mash_exec = 'mash'):
     """Sketch the input assemblies at the requested k-mer lengths
 
@@ -313,24 +311,12 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             Size of sketch (``-s`` option)
         oPrefix (str)
             Output prefix for resulting sketch files
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
-
-            (default = False)
         threads (int)
             Number of threads to use
 
             (default = 1)
         overwrite (bool)
             Whether to overwrite sketch DBs, if they already exist.
-
-            (default = False)
-        reads (bool)
-            If reads are being used as input
-
             (default = False)
         mash_exec (str)
             Location of mash executable
@@ -342,7 +328,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         raise NotImplementedError("Cannot use reads with mash backend")
 
     names, sequences = readRfile(assemblyList, oneSeq=True)
-    genome_length, max_prob = assembly_qc(sequences, klist, ignoreLengthOutliers, estimated_length)
+    genome_length, max_prob = assembly_qc(sequences, klist)
 
     # create kmer databases
     if threads > len(klist):
@@ -363,6 +349,9 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             pool.map(partial(runSketch, assemblyList=sequenceFile.name, sketch=sketch_size,
                             genome_length=genome_length,oPrefix=oPrefix, mash_exec=mash_exec,
                             overwrite=overwrite, threads=num_threads), klist)
+                            
+    # return sequence names
+    return sequences
 
 def init_lock(l):
     """Sets a global lock to use when writing to STDERR in :func:`~runSketch`"""

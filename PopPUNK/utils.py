@@ -15,6 +15,7 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import h5py
 
 import pp_sketchlib
 
@@ -352,90 +353,6 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
     # return outputs
     return seqLabels, coreMat, accMat
 
-def assembly_qc(assemblyList, klist, ignoreLengthOutliers, estimated_length):
-    """Calculates random match probability based on means of genomes
-    in assemblyList, and looks for length outliers.
-
-    Calls a hard sys.exit(1) if failing!
-
-    Args:
-        assemblyList (str)
-            File with locations of assembly files to be sketched
-        klist (list)
-            List of k-mer sizes to sketch
-        ignoreLengthOutliers (bool)
-            Whether to check for outlying genome lengths (and error
-            if found)
-        estimated_length (int)
-            Estimated length of genome, if not calculated from data
-
-    Returns:
-        genome_length (int)
-            Average length of assemblies
-        max_prob (float)
-            Random match probability at minimum k-mer length
-    """
-    # Genome length needed to calculate prob of random matches
-    genome_length = estimated_length # assume 2 Mb in the absence of other information
-
-    try:
-        input_lengths = []
-        input_names = []
-        for sampleAssembly in assemblyList:
-            if type(sampleAssembly) != list:
-                sampleAssembly = [sampleAssembly]
-            for assemblyFile in sampleAssembly:
-                input_genome_length = 0
-                with open(assemblyFile, 'r') as exampleAssembly:
-                    for line in exampleAssembly:
-                        if line[0] != ">":
-                            input_genome_length += len(line.rstrip())
-            input_lengths.append(input_genome_length)
-            input_names.append(sampleAssembly)
-
-        # Check for outliers
-        outliers = []
-        sigma = 5
-        if not ignoreLengthOutliers:
-            genome_length = np.mean(np.array(input_lengths))
-            outlier_low = genome_length - sigma*np.std(input_lengths)
-            outlier_high = genome_length + sigma*np.std(input_lengths)
-            for length, name in zip(input_lengths, input_names):
-                if length < outlier_low or length > outlier_high:
-                    outliers.append(name)
-            if outliers:
-                sys.stderr.write("ERROR: Genomes with outlying lengths detected\n")
-                for outlier in outliers:
-                    sys.stderr.write('\n'.join(outlier) + '\n')
-                sys.exit(1)
-
-    except FileNotFoundError as e:
-        sys.stderr.write("Could not find sequence assembly " + e.filename + "\n"
-                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
-
-    except UnicodeDecodeError as e:
-        sys.stderr.write("Could not read input file. Is it zipped?\n"
-                         "Assuming length of " + str(estimated_length) + " for random match probs.\n")
-
-    # check minimum k-mer is above random probability threshold
-    if genome_length <= 0:
-        genome_length = estimated_length
-        sys.stderr.write("WARNING: Could not detect genome length. Assuming " + str(estimated_length) + "\n")
-    if genome_length > 10000000:
-        sys.stderr.write("WARNING: Average length over 10Mb - are these assemblies?\n")
-
-    k_min = min(klist)
-    j1 = 1 - pow(1 - 1/(pow(4, k_min)), float(genome_length))
-    max_prob = (j1 * j1) / (2 * j1 - j1 * j1)
-    if max_prob > 0.05:
-        sys.stderr.write("Minimum k-mer length " + str(k_min) + " is small relative to genome length " +
-            str(genome_length) +"; results will be adjusted for random match probabilities\n")
-    if k_min < 6:
-        sys.stderr.write("Minimum k-mer length is too low; please increase to at least 6\n")
-        exit(1)
-
-    return (int(genome_length), max_prob)
-
 def readRfile(rFile, oneSeq=False):
     """Reads in files for sketching. Names and sequence, tab separated
 
@@ -497,3 +414,150 @@ def isolateNameToLabel(names):
     # want to remove certain characters
     labels = [name.split('/')[-1].split('.')[0] for name in names]
     return labels
+
+
+def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
+    """Calculates random match probability based on means of genomes
+    in assemblyList, and looks for length outliers.
+
+    Args:
+        prefix (str)
+            Prefix of output files
+        klist (list)
+            List of k-mer sizes to sketch
+        qc_dict (dict)
+            Dictionary of QC parameters
+        strand_preserved (bool)
+            Ignore reverse complement k-mers (default = False)
+        threads (int)
+            Number of threads to use in parallelisation
+
+    Returns:
+        retained (list)
+            List of sequences passing QC filters
+    """
+
+    # open databases
+    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+    hdf_in = h5py.File(db_name, 'r')
+    # new database file if pruning
+    if qc_dict['qc_filter'] == 'prune':
+        filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
+        hdf_out = h5py.File(filtered_db_name, 'w')
+    # retain sketches of failed samples
+    if qc_dict['retain_failures']:
+        failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
+        hdf_fail = h5py.File(failed_db_name, 'w')
+    
+    # try/except structure to prevent h5 corruption
+    try:
+        # process data structures
+        read_grp = hdf_in['sketches']
+        if qc_dict['qc_filter'] == 'prune':
+            out_grp = hdf_out.create_group('sketches')
+        if qc_dict['retain_failures']:
+            fail_grp = hdf_fail.create_group('sketches')
+        seq_length = {}
+        seq_ambiguous = {}
+        seq_excluded = {}
+        removed = []
+        retained = []
+        
+        # iterate through sketches
+        for dataset in read_grp:
+            # test thresholds
+            remove = False
+            seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
+            seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+            # if no filtering to be undertaken, retain all sequences
+            if qc_dict['qc_filter'] == 'continue':
+                retained.append(dataset)
+
+        # calculate thresholds
+        # get mean length
+        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+        mean_genome_length = np.mean(genome_lengths)
+        
+        # calculate length threshold unless user-supplied
+        if qc_dict['length_range'][0] is None:
+            lower_length = mean_genome_length - qc_dict['length_sigma']*np.std(genome_lengths)
+            upper_length = mean_genome_length + qc_dict['length_sigma']*np.std(genome_lengths)
+        else:
+            lower_length, upper_length = qc_dict['length_range']
+
+        # open file to report QC failures
+        with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
+        
+            # iterate through and filter
+            failed_sample = False
+            for dataset in seq_length.keys():
+                        
+                # determine if sequence passes filters
+                remove = False
+                if seq_length[dataset] < lower_length:
+                    remove = True
+                    qc_file.write(dataset + '\tBelow lower length threshold\n')
+                elif seq_length[dataset] > upper_length:
+                    qc_file.write(dataset + '\tAbove upper length threshold\n')
+                if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
+                    remove = True
+                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
+                elif seq_ambiguous[dataset] > qc_dict['prop_n'] * seq_length[dataset]:
+                    remove = True
+                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
+
+                # write to files
+                if remove:
+                    sys.stderr.write(dataset + ' failed QC\n')
+                    failed_sample = True
+                    if qc_dict['retain_failures']:
+                        fail_grp.copy(read_grp[dataset], dataset)
+                else:
+                    if qc_dict['qc_filter'] == 'prune':
+                        out_grp.copy(read_grp[dataset], dataset)
+                        retained.append(dataset)
+        
+            # get kmers from original database
+            db_kmers = hdf_in['sketches'][retained[0]].attrs['kmers']
+            
+            # close files
+            hdf_in.close()
+            if qc_dict['qc_filter'] == 'prune':
+                hdf_out.close()
+            if qc_dict['retain_failures']:
+                hdf_fail.close()
+
+        # replace original database with pruned version
+        if qc_dict['qc_filter'] == 'prune':
+            os.rename(filtered_db_name, db_name)
+    
+    # if failure still close files to avoid corruption
+    except:
+        hdf_in.close()
+        if qc_dict['qc_filter'] == 'prune':
+           hdf_out.close()
+        if qc_dict['retain_failures']:
+           hdf_fail.close()
+        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
+        sys.exit(1)
+    
+    
+    # stop if at least one sample fails QC and option is not continue/prune
+    if failed_sample and qc_dict['qc_filter'] == 'stop':
+        sys.stderr.write('Sequences failed QC filters - details in ' + prefix + '/' + os.path.basename(prefix) + '_qcreport.txt\n')
+        sys.exit(1)
+    
+    # calculate random matches if any sequences pass QC filters
+    if len(retained) == 0:
+        sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
+        sys.exit(1)
+    use_rc = not strand_preserved
+    db_name_prefix = prefix + '/' + os.path.basename(prefix)
+    # remove random matches if already present
+    hdf_in = h5py.File(db_name, 'r+')
+    if 'random' in hdf_in:
+        del hdf_in['random']
+    hdf_in.close()
+    pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
+    
+    return retained

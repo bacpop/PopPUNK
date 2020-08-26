@@ -1,3 +1,4 @@
+12754_4_89_partial	12754_4#89.partial.contigs_velvet.fa
 12673_8_43	12673_8#43.contigs_velvet.fa
 19183_4_69	19183_4#69.contigs_velvet.fa
 12754_5_76	12754_5#76.contigs_velvet.fa
