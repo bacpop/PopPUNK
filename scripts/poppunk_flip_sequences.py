@@ -28,6 +28,8 @@ def get_options():
     parser.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     parser.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     parser.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
+    parser.add_argument('--threshold', default = 0.0, type=float, help='Amount by which reverse-complemented'
+                                        ' accessory distance must exceed original to justify flipping')
     parser.add_argument('--prefix', help='Prefix to use for intermediate files [default = reorder]',
                                     default = 'reorder', type = str)
     parser.add_argument('--update-sequences', help='Replace original sequences with reverse complements '
@@ -199,33 +201,36 @@ if __name__ == "__main__":
                                             args.deviceid)
 
     # Compare output distances - use accessory as less susceptible to noise
-    rc_files = {}
+    original_files = {}
     original_ss_accessory_distance = {}
     canonical_accessory_better_match = np.greater(ss_distMat[:,1],canonical_distMat[:,1])
     for i,(r,f) in enumerate(zip(unknown_names,unknown_sequences)):
         if canonical_accessory_better_match[i]:
             # store original distance
             original_ss_accessory_distance[r] = ss_distMat[i,1]
-            rc_files[r] = f
+            original_files[r] = f
     
     # Reverse complement selected sequences and test whether matches improve
-    if len(rc_files.keys()) > 0:
+    if len(original_files.keys()) > 0:
         # write candidates for reorientation to new file
         rc_list_file = args.prefix + '.list'
         rc_names = []
         rc_sequences = []
+        rc_files = {}
         rc_db_name = args.prefix + '/' + os.path.basename(args.prefix)
         with open(rc_list_file, 'w') as rc_list:
-            for r in rc_files:
+            for r in original_files:
                 rc_list.write(r)
                 rc_names.append(r)
-                rc_sequences.append(rc_files[r])
-                for f in rc_files[r]:
+                rc_sequences.append(original_files[r])
+                for f in original_files[r]:
                     rc_file = args.prefix + '/rc.' + os.path.basename(f)
                     rc_list.write('\t' + rc_file)
                     reverse_complement_sequence(f,rc_file)
+                    rc_files[r].append(rc_file)
                 rc_list.write('\n')
-        # Sketch new sequences
+                
+        # Sketch reverse complemented sequences
         pp_sketchlib.constructDatabase(rc_db_name,
                                         rc_names,
                                         rc_sequences,
@@ -235,6 +240,7 @@ if __name__ == "__main__":
                                         0, # min_count
                                         False, # use_exact
                                         args.threads)
+                                        
         # Query against the original correctly-orientated sequence
         rc_ss_distMat = pp_sketchlib.queryDatabase(rc_db_name,
                                                 orientated_db_name,
@@ -246,14 +252,19 @@ if __name__ == "__main__":
                                                 args.threads,
                                                 args.use_gpu,
                                                 args.deviceid)
-        # Compare distances
-        sys.stderr.write('Sequence\tOriginal distance\tReverse complement distance\n')
+                                                
+        # Test if reverse-complemented virus is closer to reference than original orientation
+        sys.stderr.write('Sequence\tOriginal distance\tReverse complement distance\tAction\n')
         for i,r in enumerate(rc_names):
-            sys.stderr.write(r + '\t' + str(original_ss_accessory_distance[r]) + '\t' + str(rc_ss_distMat[i,1])) + '\n')
+            sys.stdout.write(r + '\t' + str(original_ss_accessory_distance[r]) + '\t' + str(rc_ss_distMat[i,1])))
             # Replace original sequences
-            if args.update_sequences and rc_ss_distMat[i,1] < (original_ss_accessory_distance[r] + args.threshold):
-                os.rename()
-            
+            if rc_ss_distMat[i,1] < (original_ss_accessory_distance[r] + args.threshold):
+                sys.stdout.write('\t' + 'Use reverse-complement' + '\n')
+                if args.update_sequences:
+                    for i,f in enumerate(original_files[r]):
+                        os.rename(rc_files[r][i],f)
+            else:
+                sys.stdout.write('\t' + 'Use original' + '\n')
             
     else:
         sys.stderr.write('No evidence of sequences requiring reorientation\n')
