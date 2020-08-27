@@ -88,11 +88,22 @@ complement = {'A': 'T',
             'N': 'N',
             '-': 'N'
 }
+# from https://stackoverflow.com/questions/25188968/reverse-complement-of-dna-strand-using-python
 def reverse_complement(seq):
     bases = list(seq.upper())
     bases = reversed([complement.get(base,base) for base in bases])
     bases = ''.join(bases)
     return bases
+
+# from https://www.hackerrank.com/challenges/text-wrap/forum
+def wrap(string, max_width):
+    return "\n".join([string[i:i+max_width] for i in range(0, len(string), max_width)])
+
+def write_contig(h,b,n):
+    n.write(h)
+    rc_bases = reverse_complement(b)
+    n.write(wrap(rc_bases, 60))
+
 
 def reverse_complement_sequence(o,n):
     header_line = None
@@ -102,18 +113,13 @@ def reverse_complement_sequence(o,n):
         for line in original_file.readlines():
             if line.startswith('>'):
                 if header_line is not None:
-                    new_file.write(header_line)
-                    rc_bases = reverse_complement(bases)
-                    new_file.write("{0:<60}".format(rc_bases))
+                    write_contig(header_line,bases,new_file)
                 header_line = line
                 bases = ''
             else:
                 bases = bases + line.rstrip()
         # write final contig
-        new_file.write(header_line)
-        rc_bases = reverse_complement(bases)
-        new_file.write("{0:<60}".format(rc_bases))
-                    
+        write_contig(header_line,bases,new_file)
 
 #################
 # run main code #
@@ -141,40 +147,40 @@ if __name__ == "__main__":
     # ensure only one sequence in the lists
     orientated_names = [orientated_names[0]]
     orientated_sequences = [orientated_sequences[0]]
-#    pp_sketchlib.constructDatabase(orientated_db_name,
-#                                    orientated_names,
-#                                    orientated_sequences,
-#                                    klist,
-#                                    args.sketch_size,
-#                                    True, # strand-specific
-#                                    0, # min_count
-#                                    False, # use_exact
-#                                    args.threads)
+    pp_sketchlib.constructDatabase(orientated_db_name,
+                                    orientated_names,
+                                    orientated_sequences,
+                                    klist,
+                                    args.sketch_size,
+                                    True, # strand-specific
+                                    0, # min_count
+                                    False, # use_exact
+                                    args.threads)
     
     # Strand-specific sketch of unknown sequences
     unknown_strand_db_name = args.prefix + "/" + os.path.basename(args.prefix) + ".unknown.ss"
     unknown_names, unknown_sequences = readRfile(args.unknown_file)
-#    pp_sketchlib.constructDatabase(unknown_strand_db_name,
-#                                    unknown_names,
-#                                    unknown_sequences,
-#                                    klist,
-#                                    args.sketch_size,
-#                                    True, # strand-specific
-#                                    0, # min_count
-#                                    False, # use_exact
-#                                    args.threads)
+    pp_sketchlib.constructDatabase(unknown_strand_db_name,
+                                    unknown_names,
+                                    unknown_sequences,
+                                    klist,
+                                    args.sketch_size,
+                                    True, # strand-specific
+                                    0, # min_count
+                                    False, # use_exact
+                                    args.threads)
     
     # Canonical sketch of unknown sequences
     unknown_canonical_db_name = args.prefix + "/" + os.path.basename(args.prefix) + ".unknown.canonical"
-#    pp_sketchlib.constructDatabase(unknown_canonical_db_name,
-#                                    unknown_names,
-#                                    unknown_sequences,
-#                                    klist,
-#                                    args.sketch_size,
-#                                    False, # not strand-specific
-#                                    0, # min_count
-#                                    False, # use_exact
-#                                    args.threads)
+    pp_sketchlib.constructDatabase(unknown_canonical_db_name,
+                                    unknown_names,
+                                    unknown_sequences,
+                                    klist,
+                                    args.sketch_size,
+                                    False, # not strand-specific
+                                    0, # min_count
+                                    False, # use_exact
+                                    args.threads)
     
     # Compare strand-specific sketches
     ss_distMat = pp_sketchlib.queryDatabase(unknown_strand_db_name,
@@ -220,9 +226,11 @@ if __name__ == "__main__":
         rc_db_name = args.prefix + '/' + os.path.basename(args.prefix)
         with open(rc_list_file, 'w') as rc_list:
             for r in original_files:
+                rc_files[r] = []
                 rc_list.write(r)
                 rc_names.append(r)
                 rc_sequences.append(original_files[r])
+                # Can be converted to multiprocessing pool if necessary
                 for f in original_files[r]:
                     rc_file = args.prefix + '/rc.' + os.path.basename(f)
                     rc_list.write('\t' + rc_file)
@@ -254,17 +262,19 @@ if __name__ == "__main__":
                                                 args.deviceid)
                                                 
         # Test if reverse-complemented virus is closer to reference than original orientation
-        sys.stderr.write('Sequence\tOriginal distance\tReverse complement distance\tAction\n')
-        for i,r in enumerate(rc_names):
-            sys.stdout.write(r + '\t' + str(original_ss_accessory_distance[r]) + '\t' + str(rc_ss_distMat[i,1])))
-            # Replace original sequences
-            if rc_ss_distMat[i,1] < (original_ss_accessory_distance[r] + args.threshold):
-                sys.stdout.write('\t' + 'Use reverse-complement' + '\n')
-                if args.update_sequences:
-                    for i,f in enumerate(original_files[r]):
-                        os.rename(rc_files[r][i],f)
-            else:
-                sys.stdout.write('\t' + 'Use original' + '\n')
+        report_file_name = args.prefix + '/' + os.path.basename(args.prefix) + '.reverse_complement.txt'
+        with open(report_file_name, 'w') as report_file:
+            report_file.write('Sequence\tOriginal distance\tReverse complement distance\tAction\n')
+            for i,r in enumerate(rc_names):
+                report_file.write(r + '\t' + str(original_ss_accessory_distance[r]) + '\t' + str(rc_ss_distMat[i,1]))
+                # Replace original sequences
+                if rc_ss_distMat[i,1] < (original_ss_accessory_distance[r] + args.threshold):
+                    report_file.write('\t' + 'Use reverse-complement' + '\n')
+                    if args.update_sequences:
+                        for i,f in enumerate(original_files[r]):
+                            os.rename(rc_files[r][i],f)
+                else:
+                    report_file.write('\t' + 'Use original' + '\n')
             
     else:
         sys.stderr.write('No evidence of sequences requiring reorientation\n')
