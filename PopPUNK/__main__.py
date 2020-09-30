@@ -128,10 +128,12 @@ def get_options():
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
-    kmerGroup.add_argument('--min-k', default = 13, type=int, help='Minimum kmer length [default = 9]')
+    kmerGroup.add_argument('--min-k', default = 13, type=int, help='Minimum kmer length [default = 13]')
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
     kmerGroup.add_argument('--sketch-size', default=10000, type=int, help='Kmer sketch size [default = 10000]')
+    kmerGroup.add_argument('--codon-phased', default=False, action='store_true',
+                            help='Used codon phased seeds X--X--X [default = False]')
     kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
     kmerGroup.add_argument('--exact-count', default=False, action='store_true',
                            help='Use the exact k-mer counter with reads '
@@ -218,7 +220,8 @@ def get_options():
     other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
     other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
-    other.add_argument('--use-gpu', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
+    other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
 
@@ -265,20 +268,14 @@ def main():
     elif no_sketchlib and (args.min_k < 9 or args.max_k > 31):
         sys.stderr.write("When using Mash, Kmer size must be between 9 and 31\n")
         sys.exit(1)
-    elif args.min_k < 5 or args.max_k > 51:
-        sys.stderr.write("Very short or very long kmers are not recommended\n")
+    elif args.min_k < 3:
+        sys.stderr.write("Min k-mer length must be 3 or higher\n")
         sys.exit(1)
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
 
-    # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count)
-    createDatabaseDir = dbFuncs['createDatabaseDir']
-    constructDatabase = dbFuncs['constructDatabase']
-    queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
-
     # Dict of QC options for passing to database construction and querying functions
     qc_dict = {
+        'run_qc': args.create_db or args.easy_run,
         'qc_filter': args.qc_filter,
         'retain_failures': args.retain_failures,
         'length_sigma': args.length_sigma,
@@ -286,6 +283,13 @@ def main():
         'prop_n': args.prop_n,
         'upper_n': args.upper_n
     }
+
+    # Dict of DB access functions for assign_query (which is out of scope)
+    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count, qc_dict)
+    createDatabaseDir = dbFuncs['createDatabaseDir']
+    constructDatabase = dbFuncs['constructDatabase']
+    queryDatabase = dbFuncs['queryDatabase']
+    readDBParams = dbFuncs['readDBParams']
 
     # define sketch sizes, store in hash in case one day
     # different kmers get different hash sizes
@@ -357,14 +361,14 @@ def main():
         if args.r_files is not None:
             # generate sketches and QC sequences
             createDatabaseDir(args.output, kmers)
-            seq_names = constructDatabase(args.r_files, kmers, sketch_sizes,
-                args.output,
-                args.threads,
-                args.overwrite,
-                strand_preserved = args.strand_preserved,
-                min_count = args.min_kmer_count,
-                use_exact = args.exact_count,
-                qc_dict = qc_dict)
+            seq_names = constructDatabase(
+                            args.r_files,
+                            kmers,
+                            sketch_sizes,
+                            args.output,
+                            args.threads,
+                            args.overwrite
+                            calc_random = True)
 
             # Calculate and QC distances
             if args.use_mash == True:
@@ -480,13 +484,13 @@ def main():
         if args.use_model:
             assignments = model.assign(distMat)
             model.plot(distMat, assignments)
-        
+
         #******************************#
         #*                            *#
         #* network construction       *#
         #*                            *#
         #******************************#
-        
+
         if not args.lineage_clustering:
             genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
             # Ensure all in dists are in final network
@@ -527,7 +531,7 @@ def main():
         #* lineages analysis          *#
         #*                            *#
         #******************************#
-        
+
         if args.lineage_clustering:
 
             # load distances
@@ -538,7 +542,7 @@ def main():
                 sys.exit(1)
 
             refList, queryList, self, distMat = readPickle(distances)
-            
+
             # make directory for new output files
             if not os.path.isdir(args.output):
                 try:
@@ -546,13 +550,13 @@ def main():
                 except OSError:
                     sys.stderr.write("Cannot create output directory\n")
                     sys.exit(1)
-            
+
             # run lineage clustering
             if self:
                 isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
             else:
                 isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
-                
+
             # load networks
             indivNetworks = {}
             for rank in rank_list:
@@ -610,7 +614,7 @@ def main():
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
-            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)            
+            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
@@ -621,8 +625,14 @@ def main():
                 dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
                 # Read and overwrite previous database
                 kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
-                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output,
-                                True, args.threads, True) # overwrite old db
+                constructDatabase(dummyRefFile,
+                                  kmers,
+                                  sketch_sizes,
+                                  args.output,
+                                  True,
+                                  args.threads,
+                                  True, # overwrite old db
+                                  calc_random = True)
                 os.remove(dummyRefFile)
 
         genomeNetwork.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
@@ -639,9 +649,7 @@ def main():
                      args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
-                     args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory,
-                     strand_preserved = args.strand_preserved, min_count = args.min_kmer_count,
-                     use_exact = args.exact_count, qc_dict = qc_dict)
+                     args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory)
 
     #******************************#
     #*                            *#
@@ -695,7 +703,7 @@ def main():
                                                                       complete_distMat, dists_out)
 
             combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(viz_subset, newDistMat,	
+                update_distance_matrices(viz_subset, newDistMat,
                                          threads = args.threads)
 
             # reorder subset to ensure list orders match
@@ -732,7 +740,7 @@ def main():
                     prev_clustering = args.previous_clustering
                 else:
                     prev_clustering = os.path.dirname(args.distances + ".pkl")
-                
+
                 # load clustering
                 if model.indiv_fitted:
                     cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
@@ -745,7 +753,7 @@ def main():
                 else:
                     cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
                     isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-                    
+
             # generate selected visualisations
             if args.microreact:
                 sys.stderr.write("Writing microreact output\n")
@@ -796,9 +804,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  kmers, sketch_sizes, threads, use_mash, mash, overwrite,
                  plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
-                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory,
-                 # added extra arguments for constructing sketchlib libraries
-                 strand_preserved, min_count, use_exact, qc_dict):
+                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
@@ -845,13 +851,14 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                         rNames.append(reference.rstrip())
             else:
                 rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
-            # construct database and QC
-            qNames = constructDatabase(q_files, kmers, sketch_sizes, output,
-                                threads, overwrite,
-                                strand_preserved = strand_preserved,
-                                min_count = min_count,
-                                use_exact = use_exact,
-                                qc_dict = qc_dict)
+            # construct database
+            qNames = constructDatabase(q_files,
+                                       kmers,
+                                       sketch_sizes,
+                                       output,
+                                       threads,
+                                       overwrite,
+                                       calc_random = False)
 
         # run query
         refList, queryList, distMat = queryDatabase(rNames = rNames,
@@ -862,7 +869,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                     self = False,
                                                     number_plot_fits = plot_fit,
                                                     threads = threads)
-    
+
         # QC distance matrix
         qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
 

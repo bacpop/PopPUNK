@@ -287,7 +287,9 @@ def removeFromDB(db_name, out_name, removeSeqs):
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         threads, overwrite,
                         strand_preserved, min_count,
-                        use_exact, qc_dict):
+                        use_exact, qc_dict, calc_random = True,
+                        codon_phased = False,
+                        use_gpu = False, deviceid = 0):
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
@@ -321,6 +323,17 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             (default = False)
         qc_dict (dict)
             Dict containg QC settings
+        calc_random (bool)
+            Add random match chances to DB (turn off for queries)
+        codon_phased (bool)
+            Use codon phased seeds
+            (default = False)
+        use_gpu (bool)
+            Use GPU for read sketching
+            (default = False)
+        deviceid (int)
+            GPU device id
+            (default = 0)
     """
     # read file names
     names, sequences = readRfile(assemblyList)
@@ -333,11 +346,38 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         os.remove(dbfilename)
 
     # generate sketches
-    pp_sketchlib.constructDatabase(dbname, names, sequences, klist, sketch_size,
-                                   not strand_preserved, min_count, use_exact, threads)
-    
+    pp_sketchlib.constructDatabase(dbname,
+                                   names,
+                                   sequences,
+                                   klist,
+                                   sketch_size,
+                                   codon_phased,
+                                   False,
+                                   not strand_preserved,
+                                   min_count,
+                                   use_exact,
+                                   threads,
+                                   use_gpu,
+                                   device_id)
+
     # QC sequences
-    filtered_names = sketchlib_assembly_qc(oPrefix, klist, qc_dict, strand_preserved, threads)
+    if qc_dict['run_qc']:
+        filtered_names = sketchlib_assembly_qc(oPrefix,
+                                               klist,
+                                               qc_dict,
+                                               strand_preserved,
+                                               threads)
+    else:
+        filtered_names = names
+
+    # Add random matches if required
+    # (typically on for reference, off for query)
+    if (calc_random):
+        pp_sketchlib.addRandom(db_name_prefix,
+                               filtered_names,
+                               klist,
+                               not strand_preserved,
+                               threads)
 
     # return filtered file names
     return filtered_names
