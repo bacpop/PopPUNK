@@ -613,7 +613,8 @@ def main():
         #******************************#
         # extract limited references from clique by default
         if not args.full_db:
-            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = extractReferences(genomeNetwork, refList, args.output)
+            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
+                extractReferences(genomeNetwork, refList, args.output)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,

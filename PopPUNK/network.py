@@ -112,7 +112,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
         references = set(existingRefs)
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = [index_lookup[r] for r in references]
-    
+
     # extract cliques from network
     cliques_in_overall_graph = [c.tolist() for c in gt.max_cliques(G)]
     # order list by size of clique
@@ -175,12 +175,12 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
                         for vertex in vertex_list:
                             reference_vertex[vertex] = True
                             reference_indices.add(int(vertex))
-    
+
     # update reference graph if vertices have been added
     if network_update_required:
         G_ref = gt.GraphView(G, vfilt = reference_vertex)
         G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
-    
+
     # Order found references as in mash sketch files
     reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
     refFileName = writeReferences(reference_names, outPrefix)
@@ -258,12 +258,12 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
     connections = []
     self_comparison = True
     vertex_labels = rlist
-    
+
     # check if self comparison
     if rlist != qlist:
         self_comparison = False
         vertex_labels.append(qlist)
-    
+
     # identify edges
     for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qlist, self = self_comparison)):
         if assignment == within_label:
@@ -418,7 +418,7 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
 
     # Otherwise only calculate query-query distances for new clusters
     else:
-        
+
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
         unassigned = set(qSeqs).difference(assigned)
         query_indices = {k:v+ref_count for v,k in enumerate(qSeqs)}
@@ -467,7 +467,7 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     # finish by updating the network
     G.add_vertex(len(qNames))
     G.add_edge_list(new_edges)
-    
+
     # including the vertex ID property map
     for i,q in enumerate(qSeqs):
         G.vp.id[i + len(rlist)] = q
@@ -521,7 +521,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         component = component_assignments.a[isolate_index]
         component_rank = component_frequency_ranks[component]
         newClusters[component_rank].add(isolate_name)
-        
+
     oldNames = set()
 
     if oldClusterFile != None:
