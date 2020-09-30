@@ -18,6 +18,20 @@ Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, B
 Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019).
 doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 
+## News
+
+### 2020-09-30
+We have discovered a bug affecting the interaction of pp-sketchlib and PopPUNK.
+If you have used `PopPUNK >=v2.0.0` with `pp-sketchlib <v1.5.1` label order may
+be incorrect (see issue [#95](https://github.com/johnlees/PopPUNK/issues/95)).
+
+Please upgrade to `PopPUNK >=v2.2` and `pp-sketchlib >=v1.5.1`. If this is not
+possible, you can either:
+- Run `scripts/poppunk_pickle_fix.py` on your `.dists.pkl` file and re-run
+  model fits.
+- Create the database with `poppunk_sketch` directly, rather than `
+  PopPUNK --create-db`
+
 ## Installation
 
 This is for the command line version. For more details see [installation](https://poppunk.readthedocs.io/en/latest/installation.html) in the documentation.
@@ -38,20 +52,6 @@ conda config --add channels defaults
 conda config --add channels bioconda
 conda config --add channels conda-forge
 ```
-
-### Through pip
-If you do not have conda you can also install through pip:
-```
-python3 -m pip install poppunk
-```
-You will need to be using Python 3.8 or higher.
-
-Using both of these methods command `poppunk` will then be directly executable.
-Alternatively clone this repository:
-```
-git clone git@github.com:johnlees/PopPUNK.git
-```
-Then run with `python poppunk-runner.py`.
 
 ## Quick usage
 

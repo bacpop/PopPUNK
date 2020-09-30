@@ -9,7 +9,7 @@ import shutil
 
 def deleteDir(dirname):
     if os.path.isdir(dirname):
-        shutil.rmtree(dirname)    
+        shutil.rmtree(dirname)
 
 sys.stderr.write("Cleaning up tests\n")
 refs = []
@@ -23,15 +23,15 @@ outputDirs = [
     "example_refine",
     "example_query",
     "example_use",
-    "example_db_mash",
-    "example_refine_mash",
-    "example_query_mash",
-    "example_use_mash", 
-    "example_viz"
+    "example_viz",
+    "example_lineages",
+    "example_lineage_query",
+    "example_qc"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)
 
 for ref in refs:
-    os.remove(ref)
+    if os.path.isfile(ref):
+        os.remove(ref)
 

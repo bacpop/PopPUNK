@@ -22,7 +22,7 @@ def rand_index_score(labels_true, labels_pred):
 
     # check clusterings
     labels_true, labels_pred = check_clusterings(labels_true, labels_pred)
-    
+
     # initial statistics calculations
     n_samples = labels_true.shape[0]
     n_samples_comb = comb(n_samples,2)
@@ -30,7 +30,7 @@ def rand_index_score(labels_true, labels_pred):
     n_clusters = np.unique(labels_pred).shape[0]
     class_freq = np.bincount(labels_true)
     cluster_freq = np.bincount(labels_pred)
-    
+
     # Special limit cases: no clustering since the data is not split;
     # or trivial clustering where each document is assigned a unique cluster.
     # These are perfect matches hence return 1.0.
@@ -44,7 +44,7 @@ def rand_index_score(labels_true, labels_pred):
     sum_comb_c = sum((n_c**2) for n_c in cluster_freq)
     sum_comb_k = sum((n_k**2) for n_k in class_freq)
     sum_comb = sum((n_ij**2) for n_ij in contingency.data)
-    
+
     return (1 + (sum_comb - 0.5 * sum_comb_k - 0.5 * sum_comb_c)/n_samples_comb)
 
 # command line parsing

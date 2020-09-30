@@ -3,7 +3,8 @@
 # Copyright 2018 John Lees and Nick Croucher
 
 import sys
-import networkx as nx
+import graph_tool.all as gt
+from scipy.stats import rankdata
 import argparse
 
 # command line parsing
@@ -14,8 +15,8 @@ def get_options():
                                      prog='extract_components')
 
     # input options
-    parser.add_argument('graph', help='Input graph pickle (.gpickle)')
-    parser.add_argument('output', help='Prefix for output files')
+    parser.add_argument('--graph', help='Input graph pickle (.gt)')
+    parser.add_argument('--output', help='Prefix for output files')
 
     return parser.parse_args()
 
@@ -25,13 +26,20 @@ if __name__ == "__main__":
     # Check input ok
     args = get_options()
 
-    # open stored distances
-    G = nx.read_gpickle(args.graph)
-    sys.stderr.write("Writing " + str(nx.number_connected_components(G)) + " components "
+    # open stored graph
+    G = gt.load_graph(args.graph)
+
+    # extract individual components
+    component_assignments, component_frequencies = gt.label_components(G)
+    component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
+    sys.stderr.write("Writing " + str(len(component_frequencies)) + " components "
                      "in reverse order of size\n")
 
-    components = sorted(nx.connected_components(G), key=len, reverse=True)
-    for component_idx, component in enumerate(components):
-        nx.write_graphml(G.subgraph(component), args.output + ".component_" + str(component_idx + 1) + ".graphml")
+    # extract as GraphView objects and print
+    for component_index in range(len(component_frequency_ranks)):
+        component_gv = gt.GraphView(G, vfilt = component_assignments.a == component_index)
+        component_G = gt.Graph(component_gv, prune = True)
+        component_fn = args.output + ".component_" + str(component_frequency_ranks[component_index]) + ".graphml"
+        component_G.save(component_fn, fmt = 'graphml')
 
     sys.exit(0)

@@ -17,6 +17,8 @@ import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
 
+import pp_sketchlib
+
 from .plot import plot_scatter
 
 # BGMM
@@ -36,7 +38,6 @@ from .plot import plot_dbscan_results
 # refine
 from .refine import refineFit
 from .refine import likelihoodBoundary
-from .refine import withinBoundary
 from .refine import readManualStart
 from .plot import plot_refined_results
 
@@ -585,7 +586,7 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
-        self.start_point, self.optimal_x, self.optimal_y = refineFit(X/self.scale,
+        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = refineFit(X/self.scale,
                 sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                 slope = 2, no_local = no_local, num_processes = threads)
         self.fitted = True
@@ -596,13 +597,14 @@ class RefineFit(ClusterFit):
         if indiv_refine:
             try:
                 sys.stderr.write("Refining core and accessory separately\n")
-
-                start_point, self.core_boundary, core_acc = refineFit(X/self.scale, sample_names, self.start_s,
-                        self.mean0, self.mean1, self.max_move, self.min_move, slope = 0, no_local = no_local,
-                        num_processes = threads)
-                start_point, acc_core, self.accessory_boundary = refineFit(X/self.scale, sample_names, self.start_s,
-                        self.mean0, self.mean1, self.max_move, self.min_move, slope = 1, no_local = no_local,
-                        num_processes = threads)
+                # optimise core distance boundary
+                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = refineFit(X/self.scale,
+                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                slope = 0, no_local = no_local,num_processes = threads)
+                # optimise accessory distance boundary
+                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = refineFit(X/self.scale,
+                sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move, slope = 1,
+                no_local = no_local, num_processes = threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
@@ -659,7 +661,8 @@ class RefineFit(ClusterFit):
             np.savez(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.npz',
              intercept=np.array([self.optimal_x, self.optimal_y]),
              core_acc_intercepts=np.array([self.core_boundary, self.accessory_boundary]),
-             scale=self.scale)
+             scale=self.scale,
+             indiv_fitted=self.indiv_fitted)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([None, self.type], pickle_file)
 
@@ -679,7 +682,10 @@ class RefineFit(ClusterFit):
         self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
         self.scale = fit_npz['scale']
         self.fitted = True
-        self.indiv_fitted = False # Do not output multiple microreacts
+        if 'indiv_fitted' in fit_npz:
+            self.indiv_fitted = fit_npz['indiv_fitted']
+        else:
+            self.indiv_fitted = False # historical behaviour for backward compatibility
         if np.isnan(self.optimal_y) and np.isnan(self.accessory_boundary):
             self.threshold = True
 
@@ -717,8 +723,8 @@ class RefineFit(ClusterFit):
             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
-    def assign(self, X, slope=None):
-        '''Assign the clustering of new samples using :func:`~PopPUNK.refine.withinBoundary`
+    def assign(self, X, slope=None, cpus=1):
+        '''Assign the clustering of new samples
 
         Args:
             X (numpy.array)
@@ -728,6 +734,8 @@ class RefineFit(ClusterFit):
 
                 Set to 0 for a vertical line, 1 for a horizontal line, or
                 2 to use a slope
+            cpus (int)
+                Number of threads to use
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -736,11 +744,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if slope == 2 or (slope == None and self.slope == 2):
-                y = withinBoundary(X/self.scale, self.optimal_x, self.optimal_y)
+                y = pp_sketchlib.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = withinBoundary(X/self.scale, self.core_boundary, 0, slope=0)
+                y = pp_sketchlib.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = withinBoundary(X/self.scale, 0, self.accessory_boundary, slope=1)
+                y = pp_sketchlib.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
 
         return y
 

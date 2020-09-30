@@ -9,8 +9,13 @@ dependencies::
 Then run with ``poppunk``.
 
 .. important::
-    PopPUNK requires python3.8 to run (which on many default Linux installations is
+    From v2.1.0 onwards, PopPUNK requires python3.8 to run
+    (which on many default Linux installations is
     run using ``python3`` rather than ``python``).
+
+.. important::
+    From v2.1.2 onwards, PopPUNK no longer supports ``mash``. If you want to
+    use older databases created with ``mash``, please downgrade to <v2
 
 Installing with conda (recommended)
 -----------------------------------
@@ -31,9 +36,6 @@ Installing with pip
 If you do not have conda, you can also install through pip::
 
     python3 -m pip install poppunk
-
-You will also need `mash <http://mash.readthedocs.io/en/latest/>`__ (v2 or higher)
-installed (see :ref:`dependencies`).
 
 Clone the code
 --------------
@@ -57,21 +59,13 @@ We tested PopPUNK with the following packages:
 * ``DendroPy`` (4.3.0)
 * ``hdbscan`` (0.8.13)
 * ``matplotlib`` (2.1.2)
-* ``networkx`` (2.1)
+* ``graph-tool`` (2.31)
 * ``numpy`` (1.14.1)
-* ``numba`` (0.36.2)
 * ``pandas`` (0.22.0)
 * ``scikit-learn`` (0.19.1)
 * ``scipy`` (1.0.0)
 * ``sharedmem`` (0.3.5)
 
-``numba`` may need ``gcc >=v4.8`` to install correctly through pip (if you are
-getting ``OSError`` or ``'GLIBCXX_3.4.17' not found``).
-
-You will need a `mash <http://mash.readthedocs.io/en/latest/>`__ installation
-which is v2.0 or higher
-
 Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
 if producing output with ``--microreact`` and ``--rapidnj`` options. We used
 v2.3.2.
-

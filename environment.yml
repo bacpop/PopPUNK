@@ -13,11 +13,10 @@ dependencies:
   - pandas
   - scikit-learn
   - dendropy
-  - numba
   - matplotlib
-  - networkx
   - mash
   - hdbscan
   - rapidnj
   - h5py
-  - pp-sketchlib
+  - pp-sketchlib >=1.5.1
+  - graph-tool
