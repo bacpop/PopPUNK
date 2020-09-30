@@ -60,7 +60,7 @@ def setupDBFuncs(args, kmers, min_count, qc_dict):
                                     strand_preserved = args.strand_preserved,
                                     min_count = args.min_kmer_count,
                                     use_exact = args.exact_count,
-                                    qc_dist = args.qc_dict,
+                                    qc_dist = qc_dict,
                                     use_gpu = args.gpu_sketch,
                                     deviceid = args.deviceid)
         queryDatabase = partial(queryDatabaseSketchlib,
