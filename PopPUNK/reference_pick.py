@@ -7,12 +7,11 @@ import os
 import sys
 # additional
 from shutil import copyfile
-import networkx as nx
+import graph_tool.all as gt
 
 # import poppunk package
 from .__init__ import __version__
 
-from .sketchlib import no_sketchlib
 from .sketchlib import removeFromDB
 
 from .mash import checkMashVersion
@@ -48,13 +47,9 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--no-resketch', default=False, action='store_true', help='Do not resketch the references (--use-mash only)'
-                                                                                 '[default = False]')
 
     # processing
     other = parser.add_argument_group('Other options')
-    other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
-    other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
 
     other.add_argument('--version', action='version',
@@ -66,17 +61,6 @@ def main():
 
     # Check input args ok
     args = get_options()
-    resketch = not args.no_resketch
-    if no_sketchlib:
-        args.use_mash = True
-    
-    if args.use_mash:
-        checkMashVersion(args.mash)
-    else:
-        resketch = True
-    if resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
-        sys.stderr.write("Must provide original --ref-db if using --resketch\n")
-        sys.exit(1)
 
     # Check output path ok
     if not os.path.isdir(args.output):
@@ -92,38 +76,22 @@ def main():
         raise RuntimeError("Distance DB should be self-self distances")
 
     # Read in full network
-    genomeNetwork = nx.read_gpickle(args.network)
-    sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_nodes()) + " samples\n")
+    genomeNetwork = gt.load_graph(network_file)
+    sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
-    newReferencesNames, newReferencesFile = extractReferences(genomeNetwork, refList, args.output)
-    nodes_to_remove = set(refList).difference(newReferencesNames)
-    genomeNetwork.remove_nodes_from(nodes_to_remove)
-    nx.write_gpickle(genomeNetwork, args.output + "/" + os.path.basename(args.output) + '_graph.gpickle')
+    reference_indices, reference_names, refFileName, G_ref = \
+        extractReferences(genomeNetwork, refList, args.output)
+    G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     # Prune distances
     prune_distance_matrix(refList, nodes_to_remove, distMat,
                           args.output + "/" + os.path.basename(args.output) + ".dists")
 
-    # Resketch
+    # 'Resketch'
     if len(nodes_to_remove) > 0:
-        if resketch:
-            if args.use_mash:
-                sys.stderr.write("Resketching " + str(len(newReferencesNames)) + " sequences\n")
-
-                # Find db properties
-                kmers = getKmersFromReferenceDatabase(args.ref_db)
-                sketch_sizes = getSketchSize(args.ref_db, kmers, args.mash)
-
-                # Resketch all
-                createDatabaseDir(args.output, kmers)
-                dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
-                constructDatabase(dummyRefFile, kmers, sketch_sizes, args.output, args.estimated_length, True, args.threads, args.mash, True)
-                os.remove(dummyRefFile)
-            else:
-                removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))
-
+        removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))
     else:
         sys.stderr.write("No sequences to remove\n")
 

@@ -21,7 +21,7 @@ import pp_sketchlib
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, kmers, min_count):
+def setupDBFuncs(args, kmers, min_count, qc_dict):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
@@ -32,30 +32,16 @@ def setupDBFuncs(args, kmers, min_count):
             List of k-mer sizes
         min_count (int)
             Minimum k-mer count for reads
+        qc_dict (dict)
+            Table of parameters for QC function
 
     Returns:
         dbFuncs (dict)
             Functions with consistent arguments to use as the database API
     """
     if args.use_mash:
-        from .mash import checkMashVersion
-        from .mash import createDatabaseDir
-        from .mash import getKmersFromReferenceDatabase
-        from .mash import joinDBs as joinDBsMash
-        from .mash import constructDatabase as constructDatabaseMash
-        from .mash import queryDatabase as queryDBMash
-        from .mash import readMashDBParams
-        from .mash import getSeqsInDb
-
-        # check mash is installed
-        backend = "mash"
-        version = checkMashVersion(args.mash)
-
-        constructDatabase = partial(constructDatabaseMash, mash_exec = args.mash)
-        readDBParams = partial(readMashDBParams, mash_exec = args.mash)
-        queryDatabase = partial(queryDBMash, no_stream = args.no_stream, mash_exec = args.mash)
-        joinDBs = partial(joinDBsMash, klist = getKmersFromReferenceDatabase(args.output), mash_exec = args.mash)
-
+        sys.stderr.write("mash no longer supported. "
+                         "Please downgrade to <=v2.0.2 to use\n")
 
     else:
         from .sketchlib import checkSketchlibVersion
@@ -69,9 +55,17 @@ def setupDBFuncs(args, kmers, min_count):
         backend = "sketchlib"
         version = checkSketchlibVersion()
 
-        constructDatabase = partial(constructDatabaseSketchlib, strand_preserved = args.strand_preserved,
-                                    min_count = args.min_kmer_count, use_exact = args.exact_count)
-        queryDatabase = partial(queryDatabaseSketchlib, use_gpu = args.use_gpu, deviceid = args.deviceid)
+        constructDatabase = partial(constructDatabaseSketchlib,
+                                    codon_phased = args.codon_phased,
+                                    strand_preserved = args.strand_preserved,
+                                    min_count = args.min_kmer_count,
+                                    use_exact = args.exact_count,
+                                    qc_dict = qc_dict,
+                                    use_gpu = args.gpu_sketch,
+                                    deviceid = args.deviceid)
+        queryDatabase = partial(queryDatabaseSketchlib,
+                                use_gpu = args.gpu_dist,
+                                deviceid = args.deviceid)
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = {'createDatabaseDir': createDatabaseDir,
@@ -402,7 +396,7 @@ def readRfile(rFile, oneSeq=False):
 def isolateNameToLabel(names):
     """Function to process isolate names to labels
     appropriate for visualisation.
-    
+
     Args:
         names (list)
             List of isolate names.
@@ -448,7 +442,7 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
     if qc_dict['retain_failures']:
         failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
         hdf_fail = h5py.File(failed_db_name, 'w')
-    
+
     # try/except structure to prevent h5 corruption
     try:
         # process data structures
@@ -459,10 +453,8 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
             fail_grp = hdf_fail.create_group('sketches')
         seq_length = {}
         seq_ambiguous = {}
-        seq_excluded = {}
-        removed = []
         retained = []
-        
+
         # iterate through sketches
         for dataset in read_grp:
             # test thresholds
@@ -477,21 +469,21 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
         # get mean length
         genome_lengths = np.fromiter(seq_length.values(), dtype = int)
         mean_genome_length = np.mean(genome_lengths)
-        
+
         # calculate length threshold unless user-supplied
         if qc_dict['length_range'][0] is None:
-            lower_length = mean_genome_length - qc_dict['length_sigma']*np.std(genome_lengths)
-            upper_length = mean_genome_length + qc_dict['length_sigma']*np.std(genome_lengths)
+            lower_length = mean_genome_length - \
+                qc_dict['length_sigma'] * np.std(genome_lengths)
+            upper_length = mean_genome_length + \
+                qc_dict['length_sigma'] * np.std(genome_lengths)
         else:
             lower_length, upper_length = qc_dict['length_range']
 
         # open file to report QC failures
         with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
-        
             # iterate through and filter
             failed_sample = False
             for dataset in seq_length.keys():
-                        
                 # determine if sequence passes filters
                 remove = False
                 if seq_length[dataset] < lower_length:
@@ -513,13 +505,10 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
                     if qc_dict['retain_failures']:
                         fail_grp.copy(read_grp[dataset], dataset)
                 else:
+                    retained.append(dataset)
                     if qc_dict['qc_filter'] == 'prune':
                         out_grp.copy(read_grp[dataset], dataset)
-                        retained.append(dataset)
-        
-            # get kmers from original database
-            db_kmers = hdf_in['sketches'][retained[0]].attrs['kmers']
-            
+
             # close files
             hdf_in.close()
             if qc_dict['qc_filter'] == 'prune':
@@ -530,7 +519,7 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
         # replace original database with pruned version
         if qc_dict['qc_filter'] == 'prune':
             os.rename(filtered_db_name, db_name)
-    
+
     # if failure still close files to avoid corruption
     except:
         hdf_in.close()
@@ -539,25 +528,26 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
         if qc_dict['retain_failures']:
            hdf_fail.close()
         sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-        sys.exit(1)
-    
-    
+
+        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
+        raise
+
     # stop if at least one sample fails QC and option is not continue/prune
     if failed_sample and qc_dict['qc_filter'] == 'stop':
-        sys.stderr.write('Sequences failed QC filters - details in ' + prefix + '/' + os.path.basename(prefix) + '_qcreport.txt\n')
+        sys.stderr.write('Sequences failed QC filters - details in ' + \
+                         prefix + '/' + os.path.basename(prefix) + \
+                         '_qcreport.txt\n')
         sys.exit(1)
-    
+
     # calculate random matches if any sequences pass QC filters
     if len(retained) == 0:
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)
-    use_rc = not strand_preserved
-    db_name_prefix = prefix + '/' + os.path.basename(prefix)
+
     # remove random matches if already present
     hdf_in = h5py.File(db_name, 'r+')
     if 'random' in hdf_in:
         del hdf_in['random']
     hdf_in.close()
-    pp_sketchlib.addRandom(db_name_prefix, retained, db_kmers.tolist(), use_rc, threads)
-    
+
     return retained

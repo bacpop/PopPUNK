@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # open stored graph
     G = gt.load_graph(args.graph)
-    
+
     # extract individual components
     component_assignments, component_frequencies = gt.label_components(G)
     component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
@@ -41,5 +41,5 @@ if __name__ == "__main__":
         component_G = gt.Graph(component_gv, prune = True)
         component_fn = args.output + ".component_" + str(component_frequency_ranks[component_index]) + ".graphml"
         component_G.save(component_fn, fmt = 'graphml')
-    
+
     sys.exit(0)
