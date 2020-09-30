@@ -453,8 +453,6 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
             fail_grp = hdf_fail.create_group('sketches')
         seq_length = {}
         seq_ambiguous = {}
-        seq_excluded = {}
-        removed = []
         retained = []
 
         # iterate through sketches
@@ -507,12 +505,9 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
                     if qc_dict['retain_failures']:
                         fail_grp.copy(read_grp[dataset], dataset)
                 else:
+                    retained.append(dataset)
                     if qc_dict['qc_filter'] == 'prune':
                         out_grp.copy(read_grp[dataset], dataset)
-                        retained.append(dataset)
-
-            # get kmers from original database
-            db_kmers = hdf_in['sketches'][retained[0]].attrs['kmers']
 
             # close files
             hdf_in.close()
@@ -533,7 +528,9 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
         if qc_dict['retain_failures']:
            hdf_fail.close()
         sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-        sys.exit(1)
+
+        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
+        raise
 
     # stop if at least one sample fails QC and option is not continue/prune
     if failed_sample and qc_dict['qc_filter'] == 'stop':
@@ -547,8 +544,6 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)
 
-    use_rc = not strand_preserved
-    db_name_prefix = prefix + '/' + os.path.basename(prefix)
     # remove random matches if already present
     hdf_in = h5py.File(db_name, 'r+')
     if 'random' in hdf_in:
