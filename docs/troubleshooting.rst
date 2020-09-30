@@ -7,6 +7,21 @@ installing or running the software please raise an issue on github.
 .. contents::
    :local:
 
+Known bugs
+----------
+
+When I look at my clusters on a tree, they make no sense
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This is a bug caused by alphabetic sorting of labels in ``PopPUNK >=v2.0.0``
+with ``pp-sketchlib <v1.5.1``. There are three ways to fix this:
+
+- Upgrade to ``PopPUNK >=v2.2`` and ``pp-sketchlib >=v1.5.1`` (preferred).
+- Run `scripts/poppunk_pickle_fix.py` on your `.dists.pkl` file and re-run
+  model fits.
+- Create the database with ``poppunk_sketch --sketch`` and
+  ``poppunk_sketch --query``directly, rather than `PopPUNK --create-db`.
+
+
 Error/warning messages
 ----------------------
 
