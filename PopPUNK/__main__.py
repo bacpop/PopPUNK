@@ -367,7 +367,7 @@ def main():
                             sketch_sizes,
                             args.output,
                             args.threads,
-                            args.overwrite
+                            args.overwrite,
                             calc_random = True)
 
             # Calculate and QC distances
