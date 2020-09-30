@@ -25,8 +25,8 @@ outputDirs = [
     "example_use",
     "example_viz",
     "example_lineages",
-    "example_lineage_query"
-    ""
+    "example_lineage_query",
+    "example_qc"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)

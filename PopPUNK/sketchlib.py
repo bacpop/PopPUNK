@@ -358,7 +358,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                                    use_exact,
                                    threads,
                                    use_gpu,
-                                   device_id)
+                                   deviceid)
 
     # QC sequences
     if qc_dict['run_qc']:
@@ -373,7 +373,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     # Add random matches if required
     # (typically on for reference, off for query)
     if (calc_random):
-        pp_sketchlib.addRandom(db_name_prefix,
+        pp_sketchlib.addRandom(dbname,
                                filtered_names,
                                klist,
                                not strand_preserved,
