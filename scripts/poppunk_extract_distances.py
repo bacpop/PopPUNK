@@ -3,7 +3,7 @@
 # Copyright 2018 John Lees and Nick Croucher
 
 import pickle
-import sys
+import sys, os
 import numpy as np
 import argparse
 import dendropy
@@ -20,7 +20,7 @@ def get_options():
 
     return parser.parse_args()
 
-def listDistInts(refSeqs, querySeqs, self=True):
+def iterDistRows(refSeqs, querySeqs, self=True):
     """Gets the ref and query ID for each row of the distance matrix
     Returns an iterable with ref and query ID pairs by row.
     Args:
@@ -36,23 +36,15 @@ def listDistInts(refSeqs, querySeqs, self=True):
         ref, query (str, str)
             Iterable of tuples with ref and query names for each distMat row.
     """
-    n = 0
-    num_ref = len(refSeqs)
-    num_query = len(querySeqs)
     if self:
-        comparisons = [(0,0)] * int((num_ref * (num_ref-1)) * 0.5)
         assert refSeqs == querySeqs
-        for i in range(num_ref):
-            for j in range(i + 1, num_ref):
-                comparisons[n] = (j, i)
-                n = n + 1
+        for i, ref in enumerate(refSeqs):
+            for j in range(i + 1, len(refSeqs)):
+                yield(refSeqs[j], ref)
     else:
-        comparisons = [(0,0)] * (len(refSeqs) * len(querySeqs))
-        for i in range(num_query):
-            for j in range(num_ref):
-                comparisons[n] = (j, i)
-                n = n + 1
-    return comparisons
+        for query in querySeqs:
+            for ref in refSeqs:
+                yield(ref, query)
 
 def isolateNameToLabel(names):
     """Function to process isolate names to labels
@@ -67,7 +59,7 @@ def isolateNameToLabel(names):
     """
     # useful to have as a function in case we
     # want to remove certain characters
-    labels = [name.split('/')[-1].split('.')[0] for name in names]
+    labels = [os.path.splitext(os.path.basename(name))[0] for name in names]
     return labels
 
 # main code
@@ -80,11 +72,10 @@ if __name__ == "__main__":
     with open(args.distances + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
     X = np.load(args.distances + ".npy")
-    
+
     # get names order
     r_names = isolateNameToLabel(rlist)
     q_names = isolateNameToLabel(qlist)
-    names = listDistInts(r_names, q_names, self)
 
     # parse distances from tree, if supplied
     if args.tree is not None:
@@ -106,7 +97,7 @@ if __name__ == "__main__":
         if args.tree is not None:
             oFile.write("\t" + 'Patristic')
         oFile.write("\n")
-        for i, (r_index, q_index) in enumerate(names):
+        for i, (r_index, q_index) in enumerate(iterDistRows(r_names, q_names, r_names == q_names)):
             oFile.write("\t".join([q_names[q_index], r_names[r_index], str(X[i,0]), str(X[i,1])]))
             if args.tree is not None:
                 oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
