@@ -16,6 +16,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
+from scipy.sparse import coo_matrix
 
 import pp_sketchlib
 
@@ -40,6 +41,9 @@ from .refine import refineFit
 from .refine import likelihoodBoundary
 from .refine import readManualStart
 from .plot import plot_refined_results
+
+# lineage
+from .plot import distHistogram
 
 def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples=100000):
     '''Call this to load a fitted model
@@ -630,21 +634,21 @@ class RefineFit(ClusterFit):
                 Cluster assignments of samples in X
         '''
         self.scale = np.array([1,1])
-        
+
         # Blank values to pass to plot
         self.mean0 = None
         self.mean1 = None
         self.start_point = None
         self.min_move = None
         self.max_move = None
-        
+
         # Sets threshold
         self.core_boundary = threshold
         self.accessory_boundary = np.nan
         self.optimal_x = threshold
         self.optimal_y = np.nan
         self.slope = 0
-        
+
         # Flags on refine model
         self.fitted = True
         self.threshold = True
@@ -753,3 +757,112 @@ class RefineFit(ClusterFit):
         return y
 
 
+class LineageFit(ClusterFit):
+    '''Class for fits using the lineage assignment model. Inherits from :class:`ClusterFit`.
+
+    Must first run either :func:`~LineageFit.fit` or :func:`~LineageFit.load` before calling
+    other functions
+
+    Args:
+        outPrefix (str)
+            The output prefix used for reading/writing
+    '''
+
+    def __init__(self, outPrefix):
+        ClusterFit.__init__(self, outPrefix)
+        self.type = 'lineage'
+        self.preprocess = False
+
+
+    def fit(self, X, rank, accessory, threads):
+        '''Extends :func:`~ClusterFit.fit`
+
+        Gets assignments by using nearest neigbours.
+
+        Args:
+            X (numpy.array)
+                The core and accessory distances to cluster. Must be set if
+                preprocess is set.
+            rank (int)
+                Number of nearest neighbours to use
+
+        Returns:
+            y (numpy.array)
+                Cluster assignments of samples in X
+        '''
+        ClusterFit.fit(self, X)
+        if (rank < 1):
+            sys.stderr.write("Rank must be greater than 1")
+            sys.exit(0)
+        elif (rank >= 0.5 * (1 + np.sqrt(1 + 4 * X.shape[0]))):
+            sys.stderr.write("Rank must be less than the number of samples")
+            sys.exit(0)
+        self.rank = int(rank)
+
+        if accessory:
+            dist_col = 1
+        else:
+            dist_col = 0
+        self.nn_dists = pp_sketchlib.sparsifyDists(X[:, dist_col], 0, self.rank, threads)
+        self.fitted = True
+
+        y = self.assign(self.nn_dists)
+        return y
+
+    def save(self):
+        '''Save the model to disk, as an npz and pkl (using outPrefix).'''
+        if not self.fitted:
+            raise RuntimeError("Trying to save unfitted model")
+        else:
+            with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                str(self.rank) + '_fit.pkl', 'wb') as pickle_file:
+                pickle.dump([self.rank, self.type], pickle_file)
+
+    def load(self, fit_npz, fit_obj):
+        '''Load the model from disk. Called from :func:`~loadClusterFit`
+
+        Args:
+            fit_npz (dict)
+                Fit npz opened with :func:`numpy.load`
+            fit_obj (sklearn.mixture.BayesianGaussianMixture)
+                The saved fit object
+        '''
+        self.rank = fit_obj
+
+    def plot(self, X, y):
+        '''Extends :func:`~ClusterFit.plot`
+
+        Write a summary of the fit, and plot the results using
+        :func:`PopPUNK.plot.plot_results` and :func:`PopPUNK.plot.plot_contours`
+
+        Args:
+            X (numpy.array)
+                Core and accessory distances
+            y (numpy.array)
+                Cluster assignments from :func:`~BGMMFit.assign`
+        '''
+        ClusterFit.plot(self, X)
+        distHistogram(self.nn_dists.data,
+                      self.rank,
+                      self.outPrefix + "/" + os.path.basename(self.outPrefix))
+
+    def assign(self, nn_dists):
+        '''Get the edges for the network. A little different from other methods,
+        as it doesn't go through the long form distance vector (as coo_matrix
+        is basically already in the correct gt format)
+
+        Args:
+            nn_dists (scipy.sparse.coo_matrix)
+                Nearest neigbout distances from sketchlib
+        Returns:
+            y (list of tuples)
+                Edges to include in network
+        '''
+        if not self.fitted:
+            raise RuntimeError("Trying to assign using an unfitted model")
+        else:
+            y = []
+            for row, col in zip(nn_dists.row, nn_dists.col):
+                y.append((row, col))
+
+        return y

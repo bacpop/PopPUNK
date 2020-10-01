@@ -202,7 +202,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     plt.close()
 
 def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_boundary,
-        mean0, mean1, start_point, min_move, max_move, scale, threshold, indiv_boundaries, 
+        mean0, mean1, start_point, min_move, max_move, scale, threshold, indiv_boundaries,
         title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
@@ -357,6 +357,29 @@ def get_grid(minimum, maximum, resolution):
 
     return(xx, yy, xy)
 
+def distHistogram(dists, rank, outPrefix):
+    """Plot a histogram of distances (1D)
+
+    Args:
+        dists (np.array)
+            Distance vector
+        rank (int)
+            Rank (used for name and title)
+        outPrefix (int)
+            Full path prefix for plot file
+    """
+    plt.hist(dists,
+             50,
+             facecolor='b',
+             alpha=0.75)
+
+    plt.title('Included nearest neighbour distances for rank ' + str(rank))
+    plt.xlabel('Distance')
+    plt.ylabel('Density')
+    plt.grid(True)
+    plt.savefig(outPrefix + \
+                "_rank_" + str(rank) + "_histogram.png")
+    plt.close()
 
 def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
@@ -383,7 +406,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
     """
     # get list of isolate names
     isolate_names = list(G.vp.id)
-    
+
     # mask network if subsetting
     if viz_subset is not None:
         viz_vertex = G.new_vertex_property('bool')
@@ -393,7 +416,7 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
             else:
                 viz_vertex[vertex] = False
         G.set_vertex_filter(viz_vertex)
-    
+
     # edit names
     edited_names = isolateNameToLabel(G.vp.id)
     for n,v in enumerate(G.vertices()):
@@ -484,7 +507,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 
 
     # process epidemiological data
     d = defaultdict(list)
-    
+
     # process epidemiological data without duplicating names
     # used by PopPUNK
     columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
@@ -675,7 +698,7 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
                         combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
-    
+
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
     generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
@@ -768,7 +791,7 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
                     combined_list, combined_list, clustering, 'phandango', epiCsv, queryList)
-    
+
     # calculate phylogeny, or copy existing microreact file
     microreact_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
     phandango_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.tree"
@@ -819,7 +842,7 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",
                     combined_list, combined_list, clustering, 'grapetree', epiCsv, queryList)
-    
+
     # calculate phylogeny, or copy existing microreact file
     microreact_tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
     if microreact and os.path.isfile(microreact_tree_filename):
