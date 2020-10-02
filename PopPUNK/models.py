@@ -85,7 +85,7 @@ class ClusterFit:
             The output prefix used for reading/writing
     '''
 
-    def __init__(self, outPrefix):
+    def __init__(self, outPrefix, default_dtype = np.float32):
         self.outPrefix = outPrefix
         if outPrefix != "" and not os.path.isdir(outPrefix):
             try:
@@ -96,6 +96,7 @@ class ClusterFit:
 
         self.fitted = False
         self.indiv_fitted = False
+        self.default_dtype = default_dtype
 
 
     def fit(self, X = None):
@@ -110,6 +111,8 @@ class ClusterFit:
                 preprocess is set.
 
                 (default = None)
+            default_dtype (numpy dtype)
+                Type to use if no X provided
         '''
         # set output dir
         if not os.path.isdir(self.outPrefix):
@@ -118,6 +121,9 @@ class ClusterFit:
             else:
                 sys.stderr.write(self.outPrefix + " already exists as a file! Use a different --output\n")
                 sys.exit(1)
+
+        if X is not None:
+            self.default_dtype = X.dtype
 
         # preprocess subsampling
         if self.preprocess:
@@ -154,7 +160,7 @@ class ClusterFit:
         '''Turn off scaling (useful for refine, where optimization
         is done in the scaled space).
         '''
-        self.scale = np.array([1, 1])
+        self.scale = np.array([1, 1], dtype = self.default_dtype)
 
 
 class BGMMFit(ClusterFit):
@@ -479,7 +485,7 @@ class DBSCANFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if no_scale:
-                scale = np.array([1,1])
+                scale = np.array([1, 1], dtype = X.dtype)
             else:
                 scale = self.scale
             y = assign_samples_dbscan(X, self.hdb, scale)
@@ -629,22 +635,22 @@ class RefineFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments of samples in X
         '''
-        self.scale = np.array([1,1])
-        
+        self.scale = np.array([1, 1], dtype = X.dtype)
+
         # Blank values to pass to plot
         self.mean0 = None
         self.mean1 = None
         self.start_point = None
         self.min_move = None
         self.max_move = None
-        
+
         # Sets threshold
         self.core_boundary = threshold
         self.accessory_boundary = np.nan
         self.optimal_x = threshold
         self.optimal_y = np.nan
         self.slope = 0
-        
+
         # Flags on refine model
         self.fitted = True
         self.threshold = True
@@ -713,7 +719,7 @@ class RefineFit(ClusterFit):
         # Subsamples huge plots to save on memory
         max_points = int(0.5*(5000)**2)
         if X.shape[0] > max_points:
-            plot_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_points,]
+            plot_X = utils.shuffle(X, random_state=random.randint(1, 10000))[0:max_points, ]
         else:
             plot_X = X
 
