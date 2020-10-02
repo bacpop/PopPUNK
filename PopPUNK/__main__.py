@@ -114,8 +114,8 @@ def get_options():
     iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
-    iGroup.add_argument('--viz-lineages', help='CSV with lineage definitions to use for visualisation'
-                                                    'rather than strain definitions.', default=None)
+    iGroup.add_argument('--viz-lineages', help='CSV with lineage definitions to use for visualisation '
+                                               'rather than strain definitions.', default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -145,7 +145,7 @@ def get_options():
     # qc options
     qcGroup = parser.add_argument_group('Quality control options')
     qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
-                                                '(analyse data passing QC), or "continue" (analyse all data)',
+                                                ' (analyse data passing QC), or "continue" (analyse all data)',
                                                 default='stop', type = str, choices=['stop', 'prune', 'continue'])
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
                                                 'separate database [default = False]', default=False, action='store_true')
@@ -217,8 +217,6 @@ def get_options():
 
     # processing
     other = parser.add_argument_group('Other options')
-    other.add_argument('--use-mash', default=False, action='store_true', help='Use the old mash sketch backend [default = False]')
-    other.add_argument('--mash', default='mash', help='Location of mash executable')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
@@ -253,10 +251,6 @@ def main():
         sys.exit(1)
 
     args = get_options()
-
-    # establish method of kmer calculation
-    if no_sketchlib:
-        args.use_mash = True
 
     # check kmer properties
     if args.min_k >= args.max_k:
@@ -391,7 +385,7 @@ def main():
             dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
             storePickle(refList, queryList, True, distMat, dists_out)
         else:
-            sys.stderr.write("Need to provide a list of reference files with --r-files")
+            sys.stderr.write("Need to provide a list of reference files with --r-files\n")
             sys.exit(1)
 
     #******************************#
@@ -417,6 +411,7 @@ def main():
                 sys.stderr.write("Mode: Refining model fit using network properties\n\n")
             elif args.lineage_clustering:
                 sys.stderr.write("Mode: Identifying lineages from neighbouring isolates\n\n")
+
             if args.distances is not None and args.ref_db is not None:
                 distances = args.distances
                 ref_db = args.ref_db
@@ -487,11 +482,50 @@ def main():
 
         #******************************#
         #*                            *#
+        #* lineages analysis          *#
+        #*                            *#
+        #******************************#
+        if args.lineage_clustering:
+
+            # load distances
+            if args.distances is not None:
+                distances = args.distances
+            else:
+                sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
+                sys.exit(1)
+
+            refList, queryList, self, distMat = readPickle(distances)
+
+            # make directory for new output files
+            if not os.path.isdir(args.output):
+                try:
+                    os.makedirs(args.output)
+                except OSError:
+                    sys.stderr.write("Cannot create output directory\n")
+                    sys.exit(1)
+
+            # run lineage clustering
+            if self:
+                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
+            else:
+                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
+
+            # load networks
+            indivNetworks = {}
+            for rank in rank_list:
+                indivNetworks[rank] = gt.load_graph(args.output + "/" + os.path.basename(args.output) + '_rank_' + str(rank) + '_lineages.gt')
+                if rank == min(rank_list):
+                    genomeNetwork = indivNetworks[rank]
+
+        #******************************#
+        #*                            *#
         #* network construction       *#
         #*                            *#
         #******************************#
 
-        if not args.lineage_clustering:
+        if args.lineage_clustering:
+            #TODO
+        else:
             genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
             # Ensure all in dists are in final network
             networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
@@ -525,44 +559,6 @@ def main():
                     fit_type = 'accessory'
                     genomeNetwork = indivNetworks['accessory']
 
-
-        #******************************#
-        #*                            *#
-        #* lineages analysis          *#
-        #*                            *#
-        #******************************#
-
-        if args.lineage_clustering:
-
-            # load distances
-            if args.distances is not None:
-                distances = args.distances
-            else:
-                sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
-                sys.exit(1)
-
-            refList, queryList, self, distMat = readPickle(distances)
-
-            # make directory for new output files
-            if not os.path.isdir(args.output):
-                try:
-                    os.makedirs(args.output)
-                except OSError:
-                    sys.stderr.write("Cannot create output directory\n")
-                    sys.exit(1)
-
-            # run lineage clustering
-            if self:
-                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
-            else:
-                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
-
-            # load networks
-            indivNetworks = {}
-            for rank in rank_list:
-                indivNetworks[rank] = gt.load_graph(args.output + "/" + os.path.basename(args.output) + '_rank_' + str(rank) + '_lineages.gt')
-                if rank == min(rank_list):
-                    genomeNetwork = indivNetworks[rank]
 
         #******************************#
         #*                            *#

@@ -803,7 +803,10 @@ class LineageFit(ClusterFit):
             dist_col = 1
         else:
             dist_col = 0
-        self.nn_dists = pp_sketchlib.sparsifyDists(X[:, dist_col], 0, self.rank, threads)
+        self.nn_dists = pp_sketchlib.sparsifyDists(X[:, dist_col],
+                                                   0,
+                                                   self.rank,
+                                                   threads)
         self.fitted = True
 
         y = self.assign(self.nn_dists)

@@ -418,7 +418,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
 
     # Otherwise only calculate query-query distances for new clusters
     else:
-
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
         unassigned = set(qSeqs).difference(assigned)
         query_indices = {k:v+ref_count for v,k in enumerate(qSeqs)}
