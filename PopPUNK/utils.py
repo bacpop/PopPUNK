@@ -39,33 +39,28 @@ def setupDBFuncs(args, kmers, min_count, qc_dict):
         dbFuncs (dict)
             Functions with consistent arguments to use as the database API
     """
-    if args.use_mash:
-        sys.stderr.write("mash no longer supported. "
-                         "Please downgrade to <=v2.0.2 to use\n")
+    from .sketchlib import checkSketchlibVersion
+    from .sketchlib import createDatabaseDir
+    from .sketchlib import joinDBs
+    from .sketchlib import constructDatabase as constructDatabaseSketchlib
+    from .sketchlib import queryDatabase as queryDatabaseSketchlib
+    from .sketchlib import readDBParams
+    from .sketchlib import getSeqsInDb
 
-    else:
-        from .sketchlib import checkSketchlibVersion
-        from .sketchlib import createDatabaseDir
-        from .sketchlib import joinDBs
-        from .sketchlib import constructDatabase as constructDatabaseSketchlib
-        from .sketchlib import queryDatabase as queryDatabaseSketchlib
-        from .sketchlib import readDBParams
-        from .sketchlib import getSeqsInDb
+    backend = "sketchlib"
+    version = checkSketchlibVersion()
 
-        backend = "sketchlib"
-        version = checkSketchlibVersion()
-
-        constructDatabase = partial(constructDatabaseSketchlib,
-                                    codon_phased = args.codon_phased,
-                                    strand_preserved = args.strand_preserved,
-                                    min_count = args.min_kmer_count,
-                                    use_exact = args.exact_count,
-                                    qc_dict = qc_dict,
-                                    use_gpu = args.gpu_sketch,
-                                    deviceid = args.deviceid)
-        queryDatabase = partial(queryDatabaseSketchlib,
-                                use_gpu = args.gpu_dist,
+    constructDatabase = partial(constructDatabaseSketchlib,
+                                codon_phased = args.codon_phased,
+                                strand_preserved = args.strand_preserved,
+                                min_count = args.min_kmer_count,
+                                use_exact = args.exact_count,
+                                qc_dict = qc_dict,
+                                use_gpu = args.gpu_sketch,
                                 deviceid = args.deviceid)
+    queryDatabase = partial(queryDatabaseSketchlib,
+                            use_gpu = args.gpu_dist,
+                            deviceid = args.deviceid)
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = {'createDatabaseDir': createDatabaseDir,

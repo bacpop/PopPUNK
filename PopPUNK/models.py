@@ -807,10 +807,11 @@ class LineageFit(ClusterFit):
                 Cluster assignments of samples in X
         '''
         ClusterFit.fit(self, X)
+        sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
         if (rank < 1):
             sys.stderr.write("Rank must be greater than 1")
             sys.exit(0)
-        elif (rank >= 0.5 * (1 + np.sqrt(1 + 4 * X.shape[0]))):
+        elif (rank >= sample_size):
             sys.stderr.write("Rank must be less than the number of samples")
             sys.exit(0)
         self.rank = int(rank)
@@ -819,10 +820,15 @@ class LineageFit(ClusterFit):
             dist_col = 1
         else:
             dist_col = 0
-        self.nn_dists = pp_sketchlib.sparsifyDists(X[:, dist_col],
-                                                   0,
-                                                   self.rank,
-                                                   threads)
+        row, col, data = pp_sketchlib.sparsifyDists(
+                            pp_sketchlib.longToSquare(X[:, [dist_col]], threads),
+                            0,
+                            self.rank,
+                            threads)
+        self.nn_dists = coo_matrix((data, (row, col)),
+                                    shape=(sample_size, sample_size),
+                                    dtype = X.dtype)
+
         self.fitted = True
 
         y = self.assign(self.nn_dists)
@@ -835,7 +841,7 @@ class LineageFit(ClusterFit):
         else:
             scipy.sparse.save_npz(
                 self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                'rank_' + str(self.rank) + '_fit.npz',
+                str(self.rank) + '_fit.npz',
                 self.nn_dists)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                 str(self.rank) + '_fit.pkl', 'wb') as pickle_file:

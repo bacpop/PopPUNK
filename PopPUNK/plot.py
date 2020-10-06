@@ -368,6 +368,7 @@ def distHistogram(dists, rank, outPrefix):
         outPrefix (int)
             Full path prefix for plot file
     """
+    plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     plt.hist(dists,
              50,
              facecolor='b',

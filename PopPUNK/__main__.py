@@ -21,8 +21,6 @@ from .models import *
 
 from .sketchlib import no_sketchlib, checkSketchlibLibrary
 
-from .lineage_clustering import cluster_into_lineages
-
 from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
@@ -297,8 +295,7 @@ def main():
         sys.stderr.write("Sketch size should be between 100 and 10^6\n")
         sys.exit(1)
     # for sketchlib, only supporting a single sketch size
-    if not args.use_mash:
-        sketch_sizes = int(round(max(sketch_sizes.values())/64))
+    sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
     # if a length range is specified, check it makes sense
     if args.length_range[0] is not None:
@@ -366,13 +363,8 @@ def main():
                             args.overwrite,
                             calc_random = True)
 
-            # Calculate and QC distances
-            if args.use_mash == True:
-                rNames = None
-                qNames = seq_names
-            else:
-                rNames = seq_names
-                qNames = seq_names
+            rNames = seq_names
+            qNames = seq_names
             refList, queryList, distMat = queryDatabase(rNames = rNames,
                                                         qNames = qNames,
                                                         dbPrefix = args.output,
@@ -490,7 +482,7 @@ def main():
             for rank in sorted(rank_list):
                 model = LineageFit(args.output)
                 assignments[rank] = \
-                    model.fit(distMat, rank, args.use_accessory, args.cpus)
+                    model.fit(distMat, rank, args.use_accessory, args.threads)
                 model.save()
                 model.plot(distMat)
 
