@@ -207,29 +207,8 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
-def writeDummyReferences(refList, outPrefix):
-    """Writes chosen references to file, for use with mash
-    Gives sequence name twice
-
-    Args:
-        refList (list)
-            Reference names to write
-        outPrefix (str)
-            Prefix for output file (.refs will be appended)
-
-    Returns:
-        refFileName (str)
-            The name of the file references were written to
-    """
-    # write references to file
-    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + ".mash.refs"
-    with open(refFileName, 'w') as rFile:
-        for ref in refList:
-            rFile.write("\t".join([ref, ref]) + '\n')
-
-    return refFileName
-
-def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
+def constructNetwork(rlist, qlist, assignments, within_label,
+                     summarise = True, edge_list = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -265,9 +244,14 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
         vertex_labels.append(qlist)
 
     # identify edges
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qlist, self = self_comparison)):
-        if assignment == within_label:
-            connections.append((ref, query))
+    if edge_list:
+        connections = assignments
+    else:
+        for assignment, (ref, query) in zip(assignments,
+                                            listDistInts(rlist, qlist,
+                                                         self = self_comparison)):
+            if assignment == within_label:
+                connections.append((ref, query))
 
     # build the graph
     G = gt.Graph(directed = False)
@@ -474,7 +458,8 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     return qlist1, distMat
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
+                  externalClusterCSV = None, printRef = True, printCSV = True,
+                  clustering_type = 'combined'):
     """Get cluster assignments
 
     Also writes assignments to a CSV file

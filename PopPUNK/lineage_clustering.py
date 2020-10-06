@@ -216,7 +216,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
     overall_lineage_seeds = defaultdict(dict)
     overall_lineages = defaultdict(dict)
     max_existing_cluster = {rank:1 for rank in rank_list}
-    
+
     # load existing scheme if supplied
     if existing_scheme is not None:
         with open(existing_scheme, 'rb') as pickle_file:
@@ -267,7 +267,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
         distance_ranks_shared_array = np.ndarray(distance_ranks.shape, dtype = distance_ranks.dtype, buffer = distance_ranks_raw.buf)
         distance_ranks_shared_array[:] = distance_ranks[:]
         distance_ranks_shared_array = NumpyShared(name = distance_ranks_raw.name, shape = distance_ranks.shape, dtype = distance_ranks.dtype)
-        
+
         # build a graph framework for network outputs
         # create graph structure with internal vertex property map
         # storing lineage assignation cannot load boost.python within spawned
@@ -278,7 +278,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
         vid = G.new_vertex_property('string',
                                     vals = isolate_list)
         G.vp.id = vid
-        
+
         # parallelise neighbour identification for each rank
         with Pool(processes = num_processes) as pool:
             results = pool.map(partial(get_nearest_neighbours,
@@ -311,7 +311,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
                     component_name[component_number] = overall_lineage_seeds[rank][seed]
             # name remaining components in rank order
             for component_rank in range(len(component_frequency_ranks)):
-#                
+#
                 component_number = component_frequency_ranks.index(component_rank)
                 if component_name[component_number] is None:
                     component_name[component_number] = max_existing_cluster[rank]
@@ -335,7 +335,7 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
     # store output
     with open(output + "/" + output + '_lineages.pkl', 'wb') as pickle_file:
         pickle.dump([lineage_assignation, overall_lineage_seeds, rank_list], pickle_file)
-    
+
     # process multirank lineages
     overall_lineages = {}
     overall_lineages = {'Rank_' + str(rank):{} for rank in rank_list}
@@ -363,6 +363,8 @@ def cluster_into_lineages(distMat, rank_list = None, output = None,
     # return lineages
     return overall_lineages
 
+
+
 def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input = None, isolates = None, previous_seeds = None):
     """ Clusters isolates into lineages based on their
     relative distances using a single R to enable
@@ -386,7 +388,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
             Seed isolate used to initiate each cluster.
         connections (set of tuples)
             Edges to add to network describing lineages.
-    """    
+    """
 
     # load shared memory objects
     distances_shm = shared_memory.SharedMemory(name = distances_input.name)
@@ -410,7 +412,7 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
     lineage_index = 1
     connections = set()
     lineage_assignation = {isolate:None for isolate in isolate_list}
-    
+
     while None in lineage_assignation.values():
         if lineage_index in seeds.keys():
             seed_isolate = seeds[lineage_index]
@@ -422,6 +424,6 @@ def run_clustering_for_rank(rank, distances_input = None, distance_ranks_input =
             lineage_assignation, added_connections = get_lineage(lineage_assignation, nn, seed_isolate, lineage_index)
             connections.update(added_connections)
         lineage_index = lineage_index + 1
-    
+
     # return clustering
     return lineage_assignation, seeds, nn, connections

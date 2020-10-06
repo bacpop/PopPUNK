@@ -9,6 +9,7 @@ import sys
 import numpy as np
 import graph_tool.all as gt
 import subprocess
+from collections import defaultdict
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
@@ -33,6 +34,7 @@ from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
 from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
+from .plot import writeClusterCsv
 
 from .prune_db import prune_distance_matrix
 
@@ -46,6 +48,7 @@ from .utils import qcDistMat
 from .utils import update_distance_matrices
 from .utils import readRfile
 from .utils import readIsolateTypeFromCsv
+from .utils import createOverallLineage
 
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 1
@@ -437,7 +440,8 @@ def main():
         if not self:
             sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
             sys.exit(1)
-        if qcDistMat(distMat, refList, queryList, args.max_a_dist) == False:
+        if qcDistMat(distMat, refList, queryList, args.max_a_dist) == False \
+                and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
 
@@ -480,42 +484,16 @@ def main():
             assignments = model.assign(distMat)
             model.plot(distMat, assignments)
 
-        #******************************#
-        #*                            *#
-        #* lineages analysis          *#
-        #*                            *#
-        #******************************#
         if args.lineage_clustering:
-
-            # load distances
-            if args.distances is not None:
-                distances = args.distances
-            else:
-                sys.stderr.write("Need to provide an input set of distances with --distances\n\n")
-                sys.exit(1)
-
-            refList, queryList, self, distMat = readPickle(distances)
-
-            # make directory for new output files
-            if not os.path.isdir(args.output):
-                try:
-                    os.makedirs(args.output)
-                except OSError:
-                    sys.stderr.write("Cannot create output directory\n")
-                    sys.exit(1)
-
-            # run lineage clustering
-            if self:
-                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, use_accessory = args.use_accessory, existing_scheme = args.existing_scheme, num_processes = args.threads)
-            else:
-                isolateClustering = cluster_into_lineages(distMat, rank_list, args.output, isolate_list = refList, qlist = queryList, use_accessory = args.use_accessory,  existing_scheme = args.existing_scheme, num_processes = args.threads)
-
-            # load networks
-            indivNetworks = {}
-            for rank in rank_list:
-                indivNetworks[rank] = gt.load_graph(args.output + "/" + os.path.basename(args.output) + '_rank_' + str(rank) + '_lineages.gt')
-                if rank == min(rank_list):
-                    genomeNetwork = indivNetworks[rank]
+            # run lineage clustering. Sparsity & low rank should keep memory
+            # usage of dict reasonable
+            assignments = {}
+            for rank in sorted(rank_list):
+                model = LineageFit(args.output)
+                assignments[rank] = \
+                    model.fit(distMat, rank, args.use_accessory, args.cpus)
+                model.save()
+                model.plot(distMat)
 
         #******************************#
         #*                            *#
@@ -524,41 +502,72 @@ def main():
         #******************************#
 
         if args.lineage_clustering:
-            #TODO
+            indivNetworks = {}
+            lineage_clusters = defaultdict(dict)
+            for rank in sorted(rank_list):
+                sys.stderr.write("Network for rank " + str(rank) + "\n")
+                indivNetworks[rank] = constructNetwork(
+                                        refList,
+                                        refList,
+                                        assignments[rank],
+                                        0,
+                                        edge_list = True
+                                       )
+                lineage_clusters[rank] = \
+                    printClusters(indivNetworks[rank],
+                                  refList,
+                                  printCSV = False)
+
+            # print output of each rank as CSV
+            overall_lineage = createOverallLineage(rank_list, lineage_clusters)
+            writeClusterCsv(args.output + "/" + \
+                os.path.basename(args.output) + '_lineages.csv',
+                refList,
+                refList,
+                overall_lineage,
+                output_format = 'phandango',
+                epiCsv = None,
+                queryNames = refList,
+                suffix = '_Lineage')
+            genomeNetwork = indivNetworks[min(rank_list)]
         else:
             genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
-            # Ensure all in dists are in final network
-            networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
-            if len(networkMissing) > 0:
-                missing_isolates = [refList[m] for m in networkMissing]
-                sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
 
-            fit_type = model.type
-            isolateClustering = {fit_type: printClusters(genomeNetwork,
-                                                         refList,
-                                                         args.output + "/" + os.path.basename(args.output),
-                                                         externalClusterCSV = args.external_clustering)}
+        # Ensure all in dists are in final network
+        networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
+        if len(networkMissing) > 0:
+            missing_isolates = [refList[m] for m in networkMissing]
+            sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
 
-            # Write core and accessory based clusters, if they worked
-            if model.indiv_fitted:
-                indivNetworks = {}
-                for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                    indivAssignments = model.assign(distMat, slope)
-                    indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
-                    isolateClustering[dist_type] = printClusters(indivNetworks[dist_type],
-                                                    refList,
-                                                     args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
-                                                     externalClusterCSV = args.external_clustering)
-                    indivNetworks[dist_type].save(args.output + "/" + os.path.basename(args.output) +
+        fit_type = model.type
+        isolateClustering = {fit_type: printClusters(genomeNetwork,
+                                                     refList,
+                                                     args.output + "/" + os.path.basename(args.output),
+                                                     externalClusterCSV = args.external_clustering)}
+
+        # Write core and accessory based clusters, if they worked
+        if model.indiv_fitted:
+            indivNetworks = {}
+            for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
+                indivAssignments = model.assign(distMat, slope)
+                indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
+                isolateClustering[dist_type] = \
+                    printClusters(indivNetworks[dist_type],
+                                  refList,
+                                  args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
+                                  externalClusterCSV = args.external_clustering)
+                indivNetworks[dist_type].save(
+                    args.output + "/" + os.path.basename(args.output) + \
                     "_" + dist_type + '_graph.gt', fmt = 'gt')
 
-                if args.core_only:
-                    fit_type = 'core'
-                    genomeNetwork = indivNetworks['core']
-                elif args.accessory_only:
-                    fit_type = 'accessory'
-                    genomeNetwork = indivNetworks['accessory']
+            if args.core_only:
+                fit_type = 'core'
+                genomeNetwork = indivNetworks['core']
+            elif args.accessory_only:
+                fit_type = 'accessory'
+                genomeNetwork = indivNetworks['accessory']
 
+#TODO remove this section entirely
 
         #******************************#
         #*                            *#
@@ -616,23 +625,9 @@ def main():
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".dists")
 
-            # With mash, the sketches are actually removed from the database
-            if args.use_mash:
-                # Create compatible input file
-                dummyRefFile = writeDummyReferences(newReferencesNames, args.output)
-                # Read and overwrite previous database
-                kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
-                constructDatabase(dummyRefFile,
-                                  kmers,
-                                  sketch_sizes,
-                                  args.output,
-                                  True,
-                                  args.threads,
-                                  True, # overwrite old db
-                                  calc_random = True)
-                os.remove(dummyRefFile)
-
-        genomeNetwork.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
+        genomeNetwork.save(args.output + "/" + \
+                           os.path.basename(args.output) + '_graph.gt',
+                           fmt = 'gt')
 
     #*******************************#
     #*                             *#
@@ -647,6 +642,8 @@ def main():
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory)
+
+#TODO move this into its own file, create new exported command line app for it
 
     #******************************#
     #*                            *#
@@ -730,7 +727,7 @@ def main():
                                        model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
                 except:
                     sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
-                    exit()
+                    sys.exit(1)
 
                 # Set directories of previous fit
                 if args.previous_clustering is not None:
@@ -791,6 +788,8 @@ def main():
             sys.exit(1)
 
     sys.stderr.write("\nDone\n")
+
+#TODO move this into its own file, create new exported command line app for it
 
 #*******************************#
 #*                             *#

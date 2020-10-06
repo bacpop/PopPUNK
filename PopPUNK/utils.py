@@ -551,3 +551,20 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
     hdf_in.close()
 
     return retained
+
+def createOverallLineage(rank_list, lineage_clusters):
+    # process multirank lineages
+    overall_lineages = {'Rank_' + str(rank):{} for rank in rank_list}
+    overall_lineages['overall'] = {}
+    isolate_list = lineage_clusters[rank_list[0]].keys()
+    for isolate in isolate_list:
+        overall_lineage = None
+        for rank in rank_list:
+            overall_lineages['Rank_' + str(rank)][isolate] = lineage_clusters[rank][isolate]
+            if overall_lineage is None:
+                overall_lineage = str(lineage_clusters[rank][isolate])
+            else:
+                overall_lineage = overall_lineage + '-' + str(lineage_clusters[rank][isolate])
+        overall_lineages['overall'][isolate] = overall_lineage
+
+    return overall_lineages

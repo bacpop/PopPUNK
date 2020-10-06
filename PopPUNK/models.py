@@ -838,7 +838,7 @@ class LineageFit(ClusterFit):
         '''
         self.rank = fit_obj
 
-    def plot(self, X, y):
+    def plot(self, X):
         '''Extends :func:`~ClusterFit.plot`
 
         Write a summary of the fit, and plot the results using
@@ -847,8 +847,6 @@ class LineageFit(ClusterFit):
         Args:
             X (numpy.array)
                 Core and accessory distances
-            y (numpy.array)
-                Cluster assignments from :func:`~BGMMFit.assign`
         '''
         ClusterFit.plot(self, X)
         distHistogram(self.nn_dists.data,
