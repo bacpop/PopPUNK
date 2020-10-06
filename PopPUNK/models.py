@@ -45,7 +45,8 @@ from .plot import plot_refined_results
 # lineage
 from .plot import distHistogram
 
-def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples=100000):
+def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
+                   sparse = False):
     '''Call this to load a fitted model
 
     Args:
@@ -59,26 +60,35 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples=100000):
             Maximum samples if subsampling X
 
             [default = 100000]
+        sparse (bool)
+            Whether the saved numpy matrix is sparse
+
+            [default = False]
     '''
     with open(pkl_file, 'rb') as pickle_obj:
         fit_object, fit_type = pickle.load(pickle_obj)
-    fit_data = np.load(npz_file)
+
+    if sparse:
+        fit_data = scipy.sparse.load_npz(npz_file)
+    else:
+        fit_data = np.load(npz_file)
 
     if fit_type == "bgmm":
         sys.stderr.write("Loading BGMM 2D Gaussian model\n")
         load_obj = BGMMFit(outPrefix, max_samples)
-        load_obj.load(fit_data, fit_object)
     elif fit_type == "dbscan":
         sys.stderr.write("Loading DBSCAN model\n")
         load_obj = DBSCANFit(outPrefix, max_samples)
-        load_obj.load(fit_data, fit_object)
     elif fit_type == "refine":
         sys.stderr.write("Loading previously refined model\n")
         load_obj = RefineFit(outPrefix)
-        load_obj.load(fit_data, fit_object)
+    elif fit_type == "lineage":
+        sys.stderr.write("Loading previously lineage cluster model\n")
+        load_obj = LineageFit(outPrefix)
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
+    load_obj.load(fit_data, fit_object)
     return load_obj
 
 class ClusterFit:
@@ -823,6 +833,10 @@ class LineageFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
+            scipy.sparse.save_npz(
+                self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                'rank_' + str(self.rank) + '_fit.npz',
+                self.nn_dists)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                 str(self.rank) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.rank, self.type], pickle_file)
@@ -837,6 +851,7 @@ class LineageFit(ClusterFit):
                 The saved fit object
         '''
         self.rank = fit_obj
+        self.nn_dists = fit_npz
 
     def plot(self, X):
         '''Extends :func:`~ClusterFit.plot`

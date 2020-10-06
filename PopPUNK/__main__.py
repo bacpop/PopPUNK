@@ -26,7 +26,6 @@ from .lineage_clustering import cluster_into_lineages
 from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
-from .network import writeDummyReferences
 from .network import addQueryToNetwork
 from .network import printClusters
 
