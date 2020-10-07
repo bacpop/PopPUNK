@@ -71,7 +71,7 @@ def main():
         raise RuntimeError("Distance DB should be self-self distances")
 
     # Read in full network
-    genomeNetwork = gt.load_graph(args.network_file)
+    genomeNetwork = gt.load_graph(args.network)
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
