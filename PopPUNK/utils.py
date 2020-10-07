@@ -273,7 +273,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
             type_columns = range((len(clustersCsv.columns)-1))
     else:
         sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
-        exit(1)
+        sys.exit(1)
 
     # read file
     for row in clustersCsv.itertuples():

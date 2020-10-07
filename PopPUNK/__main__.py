@@ -49,7 +49,7 @@ from .utils import createOverallLineage
 
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 1
-SKETCHLIB_MINOR = 4
+SKETCHLIB_MINOR = 5
 
 #******************************#
 #*                            *#
@@ -199,8 +199,6 @@ def get_options():
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
     lineagesGroup.add_argument('--ranks',help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]', type = str, default = "1,2,3")
     lineagesGroup.add_argument('--use-accessory',help='Use accessory distances for lineage definitions [default = use core distances]', action = 'store_true', default = False)
-    lineagesGroup.add_argument('--existing-scheme',help='Name of pickle file storing existing lineage definitions '
-                                                        ', required with "--assign-lineages"', type = str, default = None)
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
