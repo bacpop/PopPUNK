@@ -76,7 +76,7 @@ def main():
         raise RuntimeError("Distance DB should be self-self distances")
 
     # Read in full network
-    genomeNetwork = gt.load_graph(network_file)
+    genomeNetwork = gt.load_graph(args.network_file)
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
@@ -86,12 +86,14 @@ def main():
     G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     # Prune distances
+    nodes_to_remove = set(range(len(refList))).difference(reference_indices)
+    names_to_remove = [refList[n] for n in nodes_to_remove]
     prune_distance_matrix(refList, nodes_to_remove, distMat,
                           args.output + "/" + os.path.basename(args.output) + ".dists")
 
     # 'Resketch'
     if len(nodes_to_remove) > 0:
-        removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))
+        removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
     else:
         sys.stderr.write("No sequences to remove\n")
 

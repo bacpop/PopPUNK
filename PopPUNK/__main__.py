@@ -308,10 +308,10 @@ def main():
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if min(rank_list) == 0 or max(rank_list) > 100:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
-            exit(1)
+            sys.exit(1)
         if args.assign_lineages and args.existing_scheme is None:
             sys.stderr.write('Must provide an existing scheme (--existing-scheme) if assigning to lineages\n')
-            exit(1)
+            sys.exit(1)
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
