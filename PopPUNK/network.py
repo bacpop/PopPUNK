@@ -113,14 +113,13 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = [index_lookup[r] for r in references]
 
-    # extract cliques from network
-    cliques_in_overall_graph = [c.tolist() for c in gt.max_cliques(G)]
-    # order list by size of clique
-    cliques_in_overall_graph.sort(key = len, reverse = True)
-    # iterate through cliques
-    for clique in cliques_in_overall_graph:
+    # OLD CODE: extract all max cliques from network, and sort
+    # cliques_in_overall_graph = [c.tolist() for c in gt.max_cliques(G)]
+    # cliques_in_overall_graph.sort(key = len, reverse = True)
+    # NEW CODE: iterate through cliques, to keep memory down
+    for clique in gt.max_cliques(G):
         alreadyRepresented = 0
-        for node in clique:
+        for node in clique.tolist():
             if node in reference_indices:
                 alreadyRepresented = 1
                 break
