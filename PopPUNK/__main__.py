@@ -37,6 +37,7 @@ from .prune_db import prune_distance_matrix
 
 from .sketchlib import calculateQueryQueryDistances
 
+from .utils import setGtThreads
 from .utils import setupDBFuncs
 from .utils import storePickle
 from .utils import readPickle
@@ -322,12 +323,6 @@ def main():
     if args.ref_db is not None and args.ref_db.endswith('/'):
         args.ref_db = args.ref_db[:-1]
 
-    # Check on parallelisation of graph-tools
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(args.threads)
-        sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
-        sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
-
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
@@ -338,6 +333,9 @@ def main():
             sys.exit(1)
         else:
             sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
+
+    # Check on parallelisation of graph-tools
+    setGtThreads(args.threads)
 
     #******************************#
     #*                            *#

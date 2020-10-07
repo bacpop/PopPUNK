@@ -14,17 +14,11 @@ from .__init__ import __version__
 
 from .sketchlib import removeFromDB
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
-
 from .network import extractReferences
-from .network import writeDummyReferences
 
 from .prune_db import prune_distance_matrix
 
+from .utils import setGtThreads
 from .utils import readPickle
 
 # command line parsing
@@ -69,6 +63,7 @@ def main():
         except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
+    setGtThreads(args.threads)
 
     # Read in all distances
     refList, queryList, self, distMat = readPickle(args.distances)

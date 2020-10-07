@@ -12,12 +12,20 @@ import subprocess
 from collections import defaultdict
 from tempfile import mkstemp
 from functools import partial
+import graph_tool.all as gt
 
 import numpy as np
 import pandas as pd
 import h5py
 
 import pp_sketchlib
+
+def setGtThreads(threads):
+    # Check on parallelisation of graph-tools
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(threads)
+        sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
+        sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
 
 # Use partials to set up slightly different function calls between
 # both possible backends
