@@ -102,11 +102,17 @@ def getCliqueRefs(G, reference_indices = set()):
             reference_indices.add(subgraph.get_vertices()[0])
     except StopIteration:
         pass
-    return list(reference_indices)
+    return reference_indices
 
 def cliquePrune(component, graph, reference_indices, components_list):
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
-    reference_indices.update(getCliqueRefs(subgraph))
+    refs = reference_indices.copy()
+    if subgraph.num_vertices() <= 2:
+        refs.add(subgraph.get_vertices()[0])
+        ref_list = refs
+    else:
+        ref_list = getCliqueRefs(subgraph, refs)
+    return(list(ref_list))
 
 def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
     """Extract references for each cluster based on cliques
@@ -146,8 +152,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
                                         graph=G,
                                         reference_indices=reference_indices,
                                         components_list=components),
-                             components)
-    reference_indices = set(ref_lists)
+                             set(components))
+    reference_indices = set([ent for sublist in ref_lists for ent in sublist])
 
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(threads)
