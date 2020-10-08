@@ -95,7 +95,7 @@ def getCliqueRefs(G, reference_indices = []):
 
         if subgraph.num_vertices() > 1:
             getCliqueRefs(subgraph, reference_indices)
-        else:
+        elif subgraph.num_vertices() == 1:
             reference_indices.append(subgraph.get_vertices()[0])
     except StopIteration:
         pass
