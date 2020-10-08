@@ -90,7 +90,7 @@ def getCliqueRefs(G, reference_indices = []):
     cliques = gt.max_cliques(G)
     clique = frozenset(next(cliques))
     reference_indices.append(list(clique)[0])
-    if len(G.vertices()) > 1:
+    if G.num_vertices() > 1:
         subgraph = gt.GraphView(G, vfilt=[v in clique for v in G.vertices()])
         reference_indices.append(getCliqueRefs(subgraph), reference_indices)
     return reference_indices
@@ -118,16 +118,16 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     """
     if existingRefs == None:
         references = set()
-        reference_indices = []
+        reference_indices = set()
     else:
         references = set(existingRefs)
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
-        reference_indices = [index_lookup[r] for r in references]
+        reference_indices = set([index_lookup[r] for r in references])
 
     components = gt.label_components(G)[0]
     for component in set(components.a):
         subgraph = gt.GraphView(G, vfilt=components.a == component)
-        reference_indices.append(getCliqueRefs(subgraph))
+        reference_indices.add(getCliqueRefs(subgraph))
 
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
@@ -143,7 +143,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     # Use a vertex filter to extract the subgraph of refences
     # as a graphview
     reference_vertex = G.new_vertex_property('bool')
-    for n,vertex in enumerate(G.vertices()):
+    for n, vertex in enumerate(G.vertices()):
         if n in reference_indices:
             reference_vertex[vertex] = True
         else:
