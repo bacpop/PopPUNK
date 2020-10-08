@@ -83,7 +83,7 @@ def main():
     # Prune distances
     nodes_to_remove = set(range(len(refList))).difference(reference_indices)
     names_to_remove = [refList[n] for n in nodes_to_remove]
-    prune_distance_matrix(refList, nodes_to_remove, distMat,
+    prune_distance_matrix(refList, names_to_remove, distMat,
                           args.output + "/" + os.path.basename(args.output) + ".dists")
 
     # 'Resketch'
