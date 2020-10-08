@@ -94,11 +94,11 @@ def getCliqueRefs(G, reference_indices = []):
         subgraph = gt.GraphView(G, vfilt=[v not in clique for v in G.vertices()])
 
         if subgraph.num_vertices() > 1:
-            reference_indices.append(getCliqueRefs(subgraph, reference_indices))
+            getCliqueRefs(subgraph, reference_indices)
         else:
             reference_indices.append(subgraph.get_vertices()[0])
     except StopIteration:
-         reference_indices.append(list(G.get_vertices()))
+        pass
     return reference_indices
 
 def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
@@ -133,7 +133,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     components = gt.label_components(G)[0]
     for component in set(components.a):
         subgraph = gt.GraphView(G, vfilt=components.a == component)
-        reference_indices.add(getCliqueRefs(subgraph))
+        reference_indices.update(set(getCliqueRefs(subgraph)))
 
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
