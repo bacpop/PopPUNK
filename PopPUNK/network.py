@@ -137,7 +137,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
-    components = set(gt.label_components(G)[0].a)
+    components = gt.label_components(G)[0]
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
 
@@ -146,7 +146,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
                                      graph=G,
                                      reference_indices=reference_indices,
                                      components_list=components),
-                             components)
+                             components.a)
     reference_indices = set(ref_lists)
 
     if gt.openmp_enabled():
