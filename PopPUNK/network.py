@@ -18,6 +18,8 @@ import pandas as pd
 from scipy.stats import rankdata
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
+from functools import partial
+from multiprocessing import Pool
 
 from .sketchlib import calculateQueryQueryDistances
 
@@ -83,25 +85,30 @@ def fetchNetwork(network_dir, model, refList,
 
     return (genomeNetwork, cluster_file)
 
-def getCliqueRefs(G, reference_indices = []):
+def getCliqueRefs(G, reference_indices = set()):
     '''
     Recursively prune network by cliques
     '''
     cliques = gt.max_cliques(G)
     try:
         clique = frozenset(next(cliques))
-        reference_indices.append(list(clique)[0])
+        if clique.isdisjoint(reference_indices):
+            reference_indices.add(list(clique)[0])
         subgraph = gt.GraphView(G, vfilt=[v not in clique for v in G.vertices()])
 
         if subgraph.num_vertices() > 1:
             getCliqueRefs(subgraph, reference_indices)
         elif subgraph.num_vertices() == 1:
-            reference_indices.append(subgraph.get_vertices()[0])
+            reference_indices.add(subgraph.get_vertices()[0])
     except StopIteration:
         pass
-    return reference_indices
+    return list(reference_indices)
 
-def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
+def cliquePrune(component, graph, reference_indices, components_list):
+    subgraph = gt.GraphView(graph, vfilt=components_list == component)
+    reference_indices.update(getCliqueRefs(subgraph))
+
+def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -130,10 +137,20 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
-    components = gt.label_components(G)[0]
-    for component in set(components.a):
-        subgraph = gt.GraphView(G, vfilt=components.a == component)
-        reference_indices.update(set(getCliqueRefs(subgraph)))
+    components = set(gt.label_components(G)[0].a)
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
+
+    with Pool(processes=threads) as pool:
+        ref_lists = pool.map(partial(cliquePrune,
+                                     graph=G,
+                                     reference_indices=reference_indices,
+                                     components_list=components),
+                             components)
+    reference_indices = set(ref_lists)
+
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(threads)
 
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
