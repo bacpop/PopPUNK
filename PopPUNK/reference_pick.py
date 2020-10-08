@@ -89,6 +89,8 @@ def main():
     # 'Resketch'
     if len(nodes_to_remove) > 0:
         removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
+        os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
+                  args.output + "/" + os.path.basename(args.output) + ".h5")
     else:
         sys.stderr.write("No sequences to remove\n")
 
