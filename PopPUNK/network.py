@@ -91,7 +91,7 @@ def getCliqueRefs(G, reference_indices = []):
     clique = frozenset(next(cliques))
     reference_indices.append(list(clique)[0])
     if G.num_vertices() > 1:
-        subgraph = gt.GraphView(G, vfilt=[v in clique for v in G.vertices()])
+        subgraph = gt.GraphView(G, vfilt=[v not in clique for v in G.vertices()])
         reference_indices.append(getCliqueRefs(subgraph), reference_indices)
     return reference_indices
 
