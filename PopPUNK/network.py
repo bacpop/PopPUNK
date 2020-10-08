@@ -83,6 +83,16 @@ def fetchNetwork(network_dir, model, refList,
 
     return (genomeNetwork, cluster_file)
 
+def getCliqueRefs(G, reference_indices = []):
+    '''
+    Recursively prune network by cliques
+    '''
+    clique = frozenset(gt.max_cliques(G)[0])
+    reference_indices.append(list(clique)[0])
+    if len(G.vertices()) > 1:
+        subgraph = gt.GraphView(G, vfilt=[v in clique for v in G.vertices()])
+        reference_indices.append(getCliqueRefs(subgraph), reference_indices)
+    return reference_indices
 
 def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     """Extract references for each cluster based on cliques
@@ -113,18 +123,10 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = [index_lookup[r] for r in references]
 
-    # OLD CODE: extract all max cliques from network, and sort
-    # cliques_in_overall_graph = [c.tolist() for c in gt.max_cliques(G)]
-    # cliques_in_overall_graph.sort(key = len, reverse = True)
-    # NEW CODE: iterate through cliques, to keep memory down
-    for clique in gt.max_cliques(G):
-        alreadyRepresented = 0
-        for node in clique.tolist():
-            if node in reference_indices:
-                alreadyRepresented = 1
-                break
-        if alreadyRepresented == 0:
-            reference_indices.append(clique[0])
+    components = gt.label_components(G)[0]
+    for component in set(components.a):
+        subgraph = gt.GraphView(G, vfilt=components.a == component)
+        reference_indices.append(getCliqueRefs(subgraph))
 
     # Find any clusters which are represented by multiple references
     # First get cluster assignments
