@@ -88,11 +88,17 @@ def getCliqueRefs(G, reference_indices = []):
     Recursively prune network by cliques
     '''
     cliques = gt.max_cliques(G)
-    clique = frozenset(next(cliques))
-    reference_indices.append(list(clique)[0])
-    if G.num_vertices() > 1:
+    try:
+        clique = frozenset(next(cliques))
+        reference_indices.append(list(clique)[0])
         subgraph = gt.GraphView(G, vfilt=[v not in clique for v in G.vertices()])
-        reference_indices.append(getCliqueRefs(subgraph), reference_indices)
+
+        if subgraph.num_vertices() > 1:
+            reference_indices.append(getCliqueRefs(subgraph, reference_indices))
+        else:
+            reference_indices.append(subgraph.get_vertices()[0])
+    except StopIteration:
+         reference_indices.append(list(G.get_vertices()))
     return reference_indices
 
 def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
