@@ -77,7 +77,7 @@ def main():
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
     reference_indices, reference_names, refFileName, G_ref = \
-        extractReferences(genomeNetwork, refList, args.output)
+        extractReferences(genomeNetwork, refList, args.output, args.threads)
     G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     # Prune distances

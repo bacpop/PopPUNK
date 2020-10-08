@@ -137,16 +137,16 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
-    components = gt.label_components(G)[0]
+    components = gt.label_components(G)[0].a
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
 
     with Pool(processes=threads) as pool:
         ref_lists = pool.map(partial(cliquePrune,
-                                     graph=G,
-                                     reference_indices=reference_indices,
-                                     components_list=components),
-                             components.a)
+                                        graph=G,
+                                        reference_indices=reference_indices,
+                                        components_list=components),
+                             components)
     reference_indices = set(ref_lists)
 
     if gt.openmp_enabled():

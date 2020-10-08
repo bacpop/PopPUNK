@@ -606,7 +606,7 @@ def main():
         # extract limited references from clique by default
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork, refList, args.output)
+                extractReferences(genomeNetwork, refList, args.output, args.threads)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
@@ -916,7 +916,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             # only update network if assigning to strains
             if full_db is False and assign_lineage is False:
                 dbOrder = refList + ordered_queryList
-                newRepresentativesIndices, newRepresentativesNames, newRepresentativesFile, genomeNetwork = extractReferences(genomeNetwork, dbOrder, output, refList)
+                newRepresentativesIndices, newRepresentativesNames, newRepresentativesFile, genomeNetwork = \
+                    extractReferences(genomeNetwork, dbOrder, output, refList, threads)
                 isolates_to_remove = set(dbOrder).difference(newRepresentativesNames)
                 newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
