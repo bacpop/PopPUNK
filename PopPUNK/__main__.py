@@ -19,7 +19,8 @@ from .__init__ import __version__
 
 from .models import *
 
-from .sketchlib import no_sketchlib, checkSketchlibLibrary
+from .sketchlib import checkSketchlibLibrary
+from .sketchlib import removeFromDB
 
 from .network import fetchNetwork
 from .network import constructNetwork
@@ -600,13 +601,18 @@ def main():
         #*                            *#
         #******************************#
         # extract limited references from clique by default
+        # (this no longer loses information and should generally be kept on)
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
                 extractReferences(genomeNetwork, refList, args.output)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
             prune_distance_matrix(refList, names_to_remove, distMat,
-                                  args.output + "/" + os.path.basename(args.output) + ".dists")
+                                  args.output + "/" + os.path.basename(args.output) + ".refs.dists")
+            if len(nodes_to_remove) > 0:
+                removeFromDB(args.ref_db, args.output, names_to_remove)
+                os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
+                          args.output + "/" + os.path.basename(args.output) + ".refs.h5")
 
         genomeNetwork.save(args.output + "/" + \
                            os.path.basename(args.output) + '_graph.gt',
@@ -796,7 +802,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
     if ref_db is not None and q_files is not None:
         sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
-        self = False
         if ref_db == output:
             sys.stderr.write("--output and --ref-db must be different to "
                                 "prevent overwrite.\n")
@@ -884,7 +889,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = \
-                addQueryToNetwork(dbFuncs, refList, queryList, q_files,
+                addQueryToNetwork(dbFuncs, refList, queryList,
                                   genomeNetwork, kmers, queryAssignments,
                                   model, output, update_db, threads = threads)
 
@@ -900,7 +905,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                            print_full_clustering)}
 
         # Update DB as requested
-        if update_db or assign_lineage:
+        if update_db:
 
             # Check new sequences pass QC before adding them
             if not qcPass:
