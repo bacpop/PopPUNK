@@ -299,9 +299,9 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
-                        assignments, model, queryDB, queryQuery = False,
-                        use_mash = False, threads = 1):
+def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
+                      assignments, model, queryDB, queryQuery = False,
+                      threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -312,8 +312,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
             List of reference names
         qList (list)
             List of query names
-        qFile (list)
-            File of query sequences
         G (graph)
             Network to add to (mutated)
         kmers (list)
@@ -327,11 +325,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
         queryQuery (bool)
             Add in all query-query distances
             (default = False)
-        use_mash (bool)
-            Use the mash backend
-        no_stream (bool)
-            Don't stream mash output
-            (default = False)
         threads (int)
             Number of threads to use if new db created
 
@@ -343,93 +336,48 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
             Query-query distances
     """
     # initalise functions
-    readDBParams = dbFuncs['readDBParams']
-    constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
     # initialise links data structure
     new_edges = []
     assigned = set()
 
-    # These are returned
-    qlist1 = None
-    distMat = None
-
-    # Set up query names
-    if use_mash == True:
-        # mash must use sequence file names for both testing for
-        # assignment and for generating a new database
-        rNames = None
-        qNames = qList
-    else:
-        rNames = qList
-        qNames = rNames
-
-    # identify query sequence files
-    qSeqs = []
-    queryFiles = {}
-    with open(qFile, 'r') as qfile:
-        for line in qfile.readlines():
-            info = line.rstrip().split()
-            if info[0] in qNames:
-                qSeqs.append(info[1])
-                queryFiles[info[0]] = info[1]
-
     # store links for each query in a list of edge tuples
-    ref_count = len(rlist)
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qNames, self = False)):
+    ref_count = len(rList)
+    for assignment, (ref, query) in zip(assignments, listDistInts(rList, qList, self = False)):
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
             new_edges.append((ref, query + ref_count))
-            assigned.add(qNames[query])
+            assigned.add(qList[query])
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
         qlist1, distMat = calculateQueryQueryDistances(dbFuncs,
-                                                        rNames,
-                                                        qNames,
-                                                        kmers,
-                                                        queryDB,
-                                                        use_mash,
-                                                        threads)
+                                                       qList,
+                                                       kmers,
+                                                       queryDB,
+                                                       threads)
 
         queryAssignation = model.assign(distMat)
-        for assignment, (ref, query) in zip(queryAssignation, listDistInts(qNames, qNames, self = True)):
+        for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):
             if assignment == model.within_label:
                 new_edges.append((ref + ref_count, query + ref_count))
 
     # Otherwise only calculate query-query distances for new clusters
     else:
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
-        unassigned = set(qSeqs).difference(assigned)
-        query_indices = {k:v+ref_count for v,k in enumerate(qSeqs)}
+        unassigned = set(qList).difference(assigned)
+        query_indices = {k:v+ref_count for v,k in enumerate(qList)}
         # process unassigned query sequences, if there are any
         if len(unassigned) > 1:
-            sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
-
-            # write unassigned queries to file as if a list of references
-            tmpDirName = mkdtemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir="./")
-            tmpHandle, tmpFile = mkstemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir=tmpDirName)
-            with open(tmpFile, 'w') as tFile:
-                for query in unassigned:
-                    if isinstance(queryFiles[query], list):
-                        seqFiles = "\t".join(queryFiles[query])
-                    elif isinstance(queryFiles[query], str):
-                        seqFiles = queryFiles[query]
-                    else:
-                        raise RuntimeError("Error with formatting of q-file")
-                    tFile.write(query + '\t' + seqFiles + '\n')
-
-            # use database construction methods to find links between unassigned queries
-            sketchSize = readDBParams(queryDB, kmers, None)[1]
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
+            sys.stderr.write("Found novel query clusters. "
+                             "Calculating distances between them:\n")
 
             qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),
-                                                    dbPrefix = tmpDirName,
-                                                    queryPrefix = tmpDirName,
+                                                    dbPrefix = queryDB,
+                                                    queryPrefix = queryDB,
                                                     klist = kmers,
                                                     self = True,
                                                     number_plot_fits = 0,
@@ -444,16 +392,13 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
                 if assignment == model.within_label:
                     new_edges.append((query_indices[query1], query_indices[query2]))
 
-            # remove directory
-            shutil.rmtree(tmpDirName)
-
     # finish by updating the network
-    G.add_vertex(len(qNames))
+    G.add_vertex(len(qList))
     G.add_edge_list(new_edges)
 
     # including the vertex ID property map
-    for i,q in enumerate(qSeqs):
-        G.vp.id[i + len(rlist)] = q
+    for i, q in enumerate(qList):
+        G.vp.id[i + len(rList)] = q
 
     return qlist1, distMat
 

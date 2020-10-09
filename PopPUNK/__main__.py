@@ -220,7 +220,6 @@ def get_options():
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
-    other.add_argument('--no-stream', help='Use temporary files for mash dist interfacing. Reduce memory use/increase disk use for large datasets', default=False, action='store_true')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -257,9 +256,6 @@ def main():
         sys.exit(1)
     elif args.k_step < 1:
         sys.stderr.write("Kmer size step must be at least one\n")
-        sys.exit(1)
-    elif no_sketchlib and (args.min_k < 9 or args.max_k > 31):
-        sys.stderr.write("When using Mash, Kmer size must be between 9 and 31\n")
         sys.exit(1)
     elif args.min_k < 3:
         sys.stderr.write("Min k-mer length must be 3 or higher\n")
@@ -625,7 +621,7 @@ def main():
     elif args.assign_query or args.assign_lineages:
         assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
                      args.microreact, args.cytoscape, kmers, sketch_sizes,
-                     args.threads, args.use_mash, args.mash, args.overwrite, args.plot_fit, args.no_stream,
+                     args.threads, args.overwrite, args.plot_fit,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
                      args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory)
@@ -784,8 +780,8 @@ def main():
 #*                             *#
 #*******************************#
 def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
-                 kmers, sketch_sizes, threads, use_mash, mash, overwrite,
-                 plot_fit, no_stream, max_a_dist, model_dir, previous_clustering,
+                 kmers, sketch_sizes, threads, overwrite,
+                 plot_fit, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
                  info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory):
     """Code for assign query mode. Written as a separate function so it can be called
@@ -822,26 +818,20 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         # Find distances vs ref seqs
         rNames = []
-        if use_mash == True:
-            rNames = None
-            # construct database and QC
-            qNames = constructDatabase(q_files, kmers, sketch_sizes, output,
-                                threads, overwrite)
+        if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
+            with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
+                for reference in refFile:
+                    rNames.append(reference.rstrip())
         else:
-            if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
-                with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
-                    for reference in refFile:
-                        rNames.append(reference.rstrip())
-            else:
-                rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
-            # construct database
-            qNames = constructDatabase(q_files,
-                                       kmers,
-                                       sketch_sizes,
-                                       output,
-                                       threads,
-                                       overwrite,
-                                       calc_random = False)
+            rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
+        # construct database
+        qNames = constructDatabase(q_files,
+                                    kmers,
+                                    sketch_sizes,
+                                    output,
+                                    threads,
+                                    overwrite,
+                                    calc_random = False)
 
         # run query
         refList, queryList, distMat = queryDatabase(rNames = rNames,
@@ -863,8 +853,9 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         if assign_lineage:
 
             # Assign lineages by calculating query-query information
-            ordered_queryList, query_distMat = calculateQueryQueryDistances(dbFuncs, refList, qNames,
-                    kmers, output, use_mash, threads)
+            ordered_queryList, query_distMat = \
+                calculateQueryQueryDistances(dbFuncs, qNames,
+                    kmers, output, threads)
 
         else:
             # Assign these distances as within or between strain
@@ -887,21 +878,26 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 prev_clustering = model_prefix
 
             # Load the network based on supplied options
-            genomeNetwork, old_cluster_file = fetchNetwork(prev_clustering, model, refList,
-                                                            core_only, accessory_only)
+            genomeNetwork, old_cluster_file = \
+                fetchNetwork(prev_clustering, model, refList,
+                             core_only, accessory_only)
 
             # Assign clustering by adding to network
-            ordered_queryList, query_distMat = addQueryToNetwork(dbFuncs, refList, queryList, q_files,
-                    genomeNetwork, kmers, queryAssignments, model, output, update_db,
-                    use_mash, threads)
+            ordered_queryList, query_distMat = \
+                addQueryToNetwork(dbFuncs, refList, queryList, q_files,
+                                  genomeNetwork, kmers, queryAssignments,
+                                  model, output, update_db, threads = threads)
 
             # if running simple query
             print_full_clustering = False
             if update_db:
                 print_full_clustering = True
-            isolateClustering = {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
-                                                            output + "/" + os.path.basename(output),
-                                                            old_cluster_file, external_clustering, print_full_clustering)}
+            isolateClustering = \
+                {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
+                                           output + "/" + os.path.basename(output),
+                                           old_cluster_file,
+                                           external_clustering,
+                                           print_full_clustering)}
 
         # Update DB as requested
         if update_db or assign_lineage:
@@ -923,13 +919,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             else:
                 newQueries = ordered_queryList
 
-            # Update the sketch database
-            if newQueries != queryList and use_mash:
-                tmpRefFile = writeTmpFile(newQueries)
-                constructDatabase(tmpRefFile, kmers, sketch_sizes, output,
-                                    True, threads, True) # overwrite old db
-                os.remove(tmpRefFile)
-            # With mash, this is the reduced DB constructed,
             # with sketchlib, all sketches
             joinDBs(ref_db, output, output)
 
@@ -992,8 +981,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
                                 queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
         if cytoscape:
-                sys.stderr.write("Writing cytoscape output\n")
-                outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
+            sys.stderr.write("Writing cytoscape output\n")
+            outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
 
     else:
         sys.stderr.write("Need to provide both a reference database with --ref-db and "

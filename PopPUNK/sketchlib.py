@@ -469,8 +469,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     return(rNames, qNames, distMat)
 
-def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers,
-                queryDB, use_mash = False, threads = 1):
+def calculateQueryQueryDistances(dbFuncs, qlist, kmers,
+                                 queryDB, threads = 1):
     """Calculates distances between queries.
 
     Args:
@@ -484,8 +484,6 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers,
             List of k-mer sizes
         queryDB (str)
             Query database location
-        use_mash (bool)
-            Use the mash backend
         threads (int)
             Number of threads to use if new db created
             (default = 1)
@@ -497,21 +495,10 @@ def calculateQueryQueryDistances(dbFuncs, rlist, qlist, kmers,
             Query-query distances
     """
 
-    constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
-    # Set up query names
-    if use_mash == True:
-        rNames = None
-        qNames = qlist
-    else:
-        rNames = qlist
-        qNames = rNames
-
-    # Calculate all query-query distances too, if updating database
-    qlist1, qlist2, distMat = queryDatabase(rNames = rNames,
-                                            qNames = qNames,
+    qlist1, qlist2, distMat = queryDatabase(rNames = qlist,
+                                            qNames = qlist,
                                             dbPrefix = queryDB,
                                             queryPrefix = queryDB,
                                             klist = kmers,
