@@ -595,6 +595,10 @@ def main():
             # (e.g. rapidnj not found)
             sys.stderr.write("Error creating files for visualisation: " + str(sys.exc_info()[0]))
 
+        genomeNetwork.save(args.output + "/" + \
+                           os.path.basename(args.output) + '_graph.gt',
+                           fmt = 'gt')
+
         #******************************#
         #*                            *#
         #* clique pruning             *#
@@ -607,16 +611,18 @@ def main():
                 extractReferences(genomeNetwork, refList, args.output)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
+            # Save reference distances
             prune_distance_matrix(refList, names_to_remove, distMat,
                                   args.output + "/" + os.path.basename(args.output) + ".refs.dists")
+            # Save reference network
+            genomeNetwork.save(args.output + "/" + \
+                               os.path.basename(args.output) + '.refs_graph.gt',
+                               fmt = 'gt')
+            # Save network database
             if len(nodes_to_remove) > 0:
                 removeFromDB(args.ref_db, args.output, names_to_remove)
                 os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
                           args.output + "/" + os.path.basename(args.output) + ".refs.h5")
-
-        genomeNetwork.save(args.output + "/" + \
-                           os.path.basename(args.output) + '_graph.gt',
-                           fmt = 'gt')
 
     #*******************************#
     #*                             *#
@@ -862,6 +868,17 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 calculateQueryQueryDistances(dbFuncs, qNames,
                     kmers, output, threads)
 
+            expected_lineage_name = ref_db + '/' + ref_db + '_lineages.pkl'
+            if existing_scheme is not None:
+                expected_lineage_name = existing_scheme
+            isolateClustering = cluster_into_lineages(complete_distMat,
+                                                        rank_list, output,
+                                                        combined_seq,
+                                                        ordered_queryList,
+                                                        expected_lineage_name,
+                                                        use_accessory,
+                                                        threads)
+
         else:
             # Assign these distances as within or between strain
             model_prefix = ref_db
@@ -904,73 +921,63 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                            external_clustering,
                                            print_full_clustering)}
 
-        # Update DB as requested
-        if update_db:
+            # Update DB as requested
+            if update_db:
+                # Check new sequences pass QC before adding them
+                if not qcPass:
+                    sys.stderr.write("Queries contained outlier distances, "
+                                    "not updating database\n")
+                else:
+                    sys.stderr.write("Updating reference database to " + output + "\n")
 
-            # Check new sequences pass QC before adding them
-            if not qcPass:
-                sys.stderr.write("Queries contained outlier distances, not updating database\n")
-            else:
-                sys.stderr.write("Updating reference database to " + output + "\n")
-
-            # Update the network + ref list
-            # only update network if assigning to strains
-            if full_db is False and assign_lineage is False:
-                dbOrder = refList + ordered_queryList
-                newRepresentativesIndices, newRepresentativesNames, newRepresentativesFile, genomeNetwork = extractReferences(genomeNetwork, dbOrder, output, refList)
-                isolates_to_remove = set(dbOrder).difference(newRepresentativesNames)
-                newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)] # intersection that maintains order
+                # Update the network + ref list (everything)
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
-            else:
-                newQueries = ordered_queryList
+                joinDBs(ref_db, output, output)
 
-            # with sketchlib, all sketches
-            joinDBs(ref_db, output, output)
+                # Update distance matrices with all calculated distances
+                dists_out = output + "/" + os.path.basename(output) + ".dists"
+                if distances == None:
+                    distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
+                else:
+                    distanceFiles = distances
+                refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
+                combined_seq, core_distMat, acc_distMat = \
+                    update_distance_matrices(refList, ref_distMat,
+                                            ordered_queryList, distMat,
+                                            query_distMat, threads = threads)
+                complete_distMat = \
+                    np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                               pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
-            # Update distance matrices with all calculated distances
-            if distances == None:
-                distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-            else:
-                distanceFiles = distances
-            refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
-            combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(refList, ref_distMat,
-                                         ordered_queryList, distMat,
-                                         query_distMat, threads = threads)
-            complete_distMat = \
-                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                           pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+                if not full_db:
+                    dbOrder = refList + ordered_queryList
+                    newRepresentativesIndices, newRepresentativesNames, \
+                        newRepresentativesFile, genomeNetwork = \
+                            extractReferences(genomeNetwork, dbOrder, output, refList)
+                    # intersection that maintains order
+                    newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)]
+                    genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
 
-            if assign_lineage:
-                expected_lineage_name = ref_db + '/' + ref_db + '_lineages.pkl'
-                if existing_scheme is not None:
-                    expected_lineage_name = existing_scheme
-                isolateClustering = cluster_into_lineages(complete_distMat,
-                                                          rank_list, output,
-                                                          combined_seq,
-                                                          ordered_queryList,
-                                                          expected_lineage_name,
-                                                          use_accessory,
-                                                          threads)
+                    # could also have newRepresentativesNames in this diff (should be the same) - but want
+                    # to ensure consistency with the network in case of bad input/bugs
+                    nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
+                    # This function also writes out the new distance matrix
+                    postpruning_combined_seq, newDistMat = \
+                        prune_distance_matrix(combined_seq, nodes_to_remove,
+                                              complete_distMat, dists_out)
+                    # Create and save a prune ref db
+                    if len(nodes_to_remove) > 0:
+                        removeFromDB(output, output, nodes_to_remove)
+                        os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
+                                  output + "/" + os.path.basename(output) + ".refs.h5")
 
-            # Prune distances to references only, if not full db
-            dists_out = output + "/" + os.path.basename(output) + ".dists"
-            if full_db is False and assign_lineage is False:
-                # could also have newRepresentativesNames in this diff (should be the same) - but want
-                # to ensure consistency with the network in case of bad input/bugs
-                nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
-                # This function also writes out the new distance matrix
-                postpruning_combined_seq, newDistMat = prune_distance_matrix(combined_seq, nodes_to_remove,
-                                                                                complete_distMat, dists_out)
-
-                # ensure mash sketch and distMat order match
-                assert postpruning_combined_seq == refList + newQueries
-
-            else:
-                storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
-
-                # ensure mash sketch and distMat order match
-                assert combined_seq == refList + newQueries
+                    # ensure sketch and distMat order match
+                    assert postpruning_combined_seq == refList + newQueries
+                else:
+                    storePickle(combined_seq, combined_seq, True,
+                                complete_distMat, dists_out)
+                    # ensure sketch and distMat order match
+                    assert combined_seq == refList + ordered_queryList
 
         # Generate files for visualisations
         if microreact:
