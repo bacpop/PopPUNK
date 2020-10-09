@@ -16,7 +16,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, bmat
 
 import pp_sketchlib
 
@@ -44,6 +44,7 @@ from .plot import plot_refined_results
 
 # lineage
 from .plot import distHistogram
+epsilon = 1e-7
 
 def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
                    sparse = False):
@@ -817,21 +818,22 @@ class LineageFit(ClusterFit):
         self.rank = int(rank)
 
         if accessory:
-            dist_col = 1
+            self.dist_col = 1
         else:
-            dist_col = 0
+            self.dist_col = 0
         row, col, data = pp_sketchlib.sparsifyDists(
-                            pp_sketchlib.longToSquare(X[:, [dist_col]], threads),
+                            pp_sketchlib.longToSquare(X[:, [self.dist_col]], threads),
                             0,
                             self.rank,
                             threads)
+        data[data == 0] = epsilon
         self.nn_dists = coo_matrix((data, (row, col)),
                                     shape=(sample_size, sample_size),
                                     dtype = X.dtype)
 
         self.fitted = True
 
-        y = self.assign(self.nn_dists)
+        y = self.assign()
         return y
 
     def save(self):
@@ -845,7 +847,7 @@ class LineageFit(ClusterFit):
                 self.nn_dists)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                 str(self.rank) + '_fit.pkl', 'wb') as pickle_file:
-                pickle.dump([self.rank, self.type], pickle_file)
+                pickle.dump([[self.rank, self.dist_col], self.type], pickle_file)
 
     def load(self, fit_npz, fit_obj):
         '''Load the model from disk. Called from :func:`~loadClusterFit`
@@ -856,8 +858,9 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.rank = fit_obj
+        self.rank, self.dist_col = fit_obj
         self.nn_dists = fit_npz
+        self.fitted = True
 
     def plot(self, X):
         '''Extends :func:`~ClusterFit.plot`
@@ -874,7 +877,7 @@ class LineageFit(ClusterFit):
                       self.rank,
                       self.outPrefix + "/" + os.path.basename(self.outPrefix))
 
-    def assign(self, nn_dists):
+    def assign(self):
         '''Get the edges for the network. A little different from other methods,
         as it doesn't go through the long form distance vector (as coo_matrix
         is basically already in the correct gt format)
@@ -890,7 +893,46 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             y = []
-            for row, col in zip(nn_dists.row, nn_dists.col):
+            for row, col in zip(self.nn_dists.row, self.nn_dists.col):
                 y.append((row, col))
 
         return y
+
+    def extend(self, qqDists, qrDists):
+        # Add the matrices together to make a large square matrix
+        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], 1)
+        full_mat = bmat([[self.nn_dists,       qrDists],
+                         [qrDists.transpose(), qqSquare]],
+                        format = 'csr',
+                        dtype = self.nn_dists.dtype)
+
+        # Reapply the rank to each row, using sparse matrix functions
+        data = []
+        row = []
+        col = []
+        for row_idx in range(full_mat.shape[0]):
+            sample_row = full_mat.get_row(row_idx)
+            dist_row, dist_col, dist = scipy.sparse.find(sample_row)
+            dist_idx_sort = np.argsort(dist)
+
+            neighbours = 0
+            prev_val = epsilon
+            for sort_idx in dist_idx_sort:
+                if row_idx == dist_col[sort_idx] or dist[sort_idx] == prev_val:
+                    continue
+                else:
+                    data.append(dist[sort_idx])
+                    row.append(row_idx)
+                    col.append(dist_col[sort_idx])
+
+                    neighbours += 1
+                    if neighbours >= self.rank:
+                        break
+
+        self.nn_dists = coo_matrix((data, (row, col)),
+                            shape=(full_mat.shape[0], full_mat.shape[0]),
+                            dtype = self.nn_dists.dtype)
+
+        y = self.assign()
+        return y
+
