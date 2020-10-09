@@ -155,12 +155,14 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
+    # Each component is independent, so can be multithreaded
     components = gt.label_components(G)[0].a
 
     # Turn gt threading off and on again either side of the parallel loop
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
 
+    # Cliques are pruned, taking one reference from each, until none remain
     with Pool(processes=threads) as pool:
         ref_lists = pool.map(partial(cliquePrune,
                                         graph=G,

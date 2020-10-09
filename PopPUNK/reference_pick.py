@@ -89,8 +89,15 @@ def main():
     # 'Resketch'
     if len(nodes_to_remove) > 0:
         removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
-        os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
-                  args.output + "/" + os.path.basename(args.output) + ".h5")
+
+        db_outfile = args.output + "/" + os.path.basename(args.output) + ".tmp.h5"
+        db_infile = args.output + "/" + os.path.basename(args.output) + ".h5"
+        if os.path.exists(db_infile):
+            sys.stderr.write("Sketch DB exists in " + args.output + "\n"
+                             "Not overwriting. Output DB is: " +
+                             db_outfile + "\n")
+        else:
+            os.rename(db_outfile, db_infile)
     else:
         sys.stderr.write("No sequences to remove\n")
 
