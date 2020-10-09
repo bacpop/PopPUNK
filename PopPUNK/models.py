@@ -16,7 +16,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
-from scipy.sparse import coo_matrix, bmat
+from scipy.sparse import coo_matrix, bmat, find
 
 import pp_sketchlib
 
@@ -912,7 +912,7 @@ class LineageFit(ClusterFit):
         col = []
         for row_idx in range(full_mat.shape[0]):
             sample_row = full_mat.get_row(row_idx)
-            dist_row, dist_col, dist = scipy.sparse.find(sample_row)
+            dist_row, dist_col, dist = find(sample_row)
             dist_idx_sort = np.argsort(dist)
 
             neighbours = 0
