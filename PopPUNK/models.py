@@ -901,8 +901,10 @@ class LineageFit(ClusterFit):
     def extend(self, qqDists, qrDists):
         # Add the matrices together to make a large square matrix
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], 1)
-        full_mat = bmat([[self.nn_dists,       qrDists],
-                         [qrDists.transpose(), qqSquare]],
+        qrRect = qrDists[:, [self.dist_col]].reshape(self.nn_dists.shape[0],
+                                                     qqSquare.shape[1])
+        full_mat = bmat([[self.nn_dists,      qrRect],
+                         [qrRect.transpose(), qqSquare]],
                         format = 'csr',
                         dtype = self.nn_dists.dtype)
 
@@ -911,7 +913,7 @@ class LineageFit(ClusterFit):
         row = []
         col = []
         for row_idx in range(full_mat.shape[0]):
-            sample_row = full_mat.get_row(row_idx)
+            sample_row = full_mat.getrow(row_idx)
             dist_row, dist_col, dist = find(sample_row)
             dist_idx_sort = np.argsort(dist)
 

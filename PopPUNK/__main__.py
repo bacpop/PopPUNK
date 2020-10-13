@@ -199,8 +199,14 @@ def get_options():
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
-    lineagesGroup.add_argument('--ranks',help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]', type = str, default = "1,2,3")
-    lineagesGroup.add_argument('--use-accessory',help='Use accessory distances for lineage definitions [default = use core distances]', action = 'store_true', default = False)
+    lineagesGroup.add_argument('--ranks',
+                                help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
+                                type = str,
+                                default = "1,2,3")
+    lineagesGroup.add_argument('--use-accessory',
+                                help='Use accessory distances for lineage definitions [default = use core distances]',
+                                action = 'store_true',
+                                default = False)
 
     # plot output
     faGroup = parser.add_argument_group('Further analysis options')
@@ -307,9 +313,10 @@ def main():
         if min(rank_list) == 0 or max(rank_list) > 100:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
             sys.exit(1)
-        if args.assign_lineages and args.existing_scheme is None:
-            sys.stderr.write('Must provide an existing scheme (--existing-scheme) if assigning to lineages\n')
-            sys.exit(1)
+        if args.assign_lineages:
+            if len(rank_list) > 1:
+                sys.stderr.write('Only assigning using lowest provided rank')
+            rank_list = min(rank_list)
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
@@ -636,7 +643,7 @@ def main():
                      args.threads, args.overwrite, args.plot_fit,
                      args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
                      args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
-                     args.rapidnj, args.perplexity, args.assign_lineages, args.existing_scheme, rank_list, args.use_accessory)
+                     args.rapidnj, args.perplexity, args.assign_lineages, rank_list, args.use_accessory)
 
 #TODO move this into its own file, create new exported command line app for it
 
@@ -796,7 +803,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                  kmers, sketch_sizes, threads, overwrite,
                  plot_fit, max_a_dist, model_dir, previous_clustering,
                  external_clustering, core_only, accessory_only, phandango, grapetree,
-                 info_csv, rapidnj, perplexity, assign_lineage, existing_scheme, rank_list, use_accessory):
+                 info_csv, rapidnj, perplexity, assign_lineage, rank_list, use_accessory):
     """Code for assign query mode. Written as a separate function so it can be called
     by pathogen.watch API
     """
@@ -863,14 +870,27 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         model_prefix = ref_db
         if model_dir is not None:
             model_prefix = model_dir
-        model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                               model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+        model_file = model_prefix + "/" + os.path.basename(model_prefix)
+
+        sparse = False
+        if assign_lineage:
+            model_file += str(rank_list)
+            sparse = True
+
+        model = loadClusterFit(model_file + '_fit.pkl',
+                               model_file + '_fit.npz',
+                               sparse=sparse)
 
         # Set directories of previous fit
         if previous_clustering is not None:
             prev_clustering = previous_clustering
         else:
             prev_clustering = model_prefix
+
+        # Load the network based on supplied options
+        genomeNetwork, old_cluster_file = \
+            fetchNetwork(prev_clustering, model, refList,
+                            core_only, accessory_only)
 
         if assign_lineage:
             # Assign lineages by calculating query-query information
@@ -880,6 +900,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
             assignment = model.extend(query_distMat, distMat)
 
+            # Overwrite the network loaded above
             genomeNetwork = constructNetwork(rNames + qNames,
                                              rNames + qNames,
                                              assignment,
@@ -890,11 +911,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         else:
             # Assign these distances as within or between strain
             queryAssignments = model.assign(distMat)
-
-            # Load the network based on supplied options
-            genomeNetwork, old_cluster_file = \
-                fetchNetwork(prev_clustering, model, refList,
-                             core_only, accessory_only)
 
             # Assign clustering by adding to network
             ordered_queryList, query_distMat = \
