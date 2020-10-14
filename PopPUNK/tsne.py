@@ -79,6 +79,13 @@ def main():
     elif args.verbosity > 0:
         verbosity = args.verbosity
 
+    if not os.path.isdir(args.output):
+        try:
+            os.makedirs(args.output)
+        except OSError:
+            sys.stderr.write("Cannot create output directory\n")
+            sys.exit(1)
+
     # load saved distance matrix
     refList, queryList, self, distMat = readPickle(args.distances)
 

@@ -61,7 +61,7 @@ subprocess.run("python ../poppunk_prune-runner.py --distances example_db/example
 
 # references
 sys.stderr.write("Running poppunk_references\n")
-subprocess.run("python ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_refs --model example_db", shell=True, check=True)
+subprocess.run("python ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db", shell=True, check=True)
 
 sys.stderr.write("Tests completed\n")
 

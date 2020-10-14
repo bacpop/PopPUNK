@@ -55,6 +55,8 @@ def main():
     # Check input args ok
     args = get_options()
 
+    import graph_tool.all as gt
+
     # Check output path ok
     if not os.path.isdir(args.output):
         try:

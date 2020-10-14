@@ -51,10 +51,16 @@ def get_options():
                                                       'generated with any other method.', default=None)
     iGroup.add_argument('--viz-lineages', help='CSV with lineage definitions to use for visualisation '
                                                'rather than strain definitions.', default=None)
+    iGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
+                                                   'to clusters [default = reference database directory]', type = str)
+    iGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
+                                                             'and network [default = use that in the directory '
+                                                             'containing the model]', type = str)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
+    oGroup.add_argument('--overwrite', help='Overwrite any existing visualisation files', default=False, action='store_true')
 
     # plot output
     faGroup = parser.add_argument_group('Visualisation options')
@@ -71,6 +77,7 @@ def get_options():
 
     # processing
     other = parser.add_argument_group('Other options')
+    other.add_argument('--rank', default=None, type=int, help='Rank of lineage fit to use')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
 
     other.add_argument('--version', action='version',
@@ -81,7 +88,7 @@ def get_options():
     args = parser.parse_args()
 
     # ensure directories do not have trailing forward slash
-    for arg in [args.ref_db, args.model_dir, args.output, args.previous_clustering]:
+    for arg in [args.ref_db, args.model_dir, args.output, args.external_clustering, args.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
 
@@ -170,14 +177,13 @@ def main():
             model_prefix = args.ref_db
             if args.model_dir is not None:
                 model_prefix = args.model_dir
+            model_file = model_prefix + "/" + os.path.basename(model_prefix)
+
+            sparse = False
+            if args.rank:
+                model_file += str(args.rank)
+                sparse = True
             try:
-                model_file = model_prefix + "/" + os.path.basename(model_prefix)
-
-                sparse = False
-                if args.rank:
-                    model_file += str(args.rank)
-                    sparse = True
-
                 model = loadClusterFit(model_file + '_fit.pkl',
                                        model_file + '_fit.npz',
                                        sparse=sparse)
