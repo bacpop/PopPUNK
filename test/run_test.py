@@ -45,11 +45,11 @@ sys.stderr.write("Running general tests\n\n")
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--lineage-clustering)\n")
-subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db/example_db.dists --output example_lineages --ranks 1,2,3,5 --ref-db example_db --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances example_db/example_db.dists --output example_lineages --ranks 1,2,3,5 --full-db --ref-db example_db --overwrite", shell=True, check=True)
 
 # assign query to lineages
 sys.stderr.write("Running query assignment (--assign-lineages)\n")
-subprocess.run("python ../poppunk-runner.py --assign-lineages --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --existing-scheme example_lineages/example_lineages_lineages.pkl --output example_lineage_query --update-db  --qc-filter prune --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --assign-lineages --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --update-db --qc-filter prune --overwrite", shell=True, check=True)
 
 # tests of other command line programs (TODO)
 
