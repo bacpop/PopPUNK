@@ -12,7 +12,6 @@ import glob
 import operator
 import shutil
 import subprocess
-import graph_tool.all as gt
 import numpy as np
 import pandas as pd
 from scipy.stats import rankdata

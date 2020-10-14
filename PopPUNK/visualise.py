@@ -7,7 +7,6 @@ import os
 import sys
 # additional
 import numpy as np
-import graph_tool.all as gt
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib

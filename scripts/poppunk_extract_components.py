@@ -3,7 +3,6 @@
 # Copyright 2018 John Lees and Nick Croucher
 
 import sys
-import graph_tool.all as gt
 from scipy.stats import rankdata
 import argparse
 
@@ -27,6 +26,7 @@ if __name__ == "__main__":
     args = get_options()
 
     # open stored graph
+    import graph_tool.all as gt
     G = gt.load_graph(args.graph)
 
     # extract individual components

@@ -7,7 +7,6 @@ import os
 import sys
 # additional
 from shutil import copyfile
-import graph_tool.all as gt
 
 # import poppunk package
 from .__init__ import __version__

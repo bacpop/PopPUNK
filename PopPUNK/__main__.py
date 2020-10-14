@@ -7,7 +7,6 @@ import os
 import sys
 # additional
 import numpy as np
-import graph_tool.all as gt
 import subprocess
 from collections import defaultdict
 

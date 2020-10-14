@@ -12,7 +12,6 @@ import subprocess
 from collections import defaultdict
 from tempfile import mkstemp
 from functools import partial
-import graph_tool.all as gt
 
 import numpy as np
 import pandas as pd
@@ -21,6 +20,8 @@ import h5py
 import pp_sketchlib
 
 def setGtThreads(threads):
+    global gt
+    import graph_tool.all as gt
     # Check on parallelisation of graph-tools
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(threads)
@@ -192,24 +193,6 @@ def listDistInts(refSeqs, querySeqs, self=True):
                 yield(j, i)
 
     return comparisons
-
-def writeTmpFile(fileList):
-    """Writes a list to a temporary file. Used for turning variable into mash
-    input.
-
-    Args:
-        fileList (list)
-            List of files to write to file
-    Returns:
-        tmpName (str)
-            Name of temp file list written to
-    """
-    tmpName = mkstemp(suffix=".tmp", dir=".")[1]
-    with open(tmpName, 'w') as tmpFile:
-        for fileName in fileList:
-            tmpFile.write(fileName + '\t' + fileName + "\n")
-
-    return tmpName
 
 
 def qcDistMat(distMat, refList, queryList, a_max):
