@@ -20,7 +20,6 @@ import h5py
 import pp_sketchlib
 
 def setGtThreads(threads):
-    global gt
     import graph_tool.all as gt
     # Check on parallelisation of graph-tools
     if gt.openmp_enabled():
@@ -416,27 +415,17 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-    # new database file if pruning
-    if qc_dict['qc_filter'] == 'prune':
-        filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
-        hdf_out = h5py.File(filtered_db_name, 'w')
-    # retain sketches of failed samples
-    if qc_dict['retain_failures']:
-        failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
-        hdf_fail = h5py.File(failed_db_name, 'w')
+    hdf_in = h5py.File(db_name, 'r+')
 
     # try/except structure to prevent h5 corruption
     try:
         # process data structures
         read_grp = hdf_in['sketches']
-        if qc_dict['qc_filter'] == 'prune':
-            out_grp = hdf_out.create_group('sketches')
-        if qc_dict['retain_failures']:
-            fail_grp = hdf_fail.create_group('sketches')
+
         seq_length = {}
         seq_ambiguous = {}
         retained = []
+        failed = []
 
         # iterate through sketches
         for dataset in read_grp:
@@ -481,35 +470,30 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
                     remove = True
                     qc_file.write(dataset + '\tAmbiguous sequence too high\n')
 
-                # write to files
                 if remove:
                     sys.stderr.write(dataset + ' failed QC\n')
-                    failed_sample = True
-                    if qc_dict['retain_failures']:
-                        fail_grp.copy(read_grp[dataset], dataset)
+                    failed.append(dataset)
                 else:
                     retained.append(dataset)
-                    if qc_dict['qc_filter'] == 'prune':
-                        out_grp.copy(read_grp[dataset], dataset)
 
-            # close files
-            hdf_in.close()
-            if qc_dict['qc_filter'] == 'prune':
-                hdf_out.close()
+            # retain sketches of failed samples
             if qc_dict['retain_failures']:
-                hdf_fail.close()
-
-        # replace original database with pruned version
-        if qc_dict['qc_filter'] == 'prune':
-            os.rename(filtered_db_name, db_name)
+                removeFromDB(db_name,
+                             prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5',
+                             retained,
+                             full_names = True)
+            # new database file if pruning
+            if qc_dict['qc_filter'] == 'prune':
+                filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
+                removeFromDB(db_name,
+                             prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5',
+                             failed,
+                             full_names = True)
+                os.rename(filtered_db_name, db_name)
 
     # if failure still close files to avoid corruption
     except:
         hdf_in.close()
-        if qc_dict['qc_filter'] == 'prune':
-           hdf_out.close()
-        if qc_dict['retain_failures']:
-           hdf_fail.close()
         sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
 
         print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
@@ -528,7 +512,6 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
         sys.exit(1)
 
     # remove random matches if already present
-    hdf_in = h5py.File(db_name, 'r+')
     if 'random' in hdf_in:
         del hdf_in['random']
     hdf_in.close()

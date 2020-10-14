@@ -19,6 +19,7 @@ except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
 import pp_sketchlib
+import graph_tool.all as gt
 
 from .network import constructNetwork
 from .network import networkSummary

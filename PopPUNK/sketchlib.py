@@ -116,7 +116,10 @@ def getSketchSize(dbPrefix):
     """
     db_file = dbPrefix + "/" + os.path.basename(dbPrefix) + ".h5"
     ref_db = h5py.File(db_file, 'r')
-    codon_phased = ref_db['sketches'].attrs['codon_phased']
+    try:
+        codon_phased = ref_db['sketches'].attrs['codon_phased']
+    except KeyError:
+        codon_phased = False
 
     prev_sketch = 0
     for sample_name in list(ref_db['sketches'].keys()):
@@ -226,10 +229,12 @@ def joinDBs(db1, db2, output):
     # Can only copy into new group, so for second file these are appended one at a time
     try:
         hdf1.copy('sketches', hdf_join)
+        hdf1.copy('random', hdf_join)
         join_grp = hdf_join['sketches']
         read_grp = hdf2['sketches']
         for dataset in read_grp:
             join_grp.copy(read_grp[dataset], dataset)
+
     except RuntimeError as e:
         sys.stderr.write("ERROR: " + str(e) + "\n")
         sys.stderr.write("Joining sketches failed, try running without --update-db\n")
@@ -242,8 +247,8 @@ def joinDBs(db1, db2, output):
     os.rename(join_name + ".tmp", join_name)
 
 
-def removeFromDB(db_name, out_name, removeSeqs):
-    """Join two sketch databases with the low-level HDF5 copy interface
+def removeFromDB(db_name, out_name, removeSeqs, full_names = False):
+    """Remove sketches from the DB the low-level HDF5 copy interface
 
     Args:
         db_name (str)
@@ -252,17 +257,24 @@ def removeFromDB(db_name, out_name, removeSeqs):
             Prefix for output (pruned) database
         removeSeqs (list)
             Names of sequences to remove from database
+        full_names (bool)
+            If True, db_name and out_name are the full paths to h5 files
     """
     removeSeqs = set(removeSeqs)
-    db_file = db_name + "/" + os.path.basename(db_name) + ".h5"
-    out_file = out_name + "/" + os.path.basename(out_name) + ".tmp.h5"
+    if not full_names:
+        db_file = db_name + "/" + os.path.basename(db_name) + ".h5"
+        out_file = out_name + "/" + os.path.basename(out_name) + ".tmp.h5"
 
     hdf_in = h5py.File(db_file, 'r')
     hdf_out = h5py.File(out_file, 'w')
 
     try:
+        if 'random' in hdf_in.keys():
+            hdf_in.copy('random', hdf_out)
         out_grp = hdf_out.create_group('sketches')
         read_grp = hdf_in['sketches']
+        for attr_name, attr_val in read_grp.attrs.items():
+            out_grp.attr.create(attr_name, attr_val)
 
         removed = []
         for dataset in read_grp:

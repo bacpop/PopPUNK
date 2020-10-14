@@ -16,26 +16,6 @@ import pp_sketchlib
 # import poppunk package
 from .__init__ import __version__
 
-from .models import *
-
-from .sketchlib import checkSketchlibLibrary
-from .sketchlib import removeFromDB
-
-from .network import constructNetwork
-from .network import extractReferences
-from .network import printClusters
-
-from .plot import writeClusterCsv
-
-from .prune_db import prune_distance_matrix
-
-from .utils import setGtThreads
-from .utils import setupDBFuncs
-from .utils import storePickle
-from .utils import readPickle
-from .utils import qcDistMat
-from .utils import createOverallLineage
-
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 1
 SKETCHLIB_MINOR = 5
@@ -155,6 +135,8 @@ def get_options():
             action='store_true')
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
+    refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
+                                                   'to clusters [default = reference database directory]', type = str)
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -182,7 +164,7 @@ def get_options():
     args = parser.parse_args()
 
     # ensure directories do not have trailing forward slash
-    for arg in [args.ref_db, args.model_dir, args.output, args.previous_clustering]:
+    for arg in [args.ref_db, args.model_dir, args.output]:
         if arg is not None:
             arg = arg.rstrip('\\')
 
@@ -202,6 +184,26 @@ def main():
         sys.exit(1)
 
     args = get_options()
+
+    # Imports are here because graph tool is very slow to load
+    from .models import loadClusterFit, ClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
+    from .sketchlib import checkSketchlibLibrary
+    from .sketchlib import removeFromDB
+
+    from .network import constructNetwork
+    from .network import extractReferences
+    from .network import printClusters
+
+    from .plot import writeClusterCsv
+
+    from .prune_db import prune_distance_matrix
+
+    from .utils import setGtThreads
+    from .utils import setupDBFuncs
+    from .utils import storePickle
+    from .utils import readPickle
+    from .utils import qcDistMat
+    from .utils import createOverallLineage
 
     # check kmer properties
     if args.min_k >= args.max_k:
@@ -252,8 +254,7 @@ def main():
             sys.exit(1)
 
     # check if working with lineages
-    rank_list = []
-    if args.lineage_clustering or args.assign_lineages:
+    if args.lineage_clustering:
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if min(rank_list) == 0 or max(rank_list) > 100:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')

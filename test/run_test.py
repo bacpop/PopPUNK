@@ -22,7 +22,7 @@ subprocess.run("python ../poppunk-runner.py --create-db --r-files references.txt
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model --distances example_db/example_db.dists --ref-db example_db --output example_db --full-db --K 4 --microreact --cytoscape --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model --distances example_db/example_db.dists --ref-db example_db --output example_db --full-db --K 4 --overwrite", shell=True, check=True)
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--refine-model)\n")
@@ -41,11 +41,11 @@ subprocess.run("python ../poppunk-runner.py --lineage-clustering --distances exa
 
 #assign query
 sys.stderr.write("Running query assignment\n")
-subprocess.run("python ../poppunk_assign-runner.py --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --update-db --qc-filter prune --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --update-db --overwrite", shell=True, check=True)
 
 # assign query to lineages
 sys.stderr.write("Running query assignment (--assign-lineages)\n")
-subprocess.run("python ../poppunk_assign-runner.py --assign-lineages --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --update-db --qc-filter prune --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --assign-lineages --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --update-db --overwrite", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")

@@ -19,6 +19,7 @@ from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
+import graph_tool.all as gt
 
 from .sketchlib import calculateQueryQueryDistances
 
