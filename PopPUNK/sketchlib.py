@@ -111,9 +111,13 @@ def getSketchSize(dbPrefix):
     Returns:
         sketchSize (int)
             sketch size (64x C++ definition)
+        codonPhased (bool)
+            whether the DB used codon phased seeds
     """
     db_file = dbPrefix + "/" + os.path.basename(dbPrefix) + ".h5"
     ref_db = h5py.File(db_file, 'r')
+    codon_phased = ref_db['sketches'].attrs['codon_phased']
+
     prev_sketch = 0
     for sample_name in list(ref_db['sketches'].keys()):
         sketch_size = ref_db['sketches/' + sample_name].attrs['sketchsize64']
@@ -125,7 +129,7 @@ def getSketchSize(dbPrefix):
                              ", but smaller kmers have sketch sizes of " + str(sketch_size) + "\n")
             sys.exit(1)
 
-    return int(sketch_size)
+    return int(sketch_size), codon_phased
 
 def getKmersFromReferenceDatabase(dbPrefix):
     """Get kmers lengths from existing database
@@ -153,7 +157,7 @@ def getKmersFromReferenceDatabase(dbPrefix):
     kmers = np.asarray(prev_kmer_sizes)
     return kmers
 
-def readDBParams(dbPrefix, kmers, sketch_sizes):
+def readDBParams(dbPrefix):
     """Get kmers lengths and sketch sizes from existing database
 
     Calls :func:`~getKmersFromReferenceDatabase` and :func:`~getSketchSize`
@@ -162,27 +166,24 @@ def readDBParams(dbPrefix, kmers, sketch_sizes):
     Args:
         dbPrefix (str)
             Prefix for sketch DB files
-        kmers (list)
-            Kmers to use if db not found
-        sketch_sizes (list)
-            Sketch size to use if db not found
 
     Returns:
         kmers (list)
             List of k-mer lengths used in database
         sketch_sizes (list)
             List of sketch sizes used in database
+        codonPhased (bool)
+            whether the DB used codon phased seeds
     """
 
     db_kmers = getKmersFromReferenceDatabase(dbPrefix)
     if len(db_kmers) == 0:
-        sys.stderr.write("Couldn't find mash sketches in " + dbPrefix + "\n"
-                         "Using command line input parameters for k-mer and sketch sizes\n")
+        sys.stderr.write("Couldn't find sketches in " + dbPrefix + "\n")
+        sys.exit(1)
     else:
-        kmers = db_kmers
-        sketch_sizes = getSketchSize(dbPrefix)
+        sketch_sizes, codon_phased = getSketchSize(dbPrefix)
 
-    return kmers, sketch_sizes
+    return db_kmers, sketch_sizes, codon_phased
 
 
 def getSeqsInDb(dbname):

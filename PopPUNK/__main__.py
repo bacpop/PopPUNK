@@ -21,31 +21,19 @@ from .models import *
 from .sketchlib import checkSketchlibLibrary
 from .sketchlib import removeFromDB
 
-from .network import fetchNetwork
 from .network import constructNetwork
 from .network import extractReferences
-from .network import addQueryToNetwork
 from .network import printClusters
 
-from .plot import outputsForMicroreact
-from .plot import outputsForCytoscape
-from .plot import outputsForPhandango
-from .plot import outputsForGrapetree
 from .plot import writeClusterCsv
 
 from .prune_db import prune_distance_matrix
-
-from .sketchlib import calculateQueryQueryDistances
 
 from .utils import setGtThreads
 from .utils import setupDBFuncs
 from .utils import storePickle
 from .utils import readPickle
-from .utils import writeTmpFile
 from .utils import qcDistMat
-from .utils import update_distance_matrices
-from .utils import readRfile
-from .utils import readIsolateTypeFromCsv
 from .utils import createOverallLineage
 
 # Minimum sketchlib version
@@ -82,20 +70,12 @@ def get_options():
             help='Refine the accuracy of a fitted model',
             default=False,
             action='store_true')
-    mode.add_argument('--assign-query',
-            help='Assign the cluster of query sequences without re-running the whole mixture model',
-            default=False,
-            action='store_true')
     mode.add_argument('--threshold',
             help='Create model at this core distance threshold',
             default=None,
             type=float)
     mode.add_argument('--lineage-clustering',
             help='Identify lineages within a strain',
-            default=False,
-            action='store_true')
-    mode.add_argument('--assign-lineages',
-            help='Assign isolates to an existing lineages scheme',
             default=False,
             action='store_true')
     mode.add_argument('--use-model',
@@ -107,12 +87,9 @@ def get_options():
     iGroup = parser.add_argument_group('Input files')
     iGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
     iGroup.add_argument('--r-files', help='File listing reference input assemblies')
-    iGroup.add_argument('--q-files', help='File listing query input assemblies')
     iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
-    iGroup.add_argument('--viz-lineages', help='CSV with lineage definitions to use for visualisation '
-                                               'rather than strain definitions.', default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -120,7 +97,6 @@ def get_options():
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
-    oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
 
     # comparison metrics
@@ -180,18 +156,6 @@ def get_options():
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
 
-    # sequence querying
-    queryingGroup = parser.add_argument_group('Database querying options')
-    queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
-                                                   'to clusters [default = reference database directory]', type = str)
-    queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
-                                                             'and network [default = use that in the directory '
-                                                             'containing the model]', type = str)
-    queryingGroup.add_argument('--core-only', help='Use a core-distance only model for assigning queries '
-                                              '[default = False]', default=False, action='store_true')
-    queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
-                                              '[default = False]', default=False, action='store_true')
-
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
     lineagesGroup.add_argument('--ranks',
@@ -202,19 +166,6 @@ def get_options():
                                 help='Use accessory distances for lineage definitions [default = use core distances]',
                                 action = 'store_true',
                                 default = False)
-
-    # plot output
-    faGroup = parser.add_argument_group('Further analysis options')
-    faGroup.add_argument('--subset', help='File with list of sequences to include in visualisation (with --generate-viz only)', default=None)
-    faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
-    faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
-    faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
-    faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
-    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default=None)
-    faGroup.add_argument('--perplexity', type=float, default = 20.0,
-                         help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
-    faGroup.add_argument('--info-csv',
-                     help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -275,12 +226,11 @@ def main():
         'upper_n': args.upper_n
     }
 
-    # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, kmers, args.min_kmer_count, qc_dict)
+    # Dict of DB access functions
+    dbFuncs = setupDBFuncs(args, args.min_kmer_count, qc_dict)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
     # define sketch sizes, store in hash in case one day
     # different kmers get different hash sizes
@@ -298,7 +248,7 @@ def main():
     if args.length_range[0] is not None:
         if args.length_range[0] >= args.length_range[1]:
             sys.stderr.write('Ensure the specified length range is space-separated argument of'
-            ' length 2, with the lower value first\n')
+                             ' length 2, with the lower value first\n')
             sys.exit(1)
 
     # check if working with lineages
@@ -308,19 +258,6 @@ def main():
         if min(rank_list) == 0 or max(rank_list) > 100:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
             sys.exit(1)
-        if args.assign_lineages:
-            if len(rank_list) > 1:
-                sys.stderr.write('Only assigning using lowest provided rank')
-            rank_list = min(rank_list)
-
-    # check on file paths and whether files will be overwritten
-    # confusing to overwrite command line parameter
-    #if not args.full_db and not (args.create_db or args.easy_run or args.assign_query):
-    #    args.overwrite = True
-    if args.output is not None and args.output.endswith('/'):
-        args.output = args.output[:-1]
-    if args.ref_db is not None and args.ref_db.endswith('/'):
-        args.ref_db = args.ref_db[:-1]
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
@@ -357,6 +294,7 @@ def main():
                             args.output,
                             args.threads,
                             args.overwrite,
+                            codon_phased = args.codon_phased,
                             calc_random = True)
 
             rNames = seq_names
@@ -389,7 +327,6 @@ def main():
         # Set up saved data from first step, if easy_run mode
         if args.easy_run:
             distances = dists_out
-            ref_db = args.output
         else:
             if args.fit_model:
                 sys.stderr.write("Mode: Fitting model to reference database\n\n")
@@ -404,7 +341,6 @@ def main():
 
             if args.distances is not None and args.ref_db is not None:
                 distances = args.distances
-                ref_db = args.ref_db
             else:
                 sys.stderr.write("Need to provide an input set of distances with --distances "
                                  "and reference database directory with --ref-db\n\n")
@@ -456,10 +392,15 @@ def main():
         if args.refine_model or args.threshold or args.easy_run:
             new_model = RefineFit(args.output)
             if args.threshold == None:
-                assignments = new_model.fit(distMat, refList, model, args.pos_shift, args.neg_shift,
-                        args.manual_start, args.indiv_refine, args.no_local, args.threads)
+                assignments = new_model.fit(distMat, refList, model,
+                                            args.pos_shift, args.neg_shift,
+                                            args.manual_start,
+                                            args.indiv_refine,
+                                            args.no_local,
+                                            args.threads)
             else:
-                assignments = new_model.apply_threshold(distMat, args.threshold)
+                assignments = new_model.apply_threshold(distMat,
+                                                        args.threshold)
 
             new_model.plot(distMat)
             model = new_model
@@ -487,7 +428,6 @@ def main():
         #* network construction       *#
         #*                            *#
         #******************************#
-
         if args.lineage_clustering:
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
@@ -583,223 +523,7 @@ def main():
                 os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
                           args.output + "/" + os.path.basename(args.output) + ".refs.h5")
 
-    #*******************************#
-    #*                             *#
-    #* query assignment (function  *#
-    #* below)                      *#
-    #*                             *#
-    #*******************************#
-    elif args.assign_query or args.assign_lineages:
-        assign_query(dbFuncs, args.ref_db, args.q_files, args.output, args.update_db, args.full_db, args.distances,
-                     args.microreact, args.cytoscape, kmers, sketch_sizes,
-                     args.threads, args.overwrite, args.plot_fit,
-                     args.max_a_dist, args.model_dir, args.previous_clustering, args.external_clustering,
-                     args.core_only, args.accessory_only, args.phandango, args.grapetree, args.info_csv,
-                     args.rapidnj, args.perplexity, args.assign_lineages, rank_list, args.use_accessory)
-
     sys.stderr.write("\nDone\n")
-
-#TODO move this into its own file, create new exported command line app for it
-
-#*******************************#
-#*                             *#
-#* query assignment            *#
-#*                             *#
-#*******************************#
-def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances, microreact, cytoscape,
-                 kmers, sketch_sizes, threads, overwrite,
-                 plot_fit, max_a_dist, model_dir, previous_clustering,
-                 external_clustering, core_only, accessory_only, phandango, grapetree,
-                 info_csv, rapidnj, perplexity, assign_lineage, rank_list, use_accessory):
-    """Code for assign query mode. Written as a separate function so it can be called
-    by pathogen.watch API
-    """
-    createDatabaseDir = dbFuncs['createDatabaseDir']
-    joinDBs = dbFuncs['joinDBs']
-    constructDatabase = dbFuncs['constructDatabase']
-    queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
-    getSeqsInDb = dbFuncs['getSeqsInDb']
-
-    if ref_db is not None and q_files is not None:
-        sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
-        if ref_db == output:
-            sys.stderr.write("--output and --ref-db must be different to "
-                                "prevent overwrite.\n")
-            sys.exit(1)
-        if (update_db and not distances):
-            sys.stderr.write("--update-db requires --distances to be provided\n")
-            sys.exit(1)
-        if (microreact or cytoscape) and (not update_db or not distances):
-            sys.stderr.write("--microreact and/or --cytoscape output must be "
-                    "run with --distances and --update-db to generate a full "
-                    " distance matrix\n")
-            sys.exit(1)
-
-        # Find distances to reference db
-        kmers, sketch_sizes = readDBParams(ref_db, kmers, sketch_sizes)
-
-        # Sketch query sequences
-        createDatabaseDir(output, kmers)
-
-        # Find distances vs ref seqs
-        rNames = []
-        if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
-            with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
-                for reference in refFile:
-                    rNames.append(reference.rstrip())
-        else:
-            rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
-        # construct database
-        qNames = constructDatabase(q_files,
-                                    kmers,
-                                    sketch_sizes,
-                                    output,
-                                    threads,
-                                    overwrite,
-                                    calc_random = False)
-
-        # run query
-        refList, queryList, distMat = queryDatabase(rNames = rNames,
-                                                    qNames = qNames,
-                                                    dbPrefix = ref_db,
-                                                    queryPrefix = output,
-                                                    klist = kmers,
-                                                    self = False,
-                                                    number_plot_fits = plot_fit,
-                                                    threads = threads)
-
-        # QC distance matrix
-        qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
-
-        # Assign to strains or lineages, as requested.
-        # Both need the previous model loaded
-        model_prefix = ref_db
-        if model_dir is not None:
-            model_prefix = model_dir
-        model_file = model_prefix + "/" + os.path.basename(model_prefix)
-
-        sparse = False
-        if assign_lineage:
-            model_file += str(rank_list)
-            sparse = True
-
-        model = loadClusterFit(model_file + '_fit.pkl',
-                               model_file + '_fit.npz',
-                               sparse=sparse)
-
-        # Set directories of previous fit
-        if previous_clustering is not None:
-            prev_clustering = previous_clustering
-        else:
-            prev_clustering = model_prefix
-
-        # Load the network based on supplied options
-        genomeNetwork, old_cluster_file = \
-            fetchNetwork(prev_clustering, model, refList,
-                            core_only, accessory_only)
-
-        if assign_lineage:
-            # Assign lineages by calculating query-query information
-            ordered_queryList, query_distMat = \
-                calculateQueryQueryDistances(
-                    dbFuncs, qNames, kmers, output, threads)
-
-            assignment = model.extend(query_distMat, distMat)
-
-            # Overwrite the network loaded above
-            genomeNetwork = constructNetwork(rNames + qNames,
-                                             rNames + qNames,
-                                             assignment,
-                                             0,
-                                             edge_list = True)
-            ordered_queryList = qNames
-
-        else:
-            # Assign these distances as within or between strain
-            queryAssignments = model.assign(distMat)
-
-            # Assign clustering by adding to network
-            ordered_queryList, query_distMat = \
-                addQueryToNetwork(dbFuncs, refList, queryList,
-                                  genomeNetwork, kmers, queryAssignments,
-                                  model, output, update_db, threads = threads)
-
-        # if running simple query
-        print_full_clustering = False
-        if update_db:
-            print_full_clustering = True
-        isolateClustering = \
-            {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
-                                        output + "/" + os.path.basename(output),
-                                        old_cluster_file,
-                                        external_clustering,
-                                        print_full_clustering)}
-
-        # Update DB as requested
-        if update_db:
-            # Check new sequences pass QC before adding them
-            if not qcPass:
-                sys.stderr.write("Queries contained outlier distances, "
-                                "not updating database\n")
-            else:
-                sys.stderr.write("Updating reference database to " + output + "\n")
-
-            # Update the network + ref list (everything)
-            genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
-            joinDBs(ref_db, output, output)
-
-            # Update distance matrices with all calculated distances
-            dists_out = output + "/" + os.path.basename(output) + ".dists"
-            if distances == None:
-                distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-            else:
-                distanceFiles = distances
-            refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
-            combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(refList, ref_distMat,
-                                        ordered_queryList, distMat,
-                                        query_distMat, threads = threads)
-            complete_distMat = \
-                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                            pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
-
-            if not full_db and not assign_lineage:
-                dbOrder = refList + ordered_queryList
-                newRepresentativesIndices, newRepresentativesNames, \
-                    newRepresentativesFile, genomeNetwork = \
-                        extractReferences(genomeNetwork, dbOrder, output, refList, threads = threads)
-                # intersection that maintains order
-                newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)]
-                genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
-
-                # could also have newRepresentativesNames in this diff (should be the same) - but want
-                # to ensure consistency with the network in case of bad input/bugs
-                nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
-                # This function also writes out the new distance matrix
-                postpruning_combined_seq, newDistMat = \
-                    prune_distance_matrix(combined_seq, nodes_to_remove,
-                                            complete_distMat, dists_out)
-                # Create and save a prune ref db
-                if len(nodes_to_remove) > 0:
-                    removeFromDB(output, output, nodes_to_remove)
-                    os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                                output + "/" + os.path.basename(output) + ".refs.h5")
-
-                # ensure sketch and distMat order match
-                assert postpruning_combined_seq == refList + newQueries
-            else:
-                storePickle(combined_seq, combined_seq, True,
-                            complete_distMat, dists_out)
-                # ensure sketch and distMat order match
-                assert combined_seq == refList + ordered_queryList
-
-    else:
-        sys.stderr.write("Need to provide both a reference database with --ref-db and "
-                            "query list with --q-files\n")
-        sys.exit(1)
-
-    return(isolateClustering)
 
 
 if __name__ == '__main__':

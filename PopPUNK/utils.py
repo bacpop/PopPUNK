@@ -30,15 +30,13 @@ def setGtThreads(threads):
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, kmers, min_count, qc_dict):
+def setupDBFuncs(args, min_count, qc_dict):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
     Args:
         args (argparse.opts)
             Parsed command lines options
-        kmers (list)
-            List of k-mer sizes
         min_count (int)
             Minimum k-mer count for reads
         qc_dict (dict)
@@ -60,7 +58,6 @@ def setupDBFuncs(args, kmers, min_count, qc_dict):
     version = checkSketchlibVersion()
 
     constructDatabase = partial(constructDatabaseSketchlib,
-                                codon_phased = args.codon_phased,
                                 strand_preserved = args.strand_preserved,
                                 min_count = args.min_kmer_count,
                                 use_exact = args.exact_count,
