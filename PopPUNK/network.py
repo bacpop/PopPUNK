@@ -19,8 +19,6 @@ from scipy.stats import rankdata
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 
-from .sketchlib import calculateQueryQueryDistances
-
 from .utils import iterDistRows
 from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
@@ -353,8 +351,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
 
             (default = 1)
     Returns:
-        qlist1 (list)
-            Ordered list of queries
         distMat (numpy.array)
             Query-query distances
     """
@@ -369,90 +365,53 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     assigned = set()
 
     # These are returned
-    qlist1 = None
-    distMat = None
-
-    # Set up query names
-    if use_mash == True:
-        # mash must use sequence file names for both testing for
-        # assignment and for generating a new database
-        rNames = None
-        qNames = qList
-    else:
-        rNames = qList
-        qNames = rNames
-
-    # identify query sequence files
-    qSeqs = []
-    queryFiles = {}
-    with open(qFile, 'r') as qfile:
-        for line in qfile.readlines():
-            info = line.rstrip().split()
-            if info[0] in qNames:
-                qSeqs.append(info[1])
-                queryFiles[info[0]] = info[1]
+    qqDistMat = None
 
     # store links for each query in a list of edge tuples
     ref_count = len(rlist)
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qNames, self = False)):
+    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qList, self = False)):
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
             new_edges.append((ref, query + ref_count))
-            assigned.add(qNames[query])
+            assigned.add(qList[query])
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
-        qlist1, distMat = calculateQueryQueryDistances(dbFuncs,
-                                                        rNames,
-                                                        qNames,
-                                                        kmers,
-                                                        queryDB,
-                                                        use_mash,
-                                                        threads)
+        qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
+                                        qNames = qList,
+                                        dbPrefix = queryDB,
+                                        queryPrefix = queryDB,
+                                        klist = kmers,
+                                        self = True,
+                                        number_plot_fits = 0,
+                                        threads = threads)
 
-        queryAssignation = model.assign(distMat)
-        for assignment, (ref, query) in zip(queryAssignation, listDistInts(qNames, qNames, self = True)):
+        queryAssignation = model.assign(qqDistMat)
+        for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):
             if assignment == model.within_label:
                 new_edges.append((ref + ref_count, query + ref_count))
 
     # Otherwise only calculate query-query distances for new clusters
     else:
-
         # identify potentially new lineages in list: unassigned is a list of queries with no hits
-        unassigned = set(qSeqs).difference(assigned)
-        query_indices = {k:v+ref_count for v,k in enumerate(qSeqs)}
+        unassigned = set(qList).difference(assigned)
+        query_indices = {k:v+ref_count for v,k in enumerate(qList)}
         # process unassigned query sequences, if there are any
         if len(unassigned) > 1:
-            sys.stderr.write("Found novel query clusters. Calculating distances between them:\n")
-
-            # write unassigned queries to file as if a list of references
-            tmpDirName = mkdtemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir="./")
-            tmpHandle, tmpFile = mkstemp(prefix=os.path.basename(queryDB), suffix="_tmp", dir=tmpDirName)
-            with open(tmpFile, 'w') as tFile:
-                for query in unassigned:
-                    if isinstance(queryFiles[query], list):
-                        seqFiles = "\t".join(queryFiles[query])
-                    elif isinstance(queryFiles[query], str):
-                        seqFiles = queryFiles[query]
-                    else:
-                        raise RuntimeError("Error with formatting of q-file")
-                    tFile.write(query + '\t' + seqFiles + '\n')
+            sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
 
             # use database construction methods to find links between unassigned queries
-            sketchSize = readDBParams(queryDB, kmers, None)[1]
-            constructDatabase(tmpFile, kmers, sketchSize, tmpDirName, True, threads, False)
-
-            qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
+            qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),
-                                                    dbPrefix = tmpDirName,
-                                                    queryPrefix = tmpDirName,
+                                                    dbPrefix = queryDB,
+                                                    queryPrefix = queryDB,
                                                     klist = kmers,
                                                     self = True,
                                                     number_plot_fits = 0,
                                                     threads = threads)
 
-            queryAssignation = model.assign(distMat)
+            queryAssignation = model.assign(qqDistMat)
 
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
@@ -461,18 +420,15 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
                 if assignment == model.within_label:
                     new_edges.append((query_indices[query1], query_indices[query2]))
 
-            # remove directory
-            shutil.rmtree(tmpDirName)
-
     # finish by updating the network
-    G.add_vertex(len(qNames))
+    G.add_vertex(len(qList))
     G.add_edge_list(new_edges)
 
     # including the vertex ID property map
-    for i,q in enumerate(qSeqs):
+    for i,q in enumerate(qList):
         G.vp.id[i + len(rlist)] = q
 
-    return qlist1, distMat
+    return qqDistMat
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                   externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
@@ -637,7 +593,8 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
     d = defaultdict(list)
 
     # Read in external clusters
-    readIsolateTypeFromCsv(clustCSV, mode = 'external', return_dict = False)
+    extClusters = \
+        readIsolateTypeFromCsv(extClusterFile, mode = 'external', return_dict = False)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster
