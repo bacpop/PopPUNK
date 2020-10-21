@@ -36,8 +36,6 @@ from .plot import writeClusterCsv
 
 from .prune_db import prune_distance_matrix
 
-from .sketchlib import calculateQueryQueryDistances
-
 from .utils import setGtThreads
 from .utils import setupDBFuncs
 from .utils import storePickle
@@ -894,9 +892,14 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
 
         if assign_lineage:
             # Assign lineages by calculating query-query information
-            ordered_queryList, query_distMat = \
-                calculateQueryQueryDistances(
-                    dbFuncs, qNames, kmers, output, threads)
+            qlist1, qlist2, query_distMat = queryDatabase(rNames = qNames,
+                                                    qNames = qNames,
+                                                    dbPrefix = output,
+                                                    queryPrefix = output,
+                                                    klist = kmers,
+                                                    self = True,
+                                                    number_plot_fits = 0,
+                                                    threads = threads)
 
             assignment = model.extend(query_distMat, distMat)
 
@@ -913,17 +916,18 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             queryAssignments = model.assign(distMat)
 
             # Assign clustering by adding to network
-            ordered_queryList, query_distMat = \
+            query_distMat = \
                 addQueryToNetwork(dbFuncs, refList, queryList,
-                                  genomeNetwork, kmers, queryAssignments,
-                                  model, output, update_db, threads = threads)
+                                  genomeNetwork, kmers,
+                                  queryAssignments, model, output, update_db,
+                                  threads)
 
         # if running simple query
         print_full_clustering = False
         if update_db:
             print_full_clustering = True
         isolateClustering = \
-            {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
+            {'combined': printClusters(genomeNetwork, refList + queryList,
                                         output + "/" + os.path.basename(output),
                                         old_cluster_file,
                                         external_clustering,
@@ -991,18 +995,18 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         if microreact:
             sys.stderr.write("Writing microreact output\n")
             outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
-                                    output, info_csv, rapidnj, ordered_queryList, overwrite)
+                                    output, info_csv, rapidnj, queryList, overwrite)
         if phandango:
             sys.stderr.write("Writing phandango output\n")
             outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                                queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
+                                queryList = queryList, overwrite = overwrite, microreact = microreact)
         if grapetree:
             sys.stderr.write("Writing grapetree output\n")
             outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                                queryList = ordered_queryList, overwrite = overwrite, microreact = microreact)
+                                queryList = queryList, overwrite = overwrite, microreact = microreact)
         if cytoscape:
             sys.stderr.write("Writing cytoscape output\n")
-            outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, ordered_queryList)
+            outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, queryList)
 
     else:
         sys.stderr.write("Need to provide both a reference database with --ref-db and "

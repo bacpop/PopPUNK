@@ -19,8 +19,6 @@ from scipy.stats import rankdata
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 
-from .sketchlib import calculateQueryQueryDistances
-
 from .utils import iterDistRows
 from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
@@ -308,7 +306,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     Args:
         dbFuncs (list)
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
-        rlist (list)
+        rList (list)
             List of reference names
         qList (list)
             List of query names
@@ -330,8 +328,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
             (default = 1)
     Returns:
-        qlist1 (list)
-            Ordered list of queries
         distMat (numpy.array)
             Query-query distances
     """
@@ -341,6 +337,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # initialise links data structure
     new_edges = []
     assigned = set()
+
+    # These are returned
+    qqDistMat = None
 
     # store links for each query in a list of edge tuples
     ref_count = len(rList)
@@ -353,13 +352,16 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
-        qlist1, distMat = calculateQueryQueryDistances(dbFuncs,
-                                                       qList,
-                                                       kmers,
-                                                       queryDB,
-                                                       threads)
+        qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
+                                        qNames = qList,
+                                        dbPrefix = queryDB,
+                                        queryPrefix = queryDB,
+                                        klist = kmers,
+                                        self = True,
+                                        number_plot_fits = 0,
+                                        threads = threads)
 
-        queryAssignation = model.assign(distMat)
+        queryAssignation = model.assign(qqDistMat)
         for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):
             if assignment == model.within_label:
                 new_edges.append((ref + ref_count, query + ref_count))
@@ -371,10 +373,10 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         query_indices = {k:v+ref_count for v,k in enumerate(qList)}
         # process unassigned query sequences, if there are any
         if len(unassigned) > 1:
-            sys.stderr.write("Found novel query clusters. "
-                             "Calculating distances between them:\n")
+            sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
 
-            qlist1, qlist2, distMat = queryDatabase(rNames = list(unassigned),
+            # use database construction methods to find links between unassigned queries
+            qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),
                                                     dbPrefix = queryDB,
                                                     queryPrefix = queryDB,
@@ -383,7 +385,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     number_plot_fits = 0,
                                                     threads = threads)
 
-            queryAssignation = model.assign(distMat)
+            queryAssignation = model.assign(qqDistMat)
 
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
@@ -400,7 +402,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     for i, q in enumerate(qList):
         G.vp.id[i + len(rList)] = q
 
-    return qlist1, distMat
+    return qqDistMat
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                   externalClusterCSV = None, printRef = True, printCSV = True,
@@ -567,9 +569,7 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
 
     # Read in external clusters
     extClusters = \
-        readIsolateTypeFromCsv(extClusterFile,
-                               mode = 'external',
-                               return_dict = True)
+        readIsolateTypeFromCsv(extClusterFile, mode = 'external', return_dict = False)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster
