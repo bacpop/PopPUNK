@@ -909,8 +909,6 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                              assignment,
                                              0,
                                              edge_list = True)
-            ordered_queryList = qNames
-
         else:
             # Assign these distances as within or between strain
             queryAssignments = model.assign(distMat)
@@ -955,19 +953,19 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
             combined_seq, core_distMat, acc_distMat = \
                 update_distance_matrices(refList, ref_distMat,
-                                        ordered_queryList, distMat,
+                                        queryList, distMat,
                                         query_distMat, threads = threads)
             complete_distMat = \
                 np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                             pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
             if not full_db and not assign_lineage:
-                dbOrder = refList + ordered_queryList
+                dbOrder = refList + queryList
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \
                         extractReferences(genomeNetwork, dbOrder, output, refList)
                 # intersection that maintains order
-                newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)]
+                newQueries = [x for x in queryList if x in frozenset(newRepresentativesNames)]
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
 
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
@@ -989,7 +987,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 storePickle(combined_seq, combined_seq, True,
                             complete_distMat, dists_out)
                 # ensure sketch and distMat order match
-                assert combined_seq == refList + ordered_queryList
+                assert combined_seq == refList + queryList
 
         # Generate files for visualisations
         if microreact:
