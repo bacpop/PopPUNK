@@ -24,12 +24,6 @@ Functions used to fit DBSCAN to a database. Access using
 .. automodule:: PopPUNK.dbscan
    :members:
 
-mash.py
---------
-
-.. automodule:: PopPUNK.mash
-   :members:
-
 models.py
 ---------
 
