@@ -28,13 +28,15 @@ by reading the :doc:`best_practises`.
    self
    installation.rst
    best_practises.rst
+   query_assignment.rst
    online.rst
    sketching.rst
-   query_assignment.rst
+   qc.rst
    model_fitting.rst
    model_distribution.rst
    visualisation.rst
    subclustering.rst
+   troubleshooting.rst
    options.rst
    scripts.rst
    api.rst
