@@ -28,8 +28,8 @@ by reading the :doc:`best_practises`.
    self
    installation.rst
    best_practises.rst
-   query_assignment.rst
    online.rst
+   query_assignment.rst
    sketching.rst
    qc.rst
    model_fitting.rst

@@ -28,7 +28,7 @@ and v1.5.1 of ``pp-sketchlib``.
 
 Use query assignment mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-If a database is available for your species (see `https://poppunk.net/pages/databases.html`__)
+If a database is available for your species (see https://poppunk.net/pages/databases.html)
 we would strongly recommend downloading it to use to cluster your genomes. This
 has many advantages:
 
