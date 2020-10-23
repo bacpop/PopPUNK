@@ -3,6 +3,11 @@ Query assignment
 This is the recommended mode to use PopPUNK, as long as a database is available for
 your species. If there is no DB available, you can fit your own (:doc:`model_fitting`).
 
+Briefly, `download your reference database <https://poppunk.net/pages/databases.html>`__ and run::
+
+    poppunk_assign --ref-db database --distances database/database.dists \
+    --q-files qfile.txt --output poppunk_clusters --threads 8
+
 Downloading a database
 ----------------------
 Current PopPUNK databases can be found here: https://poppunk.net/pages/databases.html
@@ -30,7 +35,7 @@ examples below refer to the default database name:
 - (required) ``--ref-db database`` -- the name of directory containing the .h5 file.
 - (required) ``--distances database/database.dists`` -- prefix of the distances.
 - ``--model-dir database`` -- directory containing the model fit and network (dists + fit define the network).
-- ``--previous-clustering`` -- directory containing the PopPUNK clusters for the references.
+- ``--previous-clustering database`` -- directory containing the PopPUNK clusters for the references.
 
 Clustering your genomes
 -----------------------
@@ -107,6 +112,10 @@ clusters.
     clusters will be named using the old ones. For example, if clusters 23 and 38
     merged, the new cluster would be called 23_38.
 
+By default, only the query genome clusters are included here. The reference genome
+clusters are considered unchanged from the input. If there are many merges and you
+wish to know their new cluster IDs, use ``--update-db`` (:ref:`update-db`).
+
 You can use ``poppunk_visualise`` to look at your results. Here's an example output
 to cytoscape, showing the clusters as colours, reference genomes as circles and
 queries as triangles (open in a new tab to zoom on detail):
@@ -157,11 +166,51 @@ be reduced by clique-pruning at each iteration.
 
 Straightforward ways to increase speed include:
 
-- Add `--gpu-dist`, if you have a GPU available.
-- Add `--gpu-sketch`, if your input is all reads, and you have a GPU available. If
-  your input is a mix of assemblies and reads, run in two separate batches, the latter
-  using this option.
-- Increase `--threads`.
+- Add ``--gpu-dist``, if you have a GPU available.
+- Add ``--gpu-sketch``, if your input is all reads, and you have a GPU available. If
+  your input is a mix of assemblies and reads, run in two separate batches, with
+  the batch of reads using this option.
+- Increase ``--threads``.
+
+.. _update-db:
 
 Updating the database
 ---------------------
+If you want to add your query genomes into the reference database so that they
+can be used to inform future cluster assignment, this is as simple as adding the
+``--update-db`` option to the command above. This is particularly useful when novel
+query clusters have been found -- they will then be the consistent name for future assignments::
+
+    poppunk_assign --ref-db database --distances database/database.dists \
+    --q-files qfile.txt --output poppunk_clusters --threads 8 --update-db
+
+    Graph-tools OpenMP parallelisation enabled: with 4 threads
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.5.1
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+    Mode: Assigning clusters of query sequences
+
+    Sketching 28 genomes using 4 thread(s)
+    Writing sketches to file
+    Calculating distances using 4 thread(s)
+    Loading BGMM 2D Gaussian model
+    Network loaded: 18 samples
+    Calculating all query-query distances
+    Could not find random match chances in database, calculating assuming equal base frequencies
+    Calculating distances using 4 thread(s)
+    Updating reference database to poppunk_clusters
+    Removing 27 sequences
+
+    Done
+
+The new database contains all of the reference sequences, and all of your query sequences.
+The ``poppunk_clusters`` folder will now contain all of the files of a reference
+database listed above, except for the model. You can use ``--model-dir`` to target
+this for future assignment, or copy it over yourself. Alternatively, if you run
+with the same ``--output`` folder as ``--ref-db``, adding ``--overwrite``, the original
+input folder will contain the updated database containing everything needed.
+
+.. note::
+    This mode can take longer to run with large numbers of input query genomes,
+    as it will calculate all :math:`Q^2` query-query distances, rather than
+    just those found in novel query clusters.
