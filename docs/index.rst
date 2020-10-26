@@ -22,7 +22,7 @@ If you are new to PopPUNK, we'd recommend starting on :doc:`installation`, then
 by reading the :doc:`best_practises`.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    self

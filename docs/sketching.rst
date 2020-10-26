@@ -22,6 +22,7 @@ steps:
 4. Save sketches in a HDF5 datbase (the .h5 file).
 5. (r-files only) Calculate core and accessory distances between every pair of sketches, save in .npy and .pkl.
 6. (q-files only) Calculate core and accessory distances between query and reference sketches.
+7. Report any core distances greater than ``--max-a-dist`` (and quit, if an r-file).
 
 To run this before :doc:`model_fitting`, use ``--create-db``::
 
