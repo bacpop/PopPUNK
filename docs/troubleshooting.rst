@@ -21,6 +21,13 @@ with ``pp-sketchlib <v1.5.1``. There are three ways to fix this:
 - Create the database with ``poppunk_sketch --sketch`` and
   ``poppunk_sketch --query`` directly, rather than ``PopPUNK --create-db``.
 
+Calculating distances using 0 thread(s)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This will lead to an error later on in execution. This is due to a version
+mismatch between PopPUNK and ``pp-sketchlib``. Installation of both packages
+via conda should keep the versions compatible, but there are ways they can get out of sync.
+
+The solution is as above: upgrade to ``PopPUNK >=v2.2`` and ``pp-sketchlib >=v1.5.1``.
 
 Error/warning messages
 ----------------------
