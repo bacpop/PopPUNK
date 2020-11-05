@@ -45,7 +45,9 @@ def assign_query(dbFuncs,
                  accessory_only,
                  assign_lineage,
                  rank,
-                 lineage_accessory):
+                 lineage_accessory,
+                 web = False,
+                 sketch = None):
     """Code for assign query mode. Written as a separate function so it can be called
     by web APIs
     """
@@ -64,13 +66,13 @@ def assign_query(dbFuncs,
 
     from .prune_db import prune_distance_matrix
 
-    from .sketchlib import calculateQueryQueryDistances
-
     from .utils import storePickle
     from .utils import readPickle
     from .utils import qcDistMat
     from .utils import update_distance_matrices
 
+    from .web import sketch_to_hdf5
+    
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     joinDBs = dbFuncs['joinDBs']
@@ -103,20 +105,24 @@ def assign_query(dbFuncs,
         rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
 
     # construct database
-    qNames = constructDatabase(q_files,
-                                kmers,
-                                sketch_sizes,
-                                output,
-                                threads,
-                                overwrite,
-                                codon_phased = codon_phased)
+    if not web:
+        qNames = constructDatabase(q_files,
+                                    kmers,
+                                    sketch_sizes,
+                                    output,
+                                    threads,
+                                    overwrite,
+                                    codon_phased = codon_phased)
+    else:
+        qNames = sketch_to_hdf5(sketch, output)
 
     # run query
+
     refList, queryList, distMat = queryDatabase(rNames = rNames,
                                                 qNames = qNames,
                                                 dbPrefix = ref_db,
                                                 queryPrefix = output,
-                                                klist = kmers,
+                                                klist = list(kmers),
                                                 self = False,
                                                 number_plot_fits = plot_fit,
                                                 threads = threads)
@@ -136,8 +142,8 @@ def assign_query(dbFuncs,
         model_file += str(rank)
         sparse = True
 
-    model = loadClusterFit(model_file + '_fit.pkl',
-                            model_file + '_fit.npz',
+    model = loadClusterFit(model_file + '.dists.pkl',
+                            model_file + '.dists.npy',
                             sparse=sparse)
 
     # Set directories of previous fit
@@ -153,9 +159,15 @@ def assign_query(dbFuncs,
 
     if assign_lineage:
         # Assign lineages by calculating query-query information
-        ordered_queryList, query_distMat = \
-            calculateQueryQueryDistances(
-                dbFuncs, qNames, kmers, output, threads)
+        qlist1, qlist2, query_distMat = \
+            queryDatabase(rNames = qNames,
+                            qNames = qNames,
+                            dbPrefix = output,
+                            queryPrefix = output,
+                            klist = kmers,
+                            self = True,
+                            number_plot_fits = 0,
+                            threads = threads)
 
         assignment = model.extend(query_distMat, distMat)
 
@@ -165,24 +177,24 @@ def assign_query(dbFuncs,
                                             assignment,
                                             0,
                                             edge_list = True)
-        ordered_queryList = qNames
 
     else:
         # Assign these distances as within or between strain
         queryAssignments = model.assign(distMat)
 
         # Assign clustering by adding to network
-        ordered_queryList, query_distMat = \
-            addQueryToNetwork(dbFuncs, refList, queryList,
-                                genomeNetwork, kmers, queryAssignments,
-                                model, output, update_db, threads = threads)
+        query_distMat = \
+            addQueryToNetwork(dbFuncs, refList, queryList, 
+                                q_files, genomeNetwork, kmers, 
+                                queryAssignments, model, output, update_db,
+                                use_mash, threads)
 
     # if running simple query
     print_full_clustering = False
     if update_db:
         print_full_clustering = True
     isolateClustering = \
-        {'combined': printClusters(genomeNetwork, refList + ordered_queryList,
+        {'combined': printClusters(genomeNetwork, refList + queryList,
                                     output + "/" + os.path.basename(output),
                                     old_cluster_file,
                                     external_clustering,
@@ -210,19 +222,19 @@ def assign_query(dbFuncs,
         refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
         combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(refList, ref_distMat,
-                                    ordered_queryList, distMat,
+                                    queryList, distMat,
                                     query_distMat, threads = threads)
         complete_distMat = \
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                         pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
         if not full_db and not assign_lineage:
-            dbOrder = refList + ordered_queryList
+            dbOrder = refList + queryList
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
                     extractReferences(genomeNetwork, dbOrder, output, refList, threads = threads)
             # intersection that maintains order
-            newQueries = [x for x in ordered_queryList if x in frozenset(newRepresentativesNames)]
+            newQueries = [x for x in queryList if x in frozenset(newRepresentativesNames)]
             genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
 
             # could also have newRepresentativesNames in this diff (should be the same) - but want
@@ -244,7 +256,7 @@ def assign_query(dbFuncs,
             storePickle(combined_seq, combined_seq, True,
                         complete_distMat, dists_out)
             # ensure sketch and distMat order match
-            assert combined_seq == refList + ordered_queryList
+            assert combined_seq == refList + queryList
 
     return(isolateClustering)
 
@@ -263,10 +275,11 @@ def get_options():
     # input options
     iGroup = parser.add_argument_group('Input files')
     iGroup.add_argument('--ref-db', required=True, type = str, help='Location of built reference database')
-    iGroup.add_argument('--q-files', required=True, help='File listing query input assemblies')
+    iGroup.add_argument('--q-files', default=None, help='File listing query input assemblies')
     iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
+    iGroup.add_argument('--web', help='Input is web api', default=False, action='store_true')
 
     # output options
     oGroup = parser.add_argument_group('Output options')

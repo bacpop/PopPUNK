@@ -16,6 +16,36 @@ import pp_sketchlib
 # import poppunk package
 from .__init__ import __version__
 
+from .models import *
+
+from .sketchlib import checkSketchlibLibrary
+from .sketchlib import removeFromDB
+
+from .network import fetchNetwork
+from .network import constructNetwork
+from .network import extractReferences
+from .network import addQueryToNetwork
+from .network import printClusters
+
+from .plot import outputsForMicroreact
+from .plot import outputsForCytoscape
+from .plot import outputsForPhandango
+from .plot import outputsForGrapetree
+from .plot import writeClusterCsv
+
+from .prune_db import prune_distance_matrix
+
+from .utils import setGtThreads
+from .utils import setupDBFuncs
+from .utils import storePickle
+from .utils import readPickle
+from .utils import writeTmpFile
+from .utils import qcDistMat
+from .utils import update_distance_matrices
+from .utils import readRfile
+from .utils import readIsolateTypeFromCsv
+from .utils import createOverallLineage
+
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 1
 SKETCHLIB_MINOR = 5
