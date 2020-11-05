@@ -311,10 +311,6 @@ def main():
         if min(rank_list) == 0 or max(rank_list) > 100:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
             sys.exit(1)
-        if args.assign_lineages:
-            if len(rank_list) > 1:
-                sys.stderr.write('Only assigning using lowest provided rank')
-            rank_list = min(rank_list)
 
     # check on file paths and whether files will be overwritten
     # confusing to overwrite command line parameter
@@ -476,13 +472,15 @@ def main():
         if args.lineage_clustering:
             # run lineage clustering. Sparsity & low rank should keep memory
             # usage of dict reasonable
+            model = LineageFit(args.output, rank_list)
+            model.fit(distMat, args.use_accessory, args.threads)
+            model.save()
+            model.plot(distMat)
+
             assignments = {}
-            for rank in sorted(rank_list):
-                model = LineageFit(args.output)
+            for rank in rank_list:
                 assignments[rank] = \
-                    model.fit(distMat, rank, args.use_accessory, args.threads)
-                model.save()
-                model.plot(distMat)
+                    model.assign(int(rank))
 
         #******************************#
         #*                            *#
@@ -868,16 +866,10 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         model_prefix = ref_db
         if model_dir is not None:
             model_prefix = model_dir
-        model_file = model_prefix + "/" + os.path.basename(model_prefix)
+        model_file = model_prefix + "/" + os.path.basename(model_prefix) + "_fit"
 
-        sparse = False
-        if assign_lineage:
-            model_file += str(rank_list)
-            sparse = True
-
-        model = loadClusterFit(model_file + '_fit.pkl',
-                               model_file + '_fit.npz',
-                               sparse=sparse)
+        model = loadClusterFit(model_file + '.pkl',
+                               model_file + '.npz')
 
         # Set directories of previous fit
         if previous_clustering is not None:
@@ -890,25 +882,49 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             fetchNetwork(prev_clustering, model, refList,
                             core_only, accessory_only)
 
+        # if running simple query
+        print_full_clustering = False
+        if update_db:
+            print_full_clustering = True
+
         if assign_lineage:
             # Assign lineages by calculating query-query information
             qlist1, qlist2, query_distMat = queryDatabase(rNames = qNames,
-                                                    qNames = qNames,
-                                                    dbPrefix = output,
-                                                    queryPrefix = output,
-                                                    klist = kmers,
-                                                    self = True,
-                                                    number_plot_fits = 0,
-                                                    threads = threads)
+                                                          qNames = qNames,
+                                                          dbPrefix = output,
+                                                          queryPrefix = output,
+                                                          klist = kmers,
+                                                          self = True,
+                                                          number_plot_fits = 0,
+                                                          threads = threads)
+            model.extend(query_distMat, distMat)
 
-            assignment = model.extend(query_distMat, distMat)
+            genomeNetwork = {}
+            for rank in rank_list:
+                assignment = model.assign(rank)
+                # Overwrite the network loaded above
+                genomeNetwork[rank] = constructNetwork(rNames + qNames,
+                                                       rNames + qNames,
+                                                       assignment,
+                                                       0,
+                                                       edge_list = True)
 
-            # Overwrite the network loaded above
-            genomeNetwork = constructNetwork(rNames + qNames,
-                                             rNames + qNames,
-                                             assignment,
-                                             0,
-                                             edge_list = True)
+                isolateClustering = \
+                    {'combined': printClusters(genomeNetwork[rank], refList + queryList,
+                                            output + "/" + os.path.basename(output),
+                                            old_cluster_file,
+                                            external_clustering,
+                                            print_full_clustering)}
+            overall_lineage = createOverallLineage(rank_list, isolateClustering)
+            writeClusterCsv(output + "/" + \
+                os.path.basename(output) + '_lineages.csv',
+                refList,
+                refList,
+                overall_lineage,
+                output_format = 'phandango',
+                epiCsv = None,
+                queryNames = refList,
+                suffix = '_Lineage')
         else:
             # Assign these distances as within or between strain
             queryAssignments = model.assign(distMat)
@@ -920,16 +936,12 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                   queryAssignments, model, output, update_db,
                                   threads)
 
-        # if running simple query
-        print_full_clustering = False
-        if update_db:
-            print_full_clustering = True
-        isolateClustering = \
-            {'combined': printClusters(genomeNetwork, refList + queryList,
-                                        output + "/" + os.path.basename(output),
-                                        old_cluster_file,
-                                        external_clustering,
-                                        print_full_clustering)}
+            isolateClustering = \
+                {'combined': printClusters(genomeNetwork, refList + queryList,
+                                            output + "/" + os.path.basename(output),
+                                            old_cluster_file,
+                                            external_clustering,
+                                            print_full_clustering)}
 
         # Update DB as requested
         if update_db:
@@ -941,8 +953,11 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 sys.stderr.write("Updating reference database to " + output + "\n")
 
             # Update the network + ref list (everything)
-            genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
             joinDBs(ref_db, output, output)
+            if assign_lineage:
+                genomeNetwork[min(rank_list)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+            else:
+                genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
 
             # Update distance matrices with all calculated distances
             dists_out = output + "/" + os.path.basename(output) + ".dists"
