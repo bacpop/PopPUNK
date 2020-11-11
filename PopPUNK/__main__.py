@@ -570,6 +570,8 @@ def main():
 
                 if args.microreact:
                     sys.stderr.write("Writing microreact output\n")
+                    if args.lineage_clustering:
+                        isolateClustering = overall_lineage
                     outputsForMicroreact(refList, core_distMat, acc_distMat, isolateClustering, args.perplexity,
                                         args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
                 if args.phandango:
@@ -723,7 +725,7 @@ def main():
                 try:
                     sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
                     model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                                       model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
+                                           model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz')
                 except:
                     sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
                     sys.exit(1)
@@ -900,6 +902,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
             model.extend(query_distMat, distMat)
 
             genomeNetwork = {}
+            isolateClustering = defaultdict(dict)
             for rank in rank_list:
                 assignment = model.assign(rank)
                 # Overwrite the network loaded above
@@ -909,17 +912,16 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                                                        0,
                                                        edge_list = True)
 
-                isolateClustering = \
-                    {'combined': printClusters(genomeNetwork[rank], refList + queryList,
-                                            output + "/" + os.path.basename(output),
-                                            old_cluster_file,
-                                            external_clustering,
-                                            print_full_clustering)}
+                isolateClustering[rank] = \
+                    printClusters(genomeNetwork[rank],
+                                  refList + queryList,
+                                  printCSV = False)
+
             overall_lineage = createOverallLineage(rank_list, isolateClustering)
             writeClusterCsv(output + "/" + \
                 os.path.basename(output) + '_lineages.csv',
-                refList,
-                refList,
+                refList + queryList,
+                refList + queryList,
                 overall_lineage,
                 output_format = 'phandango',
                 epiCsv = None,
@@ -1007,6 +1009,8 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
         # Generate files for visualisations
         if microreact:
             sys.stderr.write("Writing microreact output\n")
+            if assign_lineage:
+                isolateClustering = overall_lineage
             outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
                                     output, info_csv, rapidnj, queryList, overwrite)
         if phandango:

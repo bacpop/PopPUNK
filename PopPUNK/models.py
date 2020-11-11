@@ -45,7 +45,7 @@ from .plot import plot_refined_results
 
 # lineage
 from .plot import distHistogram
-epsilon = 1e-7
+epsilon = 1e-10
 
 # Format for rank fits
 def rankFile(rank):
@@ -74,9 +74,10 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
         # file name processing
         fit_data = {}
         for rank in fit_object[0]:
-            fit_file = os.path.basename(npz_file)
+            fit_file = os.path.basename(pkl_file)
             prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
-            rank_file = prefix.group(1) + rankFile(rank)
+            rank_file = os.path.dirname(pkl_file) + "/" + \
+                        prefix.group(1) + rankFile(rank)
             fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
         fit_data = np.load(npz_file)
@@ -845,14 +846,14 @@ class LineageFit(ClusterFit):
                     rank,
                     threads
                 )
-            data[data == 0] = epsilon
+            data = [epsilon if d < epsilon else d for d in data]
             self.nn_dists[rank] = coo_matrix((data, (row, col)),
                                              shape=(sample_size, sample_size),
                                              dtype = X.dtype)
 
         self.fitted = True
 
-        y = self.assign(min(rank))
+        y = self.assign(min(self.ranks))
         return y
 
     def save(self):
@@ -922,14 +923,17 @@ class LineageFit(ClusterFit):
     def extend(self, qqDists, qrDists):
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], 1)
-        qrRect = qrDists[:, [self.dist_col]].reshape(self.nn_dists[self.ranks[0]].shape[0],
-                                                     qqSquare.shape[1])
+        qqSquare[qqSquare < epsilon] = epsilon
+
+        n_ref = self.nn_dists[self.ranks[0]].shape[0]
+        n_query = qqSquare.shape[1]
+        qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref)
+        qrRect[qrRect < epsilon] = epsilon
 
         for rank in self.ranks:
             # Add the matrices together to make a large square matrix
-
-            full_mat = bmat([[self.nn_dists[rank], qrRect],
-                            [qrRect.transpose(),   qqSquare]],
+            full_mat = bmat([[self.nn_dists[rank], qrRect.transpose()],
+                             [qrRect,              qqSquare]],
                             format = 'csr',
                             dtype = self.nn_dists[rank].dtype)
 
@@ -940,26 +944,31 @@ class LineageFit(ClusterFit):
             for row_idx in range(full_mat.shape[0]):
                 sample_row = full_mat.getrow(row_idx)
                 dist_row, dist_col, dist = find(sample_row)
+                dist = [epsilon if d < epsilon else d for d in dist]
                 dist_idx_sort = np.argsort(dist)
 
+                # Identical to C++ code in matrix_ops.cpp:sparsify_dists
                 neighbours = 0
-                prev_val = epsilon
+                prev_val = -1
                 for sort_idx in dist_idx_sort:
-                    if row_idx == dist_col[sort_idx] or dist[sort_idx] == prev_val:
+                    if row_idx == dist_col[sort_idx]:
                         continue
-                    else:
+                    new_val = abs(dist[sort_idx] - prev_val) < epsilon
+                    if (neighbours < rank or new_val):
                         data.append(dist[sort_idx])
                         row.append(row_idx)
                         col.append(dist_col[sort_idx])
 
-                        neighbours += 1
-                        if neighbours >= rank:
-                            break
+                        if not new_val:
+                            neighbours += 1
+                            prev_val = data[-1]
+                    else:
+                        break
 
             self.nn_dists[rank] = coo_matrix((data, (row, col)),
                                     shape=(full_mat.shape[0], full_mat.shape[0]),
                                     dtype = self.nn_dists[rank].dtype)
 
-        y = self.assign(min(rank))
+        y = self.assign(min(self.ranks))
         return y
 
