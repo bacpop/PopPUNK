@@ -83,11 +83,12 @@ def main():
     # Prune distances
     nodes_to_remove = set(range(len(refList))).difference(reference_indices)
     names_to_remove = [refList[n] for n in nodes_to_remove]
-    prune_distance_matrix(refList, names_to_remove, distMat,
-                          args.output + "/" + os.path.basename(args.output) + ".dists")
 
     # 'Resketch'
     if len(nodes_to_remove) > 0:
+        prune_distance_matrix(refList, names_to_remove, distMat,
+                          args.output + "/" + os.path.basename(args.output) + ".dists")
+
         removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
 
         db_outfile = args.output + "/" + os.path.basename(args.output) + ".tmp.h5"
