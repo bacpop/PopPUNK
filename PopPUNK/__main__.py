@@ -416,13 +416,15 @@ def main():
         if args.lineage_clustering:
             # run lineage clustering. Sparsity & low rank should keep memory
             # usage of dict reasonable
+            model = LineageFit(args.output, rank_list)
+            model.fit(distMat, args.use_accessory, args.threads)
+            model.save()
+            model.plot(distMat)
+
             assignments = {}
-            for rank in sorted(rank_list):
-                model = LineageFit(args.output)
+            for rank in rank_list:
                 assignments[rank] = \
-                    model.fit(distMat, rank, args.use_accessory, args.threads)
-                model.save()
-                model.plot(distMat)
+                    model.assign(int(rank))
 
         #******************************#
         #*                            *#
@@ -525,7 +527,6 @@ def main():
                           args.output + "/" + os.path.basename(args.output) + ".refs.h5")
 
     sys.stderr.write("\nDone\n")
-
 
 if __name__ == '__main__':
     main()

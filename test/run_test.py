@@ -45,7 +45,7 @@ subprocess.run("python ../poppunk_assign-runner.py --q-files queries.txt --dista
 
 # assign query to lineages
 sys.stderr.write("Running query assignment (--assign-lineages)\n")
-subprocess.run("python ../poppunk_assign-runner.py --assign-lineages --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --update-db --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --assign-lineages --q-files some_queries.txt --distances example_db/example_db.dists --ranks 1,2,3,5 --ref-db example_db --model-dir example_lineages --output example_lineage_query --update-db --overwrite", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")

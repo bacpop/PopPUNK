@@ -179,17 +179,14 @@ def main():
                 model_prefix = args.model_dir
             model_file = model_prefix + "/" + os.path.basename(model_prefix)
 
-            sparse = False
             if args.rank:
                 model_file += str(args.rank)
                 sparse = True
             try:
                 model = loadClusterFit(model_file + '_fit.pkl',
-                                       model_file + '_fit.npz',
-                                       sparse=sparse)
+                                       model_file + '_fit.npz')
             except:
                 sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
-                sys.stderr.write('Have you specified --rank, if required?\n')
                 sys.exit(1)
 
             # Set directories of previous fit
@@ -214,6 +211,8 @@ def main():
         # generate selected visualisations
         if args.microreact:
             sys.stderr.write("Writing microreact output\n")
+            if args.lineage_clustering:
+                isolateClustering = overall_lineage
             outputsForMicroreact(viz_subset, core_distMat, acc_distMat, isolateClustering, args.perplexity,
                                     args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
         if args.phandango:
@@ -226,15 +225,20 @@ def main():
                                 overwrite = args.overwrite, microreact = args.microreact)
         if args.cytoscape:
             sys.stderr.write("Writing cytoscape output\n")
-            genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
-            outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
-            if model.indiv_fitted:
-                sys.stderr.write("Writing individual cytoscape networks\n")
-                for dist_type in ['core', 'accessory']:
-                    indiv_network = gt.load_graph(args.ref_db + "/" + os.path.basename(args.ref_db) +
-                    "_" + dist_type + '_graph.gt')
-                    outputsForCytoscape(indiv_network, isolateClustering, args.output,
-                                args.info_csv, suffix = dist_type, viz_subset = viz_subset)
+            if args.lineage_clustering:
+                for rank in rank_list:
+                    outputsForCytoscape(indivNetworks[rank], isolateClustering, args.output,
+                                        args.info_csv, suffix = 'rank_' + str(rank), writeCsv = False)
+            else:
+                genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
+                if model.indiv_fitted:
+                    sys.stderr.write("Writing individual cytoscape networks\n")
+                    for dist_type in ['core', 'accessory']:
+                        indiv_network = gt.load_graph(args.ref_db + "/" + os.path.basename(args.ref_db) +
+                        "_" + dist_type + '_graph.gt')
+                        outputsForCytoscape(indiv_network, isolateClustering, args.output,
+                                    args.info_csv, suffix = dist_type, viz_subset = viz_subset)
 
     else:
         # Cannot read input files
