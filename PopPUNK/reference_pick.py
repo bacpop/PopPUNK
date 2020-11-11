@@ -14,17 +14,11 @@ from .__init__ import __version__
 
 from .sketchlib import removeFromDB
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
-
 from .network import extractReferences
-from .network import writeDummyReferences
 
 from .prune_db import prune_distance_matrix
 
+from .utils import setGtThreads
 from .utils import readPickle
 
 # command line parsing
@@ -69,6 +63,7 @@ def main():
         except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
+    setGtThreads(args.threads)
 
     # Read in all distances
     refList, queryList, self, distMat = readPickle(args.distances)
@@ -76,7 +71,7 @@ def main():
         raise RuntimeError("Distance DB should be self-self distances")
 
     # Read in full network
-    genomeNetwork = gt.load_graph(network_file)
+    genomeNetwork = gt.load_graph(args.network)
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
@@ -86,12 +81,14 @@ def main():
     G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     # Prune distances
+    nodes_to_remove = set(range(len(refList))).difference(reference_indices)
+    names_to_remove = [refList[n] for n in nodes_to_remove]
     prune_distance_matrix(refList, nodes_to_remove, distMat,
                           args.output + "/" + os.path.basename(args.output) + ".dists")
 
     # 'Resketch'
     if len(nodes_to_remove) > 0:
-        removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))
+        removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
     else:
         sys.stderr.write("No sequences to remove\n")
 

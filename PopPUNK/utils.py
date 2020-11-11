@@ -12,12 +12,20 @@ import subprocess
 from collections import defaultdict
 from tempfile import mkstemp
 from functools import partial
+import graph_tool.all as gt
 
 import numpy as np
 import pandas as pd
 import h5py
 
 import pp_sketchlib
+
+def setGtThreads(threads):
+    # Check on parallelisation of graph-tools
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(threads)
+        sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
+        sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
 
 # Use partials to set up slightly different function calls between
 # both possible backends
@@ -39,33 +47,28 @@ def setupDBFuncs(args, kmers, min_count, qc_dict):
         dbFuncs (dict)
             Functions with consistent arguments to use as the database API
     """
-    if args.use_mash:
-        sys.stderr.write("mash no longer supported. "
-                         "Please downgrade to <=v2.0.2 to use\n")
+    from .sketchlib import checkSketchlibVersion
+    from .sketchlib import createDatabaseDir
+    from .sketchlib import joinDBs
+    from .sketchlib import constructDatabase as constructDatabaseSketchlib
+    from .sketchlib import queryDatabase as queryDatabaseSketchlib
+    from .sketchlib import readDBParams
+    from .sketchlib import getSeqsInDb
 
-    else:
-        from .sketchlib import checkSketchlibVersion
-        from .sketchlib import createDatabaseDir
-        from .sketchlib import joinDBs
-        from .sketchlib import constructDatabase as constructDatabaseSketchlib
-        from .sketchlib import queryDatabase as queryDatabaseSketchlib
-        from .sketchlib import readDBParams
-        from .sketchlib import getSeqsInDb
+    backend = "sketchlib"
+    version = checkSketchlibVersion()
 
-        backend = "sketchlib"
-        version = checkSketchlibVersion()
-
-        constructDatabase = partial(constructDatabaseSketchlib,
-                                    codon_phased = args.codon_phased,
-                                    strand_preserved = args.strand_preserved,
-                                    min_count = args.min_kmer_count,
-                                    use_exact = args.exact_count,
-                                    qc_dict = qc_dict,
-                                    use_gpu = args.gpu_sketch,
-                                    deviceid = args.deviceid)
-        queryDatabase = partial(queryDatabaseSketchlib,
-                                use_gpu = args.gpu_dist,
+    constructDatabase = partial(constructDatabaseSketchlib,
+                                codon_phased = args.codon_phased,
+                                strand_preserved = args.strand_preserved,
+                                min_count = args.min_kmer_count,
+                                use_exact = args.exact_count,
+                                qc_dict = qc_dict,
+                                use_gpu = args.gpu_sketch,
                                 deviceid = args.deviceid)
+    queryDatabase = partial(queryDatabaseSketchlib,
+                            use_gpu = args.gpu_dist,
+                            deviceid = args.deviceid)
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = {'createDatabaseDir': createDatabaseDir,
@@ -278,7 +281,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
             type_columns = range((len(clustersCsv.columns)-1))
     else:
         sys.stderr.write('Unknown CSV reading mode: ' + mode + '\n')
-        exit(1)
+        sys.exit(1)
 
     # read file
     for row in clustersCsv.itertuples():
@@ -551,3 +554,20 @@ def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
     hdf_in.close()
 
     return retained
+
+def createOverallLineage(rank_list, lineage_clusters):
+    # process multirank lineages
+    overall_lineages = {'Rank_' + str(rank):{} for rank in rank_list}
+    overall_lineages['overall'] = {}
+    isolate_list = lineage_clusters[rank_list[0]].keys()
+    for isolate in isolate_list:
+        overall_lineage = None
+        for rank in rank_list:
+            overall_lineages['Rank_' + str(rank)][isolate] = lineage_clusters[rank][isolate]
+            if overall_lineage is None:
+                overall_lineage = str(lineage_clusters[rank][isolate])
+            else:
+                overall_lineage = overall_lineage + '-' + str(lineage_clusters[rank][isolate])
+        overall_lineages['overall'][isolate] = overall_lineage
+
+    return overall_lineages

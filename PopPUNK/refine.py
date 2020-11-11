@@ -72,7 +72,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5
     if max_move is None:
         max_move = ((mean1[0] - start_point[0])**2 + (mean1[1] - start_point[1])**2)**0.5
-    
+
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
 

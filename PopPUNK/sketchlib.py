@@ -22,12 +22,11 @@ from scipy import optimize
 
 # Try to import sketchlib
 try:
-    no_sketchlib = False
     import pp_sketchlib
     import h5py
 except ImportError as e:
     sys.stderr.write("Sketchlib backend not available")
-    no_sketchlib = True
+    sys.exit(1)
 
 from .mash import fitKmerCurve
 from .utils import iterDistRows

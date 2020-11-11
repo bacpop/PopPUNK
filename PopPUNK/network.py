@@ -205,29 +205,8 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
-def writeDummyReferences(refList, outPrefix):
-    """Writes chosen references to file, for use with mash
-    Gives sequence name twice
-
-    Args:
-        refList (list)
-            Reference names to write
-        outPrefix (str)
-            Prefix for output file (.refs will be appended)
-
-    Returns:
-        refFileName (str)
-            The name of the file references were written to
-    """
-    # write references to file
-    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + ".mash.refs"
-    with open(refFileName, 'w') as rFile:
-        for ref in refList:
-            rFile.write("\t".join([ref, ref]) + '\n')
-
-    return refFileName
-
-def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
+def constructNetwork(rlist, qlist, assignments, within_label,
+                     summarise = True, edge_list = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -263,9 +242,14 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
         vertex_labels.append(qlist)
 
     # identify edges
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qlist, self = self_comparison)):
-        if assignment == within_label:
-            connections.append((ref, query))
+    if edge_list:
+        connections = assignments
+    else:
+        for assignment, (ref, query) in zip(assignments,
+                                            listDistInts(rlist, qlist,
+                                                         self = self_comparison)):
+            if assignment == within_label:
+                connections.append((ref, query))
 
     # build the graph
     G = gt.Graph(directed = False)
@@ -313,21 +297,19 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
-                        assignments, model, queryDB, queryQuery = False,
-                        use_mash = False, threads = 1):
+def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
+                      assignments, model, queryDB, queryQuery = False,
+                      threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
     Args:
         dbFuncs (list)
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
-        rlist (list)
+        rList (list)
             List of reference names
         qList (list)
             List of query names
-        qFile (list)
-            File of query sequences
         G (graph)
             Network to add to (mutated)
         kmers (list)
@@ -341,11 +323,6 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
         queryQuery (bool)
             Add in all query-query distances
             (default = False)
-        use_mash (bool)
-            Use the mash backend
-        no_stream (bool)
-            Don't stream mash output
-            (default = False)
         threads (int)
             Number of threads to use if new db created
 
@@ -355,10 +332,7 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
             Query-query distances
     """
     # initalise functions
-    readDBParams = dbFuncs['readDBParams']
-    constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
     # initialise links data structure
     new_edges = []
@@ -368,8 +342,8 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     qqDistMat = None
 
     # store links for each query in a list of edge tuples
-    ref_count = len(rlist)
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qList, self = False)):
+    ref_count = len(rList)
+    for assignment, (ref, query) in zip(assignments, listDistInts(rList, qList, self = False)):
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
             new_edges.append((ref, query + ref_count))
@@ -425,13 +399,14 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     G.add_edge_list(new_edges)
 
     # including the vertex ID property map
-    for i,q in enumerate(qList):
-        G.vp.id[i + len(rlist)] = q
+    for i, q in enumerate(qList):
+        G.vp.id[i + len(rList)] = q
 
     return qqDistMat
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
+                  externalClusterCSV = None, printRef = True, printCSV = True,
+                  clustering_type = 'combined'):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
