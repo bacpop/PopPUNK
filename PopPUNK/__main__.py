@@ -613,7 +613,7 @@ def main():
         # (this no longer loses information and should generally be kept on)
         if not args.full_db:
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork, refList, args.output)
+                extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
             # Save reference distances
@@ -980,7 +980,7 @@ def assign_query(dbFuncs, ref_db, q_files, output, update_db, full_db, distances
                 dbOrder = refList + queryList
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \
-                        extractReferences(genomeNetwork, dbOrder, output, refList)
+                        extractReferences(genomeNetwork, dbOrder, output, refList, threads = threads)
                 # intersection that maintains order
                 newQueries = [x for x in queryList if x in frozenset(newRepresentativesNames)]
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')

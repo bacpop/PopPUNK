@@ -77,18 +77,27 @@ def main():
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
     reference_indices, reference_names, refFileName, G_ref = \
-        extractReferences(genomeNetwork, refList, args.output)
+        extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
     G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     # Prune distances
     nodes_to_remove = set(range(len(refList))).difference(reference_indices)
     names_to_remove = [refList[n] for n in nodes_to_remove]
-    prune_distance_matrix(refList, nodes_to_remove, distMat,
+    prune_distance_matrix(refList, names_to_remove, distMat,
                           args.output + "/" + os.path.basename(args.output) + ".dists")
 
     # 'Resketch'
     if len(nodes_to_remove) > 0:
         removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
+
+        db_outfile = args.output + "/" + os.path.basename(args.output) + ".tmp.h5"
+        db_infile = args.output + "/" + os.path.basename(args.output) + ".h5"
+        if os.path.exists(db_infile):
+            sys.stderr.write("Sketch DB exists in " + args.output + "\n"
+                             "Not overwriting. Output DB is: " +
+                             db_outfile + "\n")
+        else:
+            os.rename(db_outfile, db_infile)
     else:
         sys.stderr.write("No sequences to remove\n")
 
