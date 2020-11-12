@@ -15,12 +15,7 @@ import pp_sketchlib
 
 # import poppunk package
 from .__init__ import __version__
-
-
-
-# Minimum sketchlib version
-SKETCHLIB_MAJOR = 1
-SKETCHLIB_MINOR = 5
+from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 
 #*******************************#
 #*                             *#
@@ -32,7 +27,6 @@ def assign_query(dbFuncs,
                  q_files,
                  output,
                  update_db,
-                 full_db,
                  distances,
                  threads,
                  overwrite,
@@ -233,7 +227,7 @@ def assign_query(dbFuncs,
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                         pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
-        if not full_db and not assign_lineage:
+        if not assign_lineage:
             dbOrder = refList + queryList
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
@@ -245,18 +239,21 @@ def assign_query(dbFuncs,
             # could also have newRepresentativesNames in this diff (should be the same) - but want
             # to ensure consistency with the network in case of bad input/bugs
             nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
-            # This function also writes out the new distance matrix
-            postpruning_combined_seq, newDistMat = \
-                prune_distance_matrix(combined_seq, nodes_to_remove,
-                                        complete_distMat, dists_out)
-            # Create and save a prune ref db
-            if len(nodes_to_remove) > 0:
-                removeFromDB(output, output, nodes_to_remove)
-                os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                            output + "/" + os.path.basename(output) + ".refs.h5")
+            names_to_remove = [refList[n] for n in nodes_to_remove]
 
-            # ensure sketch and distMat order match
-            assert postpruning_combined_seq == refList + newQueries
+            if (len(names_to_remove) > 0):
+                # This function also writes out the new distance matrix
+                postpruning_combined_seq, newDistMat = \
+                    prune_distance_matrix(combined_seq, nodes_to_remove,
+                                            complete_distMat, dists_out)
+                # Create and save a prune ref db
+                if len(nodes_to_remove) > 0:
+                    removeFromDB(output, output, nodes_to_remove)
+                    os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
+                                output + "/" + os.path.basename(output) + ".refs.h5")
+
+                # ensure sketch and distMat order match
+                assert postpruning_combined_seq == refList + newQueries
         else:
             storePickle(combined_seq, combined_seq, True,
                         complete_distMat, dists_out)
@@ -290,7 +287,6 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
-    oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
 
@@ -381,14 +377,7 @@ def main():
     # run according to mode
     sys.stderr.write("PopPUNK: assign (POPulation Partitioning Using Nucleotide Kmers)\n")
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
-    if (dbFuncs['backend'] == 'sketchlib'):
-        sketchlib_version = [int(x) for x in dbFuncs['backend_version'].split(".")]
-        if sketchlib_version[0] < SKETCHLIB_MAJOR or sketchlib_version[1] < SKETCHLIB_MINOR:
-            sys.stderr.write("This version of PopPUNK requires sketchlib "
-                             "v" + str(SKETCHLIB_MAJOR) + "." + str(SKETCHLIB_MINOR) + ".0 or higher\n")
-            sys.exit(1)
-        else:
-            sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
+    sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
 
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
@@ -404,7 +393,6 @@ def main():
                  args.q_files,
                  args.output,
                  args.update_db,
-                 args.full_db,
                  args.distances,
                  args.threads,
                  args.overwrite,

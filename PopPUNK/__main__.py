@@ -16,10 +16,6 @@ import pp_sketchlib
 # import poppunk package
 from .__init__ import __version__
 
-# Minimum sketchlib version
-SKETCHLIB_MAJOR = 1
-SKETCHLIB_MINOR = 5
-
 #******************************#
 #*                            *#
 #* Command line parsing       *#
@@ -76,7 +72,6 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
-    oGroup.add_argument('--full-db', help='Keep full reference database, not just representatives', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
 
     # comparison metrics
@@ -263,14 +258,7 @@ def main():
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
-    if (dbFuncs['backend'] == 'sketchlib'):
-        sketchlib_version = [int(x) for x in dbFuncs['backend_version'].split(".")]
-        if sketchlib_version[0] < SKETCHLIB_MAJOR or sketchlib_version[1] < SKETCHLIB_MINOR:
-            sys.stderr.write("This version of PopPUNK requires sketchlib "
-                             "v" + str(SKETCHLIB_MAJOR) + "." + str(SKETCHLIB_MINOR) + ".0 or higher\n")
-            sys.exit(1)
-        else:
-            sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
+    sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
 
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
@@ -508,23 +496,22 @@ def main():
         #******************************#
         # extract limited references from clique by default
         # (this no longer loses information and should generally be kept on)
-        if not args.full_db:
-            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
-            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
-            names_to_remove = [refList[n] for n in nodes_to_remove]
+        newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
+            extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
+        nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
+        names_to_remove = [refList[n] for n in nodes_to_remove]
+
+        if (len(names_to_remove) > 0):
             # Save reference distances
             prune_distance_matrix(refList, names_to_remove, distMat,
-                                  args.output + "/" + os.path.basename(args.output) + ".refs.dists")
+                                    args.output + "/" + os.path.basename(args.output) + ".refs.dists")
             # Save reference network
             genomeNetwork.save(args.output + "/" + \
-                               os.path.basename(args.output) + '.refs_graph.gt',
-                               fmt = 'gt')
-            # Save network database
-            if len(nodes_to_remove) > 0:
-                removeFromDB(args.ref_db, args.output, names_to_remove)
-                os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
-                          args.output + "/" + os.path.basename(args.output) + ".refs.h5")
+                                os.path.basename(args.output) + '.refs_graph.gt',
+                                fmt = 'gt')
+            removeFromDB(args.ref_db, args.output, names_to_remove)
+            os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
+                    args.output + "/" + os.path.basename(args.output) + ".refs.h5")
 
     sys.stderr.write("\nDone\n")
 

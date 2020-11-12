@@ -28,6 +28,7 @@ except ImportError as e:
     sys.stderr.write("Sketchlib backend not available")
     sys.exit(1)
 
+from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 from .mash import fitKmerCurve
 from .utils import iterDistRows
 from .utils import readRfile
@@ -48,6 +49,15 @@ def checkSketchlibVersion():
         if line != '':
             version = line.rstrip().decode().split(" ")[1]
             break
+
+    if sketchlib_version[0] < SKETCHLIB_MAJOR or \
+        sketchlib_version[1] < SKETCHLIB_MINOR or \
+        sketchlib_version[2] < SKETCHLIB_PATCH or    :
+        sys.stderr.write("This version of PopPUNK requires sketchlib "
+                            "v" + str(SKETCHLIB_MAJOR) + \
+                            "." + str(SKETCHLIB_MINOR) + \
+                            "." + str(SKETCHLIB_PATCH) + " or higher\n")
+        sys.exit(1)
 
     return version
 
