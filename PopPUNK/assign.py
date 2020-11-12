@@ -26,6 +26,7 @@ def assign_query(dbFuncs,
                  q_files,
                  output,
                  update_db,
+                 write_references,
                  distances,
                  threads,
                  overwrite,
@@ -35,14 +36,11 @@ def assign_query(dbFuncs,
                  previous_clustering,
                  external_clustering,
                  core_only,
-                 accessory_only,
-                 assign_lineage,
-                 rank,
-                 lineage_accessory):
-    """Code for assign query mode. Written as a separate function so it can be called
-    by web APIs
+                 accessory_only):
+    """Code for assign query mode. Written as a separate function so it can
+    be called by web APIs
     """
-    # Modules imported here as graph tools very slow
+    # Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)
     from .models import loadClusterFit, ClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
 
     from .sketchlib import removeFromDB
@@ -63,6 +61,7 @@ def assign_query(dbFuncs,
     from .utils import readPickle
     from .utils import qcDistMat
     from .utils import update_distance_matrices
+    from .utils import createOverallLineage
 
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
@@ -106,13 +105,13 @@ def assign_query(dbFuncs,
 
     # run query
     refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
-                                                qNames = qNames,
-                                                dbPrefix = ref_db,
-                                                queryPrefix = output,
-                                                klist = kmers,
-                                                self = False,
-                                                number_plot_fits = plot_fit,
-                                                threads = threads)
+                                                  qNames = qNames,
+                                                  dbPrefix = ref_db,
+                                                  queryPrefix = output,
+                                                  klist = kmers,
+                                                  self = False,
+                                                  number_plot_fits = plot_fit,
+                                                  threads = threads)
 
     # QC distance matrix
     qcPass = qcDistMat(qrDistMat, refList, queryList, max_a_dist)
@@ -138,43 +137,43 @@ def assign_query(dbFuncs,
         fetchNetwork(prev_clustering, model, refList,
                         core_only, accessory_only)
 
-    if assign_lineage:
+    if model.type == 'lineage':
         # Assign lineages by calculating query-query information
-        qlist1, qlist2, qqdistMat = queryDatabase(rNames = qNames,
-                                                    qNames = qNames,
-                                                    dbPrefix = output,
-                                                    queryPrefix = output,
-                                                    klist = kmers,
-                                                    self = True,
-                                                    number_plot_fits = 0,
-                                                    threads = threads)
+        qlist1, qlist2, qqDistMat = queryDatabase(rNames = qNames,
+                                                  qNames = qNames,
+                                                  dbPrefix = output,
+                                                  queryPrefix = output,
+                                                  klist = kmers,
+                                                  self = True,
+                                                  number_plot_fits = 0,
+                                                  threads = threads)
         model.extend(qqDistMat, qrDistMat)
 
         genomeNetwork = {}
         isolateClustering = defaultdict(dict)
-        for rank in rank_list:
+        for rank in model.ranks:
             assignment = model.assign(rank)
             # Overwrite the network loaded above
             genomeNetwork[rank] = constructNetwork(rNames + qNames,
-                                                    rNames + qNames,
-                                                    assignment,
-                                                    0,
-                                                    edge_list = True)
+                                                   rNames + qNames,
+                                                   assignment,
+                                                   0,
+                                                   edge_list = True)
 
             isolateClustering[rank] = \
                 printClusters(genomeNetwork[rank],
-                                refList + queryList,
-                                printCSV = False)
+                              refList + queryList,
+                              printCSV = False)
 
-        overall_lineage = createOverallLineage(rank_list, isolateClustering)
-        writeClusterCsv(output + "/" + \
-            os.path.basename(output) + '_lineages.csv',
+        overall_lineage = createOverallLineage(model.ranks, isolateClustering)
+        writeClusterCsv(
+            output + "/" + os.path.basename(output) + '_lineages.csv',
             refList + queryList,
             refList + queryList,
             overall_lineage,
             output_format = 'phandango',
             epiCsv = None,
-            queryNames = refList,
+            queryNames = queryList,
             suffix = '_Lineage')
 
     else:
@@ -193,21 +192,21 @@ def assign_query(dbFuncs,
                                         output + "/" + os.path.basename(output),
                                         old_cluster_file,
                                         external_clustering,
-                                        print_full_clustering)}
+                                        write_references or update_db)}
 
     # Update DB as requested
     if update_db:
         # Check new sequences pass QC before adding them
         if not qcPass:
             sys.stderr.write("Queries contained outlier distances, "
-                            "not updating database\n")
+                             "not updating database\n")
         else:
             sys.stderr.write("Updating reference database to " + output + "\n")
 
         # Update the network + ref list (everything)
         joinDBs(ref_db, output, output)
-        if assign_lineage:
-            genomeNetwork[min(rank_list)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+        if model.type == 'lineage':
+            genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
         else:
             genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
 
@@ -217,6 +216,7 @@ def assign_query(dbFuncs,
             distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
         else:
             distanceFiles = distances
+
         refList, refList_copy, self, rrDistMat = readPickle(distanceFiles)
         combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(refList, rrDistMat,
@@ -227,7 +227,7 @@ def assign_query(dbFuncs,
                         pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
         # Clique pruning
-        if not assign_lineage:
+        if model.type != 'lineage':
             dbOrder = refList + queryList
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
@@ -250,7 +250,7 @@ def assign_query(dbFuncs,
                 if len(nodes_to_remove) > 0:
                     removeFromDB(output, output, nodes_to_remove)
                     os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                                output + "/" + os.path.basename(output) + ".refs.h5")
+                              output + "/" + os.path.basename(output) + ".refs.h5")
 
                 # ensure sketch and distMat order match
                 assert postpruning_combined_seq == refList + newQueries
@@ -287,6 +287,8 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
+    oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
+                                              default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
 
@@ -312,25 +314,12 @@ def get_options():
     queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
                                                              'and network [default = use that in the directory '
                                                              'containing the model]', type = str)
-    queryingGroup.add_argument('--core-only', help='Use a core-distance only model for assigning queries '
-                                              '[default = False]', default=False, action='store_true')
-    queryingGroup.add_argument('--accessory-only', help='Use an accessory-distance only model for assigning queries '
-                                              '[default = False]', default=False, action='store_true')
-
-    # lineage clustering within strains
-    lineagesGroup = parser.add_argument_group('Lineage analysis options')
-    lineagesGroup.add_argument('--assign-lineages',
-                                help='Assign isolates to a lineages scheme fitted with --lineage-clustering',
-                                default=False,
-                                action='store_true')
-    lineagesGroup.add_argument('--rank',
-                                help='Rank to assign to',
-                                type = int,
-                                default = 1)
-    lineagesGroup.add_argument('--use-accessory',
-                                help='Use accessory distances for lineage definitions [default = use core distances]',
-                                action = 'store_true',
-                                default = False)
+    queryingGroup.add_argument('--core-only', help='(with a \'refine\' model) '
+                                                   'Use a core-distance only model for assigning queries '
+                                                   '[default = False]', default=False, action='store_true')
+    queryingGroup.add_argument('--accessory-only', help='(with a \'refine\' or \'lineage\' model) '
+                                                        'Use an accessory-distance only model for assigning queries '
+                                                        '[default = False]', default=False, action='store_true')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -393,6 +382,7 @@ def main():
                  args.q_files,
                  args.output,
                  args.update_db,
+                 args.write_references,
                  args.distances,
                  args.threads,
                  args.overwrite,
@@ -402,10 +392,7 @@ def main():
                  args.previous_clustering,
                  args.external_clustering,
                  args.core_only,
-                 args.accessory_only,
-                 args.assign_lineages,
-                 args.rank,
-                 args.use_accessory)
+                 args.accessory_only)
 
     sys.stderr.write("\nDone\n")
 

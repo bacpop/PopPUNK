@@ -441,7 +441,9 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
                         epiCsv,
                         queryList)
 
-def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None, suffix = '_Cluster'):
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
+                    output_format = 'microreact', epiCsv = None,
+                    queryNames = None, suffix = '_Cluster'):
     """Print CSV file of clustering and optionally epi data
 
     Writes CSV output of clusters which can be used as input to microreact and cytoscape.
