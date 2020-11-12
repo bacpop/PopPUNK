@@ -36,20 +36,8 @@ def get_options():
             action='store_true')
     mode.add_argument('--fit-model',
             help='Fit a mixture model to a reference database',
-            default=False,
-            action='store_true')
-    mode.add_argument('--refine-model',
-            help='Refine the accuracy of a fitted model',
-            default=False,
-            action='store_true')
-    mode.add_argument('--threshold',
-            help='Create model at this core distance threshold',
-            default=None,
-            type=float)
-    mode.add_argument('--lineage-clustering',
-            help='Identify lineages within a strain',
-            default=False,
-            action='store_true')
+            choices=['gmm', 'dbscan', 'refine', 'lineage', 'threshold'],
+            default = False)
     mode.add_argument('--use-model',
             help='Apply a fitted model to a reference database to restore database files',
             default=False,
@@ -71,7 +59,7 @@ def get_options():
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
 
     # comparison metrics
-    kmerGroup = parser.add_argument_group('Kmer comparison options')
+    kmerGroup = parser.add_argument_group('Create DB options')
     kmerGroup.add_argument('--min-k', default = 13, type=int, help='Minimum kmer length [default = 13]')
     kmerGroup.add_argument('--max-k', default = 29, type=int, help='Maximum kmer length [default = 29]')
     kmerGroup.add_argument('--k-step', default = 4, type=int, help='K-mer step size [default = 4]')
@@ -109,10 +97,10 @@ def get_options():
     # model fitting
     modelGroup = parser.add_argument_group('Model fit options')
     modelGroup.add_argument('--K', help='Maximum number of mixture components [default = 2]', type=int, default=2)
-    modelGroup.add_argument('--dbscan', help='Use DBSCAN rather than mixture model', default=False, action='store_true')
     modelGroup.add_argument('--D', help='Maximum number of clusters in DBSCAN fitting [default = 100]', type=int, default=100)
     modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
                                                         'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
+    modelGroup.add_argument('--threshold', help='Cutoff if using --fit-model threshold', type=float)
 
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
@@ -245,7 +233,7 @@ def main():
             sys.exit(1)
 
     # check if working with lineages
-    if args.lineage_clustering:
+    if args.fit_model == 'lineage':
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if min(rank_list) == 0 or max(rank_list) > 100:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
@@ -305,34 +293,29 @@ def main():
     #*                            *#
     #******************************#
     # refine model also needs to run all model steps
-    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.lineage_clustering:
+    if args.fit_model or args.use_model:
         if args.fit_model:
-            sys.stderr.write("Mode: Fitting model to reference database\n\n")
+            sys.stderr.write("Mode: Fitting " + args.fit_model + \
+                             " model to reference database\n\n")
         elif args.use_model:
             sys.stderr.write("Mode: Using previous model with a reference database\n\n")
-        elif args.threshold:
-            sys.stderr.write("Mode: Applying a core distance threshold\n\n")
-        elif args.refine_model:
-            sys.stderr.write("Mode: Refining model fit using network properties\n\n")
-        elif args.lineage_clustering:
-            sys.stderr.write("Mode: Identifying lineages from neighbouring isolates\n\n")
 
         if args.distances is not None and args.ref_db is not None:
             distances = args.distances
         else:
             sys.stderr.write("Need to provide an input set of distances with --distances "
-                                "and reference database directory with --ref-db\n\n")
+                             "and reference database directory with --ref-db\n\n")
             sys.exit(1)
 
         # Set up variables for using previous models
-        if args.refine_model or args.use_model:
+        if args.fit_model == "refine" or args.use_model:
             model_prefix = args.ref_db
             if args.model_dir is not None:
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
-                        model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
-                        args.output)
-            if args.refine_model and model.type == 'refine':
+                                   model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
+                                   args.output)
+            if args.fit_model == "refine" and model.type == 'refine':
                 sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
                 sys.exit(1)
 
@@ -354,61 +337,59 @@ def main():
         # Run selected model here, or if easy run DBSCAN followed by refinement
         if args.fit_model:
             # Run DBSCAN model
-            if args.dbscan:
+            if args.fit_model == "dbscan":
                 model = DBSCANFit(args.output)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
                 model.plot()
             # Run Gaussian model
-            else:
+            elif args.fit_model == "gmm":
                 model = BGMMFit(args.output)
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)
-            # save model
-            model.save()
-
-        # Run model refinement
-        if args.refine_model or args.threshold:
-            new_model = RefineFit(args.output)
-            if args.threshold == None:
+            elif args.fit_model == "refine":
+                new_model = RefineFit(args.output)
                 assignments = new_model.fit(distMat, refList, model,
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
                                             args.indiv_refine,
                                             args.no_local,
                                             args.threads)
-            else:
+                new_model.plot(distMat)
+                model = new_model
+            elif args.fit_model == "threshold":
+                new_model = RefineFit(args.output)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
+                new_model.plot(distMat)
+                model = new_model
+            elif args.fit_model == "lineage":
+                # run lineage clustering. Sparsity & low rank should keep memory
+                # usage of dict reasonable
+                model = LineageFit(args.output, rank_list)
+                model.fit(distMat, args.use_accessory, args.threads)
+                model.plot(distMat)
 
-            new_model.plot(distMat)
-            model = new_model
+                assignments = {}
+                for rank in rank_list:
+                    assignments[rank] = \
+                        model.assign(int(rank))
+
             # save model
             model.save()
-
-        # Load and apply a previous model of any type
-        if args.use_model:
-            assignments = model.assign(distMat)
-            model.plot(distMat, assignments)
-
-        if args.lineage_clustering:
-            # run lineage clustering. Sparsity & low rank should keep memory
-            # usage of dict reasonable
-            model = LineageFit(args.output, rank_list)
-            model.fit(distMat, args.use_accessory, args.threads)
-            model.save()
-            model.plot(distMat)
-
-            assignments = {}
-            for rank in rank_list:
-                assignments[rank] = \
-                    model.assign(int(rank))
 
         #******************************#
         #*                            *#
         #* network construction       *#
         #*                            *#
         #******************************#
-        if args.lineage_clustering:
+        if model.type != "lineage":
+            genomeNetwork = \
+                constructNetwork(refList,
+                                 queryList,
+                                 assignments,
+                                 model.within_label)
+        else:
+            # Lineage fit requires some iteration
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
             for rank in sorted(rank_list):
@@ -437,8 +418,6 @@ def main():
                 queryNames = refList,
                 suffix = '_Lineage')
             genomeNetwork = indivNetworks[min(rank_list)]
-        else:
-            genomeNetwork = constructNetwork(refList, queryList, assignments, model.within_label)
 
         # Ensure all in dists are in final network
         networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
@@ -457,7 +436,11 @@ def main():
             indivNetworks = {}
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
                 indivAssignments = model.assign(distMat, slope)
-                indivNetworks[dist_type] = constructNetwork(refList, queryList, indivAssignments, model.within_label)
+                indivNetworks[dist_type] = \
+                    constructNetwork(refList,
+                                     queryList,
+                                     indivAssignments,
+                                     model.within_label)
                 isolateClustering[dist_type] = \
                     printClusters(indivNetworks[dist_type],
                                   refList,
@@ -485,22 +468,23 @@ def main():
         #******************************#
         # extract limited references from clique by default
         # (this no longer loses information and should generally be kept on)
-        newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-            extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
-        nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
-        names_to_remove = [refList[n] for n in nodes_to_remove]
+        if model.type != "lineage":
+            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
+                extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
+            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
+            names_to_remove = [refList[n] for n in nodes_to_remove]
 
-        if (len(names_to_remove) > 0):
-            # Save reference distances
-            prune_distance_matrix(refList, names_to_remove, distMat,
-                                    args.output + "/" + os.path.basename(args.output) + ".refs.dists")
-            # Save reference network
-            genomeNetwork.save(args.output + "/" + \
-                                os.path.basename(args.output) + '.refs_graph.gt',
-                                fmt = 'gt')
-            removeFromDB(args.ref_db, args.output, names_to_remove)
-            os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
-                    args.output + "/" + os.path.basename(args.output) + ".refs.h5")
+            if (len(names_to_remove) > 0):
+                # Save reference distances
+                prune_distance_matrix(refList, names_to_remove, distMat,
+                                        args.output + "/" + os.path.basename(args.output) + ".refs.dists")
+                # Save reference network
+                genomeNetwork.save(args.output + "/" + \
+                                    os.path.basename(args.output) + '.refs_graph.gt',
+                                    fmt = 'gt')
+                removeFromDB(args.ref_db, args.output, names_to_remove)
+                os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
+                        args.output + "/" + os.path.basename(args.output) + ".refs.h5")
 
     sys.stderr.write("\nDone\n")
 
