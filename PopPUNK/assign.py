@@ -15,7 +15,6 @@ import pp_sketchlib
 
 # import poppunk package
 from .__init__ import __version__
-from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 
 #*******************************#
 #*                             *#
@@ -106,7 +105,7 @@ def assign_query(dbFuncs,
                                 codon_phased = codon_phased)
 
     # run query
-    refList, queryList, distMat = queryDatabase(rNames = rNames,
+    refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
                                                 qNames = qNames,
                                                 dbPrefix = ref_db,
                                                 queryPrefix = output,
@@ -116,7 +115,7 @@ def assign_query(dbFuncs,
                                                 threads = threads)
 
     # QC distance matrix
-    qcPass = qcDistMat(distMat, refList, queryList, max_a_dist)
+    qcPass = qcDistMat(qrDistMat, refList, queryList, max_a_dist)
 
     # Assign to strains or lineages, as requested.
     # Both need the previous model loaded
@@ -126,7 +125,7 @@ def assign_query(dbFuncs,
     model_file = model_prefix + "/" + os.path.basename(model_prefix) + "_fit"
 
     model = loadClusterFit(model_file + '.pkl',
-                            model_file + '.npz')
+                           model_file + '.npz')
 
     # Set directories of previous fit
     if previous_clustering is not None:
@@ -141,15 +140,15 @@ def assign_query(dbFuncs,
 
     if assign_lineage:
         # Assign lineages by calculating query-query information
-        qlist1, qlist2, query_distMat = queryDatabase(rNames = qNames,
-                                                        qNames = qNames,
-                                                        dbPrefix = output,
-                                                        queryPrefix = output,
-                                                        klist = kmers,
-                                                        self = True,
-                                                        number_plot_fits = 0,
-                                                        threads = threads)
-        model.extend(query_distMat, distMat)
+        qlist1, qlist2, qqdistMat = queryDatabase(rNames = qNames,
+                                                    qNames = qNames,
+                                                    dbPrefix = output,
+                                                    queryPrefix = output,
+                                                    klist = kmers,
+                                                    self = True,
+                                                    number_plot_fits = 0,
+                                                    threads = threads)
+        model.extend(qqDistMat, qrDistMat)
 
         genomeNetwork = {}
         isolateClustering = defaultdict(dict)
@@ -180,10 +179,10 @@ def assign_query(dbFuncs,
 
     else:
         # Assign these distances as within or between strain
-        queryAssignments = model.assign(distMat)
+        queryAssignments = model.assign(qrDistMat)
 
         # Assign clustering by adding to network
-        query_distMat = \
+        qqDistMat = \
             addQueryToNetwork(dbFuncs, refList, queryList,
                                 genomeNetwork, kmers,
                                 queryAssignments, model, output, update_db,
@@ -218,15 +217,16 @@ def assign_query(dbFuncs,
             distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
         else:
             distanceFiles = distances
-        refList, refList_copy, self, ref_distMat = readPickle(distanceFiles)
+        refList, refList_copy, self, rrDistMat = readPickle(distanceFiles)
         combined_seq, core_distMat, acc_distMat = \
-            update_distance_matrices(refList, ref_distMat,
-                                    queryList, distMat,
-                                    query_distMat, threads = threads)
+            update_distance_matrices(refList, rrDistMat,
+                                    queryList, qrDistMat,
+                                    qqDistMat, threads = threads)
         complete_distMat = \
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                         pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
+        # Clique pruning
         if not assign_lineage:
             dbOrder = refList + queryList
             newRepresentativesIndices, newRepresentativesNames, \
