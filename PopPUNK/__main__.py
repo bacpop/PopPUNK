@@ -30,10 +30,6 @@ def get_options():
 
     modeGroup = parser.add_argument_group('Mode of operation')
     mode = modeGroup.add_mutually_exclusive_group(required=True)
-    mode.add_argument('--easy-run',
-            help='Create clusters from assemblies with default settings',
-            default=False,
-            action='store_true')
     mode.add_argument('--create-db',
             help='Create pairwise distances database between reference sequences',
             default=False,
@@ -214,7 +210,7 @@ def main():
 
     # Dict of QC options for passing to database construction and querying functions
     qc_dict = {
-        'run_qc': args.create_db or args.easy_run,
+        'run_qc': args.create_db,
         'qc_filter': args.qc_filter,
         'retain_failures': args.retain_failures,
         'length_sigma': args.length_sigma,
@@ -268,11 +264,8 @@ def main():
     #* Create database            *#
     #*                            *#
     #******************************#
-    if args.create_db or args.easy_run:
-        if args.create_db:
-            sys.stderr.write("Mode: Building new database from input sequences\n")
-        elif args.easy_run:
-            sys.stderr.write("Mode: Creating clusters from assemblies (create_db & fit_model)\n")
+    if args.create_db:
+        sys.stderr.write("Mode: Building new database from input sequences\n")
         if args.r_files is not None:
             # generate sketches and QC sequences
             createDatabaseDir(args.output, kmers)
@@ -312,28 +305,24 @@ def main():
     #*                            *#
     #******************************#
     # refine model also needs to run all model steps
-    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.easy_run or args.lineage_clustering:
-        # Set up saved data from first step, if easy_run mode
-        if args.easy_run:
-            distances = dists_out
-        else:
-            if args.fit_model:
-                sys.stderr.write("Mode: Fitting model to reference database\n\n")
-            elif args.use_model:
-                sys.stderr.write("Mode: Using previous model with a reference database\n\n")
-            elif args.threshold:
-                sys.stderr.write("Mode: Applying a core distance threshold\n\n")
-            elif args.refine_model:
-                sys.stderr.write("Mode: Refining model fit using network properties\n\n")
-            elif args.lineage_clustering:
-                sys.stderr.write("Mode: Identifying lineages from neighbouring isolates\n\n")
+    if args.fit_model or args.use_model or args.refine_model or args.threshold or args.lineage_clustering:
+        if args.fit_model:
+            sys.stderr.write("Mode: Fitting model to reference database\n\n")
+        elif args.use_model:
+            sys.stderr.write("Mode: Using previous model with a reference database\n\n")
+        elif args.threshold:
+            sys.stderr.write("Mode: Applying a core distance threshold\n\n")
+        elif args.refine_model:
+            sys.stderr.write("Mode: Refining model fit using network properties\n\n")
+        elif args.lineage_clustering:
+            sys.stderr.write("Mode: Identifying lineages from neighbouring isolates\n\n")
 
-            if args.distances is not None and args.ref_db is not None:
-                distances = args.distances
-            else:
-                sys.stderr.write("Need to provide an input set of distances with --distances "
-                                 "and reference database directory with --ref-db\n\n")
-                sys.exit(1)
+        if args.distances is not None and args.ref_db is not None:
+            distances = args.distances
+        else:
+            sys.stderr.write("Need to provide an input set of distances with --distances "
+                                "and reference database directory with --ref-db\n\n")
+            sys.exit(1)
 
         # Set up variables for using previous models
         if args.refine_model or args.use_model:
@@ -363,9 +352,9 @@ def main():
         #*                            *#
         #******************************#
         # Run selected model here, or if easy run DBSCAN followed by refinement
-        if args.fit_model or args.easy_run:
+        if args.fit_model:
             # Run DBSCAN model
-            if args.dbscan or args.easy_run:
+            if args.dbscan:
                 model = DBSCANFit(args.output)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
                 model.plot()
@@ -378,7 +367,7 @@ def main():
             model.save()
 
         # Run model refinement
-        if args.refine_model or args.threshold or args.easy_run:
+        if args.refine_model or args.threshold:
             new_model = RefineFit(args.output)
             if args.threshold == None:
                 assignments = new_model.fit(distMat, refList, model,
