@@ -616,7 +616,9 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
 
     # Read in external clusters
     extClusters = \
-        readIsolateTypeFromCsv(extClusterFile, mode = 'external', return_dict = False)
+        readIsolateTypeFromCsv(extClusterFile,
+                               mode = 'external',
+                               return_dict = True)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster
