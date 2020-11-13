@@ -13,7 +13,7 @@ if not os.path.isfile("12754_4#89.contigs_velvet.fa"):
     subprocess.run("tar xf example_set.tar.bz2", shell=True, check=True)
 
 #easy run
-sys.stderr.write("Running database creation (--easy-run)\n")
+sys.stderr.write("Running database creation (--create-db)\n")
 subprocess.run("python ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_db --qc-filter prune --overwrite", shell=True, check=True)
 
 # create database with different QC options
@@ -44,7 +44,7 @@ subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --mo
 
 #assign query
 sys.stderr.write("Running query assignment\n")
-subprocess.run("python ../poppunk_assign-runner.py --q-files queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --update-db --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --update-db --overwrite", shell=True, check=True)
 subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --update-db --overwrite", shell=True, check=True)
 
 # viz

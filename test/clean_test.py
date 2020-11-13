@@ -20,6 +20,7 @@ with open("references.txt", 'r') as ref_file:
 # clean up
 outputDirs = [
     "example_db",
+    "example_dbscan",
     "example_refine",
     "example_query",
     "example_use",
