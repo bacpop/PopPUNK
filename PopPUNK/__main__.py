@@ -36,7 +36,7 @@ def get_options():
             action='store_true')
     mode.add_argument('--fit-model',
             help='Fit a mixture model to a reference database',
-            choices=['gmm', 'dbscan', 'refine', 'lineage', 'threshold'],
+            choices=['bgmm', 'dbscan', 'refine', 'lineage', 'threshold'],
             default = False)
     mode.add_argument('--use-model',
             help='Apply a fitted model to a reference database to restore database files',
@@ -315,8 +315,9 @@ def main():
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
                                    args.output)
-            if args.fit_model == "refine" and (model.type != 'gmm' and model.type != 'dbscan'):
-                sys.stderr.write("Model needs to be from GMM or DBSCAN to refine\n")
+            print(model.type)
+            if args.fit_model == "refine" and (model.type != 'bgmm' and model.type != 'dbscan'):
+                sys.stderr.write("Model needs to be from BGMM or DBSCAN to refine\n")
                 sys.exit(1)
 
         # Load the distances
@@ -342,7 +343,7 @@ def main():
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
                 model.plot()
             # Run Gaussian model
-            elif args.fit_model == "gmm":
+            elif args.fit_model == "bgmm":
                 model = BGMMFit(args.output)
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)

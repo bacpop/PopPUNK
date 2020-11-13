@@ -22,7 +22,7 @@ subprocess.run("python ../poppunk-runner.py --create-db --r-files references.txt
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model gmm --distances example_db/example_db.dists --ref-db example_db --output example_db --K 4 --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model bgmm --distances example_db/example_db.dists --ref-db example_db --output example_db --K 4 --overwrite", shell=True, check=True)
 
 #fit GMM
 sys.stderr.write("Running DBSCAN model fit (--fit-model dbscan)\n")
