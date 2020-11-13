@@ -315,8 +315,8 @@ def main():
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
                                    args.output)
-            if args.fit_model == "refine" and model.type == 'refine':
-                sys.stderr.write("Model needs to be from --fit-model not --refine-model\n")
+            if args.fit_model == "refine" and (model.type != 'gmm' and model.type != 'dbscan'):
+                sys.stderr.write("Model needs to be from GMM or DBSCAN to refine\n")
                 sys.exit(1)
 
         # Load the distances
@@ -376,6 +376,10 @@ def main():
 
             # save model
             model.save()
+
+        # use model
+        else:
+            assignments = model.assign(distMat)
 
         #******************************#
         #*                            *#

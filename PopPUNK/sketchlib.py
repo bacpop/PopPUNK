@@ -50,9 +50,10 @@ def checkSketchlibVersion():
             version = line.rstrip().decode().split(" ")[1]
             break
 
+    sketchlib_version = [int(v) for v in version.split(".")]
     if sketchlib_version[0] < SKETCHLIB_MAJOR or \
-        sketchlib_version[1] < SKETCHLIB_MINOR or \
-        sketchlib_version[2] < SKETCHLIB_PATCH:
+        sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] < SKETCHLIB_MINOR or \
+        sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] == SKETCHLIB_MINOR and sketchlib_version[2] < SKETCHLIB_PATCH:
         sys.stderr.write("This version of PopPUNK requires sketchlib "
                             "v" + str(SKETCHLIB_MAJOR) + \
                             "." + str(SKETCHLIB_MINOR) + \
