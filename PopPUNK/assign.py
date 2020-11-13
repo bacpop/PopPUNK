@@ -57,6 +57,7 @@ def assign_query(dbFuncs,
     from .prune_db import prune_distance_matrix
 
     from .sketchlib import calculateQueryQueryDistances
+    from .sketchlib import addRandom
 
     from .utils import storePickle
     from .utils import readPickle
@@ -88,7 +89,7 @@ def assign_query(dbFuncs,
 
     # Find distances vs ref seqs
     rNames = []
-    if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs"):
+    if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs") and not update_db:
         with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
             for reference in refFile:
                 rNames.append(reference.rstrip())
@@ -141,6 +142,7 @@ def assign_query(dbFuncs,
 
     if model.type == 'lineage':
         # Assign lineages by calculating query-query information
+        addRandom(output, qNames, kmers, strand_preserved, overwrite, threads)
         qlist1, qlist2, qqDistMat = queryDatabase(rNames = qNames,
                                                   qNames = qNames,
                                                   dbPrefix = output,
@@ -236,23 +238,21 @@ def assign_query(dbFuncs,
                     extractReferences(genomeNetwork, dbOrder, output, refList, threads = threads)
             # intersection that maintains order
             newQueries = [x for x in queryList if x in frozenset(newRepresentativesNames)]
-            genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
 
             # could also have newRepresentativesNames in this diff (should be the same) - but want
             # to ensure consistency with the network in case of bad input/bugs
-            nodes_to_remove = set(combined_seq).difference(newRepresentativesNames)
-            names_to_remove = [refList[n] for n in nodes_to_remove]
+            nodes_to_remove = set(range(len(dbOrder))).difference(newRepresentativesIndices)
+            names_to_remove = [dbOrder[n] for n in nodes_to_remove]
 
             if (len(names_to_remove) > 0):
                 # This function also writes out the new distance matrix
                 postpruning_combined_seq, newDistMat = \
-                    prune_distance_matrix(combined_seq, nodes_to_remove,
-                                            complete_distMat, dists_out)
-                # Create and save a prune ref db
-                if len(nodes_to_remove) > 0:
-                    removeFromDB(output, output, nodes_to_remove)
-                    os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                              output + "/" + os.path.basename(output) + ".refs.h5")
+                    prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
+                                          output + "/" + os.path.basename(output) + ".refs.dists")
+                genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
+                removeFromDB(output, output, names_to_remove)
+                os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
+                            output + "/" + os.path.basename(output) + ".refs.h5")
 
                 # ensure sketch and distMat order match
                 assert postpruning_combined_seq == refList + newQueries

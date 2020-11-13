@@ -54,7 +54,7 @@ def get_options():
                         required=True)
     iGroup.add_argument('--distances',
                         help='Prefix of input pickle of pre-calculated distances',
-                        require=True)
+                        required=True)
     iGroup.add_argument('--external-clustering',
                         help='File with cluster definitions or other labels '
                              'generated with any other method.',
@@ -150,7 +150,7 @@ def main():
         with open(args.subset, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 viz_subset.append(assembly.rstrip())
-        if set(viz_subset).difference(rlist) > 0:
+        if len(set(viz_subset).difference(rlist)) > 0:
             sys.stderr.write("--subset contains names not in --distances")
 
         isolates_to_remove = set(rlist).difference(viz_subset)
@@ -185,7 +185,7 @@ def main():
 
     try:
         model = loadClusterFit(model_file + '_fit.pkl',
-                                model_file + '_fit.npz')
+                               model_file + '_fit.npz')
     except:
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
@@ -198,7 +198,7 @@ def main():
 
     # load clustering
     if model.type == "lineage":
-        cluster_file = args.viz_lineages
+        cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + '_lineages.csv'
         isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                    mode = 'lineages',
                                                    return_dict = True)
