@@ -33,6 +33,7 @@ def assign_query(dbFuncs,
                  plot_fit,
                  max_a_dist,
                  model_dir,
+                 strand_preserved,
                  previous_clustering,
                  external_clustering,
                  core_only,
@@ -101,7 +102,8 @@ def assign_query(dbFuncs,
                                 output,
                                 threads,
                                 overwrite,
-                                codon_phased = codon_phased)
+                                codon_phased = codon_phased,
+                                calc_random = False)
 
     # run query
     refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
@@ -185,7 +187,7 @@ def assign_query(dbFuncs,
             addQueryToNetwork(dbFuncs, refList, queryList,
                                 genomeNetwork, kmers,
                                 queryAssignments, model, output, update_db,
-                                threads)
+                                strand_preserved, threads)
 
         isolateClustering = \
             {'combined': printClusters(genomeNetwork, refList + queryList,
@@ -389,6 +391,7 @@ def main():
                  args.plot_fit,
                  args.max_a_dist,
                  args.model_dir,
+                 args.strand_preserved,
                  args.previous_clustering,
                  args.external_clustering,
                  args.core_only,

@@ -20,6 +20,7 @@ from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
 import graph_tool.all as gt
+import pp_sketchlib
 
 from .utils import iterDistRows
 from .utils import listDistInts
@@ -346,7 +347,7 @@ def networkSummary(G):
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,
-                      threads = 1):
+                      strand_preserved = False, threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -370,6 +371,10 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         queryQuery (bool)
             Add in all query-query distances
             (default = False)
+        strand_preserved (bool)
+            Whether to treat strand as known (i.e. ignore rc k-mers)
+            when adding random distances. Only used if queryQuery = True
+            [default = False]
         threads (int)
             Number of threads to use if new db created
 
@@ -399,6 +404,11 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
+        pp_sketchlib.addRandom(queryDB + "/" + os.path.basename(queryDB),
+                               qList,
+                               kmers,
+                               not strand_preserved,
+                               threads)
         qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
                                         qNames = qList,
                                         dbPrefix = queryDB,
