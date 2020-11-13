@@ -20,7 +20,8 @@ from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
 import graph_tool.all as gt
-import pp_sketchlib
+
+from .sketchlib import addRandom
 
 from .utils import iterDistRows
 from .utils import listDistInts
@@ -404,19 +405,15 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
-        pp_sketchlib.addRandom(queryDB + "/" + os.path.basename(queryDB),
-                               qList,
-                               kmers,
-                               not strand_preserved,
-                               threads)
+        addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
         qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                        qNames = qList,
-                                        dbPrefix = queryDB,
-                                        queryPrefix = queryDB,
-                                        klist = kmers,
-                                        self = True,
-                                        number_plot_fits = 0,
-                                        threads = threads)
+                                                  qNames = qList,
+                                                  dbPrefix = queryDB,
+                                                  queryPrefix = queryDB,
+                                                  klist = kmers,
+                                                  self = True,
+                                                  number_plot_fits = 0,
+                                                  threads = threads)
 
         queryAssignation = model.assign(qqDistMat)
         for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):

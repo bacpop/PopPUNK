@@ -398,14 +398,51 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     # Add random matches if required
     # (typically on for reference, off for query)
     if (calc_random):
-        pp_sketchlib.addRandom(dbname,
-                               filtered_names,
-                               klist,
-                               not strand_preserved,
-                               threads)
+        addRandom(oPrefix,
+                  filtered_names,
+                  klist,
+                  strand_preserved,
+                  overwrite = True,
+                  threads = threads)
 
     # return filtered file names
     return filtered_names
+
+
+def addRandom(oPrefix, sequence_names, klist,
+              strand_preserved = False, overwrite = False, threads = 1):
+    """Add chance of random match to a HDF5 sketch DB
+
+    Args:
+        oPrefix (str)
+            Sketch database prefix
+        sequence_names (list)
+            Names of sequences to include in calculation
+        klist (list)
+            List of k-mer sizes to sketch
+        strand_preserved (bool)
+            Set true to ignore rc k-mers
+        overwrite (str)
+            Set true to overwrite existing random match chances
+        threads (int)
+            Number of threads to use (default = 1)
+    """
+    dbname = oPrefix + "/" + os.path.basename(oPrefix)
+    hdf_in = h5py.File(dbname + ".h5", 'r+')
+
+    if 'random' in hdf_in:
+        if overwrite:
+            del hdf_in['random']
+        else:
+            sys.stderr.write("Using existing random match chances in DB\n")
+            return
+
+    hdf_in.close()
+    pp_sketchlib.addRandom(dbname,
+                           sequence_names,
+                           klist,
+                           not strand_preserved,
+                           threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
