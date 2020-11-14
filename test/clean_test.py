@@ -23,6 +23,7 @@ outputDirs = [
     "example_dbscan",
     "example_refine",
     "example_query",
+    "example_single_query",
     "example_query_update",
     "example_use",
     "example_viz",

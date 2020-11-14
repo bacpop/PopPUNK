@@ -427,22 +427,25 @@ def addRandom(oPrefix, sequence_names, klist,
         threads (int)
             Number of threads to use (default = 1)
     """
-    dbname = oPrefix + "/" + os.path.basename(oPrefix)
-    hdf_in = h5py.File(dbname + ".h5", 'r+')
+    if len(sequence_names) <= 2:
+        sys.stderr.write("Cannot add random match chances with this few genomes\n")
+    else:
+        dbname = oPrefix + "/" + os.path.basename(oPrefix)
+        hdf_in = h5py.File(dbname + ".h5", 'r+')
 
-    if 'random' in hdf_in:
-        if overwrite:
-            del hdf_in['random']
-        else:
-            sys.stderr.write("Using existing random match chances in DB\n")
-            return
+        if 'random' in hdf_in:
+            if overwrite:
+                del hdf_in['random']
+            else:
+                sys.stderr.write("Using existing random match chances in DB\n")
+                return
 
-    hdf_in.close()
-    pp_sketchlib.addRandom(dbname,
-                           sequence_names,
-                           klist,
-                           not strand_preserved,
-                           threads)
+        hdf_in.close()
+        pp_sketchlib.addRandom(dbname,
+                            sequence_names,
+                            klist,
+                            not strand_preserved,
+                            threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
