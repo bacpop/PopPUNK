@@ -29,7 +29,6 @@ except ImportError as e:
     sys.exit(1)
 
 from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
-from .mash import fitKmerCurve
 from .utils import iterDistRows
 from .utils import readRfile
 from .plot import plot_fit
@@ -698,3 +697,40 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
     hdf_in.close()
 
     return retained
+
+def fitKmerCurve(pairwise, klist, jacobian):
+    """Fit the function :math:`pr = (1-a)(1-c)^k`
+
+    Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``
+
+    Args:
+        pairwise (numpy.array)
+            Proportion of shared k-mers at k-mer values in klist
+        klist (list)
+            k-mer sizes used
+        jacobian (numpy.array)
+            Should be set as above (set once to try and save memory)
+
+    Returns:
+        transformed_params (numpy.array)
+            Column with core and accessory distance
+    """
+    # curve fit pr = (1-a)(1-c)^k
+    # log pr = log(1-a) + k*log(1-c)
+    # a = p[0]; c = p[1] (will flip on return)
+    try:
+        distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                     x0=[0.0, -0.01],
+                                     jac=lambda p, x, y: jacobian,
+                                     args=(klist, np.log(pairwise)),
+                                     bounds=([-np.inf, -np.inf], [0, 0]))
+        transformed_params = 1 - np.exp(distFit.x)
+    except ValueError as e:
+        sys.stderr.write("Fitting k-mer curve failed: " + format(e) +
+                         "\nWith mash input " +
+                         np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
+                         "\nCheck for low quality input genomes\n")
+        exit(0)
+
+    # Return core, accessory
+    return(np.flipud(transformed_params))

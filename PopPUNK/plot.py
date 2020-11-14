@@ -84,7 +84,7 @@ def plot_fit(klist, matching, fit, out_prefix, title):
         matching (list)
             Proportion of matching k-mers at each klist value
         kfit (numpy.array)
-            Fit to klist and matching from :func:`~PopPUNK.mash.fitKmerCurve`
+            Fit to klist and matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
         out_prefix (str)
             Prefix for output plot file (.pdf will be appended)
         title (str)

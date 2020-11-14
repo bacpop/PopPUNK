@@ -14,12 +14,6 @@ from .__init__ import __version__
 
 from .sketchlib import removeFromDB
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
-
 from .utils import storePickle
 from .utils import readPickle
 from .utils import iterDistRows
