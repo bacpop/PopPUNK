@@ -81,15 +81,30 @@ def assign_query(dbFuncs,
         sys.stderr.write("--update-db requires --distances to be provided\n")
         sys.exit(1)
 
+    # Load the previous model
+    model_prefix = ref_db
+    if model_dir is not None:
+        model_prefix = model_dir
+    model_file = model_prefix + "/" + os.path.basename(model_prefix) + "_fit"
+
+    model = loadClusterFit(model_file + '.pkl',
+                           model_file + '.npz')
+
+    # Set directories of previous fit
+    if previous_clustering is not None:
+        prev_clustering = previous_clustering
+    else:
+        prev_clustering = model_prefix
+
     # Find distances to reference db
     kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
 
-    # Sketch query sequences
-    createDatabaseDir(output, kmers)
-
     # Find distances vs ref seqs
     rNames = []
-    if os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs") and not update_db:
+    use_ref_graph = \
+        os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + ".refs") \
+        and not update_db and model.type != 'lineage'
+    if use_ref_graph:
         with open(ref_db + "/" + os.path.basename(ref_db) + ".refs") as refFile:
             for reference in refFile:
                 rNames.append(reference.rstrip())
@@ -97,6 +112,7 @@ def assign_query(dbFuncs,
         rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
 
     # construct database
+    createDatabaseDir(output, kmers)
     qNames = constructDatabase(q_files,
                                 kmers,
                                 sketch_sizes,
@@ -119,28 +135,12 @@ def assign_query(dbFuncs,
     # QC distance matrix
     qcPass = qcDistMat(qrDistMat, refList, queryList, max_a_dist)
 
-    # Assign to strains or lineages, as requested.
-    # Both need the previous model loaded
-    model_prefix = ref_db
-    if model_dir is not None:
-        model_prefix = model_dir
-    model_file = model_prefix + "/" + os.path.basename(model_prefix) + "_fit"
-
-    model = loadClusterFit(model_file + '.pkl',
-                           model_file + '.npz')
-
-    # Set directories of previous fit
-    if previous_clustering is not None:
-        prev_clustering = previous_clustering
-    else:
-        prev_clustering = model_prefix
-
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
         fetchNetwork(prev_clustering,
                      model,
                      refList,
-                     ref_graph = not update_db,
+                     ref_graph = use_ref_graph,
                      core_only = core_only,
                      accessory_only = accessory_only)
 
@@ -370,7 +370,7 @@ def main():
     dbFuncs = setupDBFuncs(args, args.min_kmer_count, qc_dict)
 
     # run according to mode
-    sys.stderr.write("PopPUNK: assign (POPulation Partitioning Using Nucleotide Kmers)\n")
+    sys.stderr.write("PopPUNK: assign\n")
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
     sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
 

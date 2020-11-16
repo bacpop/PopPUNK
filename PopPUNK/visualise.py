@@ -124,10 +124,8 @@ def main():
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
 
-    sys.stderr.write("Creating visualisations for PopPUNK\n")
-    if args.microreact or args.phandango or args.grapetree or args.cytoscape:
-        sys.stderr.write("Mode: Generating files for visualisation from database\n\n")
-    else:
+    sys.stderr.write("PopPUNK: visualise\n")
+    if not (args.microreact or args.phandango or args.grapetree or args.cytoscape):
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
 
