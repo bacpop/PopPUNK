@@ -10,6 +10,7 @@ import sys
 import pickle
 import subprocess
 from collections import defaultdict
+from itertools import chain
 from tempfile import mkstemp
 from functools import partial
 
@@ -128,7 +129,7 @@ def readPickle(pklName, enforce_self = False):
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
         if enforce_self and not self:
-            sys.stderr.write("Old distances " + distanceFiles + " not complete\n")
+            sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
             sys.stderr.exit(1)
     X = np.load(pklName + ".npy")
     return rlist, qlist, self, X
@@ -283,6 +284,19 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
 
     # return data structure
     return clusters
+
+
+def joinClusterDicts(d1, d2):
+    if d1.keys() != d2.keys():
+        sys.stderr.write("Cluster columns not compatible\n")
+        sys.exit(1)
+
+    for column in d1.keys():
+        # Combine dicts: https://stackoverflow.com/a/15936211
+        d1[column] = \
+            dict(chain.from_iterable(d.items() for d in (d1[column], d2[column])))
+
+    return d1
 
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,

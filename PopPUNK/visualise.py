@@ -34,6 +34,7 @@ from .utils import readPickle
 from .utils import setGtThreads
 from .utils import update_distance_matrices
 from .utils import readIsolateTypeFromCsv
+from .utils import joinClusterDicts
 
 #******************************#
 #*                            *#
@@ -74,6 +75,11 @@ def get_options():
     iGroup.add_argument('--previous-clustering',
                         help='Directory containing previous cluster definitions '
                              'and network [default = use that in the directory '
+                             'containing the model]',
+                        type = str)
+    iGroup.add_argument('--previous-query-clustering',
+                        help='Directory containing previous cluster definitions '
+                             'from poppunk_assign [default = use that in the directory '
                              'containing the model]',
                         type = str)
 
@@ -125,12 +131,6 @@ def get_options():
 def main():
     """Main function. Parses cmd line args and runs in the specified mode.
     """
-
-    #******************************#
-    #*                            *#
-    #* Check command options      *#
-    #*                            *#
-    #******************************#
     args = get_options()
 
     # Check on parallelisation of graph-tools
@@ -158,29 +158,43 @@ def main():
 
     # Fill in qq-distances if required
     if self == False:
-        sys.stderr.write("Note: distances in " + args.distances + " are from assign mode, "
-                         "they will be extended to full all v all distances")
-        rlist_original, rr_distMat = readPickle(args.ref_db)[0,3]
-        if rlist != rlist_original:
-            sys.stderr.write("Name mismatch between" + args.distances + " and " + \
-                             args.ref_db + "\n")
+        sys.stderr.write("Note: Distances in " + args.distances + " are from assign mode\n"
+                         "Note: Distance will be extended to full all-vs-all distances\n"
+                         "Note: Re-run poppunk_assign with --update-db to avoid this\n")
+
+        ref_db = os.path.basename(args.ref_db) + "/" + args.ref_db
+        query_db = os.path.basename(args.query_db) + "/" + args.query_db
+        rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db + ".dists")
+        if not self_ref:
+            sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
             sys.exit(1)
 
         kmers, sketch_sizes, codon_phased = readDBParams(args.query_db)
         addRandom(args.query_db, qlist, kmers,
                   strand_preserved = args.strand_preserved, threads = args.threads)
-        query_db = os.path.basename(args.query_db) + "/" + args.query_db
         qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
                                                 qlist, qlist, kmers,
                                                 True, False,
                                                 args.threads,
                                                 args.gpu_dist,
                                                 args.deviceid)
+
+        # If the assignment was run with references, qrDistMat will be incomplete
+        if rlist != rlist_original:
+            rlist = rlist_original
+            qr_distMat = pp_sketchlib.queryDatabase(ref_db, query_db,
+                                                    rlist, qlist, kmers,
+                                                    True, False,
+                                                    args.threads,
+                                                    args.gpu_dist,
+                                                    args.deviceid)
+
     else:
         qlist = None
         qr_distMat = None
         qq_distMat = None
 
+    # Turn long form matrices into square form
     combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(rlist, rr_distMat,
                                      qlist, qr_distMat, qq_distMat,
@@ -192,12 +206,13 @@ def main():
         with open(args.subset, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
-        if len(viz_subset.difference(full_rlist)) > 0:
+        if len(viz_subset.difference(rlist + qlist)) > 0:
             sys.stderr.write("--subset contains names not in --distances")
 
         # Only keep found rows
         row_slice = [True if name in viz_subset else False for name in combined_seq]
         combined_seq = [name for name in combined_seq if name in viz_subset]
+        qlist = list(viz_subset.intersection(qlist))
         core_distMat = core_distMat[row_slice, row_slice]
         acc_distMat = acc_distMat[row_slice, row_slice]
 
@@ -210,13 +225,12 @@ def main():
                                                    mode = 'external',
                                                    return_dict = True)
 
-    # identify existing analysis files
+    # identify existing model and cluster files
     if args.model_dir is not None:
         model_prefix = args.model_dir
     else:
         model_prefix = args.ref_db
     model_file = model_prefix + "/" + os.path.basename(model_prefix)
-
     try:
         model = loadClusterFit(model_file + '_fit.pkl',
                                model_file + '_fit.npz')
@@ -224,56 +238,57 @@ def main():
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
 
+    # Load previous clusters
+    mode = "clusters"
+    suffix = "_clusters.csv"
+    if model.type == "lineage":
+        mode = "lineages"
+        suffix = "_lineages.csv"
+    if model.indiv_fitted:
+        sys.stderr.write("Note: Individual (core/accessory) fits found, but "
+                         "visualisation only supports combined boundary fit\n")
+
     # Set directories of previous fit
     if args.previous_clustering is not None:
         prev_clustering = args.previous_clustering
     else:
         prev_clustering = os.path.dirname(model_file)
+    cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + suffix
+    isolateClustering = readIsolateTypeFromCsv(cluster_file,
+                                               mode = mode,
+                                               return_dict = True)
+    # Join clusters with query clusters if required
+    if not self:
+        if args.previous_query_clustering is not None:
+            prev_query_clustering = args.previous_query_clustering
+        else:
+            prev_query_clustering = args.query_db
 
-    # load clustering
-    if model.type == "lineage":
-        cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + '_lineages.csv'
-        isolateClustering = readIsolateTypeFromCsv(cluster_file,
-                                                   mode = 'lineages',
-                                                   return_dict = True)
-    elif model.indiv_fitted:
-        cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
-        isolateClustering['refine'] = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-        isolateClustering['refine'] = isolateClustering['refine']['Cluster']
-        for type in ['accessory','core']:
-            cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_' + type + '_clusters.csv'
-            isolateClustering[type] = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-            isolateClustering[type] = isolateClustering[type]['Cluster']
-    else:
-        cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
-        isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+        queryIsolateClustering = readIsolateTypeFromCsv(
+                prev_query_clustering + '/' + os.path.basename(prev_query_clustering) + suffix,
+                mode = mode,
+                return_dict = True)
+        isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
 
-    # generate selected visualisations
+    # Now have all the objects needed to generate selected visualisations
     if args.microreact:
         sys.stderr.write("Writing microreact output\n")
         outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, args.perplexity,
-                             args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
+                             args.output, args.info_csv, args.rapidnj, queryList = qlist, overwrite = args.overwrite)
     if args.phandango:
         sys.stderr.write("Writing phandango output\n")
         outputsForPhandango(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                            overwrite = args.overwrite, microreact = args.microreact)
+                            queryList = qlist, overwrite = args.overwrite, microreact = args.microreact)
     if args.grapetree:
         sys.stderr.write("Writing grapetree output\n")
         outputsForGrapetree(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                            overwrite = args.overwrite, microreact = args.microreact)
+                            queryList = qlist, overwrite = args.overwrite, microreact = args.microreact)
     if args.cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, args.core_only, args.accessory_only)
         outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
-        if model.indiv_fitted:
-            sys.stderr.write("Writing individual cytoscape networks\n")
-            import graph_tool.all as gt
-            for dist_type in ['core', 'accessory']:
-                indiv_network = gt.load_graph(args.ref_db + "/" + os.path.basename(args.ref_db) +
-                "_" + dist_type + '_graph.gt')
-                outputsForCytoscape(indiv_network, isolateClustering, args.output,
-                            args.info_csv, suffix = dist_type, viz_subset = viz_subset)
-
+        if model.type == 'lineage':
+            sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
 if __name__ == '__main__':
     main()
