@@ -102,7 +102,7 @@ def storePickle(rlist, qlist, self, X, pklName):
     np.save(pklName + ".npy", X)
 
 
-def readPickle(pklName):
+def readPickle(pklName, enforce_self = False):
     """Loads core and accessory distances saved by :func:`~storePickle`
 
     Called during ``--fit-model``
@@ -110,6 +110,10 @@ def readPickle(pklName):
     Args:
         pklName (str)
             Prefix for saved files
+        enforce_self (bool)
+            Error if self == False
+
+            [default = True]
 
     Returns:
         rlist (list)
@@ -123,6 +127,9 @@ def readPickle(pklName):
     """
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
+        if enforce_self and not self:
+            sys.stderr.write("Old distances " + distanceFiles + " not complete\n")
+            sys.stderr.exit(1)
     X = np.load(pklName + ".npy")
     return rlist, qlist, self, X
 

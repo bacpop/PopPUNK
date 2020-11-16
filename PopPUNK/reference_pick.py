@@ -67,9 +67,7 @@ def main():
     setGtThreads(args.threads)
 
     # Read in all distances
-    refList, queryList, self, distMat = readPickle(args.distances)
-    if not self:
-        raise RuntimeError("Distance DB should be self-self distances")
+    refList, queryList, self, distMat = readPickle(args.distances, enforce_self=True)
 
     # Read in full network
     genomeNetwork = gt.load_graph(args.network)

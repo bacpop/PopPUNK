@@ -133,9 +133,8 @@ def main():
             sys.exit(1)
 
     # Read in old distances
-    refList, queryList, self, distMat = readPickle(args.distances)
-    if not self:
-        raise RuntimeError("Distance DB should be self-self distances")
+    refList, queryList, self, distMat = readPickle(args.distances,
+                                                   enforce_self=True)
 
     # Read in seqs to remove
     remove_seqs_in = []

@@ -321,10 +321,7 @@ def main():
                 sys.exit(1)
 
         # Load the distances
-        refList, queryList, self, distMat = readPickle(distances)
-        if not self:
-            sys.stderr.write("Model fit should be to a reference db made with --create-db\n")
-            sys.exit(1)
+        refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
         if qcDistMat(distMat, refList, queryList, args.max_a_dist) == False \
                 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")

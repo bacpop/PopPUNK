@@ -132,6 +132,7 @@ def main():
     # Initial processing
     # Load original distances
     rlist, qlist, self, complete_distMat = readPickle(args.distances)
+    # TODO deal with self = False
 
     # make directory for new output files
     if not os.path.isdir(args.output):

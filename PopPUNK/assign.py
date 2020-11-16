@@ -203,6 +203,7 @@ def assign_query(dbFuncs,
                                         write_references or update_db)}
 
     # Update DB as requested
+    dists_out = output + "/" + os.path.basename(output) + ".dists"
     if update_db:
         # Check new sequences pass QC before adding them
         if not qcPass:
@@ -219,13 +220,14 @@ def assign_query(dbFuncs,
             genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
 
         # Update distance matrices with all calculated distances
-        dists_out = output + "/" + os.path.basename(output) + ".dists"
         if distances == None:
             distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
         else:
             distanceFiles = distances
 
-        refList, refList_copy, self, rrDistMat = readPickle(distanceFiles)
+        refList, refList_copy, self, rrDistMat = readPickle(distanceFiles,
+                                                            enforce_self = True)
+
         combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(refList, rrDistMat,
                                     queryList, qrDistMat,
@@ -265,6 +267,8 @@ def assign_query(dbFuncs,
                         complete_distMat, dists_out)
             # ensure sketch and distMat order match
             assert combined_seq == refList + queryList
+    else:
+        storePickle(refList, queryList, False, qrDistMat, dists_out)
 
     return(isolateClustering)
 
