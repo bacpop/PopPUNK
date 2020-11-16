@@ -234,7 +234,7 @@ def assign_query(dbFuncs,
                                     qqDistMat, threads = threads)
         complete_distMat = \
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                        pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+                       pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
 
         # Clique pruning
         if model.type != 'lineage':

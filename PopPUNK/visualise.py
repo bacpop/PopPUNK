@@ -193,7 +193,7 @@ def main():
     if args.previous_clustering is not None:
         prev_clustering = args.previous_clustering
     else:
-        prev_clustering = os.path.dirname(args.distances + ".pkl")
+        prev_clustering = os.path.dirname(model_file)
 
     # load clustering
     if model.type == "lineage":
