@@ -217,3 +217,21 @@ input folder will contain the updated database containing everything needed.
     This mode can take longer to run with large numbers of input query genomes,
     as it will calculate all :math:`Q^2` query-query distances, rather than
     just those found in novel query clusters.
+
+Visualising results
+-------------------
+If you wish to produce visualisations from query assignment results the best
+way to do this is to run with ``--update-db``, and then run ``poppunk_visualise``
+on the output directory, as if visualising a full reference fit.
+
+However, it is possible to run directly on the outputs by adding a ``--ref-db``
+as used in the assign command, and a ``--query-db`` which points to the ``--output``
+directory used in the assign command. In this mode isolates will be annotated
+depending on whether they were a query or reference input.
+
+.. warning::
+    Without ``--update-db``, visualisation is required to recalculate all query-query distances
+    each time it is called. If your query set is large and you want repeated visualisations,
+    run ``poppunk_assign`` with ``--update-db``.
+
+See :doc:`visualisation` for more details.
