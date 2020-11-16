@@ -131,10 +131,8 @@ def getSketchSize(dbPrefix):
         codon_phased = False
 
     prev_sketch = 0
-    use_rc = 0
     for sample_name in list(ref_db['sketches'].keys()):
         sketch_size = ref_db['sketches/' + sample_name].attrs['sketchsize64']
-        use_rc = use_rc or ref_db['sketches/' + sample_name].attrs['use_rc']
         if prev_sketch == 0:
             prev_sketch = sketch_size
         elif sketch_size != prev_sketch:
@@ -143,8 +141,7 @@ def getSketchSize(dbPrefix):
                              ", but smaller kmers have sketch sizes of " + str(sketch_size) + "\n")
             sys.exit(1)
 
-    # Final argument is strand_preserved
-    return int(sketch_size), codon_phased, not use_rc
+    return int(sketch_size), codon_phased
 
 def getKmersFromReferenceDatabase(dbPrefix):
     """Get kmers lengths from existing database
@@ -195,9 +192,9 @@ def readDBParams(dbPrefix):
         sys.stderr.write("Couldn't find sketches in " + dbPrefix + "\n")
         sys.exit(1)
     else:
-        sketch_sizes, codon_phased, strand_preserved = getSketchSize(dbPrefix)
+        sketch_sizes, codon_phased = getSketchSize(dbPrefix)
 
-    return db_kmers, sketch_sizes, codon_phased, strand_preserved
+    return db_kmers, sketch_sizes, codon_phased
 
 
 def getSeqsInDb(dbname):

@@ -104,6 +104,9 @@ def get_options():
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
+    other.add_argument('--strand-preserved', default=False, action='store_true',
+                       help='If distances being calculated, treat strand as known when calcualting random '
+                            'match chances [default = False]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -163,9 +166,9 @@ def main():
                              args.ref_db + "\n")
             sys.exit(1)
 
-        kmers, sketch_sizes, codon_phased, query_strand = readDBParams(args.query_db)
+        kmers, sketch_sizes, codon_phased = readDBParams(args.query_db)
         addRandom(args.query_db, qlist, kmers,
-                  strand_preserved = query_strand, threads = args.threads)
+                  strand_preserved = args.strand_preserved, threads = args.threads)
         query_db = os.path.basename(args.query_db) + "/" + args.query_db
         qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
                                                 qlist, qlist, kmers,
@@ -194,7 +197,7 @@ def main():
 
         # Only keep found rows
         row_slice = [True if name in viz_subset else False for name in combined_seq]
-        combined_seq = [name if name in viz_subset for name in combined_seq]
+        combined_seq = [name for name in combined_seq if name in viz_subset]
         core_distMat = core_distMat[row_slice, row_slice]
         acc_distMat = acc_distMat[row_slice, row_slice]
 
