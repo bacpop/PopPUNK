@@ -30,7 +30,7 @@ from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
-def fetchNetwork(network_dir, model, refList,
+def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False):
     """Load the network based on input options
 
@@ -44,6 +44,10 @@ def fetchNetwork(network_dir, model, refList,
                 A fitted model object
             refList (list)
                 Names of references that should be in the network
+            ref_graph (bool)
+                Use ref only graph, if available
+
+                [default = False]
             core_only (bool)
                 Return the network created using only core distances
 
@@ -60,17 +64,21 @@ def fetchNetwork(network_dir, model, refList,
                 The CSV of cluster assignments corresponding to this network
     """
     # If a refined fit, may use just core or accessory distances
+    dir_prefix = network_dir + "/" + os.path.basename(network_dir)
     if core_only and model.type == 'refine':
         model.slope = 0
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_core_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_core_clusters.csv'
+        network_file = dir_prefix + '_core_graph.gt'
+        cluster_file = dir_prefix + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
         model.slope = 1
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_clusters.csv'
+        network_file = dir_prefix + '_accessory_graph.gt'
+        cluster_file = dir_prefix + '_accessory_clusters.csv'
     else:
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_clusters.csv'
+        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph.gt'):
+            network_file = dir_prefix + '.refs_graph.gt'
+        else:
+            network_file = dir_prefix + '_graph.gt'
+        cluster_file = dir_prefix + '_clusters.csv'
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
@@ -430,6 +438,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
 
             # use database construction methods to find links between unassigned queries
+            addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
             qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),
                                                     dbPrefix = queryDB,

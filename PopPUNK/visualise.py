@@ -229,7 +229,7 @@ def main():
                             overwrite = args.overwrite, microreact = args.microreact)
     if args.cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
+        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, args.core_only, args.accessory_only)
         outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
         if model.indiv_fitted:
             sys.stderr.write("Writing individual cytoscape networks\n")

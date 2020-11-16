@@ -137,8 +137,12 @@ def assign_query(dbFuncs,
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
-        fetchNetwork(prev_clustering, model, refList,
-                        core_only, accessory_only)
+        fetchNetwork(prev_clustering,
+                     model,
+                     refList,
+                     ref_graph = not update_db,
+                     core_only = core_only,
+                     accessory_only = accessory_only)
 
     if model.type == 'lineage':
         # Assign lineages by calculating query-query information
