@@ -26,6 +26,10 @@ from .plot import writeClusterCsv
 
 from .prune_db import prune_distance_matrix
 
+from .sketchlib import readDBParams
+from .sketchlib import getKmersFromReferenceDatabase
+from .sketchlib import addRandom
+
 from .utils import readPickle
 from .utils import setGtThreads
 from .utils import update_distance_matrices
@@ -52,6 +56,10 @@ def get_options():
                         type = str,
                         help='Location of built reference database',
                         required=True)
+    iGroup.add_argument('--query-db',
+                        type=str,
+                        help='Location of query database, if distances '
+                             'are from ref-query')
     iGroup.add_argument('--distances',
                         help='Prefix of input pickle of pre-calculated distances',
                         required=True)
@@ -92,9 +100,10 @@ def get_options():
     faGroup.add_argument('--info-csv',
                          help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
 
-    # processing
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
+    other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -129,11 +138,6 @@ def main():
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
 
-    # Initial processing
-    # Load original distances
-    rlist, qlist, self, complete_distMat = readPickle(args.distances)
-    # TODO deal with self = False
-
     # make directory for new output files
     if not os.path.isdir(args.output):
         try:
@@ -142,29 +146,57 @@ def main():
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
-    # Define set/subset to be visualised
+    # Load original distances
+    rlist, qlist, self, complete_distMat = readPickle(args.distances)
+    if not self:
+        qr_distMat = complete_distMat
+    else:
+        rr_distMat = complete_distMat
+
+    # Fill in qq-distances if required
+    if self == False:
+        sys.stderr.write("Note: distances in " + args.distances + " are from assign mode, "
+                         "they will be extended to full all v all distances")
+        rlist_original, rr_distMat = readPickle(args.ref_db)[0,3]
+        if rlist != rlist_original:
+            sys.stderr.write("Name mismatch between" + args.distances + " and " + \
+                             args.ref_db + "\n")
+            sys.exit(1)
+
+        kmers, sketch_sizes, codon_phased, query_strand = readDBParams(args.query_db)
+        addRandom(args.query_db, qlist, kmers,
+                  strand_preserved = query_strand, threads = args.threads)
+        query_db = os.path.basename(args.query_db) + "/" + args.query_db
+        qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
+                                                qlist, qlist, kmers,
+                                                True, False,
+                                                args.threads,
+                                                args.gpu_dist,
+                                                args.deviceid)
+    else:
+        qlist = None
+        qr_distMat = None
+        qq_distMat = None
+
+    combined_seq, core_distMat, acc_distMat = \
+            update_distance_matrices(rlist, rr_distMat,
+                                     qlist, qr_distMat, qq_distMat,
+                                     threads = args.threads)
+
     # extract subset of distances if requested
     if args.subset is not None:
-        viz_subset = []
+        viz_subset = set()
         with open(args.subset, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
-                viz_subset.append(assembly.rstrip())
-        if len(set(viz_subset).difference(rlist)) > 0:
+                viz_subset.add(assembly.rstrip())
+        if len(viz_subset.difference(full_rlist)) > 0:
             sys.stderr.write("--subset contains names not in --distances")
 
-        isolates_to_remove = set(rlist).difference(viz_subset)
-        if len(isolates_to_remove) > 0:
-            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-            postpruning_combined_seq, newDistMat = \
-                prune_distance_matrix(rlist, isolates_to_remove,
-                                      complete_distMat, dists_out)
-            combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(viz_subset, newDistMat,
-                                         threads = args.threads)
-    else:
-        combined_seq, core_distMat, acc_distMat = \
-            update_distance_matrices(rlist, complete_distMat,
-                                     threads = args.threads)
+        # Only keep found rows
+        row_slice = [True if name in viz_subset else False for name in combined_seq]
+        combined_seq = [name if name in viz_subset for name in combined_seq]
+        core_distMat = core_distMat[row_slice, row_slice]
+        acc_distMat = acc_distMat[row_slice, row_slice]
 
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}

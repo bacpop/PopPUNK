@@ -97,7 +97,7 @@ def assign_query(dbFuncs,
         prev_clustering = model_prefix
 
     # Find distances to reference db
-    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
+    kmers, sketch_sizes, codon_phased, ref_strand = readDBParams(ref_db)
 
     # Find distances vs ref seqs
     rNames = []
