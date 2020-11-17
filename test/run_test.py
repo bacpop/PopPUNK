@@ -45,7 +45,7 @@ subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --mo
 #assign query
 sys.stderr.write("Running query assignment\n")
 subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --overwrite", shell=True, check=True)
-subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query_update --update-db --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True)
 subprocess.run("python ../poppunk_assign-runner.py --q-files single_query.txt --distances example_db/example_db.dists --ref-db example_db --output example_single_query --update-db --overwrite", shell=True, check=True)
 subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
 
