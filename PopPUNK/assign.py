@@ -45,7 +45,9 @@ def assign_query(dbFuncs,
                  accessory_only,
                  assign_lineage,
                  rank,
-                 lineage_accessory):
+                 lineage_accessory,
+                 web = False,
+                 sketch = None):
     """Code for assign query mode. Written as a separate function so it can be called
     by web APIs
     """
@@ -71,12 +73,21 @@ def assign_query(dbFuncs,
     from .utils import qcDistMat
     from .utils import update_distance_matrices
 
+    from .web import sketch_to_hdf5
+    
+    import time 
+
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     joinDBs = dbFuncs['joinDBs']
     queryDatabase = dbFuncs['queryDatabase']
     readDBParams = dbFuncs['readDBParams']
     getSeqsInDb = dbFuncs['getSeqsInDb']
+
+    # if running simple query
+    print_full_clustering = False
+    if update_db:
+        print_full_clustering = True
 
     sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
     if ref_db == output:
@@ -102,14 +113,18 @@ def assign_query(dbFuncs,
     else:
         rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
 
-    # construct database
-    qNames = constructDatabase(q_files,
-                                kmers,
-                                sketch_sizes,
-                                output,
-                                threads,
-                                overwrite,
-                                codon_phased = codon_phased)
+    import time 
+    if not web:
+        # construct database
+        qNames = constructDatabase(q_files,
+                                    kmers,
+                                    sketch_sizes,
+                                    output,
+                                    threads,
+                                    overwrite,
+                                    codon_phased = codon_phased)
+    else:
+        qNames = sketch_to_hdf5(sketch, output)
 
     # run query
     refList, queryList, distMat = queryDatabase(rNames = rNames,
@@ -262,7 +277,7 @@ def assign_query(dbFuncs,
                         complete_distMat, dists_out)
             # ensure sketch and distMat order match
             assert combined_seq == refList + queryList
-
+    
     return(isolateClustering)
 
 #******************************#
