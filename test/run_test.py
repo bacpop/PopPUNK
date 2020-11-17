@@ -26,7 +26,7 @@ subprocess.run("python ../poppunk-runner.py --fit-model bgmm --distances example
 
 #fit GMM
 sys.stderr.write("Running DBSCAN model fit (--fit-model dbscan)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model dbscan --distances example_db/example_db.dists --ref-db example_db --output example_dbscan --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model dbscan --distances example_db/example_db.dists --ref-db example_db --output example_dbscan --overwrite --graph-weights", shell=True, check=True)
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--fit-model refine)\n")

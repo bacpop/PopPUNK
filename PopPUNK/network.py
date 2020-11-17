@@ -263,7 +263,7 @@ def writeReferences(refList, outPrefix):
     return refFileName
 
 def constructNetwork(rlist, qlist, assignments, within_label,
-                     summarise = True, edge_list = False):
+                     summarise = True, edge_list = False, weights = None):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -283,6 +283,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             Whether to calculate and print network summaries with :func:`~networkSummary`
 
             (default = True)
+        edge_list (bool)
+            Whether input is edges, tuples of (v1, v2). Used with lineage assignment
+        weights (numpy.array)
+            If passed, the core,accessory distances for each assignment, which will
+            be annotated as an edge attribute
 
     Returns:
         G (graph)
@@ -300,18 +305,34 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # identify edges
     if edge_list:
-        connections = assignments
+        if weights is not None:
+            connections = []
+            for weight, (ref, query) in zip(weights, assignments):
+                connections.append((ref, query, weight))
+        else:
+            connections = assignments
     else:
-        for assignment, (ref, query) in zip(assignments,
-                                            listDistInts(rlist, qlist,
-                                                         self = self_comparison)):
+        for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
+                                                                 listDistInts(rlist, qlist,
+                                                                              self = self_comparison))):
             if assignment == within_label:
-                connections.append((ref, query))
+                if weights is not None:
+                    dist = np.linalg.norm(weights[row_idx, :])
+                    edge_tuple = (ref, query, dist)
+                else:
+                    edge_tuple = (ref, query)
+                connections.append(edge_tuple)
 
     # build the graph
     G = gt.Graph(directed = False)
     G.add_vertex(len(vertex_labels))
-    G.add_edge_list(connections)
+
+    if weights is not None:
+        eweight = G.new_ep("float")
+        G.add_edge_list(connections, eprops = [eweight])
+        G.edge_properties["weight"] = eweight
+    else:
+        G.add_edge_list(connections)
 
     # add isolate ID to network
     vid = G.new_vertex_property('string',

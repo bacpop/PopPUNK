@@ -920,6 +920,21 @@ class LineageFit(ClusterFit):
 
         return y
 
+    def edge_weights(self, rank):
+        '''Get the distances for each edge returned by assign
+
+        Args:
+            rank (int)
+                Rank assigned at
+        Returns:
+            weights (list)
+                Distance for each assignment
+        '''
+        if not self.fitted:
+            raise RuntimeError("Trying to get weights from an unfitted model")
+        else:
+            return (self.nn_dists[rank].data)
+
     def extend(self, qqDists, qrDists):
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], 1)
