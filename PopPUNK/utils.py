@@ -10,6 +10,7 @@ import sys
 import pickle
 import subprocess
 from collections import defaultdict
+from itertools import chain
 from tempfile import mkstemp
 from functools import partial
 
@@ -102,7 +103,7 @@ def storePickle(rlist, qlist, self, X, pklName):
     np.save(pklName + ".npy", X)
 
 
-def readPickle(pklName):
+def readPickle(pklName, enforce_self = False):
     """Loads core and accessory distances saved by :func:`~storePickle`
 
     Called during ``--fit-model``
@@ -110,6 +111,10 @@ def readPickle(pklName):
     Args:
         pklName (str)
             Prefix for saved files
+        enforce_self (bool)
+            Error if self == False
+
+            [default = True]
 
     Returns:
         rlist (list)
@@ -123,6 +128,9 @@ def readPickle(pklName):
     """
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
+        if enforce_self and not self:
+            sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
+            sys.stderr.exit(1)
     X = np.load(pklName + ".npy")
     return rlist, qlist, self, X
 
@@ -224,7 +232,7 @@ def qcDistMat(distMat, refList, queryList, a_max):
 
 
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
-    """Read isolate types from CSV file.
+    """Read cluster definitions from CSV file.
 
     Args:
         clustCSV (str)
@@ -276,6 +284,32 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
 
     # return data structure
     return clusters
+
+
+def joinClusterDicts(d1, d2):
+    """Join two dictionaries returned by :func:`~readIsolateTypeFromCsv` with
+    return_dict = True. Useful for concatenating ref and query assignments
+
+    Args:
+        d1 (dict of dicts)
+            First dictionary to concat
+        d2 (dict of dicts)
+            Second dictionary to concat
+
+    Returns:
+        d1 (dict of dicts)
+            d1 with d2 appended
+    """
+    if d1.keys() != d2.keys():
+        sys.stderr.write("Cluster columns not compatible\n")
+        sys.exit(1)
+
+    for column in d1.keys():
+        # Combine dicts: https://stackoverflow.com/a/15936211
+        d1[column] = \
+            dict(chain.from_iterable(d.items() for d in (d1[column], d2[column])))
+
+    return d1
 
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,

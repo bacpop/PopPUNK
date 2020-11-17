@@ -21,6 +21,8 @@ from functools import partial
 from multiprocessing import Pool
 import graph_tool.all as gt
 
+from .sketchlib import addRandom
+
 from .utils import iterDistRows
 from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
@@ -28,7 +30,7 @@ from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
-def fetchNetwork(network_dir, model, refList,
+def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False):
     """Load the network based on input options
 
@@ -42,6 +44,10 @@ def fetchNetwork(network_dir, model, refList,
                 A fitted model object
             refList (list)
                 Names of references that should be in the network
+            ref_graph (bool)
+                Use ref only graph, if available
+
+                [default = False]
             core_only (bool)
                 Return the network created using only core distances
 
@@ -58,17 +64,21 @@ def fetchNetwork(network_dir, model, refList,
                 The CSV of cluster assignments corresponding to this network
     """
     # If a refined fit, may use just core or accessory distances
+    dir_prefix = network_dir + "/" + os.path.basename(network_dir)
     if core_only and model.type == 'refine':
         model.slope = 0
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_core_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_core_clusters.csv'
+        network_file = dir_prefix + '_core_graph.gt'
+        cluster_file = dir_prefix + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
         model.slope = 1
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_clusters.csv'
+        network_file = dir_prefix + '_accessory_graph.gt'
+        cluster_file = dir_prefix + '_accessory_clusters.csv'
     else:
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_clusters.csv'
+        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph.gt'):
+            network_file = dir_prefix + '.refs_graph.gt'
+        else:
+            network_file = dir_prefix + '_graph.gt'
+        cluster_file = dir_prefix + '_clusters.csv'
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
@@ -346,7 +356,7 @@ def networkSummary(G):
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,
-                      threads = 1):
+                      strand_preserved = False, threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -370,6 +380,10 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         queryQuery (bool)
             Add in all query-query distances
             (default = False)
+        strand_preserved (bool)
+            Whether to treat strand as known (i.e. ignore rc k-mers)
+            when adding random distances. Only used if queryQuery = True
+            [default = False]
         threads (int)
             Number of threads to use if new db created
 
@@ -399,14 +413,15 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
+        addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
         qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                        qNames = qList,
-                                        dbPrefix = queryDB,
-                                        queryPrefix = queryDB,
-                                        klist = kmers,
-                                        self = True,
-                                        number_plot_fits = 0,
-                                        threads = threads)
+                                                  qNames = qList,
+                                                  dbPrefix = queryDB,
+                                                  queryPrefix = queryDB,
+                                                  klist = kmers,
+                                                  self = True,
+                                                  number_plot_fits = 0,
+                                                  threads = threads)
 
         queryAssignation = model.assign(qqDistMat)
         for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):
@@ -423,6 +438,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
 
             # use database construction methods to find links between unassigned queries
+            addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
             qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),
                                                     dbPrefix = queryDB,
@@ -616,7 +632,9 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
 
     # Read in external clusters
     extClusters = \
-        readIsolateTypeFromCsv(extClusterFile, mode = 'external', return_dict = False)
+        readIsolateTypeFromCsv(extClusterFile,
+                               mode = 'external',
+                               return_dict = True)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster

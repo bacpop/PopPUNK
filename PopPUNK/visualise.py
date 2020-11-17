@@ -26,10 +26,15 @@ from .plot import writeClusterCsv
 
 from .prune_db import prune_distance_matrix
 
+from .sketchlib import readDBParams
+from .sketchlib import getKmersFromReferenceDatabase
+from .sketchlib import addRandom
+
 from .utils import readPickle
 from .utils import setGtThreads
 from .utils import update_distance_matrices
 from .utils import readIsolateTypeFromCsv
+from .utils import joinClusterDicts
 
 #******************************#
 #*                            *#
@@ -45,40 +50,69 @@ def get_options():
 
     # input options
     iGroup = parser.add_argument_group('Input files')
-    iGroup.add_argument('--ref-db',type = str, help='Location of built reference database')
-    iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances')
-    iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
-                                                      'generated with any other method.', default=None)
-    iGroup.add_argument('--viz-lineages', help='CSV with lineage definitions to use for visualisation '
-                                               'rather than strain definitions.', default=None)
-    iGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
-                                                   'to clusters [default = reference database directory]', type = str)
-    iGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
-                                                             'and network [default = use that in the directory '
-                                                             'containing the model]', type = str)
+    iGroup.add_argument('--subset',
+                         help='File with list of sequences to include in visualisation',
+                         default=None)
+    iGroup.add_argument('--ref-db',
+                        type = str,
+                        help='Location of built reference database',
+                        required=True)
+    iGroup.add_argument('--query-db',
+                        type=str,
+                        help='Location of query database, if distances '
+                             'are from ref-query')
+    iGroup.add_argument('--distances',
+                        help='Prefix of input pickle of pre-calculated distances',
+                        required=True)
+    iGroup.add_argument('--external-clustering',
+                        help='File with cluster definitions or other labels '
+                             'generated with any other method.',
+                        default=None)
+    iGroup.add_argument('--model-dir',
+                        help='Directory containing model to use for assigning queries '
+                             'to clusters [default = reference database directory]',
+                        type = str)
+    iGroup.add_argument('--previous-clustering',
+                        help='Directory containing previous cluster definitions '
+                             'and network [default = use that in the directory '
+                             'containing the model]',
+                        type = str)
+    iGroup.add_argument('--previous-query-clustering',
+                        help='Directory containing previous cluster definitions '
+                             'from poppunk_assign [default = use that in the directory '
+                             'containing the model]',
+                        type = str)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
-    oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--overwrite', help='Overwrite any existing visualisation files', default=False, action='store_true')
+    oGroup.add_argument('--output',
+                        required=True,
+                        help='Prefix for output files (required)')
+    oGroup.add_argument('--overwrite',
+                        help='Overwrite any existing visualisation files',
+                        default=False,
+                        action='store_true')
 
     # plot output
     faGroup = parser.add_argument_group('Visualisation options')
-    faGroup.add_argument('--subset', help='File with list of sequences to include in visualisation', default=None)
     faGroup.add_argument('--microreact', help='Generate output files for microreact visualisation', default=False, action='store_true')
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default=None)
-    faGroup.add_argument('--perplexity', type=float, default = 20.0,
+    faGroup.add_argument('--perplexity',
+                         type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
     faGroup.add_argument('--info-csv',
-                     help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
+                         help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
 
-    # processing
     other = parser.add_argument_group('Other options')
-    other.add_argument('--rank', default=None, type=int, help='Rank of lineage fit to use')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
+    other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
+    other.add_argument('--strand-preserved', default=False, action='store_true',
+                       help='If distances being calculated, treat strand as known when calcualting random '
+                            'match chances [default = False]')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -97,155 +131,165 @@ def get_options():
 def main():
     """Main function. Parses cmd line args and runs in the specified mode.
     """
-
-    #******************************#
-    #*                            *#
-    #* Check command options      *#
-    #*                            *#
-    #******************************#
     args = get_options()
 
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
 
-    sys.stderr.write("Creating visualisations for PopPUNK\n")
-    if args.microreact or args.phandango or args.grapetree or args.cytoscape:
-        sys.stderr.write("Mode: Generating files for visualisation from database\n\n")
-    else:
+    sys.stderr.write("PopPUNK: visualise\n")
+    if not (args.microreact or args.phandango or args.grapetree or args.cytoscape):
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
 
-    if args.distances is not None and args.ref_db is not None:
-
-        # Initial processing
-        # Load original distances
-        rlist, qlist, self, complete_distMat = readPickle(args.distances)
-        combined_seq, core_distMat, acc_distMat = \
-            update_distance_matrices(rlist, complete_distMat,
-                                        threads = args.threads)
-
-        # make directory for new output files
-        if not os.path.isdir(args.output):
-            try:
-                os.makedirs(args.output)
-            except OSError:
-                sys.stderr.write("Cannot create output directory\n")
-                sys.exit(1)
-
-        # Define set/subset to be visualised
-        # extract subset of distances if requested
-        viz_subset = rlist
-        if args.subset is not None:
-            viz_subset = []
-            with open(args.subset, 'r') as assemblyFiles:
-                for assembly in assemblyFiles:
-                    viz_subset.append(assembly.rstrip())
-
-        # Use the same code as no full_db in assign_query to take a subset
-        dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-        #nodes_to_remove = set(genomeNetwork.nodes).difference(viz_subset)
-        isolates_to_remove = set(combined_seq).difference(viz_subset)
-        postpruning_combined_seq = viz_subset
-        newDistMat = complete_distMat
-        if len(isolates_to_remove) > 0:
-            postpruning_combined_seq, newDistMat = \
-                prune_distance_matrix(rlist, isolates_to_remove,
-                                        complete_distMat, dists_out)
-
-        combined_seq, core_distMat, acc_distMat = \
-            update_distance_matrices(viz_subset, newDistMat,
-                                        threads = args.threads)
-
-        # reorder subset to ensure list orders match
+    # make directory for new output files
+    if not os.path.isdir(args.output):
         try:
-            viz_subset = sorted(viz_subset, key=postpruning_combined_seq.index)
-        except:
-            sys.stderr.write("Isolates in subset not found in existing database\n")
-        assert postpruning_combined_seq == viz_subset
+            os.makedirs(args.output)
+        except OSError:
+            sys.stderr.write("Cannot create output directory\n")
+            sys.exit(1)
 
-        # Either use strain definitions, lineage assignments or external clustering
-        isolateClustering = {}
-        # Use external clustering if specified
-        if args.external_clustering:
-            cluster_file = args.external_clustering
-            isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'external', return_dict = True)
-        if args.viz_lineages:
-            cluster_file = args.viz_lineages
-            isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'lineages', return_dict = True)
-        else:
-            # identify existing analysis files
-            model_prefix = args.ref_db
-            if args.model_dir is not None:
-                model_prefix = args.model_dir
-            model_file = model_prefix + "/" + os.path.basename(model_prefix)
+    # Load original distances
+    rlist, qlist, self, complete_distMat = readPickle(args.distances)
+    if not self:
+        qr_distMat = complete_distMat
+    else:
+        rr_distMat = complete_distMat
 
-            if args.rank:
-                model_file += str(args.rank)
-                sparse = True
-            try:
-                model = loadClusterFit(model_file + '_fit.pkl',
-                                       model_file + '_fit.npz')
-            except:
-                sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
-                sys.exit(1)
+    # Fill in qq-distances if required
+    if self == False:
+        sys.stderr.write("Note: Distances in " + args.distances + " are from assign mode\n"
+                         "Note: Distance will be extended to full all-vs-all distances\n"
+                         "Note: Re-run poppunk_assign with --update-db to avoid this\n")
 
-            # Set directories of previous fit
-            if args.previous_clustering is not None:
-                prev_clustering = args.previous_clustering
-            else:
-                prev_clustering = os.path.dirname(args.distances + ".pkl")
+        ref_db = os.path.basename(args.ref_db) + "/" + args.ref_db
+        query_db = os.path.basename(args.query_db) + "/" + args.query_db
+        rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db + ".dists")
+        if not self_ref:
+            sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
+            sys.exit(1)
 
-            # load clustering
-            if model.indiv_fitted:
-                cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
-                isolateClustering['refine'] = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-                isolateClustering['refine'] = isolateClustering['refine']['Cluster']
-                for type in ['accessory','core']:
-                    cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_' + type + '_clusters.csv'
-                    isolateClustering[type] = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
-                    isolateClustering[type] = isolateClustering[type]['Cluster']
-            else:
-                cluster_file = args.ref_db + '/' + os.path.basename(args.ref_db) + '_clusters.csv'
-                isolateClustering = readIsolateTypeFromCsv(cluster_file, mode = 'clusters', return_dict = True)
+        kmers, sketch_sizes, codon_phased = readDBParams(args.query_db)
+        addRandom(args.query_db, qlist, kmers,
+                  strand_preserved = args.strand_preserved, threads = args.threads)
+        qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
+                                                qlist, qlist, kmers,
+                                                True, False,
+                                                args.threads,
+                                                args.gpu_dist,
+                                                args.deviceid)
 
-        # generate selected visualisations
-        if args.microreact:
-            sys.stderr.write("Writing microreact output\n")
-            if args.lineage_clustering:
-                isolateClustering = overall_lineage
-            outputsForMicroreact(viz_subset, core_distMat, acc_distMat, isolateClustering, args.perplexity,
-                                    args.output, args.info_csv, args.rapidnj, overwrite = args.overwrite)
-        if args.phandango:
-            sys.stderr.write("Writing phandango output\n")
-            outputsForPhandango(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                                overwrite = args.overwrite, microreact = args.microreact)
-        if args.grapetree:
-            sys.stderr.write("Writing grapetree output\n")
-            outputsForGrapetree(viz_subset, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                                overwrite = args.overwrite, microreact = args.microreact)
-        if args.cytoscape:
-            sys.stderr.write("Writing cytoscape output\n")
-            if args.lineage_clustering:
-                for rank in rank_list:
-                    outputsForCytoscape(indivNetworks[rank], isolateClustering, args.output,
-                                        args.info_csv, suffix = 'rank_' + str(rank), writeCsv = False)
-            else:
-                genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, args.core_only, args.accessory_only)
-                outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
-                if model.indiv_fitted:
-                    sys.stderr.write("Writing individual cytoscape networks\n")
-                    for dist_type in ['core', 'accessory']:
-                        indiv_network = gt.load_graph(args.ref_db + "/" + os.path.basename(args.ref_db) +
-                        "_" + dist_type + '_graph.gt')
-                        outputsForCytoscape(indiv_network, isolateClustering, args.output,
-                                    args.info_csv, suffix = dist_type, viz_subset = viz_subset)
+        # If the assignment was run with references, qrDistMat will be incomplete
+        if rlist != rlist_original:
+            rlist = rlist_original
+            qr_distMat = pp_sketchlib.queryDatabase(ref_db, query_db,
+                                                    rlist, qlist, kmers,
+                                                    True, False,
+                                                    args.threads,
+                                                    args.gpu_dist,
+                                                    args.deviceid)
 
     else:
-        # Cannot read input files
-        sys.stderr.write("Need to provide an input set of distances with --distances "
-                            "and reference database directory with --ref-db\n\n")
+        qlist = None
+        qr_distMat = None
+        qq_distMat = None
+
+    # Turn long form matrices into square form
+    combined_seq, core_distMat, acc_distMat = \
+            update_distance_matrices(rlist, rr_distMat,
+                                     qlist, qr_distMat, qq_distMat,
+                                     threads = args.threads)
+
+    # extract subset of distances if requested
+    if args.subset is not None:
+        viz_subset = set()
+        with open(args.subset, 'r') as assemblyFiles:
+            for assembly in assemblyFiles:
+                viz_subset.add(assembly.rstrip())
+        if len(viz_subset.difference(combined_seq)) > 0:
+            sys.stderr.write("--subset contains names not in --distances")
+
+        # Only keep found rows
+        row_slice = [True if name in viz_subset else False for name in combined_seq]
+        combined_seq = [name for name in combined_seq if name in viz_subset]
+        if qlist != None:
+            qlist = list(viz_subset.intersection(qlist))
+        core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
+        acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
+
+    # Either use strain definitions, lineage assignments or external clustering
+    isolateClustering = {}
+    # Use external clustering if specified
+    if args.external_clustering:
+        cluster_file = args.external_clustering
+        isolateClustering = readIsolateTypeFromCsv(cluster_file,
+                                                   mode = 'external',
+                                                   return_dict = True)
+
+    # identify existing model and cluster files
+    if args.model_dir is not None:
+        model_prefix = args.model_dir
+    else:
+        model_prefix = args.ref_db
+    model_file = model_prefix + "/" + os.path.basename(model_prefix)
+    try:
+        model = loadClusterFit(model_file + '_fit.pkl',
+                               model_file + '_fit.npz')
+    except:
+        sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
 
+    # Load previous clusters
+    mode = "clusters"
+    suffix = "_clusters.csv"
+    if model.type == "lineage":
+        mode = "lineages"
+        suffix = "_lineages.csv"
+    if model.indiv_fitted:
+        sys.stderr.write("Note: Individual (core/accessory) fits found, but "
+                         "visualisation only supports combined boundary fit\n")
+
+    # Set directories of previous fit
+    if args.previous_clustering is not None:
+        prev_clustering = args.previous_clustering
+    else:
+        prev_clustering = os.path.dirname(model_file)
+    cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + suffix
+    isolateClustering = readIsolateTypeFromCsv(cluster_file,
+                                               mode = mode,
+                                               return_dict = True)
+    # Join clusters with query clusters if required
+    if not self:
+        if args.previous_query_clustering is not None:
+            prev_query_clustering = args.previous_query_clustering
+        else:
+            prev_query_clustering = args.query_db
+
+        queryIsolateClustering = readIsolateTypeFromCsv(
+                prev_query_clustering + '/' + os.path.basename(prev_query_clustering) + suffix,
+                mode = mode,
+                return_dict = True)
+        isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
+
+    # Now have all the objects needed to generate selected visualisations
+    if args.microreact:
+        sys.stderr.write("Writing microreact output\n")
+        outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, args.perplexity,
+                             args.output, args.info_csv, args.rapidnj, queryList = qlist, overwrite = args.overwrite)
+    if args.phandango:
+        sys.stderr.write("Writing phandango output\n")
+        outputsForPhandango(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                            queryList = qlist, overwrite = args.overwrite, microreact = args.microreact)
+    if args.grapetree:
+        sys.stderr.write("Writing grapetree output\n")
+        outputsForGrapetree(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
+                            queryList = qlist, overwrite = args.overwrite, microreact = args.microreact)
+    if args.cytoscape:
+        sys.stderr.write("Writing cytoscape output\n")
+        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, args.core_only, args.accessory_only)
+        outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
+        if model.type == 'lineage':
+            sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
 if __name__ == '__main__':
     main()

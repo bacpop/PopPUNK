@@ -14,12 +14,6 @@ from .__init__ import __version__
 
 from .sketchlib import removeFromDB
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
-
 from .utils import storePickle
 from .utils import readPickle
 from .utils import iterDistRows
@@ -139,9 +133,8 @@ def main():
             sys.exit(1)
 
     # Read in old distances
-    refList, queryList, self, distMat = readPickle(args.distances)
-    if not self:
-        raise RuntimeError("Distance DB should be self-self distances")
+    refList, queryList, self, distMat = readPickle(args.distances,
+                                                   enforce_self=True)
 
     # Read in seqs to remove
     remove_seqs_in = []

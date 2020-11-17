@@ -84,7 +84,7 @@ def plot_fit(klist, matching, fit, out_prefix, title):
         matching (list)
             Proportion of matching k-mers at each klist value
         kfit (numpy.array)
-            Fit to klist and matching from :func:`~PopPUNK.mash.fitKmerCurve`
+            Fit to klist and matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
         out_prefix (str)
             Prefix for output plot file (.pdf will be appended)
         title (str)
@@ -441,7 +441,9 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suff
                         epiCsv,
                         queryList)
 
-def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering, output_format = 'microreact', epiCsv = None, queryNames = None, suffix = '_Cluster'):
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
+                    output_format = 'microreact', epiCsv = None,
+                    queryNames = None, suffix = '_Cluster'):
     """Print CSV file of clustering and optionally epi data
 
     Writes CSV output of clusters which can be used as input to microreact and cytoscape.

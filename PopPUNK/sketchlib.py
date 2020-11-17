@@ -28,7 +28,7 @@ except ImportError as e:
     sys.stderr.write("Sketchlib backend not available")
     sys.exit(1)
 
-from .mash import fitKmerCurve
+from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 from .utils import iterDistRows
 from .utils import readRfile
 from .plot import plot_fit
@@ -48,6 +48,16 @@ def checkSketchlibVersion():
         if line != '':
             version = line.rstrip().decode().split(" ")[1]
             break
+
+    sketchlib_version = [int(v) for v in version.split(".")]
+    if sketchlib_version[0] < SKETCHLIB_MAJOR or \
+        sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] < SKETCHLIB_MINOR or \
+        sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] == SKETCHLIB_MINOR and sketchlib_version[2] < SKETCHLIB_PATCH:
+        sys.stderr.write("This version of PopPUNK requires sketchlib "
+                            "v" + str(SKETCHLIB_MAJOR) + \
+                            "." + str(SKETCHLIB_MINOR) + \
+                            "." + str(SKETCHLIB_PATCH) + " or higher\n")
+        sys.exit(1)
 
     return version
 
@@ -177,7 +187,6 @@ def readDBParams(dbPrefix):
         codonPhased (bool)
             whether the DB used codon phased seeds
     """
-
     db_kmers = getKmersFromReferenceDatabase(dbPrefix)
     if len(db_kmers) == 0:
         sys.stderr.write("Couldn't find sketches in " + dbPrefix + "\n")
@@ -387,14 +396,54 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     # Add random matches if required
     # (typically on for reference, off for query)
     if (calc_random):
-        pp_sketchlib.addRandom(dbname,
-                               filtered_names,
-                               klist,
-                               not strand_preserved,
-                               threads)
+        addRandom(oPrefix,
+                  filtered_names,
+                  klist,
+                  strand_preserved,
+                  overwrite = True,
+                  threads = threads)
 
     # return filtered file names
     return filtered_names
+
+
+def addRandom(oPrefix, sequence_names, klist,
+              strand_preserved = False, overwrite = False, threads = 1):
+    """Add chance of random match to a HDF5 sketch DB
+
+    Args:
+        oPrefix (str)
+            Sketch database prefix
+        sequence_names (list)
+            Names of sequences to include in calculation
+        klist (list)
+            List of k-mer sizes to sketch
+        strand_preserved (bool)
+            Set true to ignore rc k-mers
+        overwrite (str)
+            Set true to overwrite existing random match chances
+        threads (int)
+            Number of threads to use (default = 1)
+    """
+    if len(sequence_names) <= 2:
+        sys.stderr.write("Cannot add random match chances with this few genomes\n")
+    else:
+        dbname = oPrefix + "/" + os.path.basename(oPrefix)
+        hdf_in = h5py.File(dbname + ".h5", 'r+')
+
+        if 'random' in hdf_in:
+            if overwrite:
+                del hdf_in['random']
+            else:
+                sys.stderr.write("Using existing random match chances in DB\n")
+                return
+
+        hdf_in.close()
+        pp_sketchlib.addRandom(dbname,
+                            sequence_names,
+                            klist,
+                            not strand_preserved,
+                            threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
@@ -647,3 +696,40 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
     hdf_in.close()
 
     return retained
+
+def fitKmerCurve(pairwise, klist, jacobian):
+    """Fit the function :math:`pr = (1-a)(1-c)^k`
+
+    Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``
+
+    Args:
+        pairwise (numpy.array)
+            Proportion of shared k-mers at k-mer values in klist
+        klist (list)
+            k-mer sizes used
+        jacobian (numpy.array)
+            Should be set as above (set once to try and save memory)
+
+    Returns:
+        transformed_params (numpy.array)
+            Column with core and accessory distance
+    """
+    # curve fit pr = (1-a)(1-c)^k
+    # log pr = log(1-a) + k*log(1-c)
+    # a = p[0]; c = p[1] (will flip on return)
+    try:
+        distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                     x0=[0.0, -0.01],
+                                     jac=lambda p, x, y: jacobian,
+                                     args=(klist, np.log(pairwise)),
+                                     bounds=([-np.inf, -np.inf], [0, 0]))
+        transformed_params = 1 - np.exp(distFit.x)
+    except ValueError as e:
+        sys.stderr.write("Fitting k-mer curve failed: " + format(e) +
+                         "\nWith mash input " +
+                         np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
+                         "\nCheck for low quality input genomes\n")
+        exit(0)
+
+    # Return core, accessory
+    return(np.flipud(transformed_params))
