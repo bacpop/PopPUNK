@@ -40,7 +40,6 @@ def assign_query(dbFuncs,
                  accessory_only,
                  assign_lineage,
                  rank,
-                 lineage_accessory,
                  web = False,
                  sketch = None):
     """Code for assign query mode. Written as a separate function so it can be called
@@ -122,7 +121,6 @@ def assign_query(dbFuncs,
                 rNames.append(reference.rstrip())
     else:
         rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
-
     if not web:
         # construct database
         createDatabaseDir(output, kmers)
@@ -135,7 +133,6 @@ def assign_query(dbFuncs,
                                     codon_phased = codon_phased,
                                     calc_random = False)
     else:
-        print(sketch)
         qNames = sketch_to_hdf5(sketch, output)
         
     # run query

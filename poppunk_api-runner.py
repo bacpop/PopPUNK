@@ -12,6 +12,7 @@ CORS(app, expose_headers='Authorization')
 @app.route('/network', methods=['GET', 'POST'])
 @cross_origin()
 def postNetwork():
+    """Recieve request to produce and post network information"""
     if not request.json:
         return "not a json post"
     if request.json:
@@ -23,20 +24,16 @@ def postNetwork():
 
 @app.route('/upload', methods=['POST'])
 @cross_origin()
-def fileUpload():
+def sketchAssign():
+    """Recieve sketch and respond with clustering information"""
     if not request.json:
         return "not a json post"
+
     if request.json:
         sketch = request.json
-        
         args = default_options()
-
         if not os.path.exists(args.output):
             os.mkdir(args.output)
-
-        sketch_out = open(os.path.join(args.output,"sketch.txt"), "w")
-        sketch_out.write(sketch)
-        sketch_out.close()
 
         qc_dict = {'run_qc': False }
         dbFuncs = setupDBFuncs(args, args.min_kmer_count, qc_dict)
@@ -46,34 +43,28 @@ def fileUpload():
                                     args.q_files,
                                     args.output,
                                     args.update_db,
-                                    args.full_db,
+                                    args.write_references,
                                     args.distances,
                                     args.threads,
                                     args.overwrite,
                                     args.plot_fit,
                                     args.max_a_dist,
                                     args.model_dir,
+                                    args.strand_preserved,
                                     args.previous_clustering,
                                     args.external_clustering,
                                     args.core_only,
                                     args.accessory_only,
                                     args.assign_lineage,
                                     args.rank,
-                                    args.use_accessory,
                                     args.web,
                                     sketch)
-        
-        out = open(os.path.join(args.output, "clusters.txt"), "w")
-        out.write(str(ClusterResult))
-        out.close()
 
+        species = 'Streptococcus pneumoniae'
         query, query_prevalence, clusters, prevalences = summarise_clusters(args.output, args.ref_db)
         colours = str(get_colours(query, clusters)).replace("'", "")
         url = api(query, args.ref_db)
-
-        species = 'Streptococcus pneumoniae'
-
-        networkJson = graphml_to_json(args.output)
+        networkJson = graphml_to_json(query, args.output)
 
         response = '{"species":"' + species + '","prev":"' + str(query_prevalence)
         response += '%","query":' + str(query) 
@@ -86,4 +77,4 @@ def fileUpload():
 
 if __name__ == "__main__":
     app.secret_key = os.urandom(24)
-    app.run(debug=True,use_reloader=False)
+    app.run(debug=False,use_reloader=False)
