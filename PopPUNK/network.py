@@ -12,12 +12,16 @@ import glob
 import operator
 import shutil
 import subprocess
-import graph_tool.all as gt
 import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
 from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
+from functools import partial
+from multiprocessing import Pool
+import graph_tool.all as gt
+
+from .sketchlib import addRandom
 
 from .utils import iterDistRows
 from .utils import listDistInts
@@ -26,7 +30,7 @@ from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
-def fetchNetwork(network_dir, model, refList,
+def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False):
     """Load the network based on input options
 
@@ -40,6 +44,10 @@ def fetchNetwork(network_dir, model, refList,
                 A fitted model object
             refList (list)
                 Names of references that should be in the network
+            ref_graph (bool)
+                Use ref only graph, if available
+
+                [default = False]
             core_only (bool)
                 Return the network created using only core distances
 
@@ -56,17 +64,21 @@ def fetchNetwork(network_dir, model, refList,
                 The CSV of cluster assignments corresponding to this network
     """
     # If a refined fit, may use just core or accessory distances
+    dir_prefix = network_dir + "/" + os.path.basename(network_dir)
     if core_only and model.type == 'refine':
         model.slope = 0
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_core_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_core_clusters.csv'
+        network_file = dir_prefix + '_core_graph.gt'
+        cluster_file = dir_prefix + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
         model.slope = 1
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_accessory_clusters.csv'
+        network_file = dir_prefix + '_accessory_graph.gt'
+        cluster_file = dir_prefix + '_accessory_clusters.csv'
     else:
-        network_file = network_dir + "/" + os.path.basename(network_dir) + '_graph.gt'
-        cluster_file = network_dir + "/" + os.path.basename(network_dir) + '_clusters.csv'
+        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph.gt'):
+            network_file = dir_prefix + '.refs_graph.gt'
+        else:
+            network_file = dir_prefix + '_graph.gt'
+        cluster_file = dir_prefix + '_clusters.csv'
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
@@ -81,8 +93,48 @@ def fetchNetwork(network_dir, model, refList,
 
     return (genomeNetwork, cluster_file)
 
+def getCliqueRefs(G, reference_indices = set()):
+    """Recursively prune a network of its cliques. Returns one vertex from
+    a clique at each stage
 
-def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
+    Args:
+        G (graph)
+            The graph to get clique representatives from
+        reference_indices (set)
+            The unique list of vertices being kept, to add to
+    """
+    cliques = gt.max_cliques(G)
+    try:
+        # Get the first clique, and see if it has any members already
+        # contained in the vertex list
+        clique = frozenset(next(cliques))
+        if clique.isdisjoint(reference_indices):
+            reference_indices.add(list(clique)[0])
+
+        # Remove the clique, and prune the resulting subgraph (recursively)
+        subgraph = gt.GraphView(G, vfilt=[v not in clique for v in G.vertices()])
+        if subgraph.num_vertices() > 1:
+            getCliqueRefs(subgraph, reference_indices)
+        elif subgraph.num_vertices() == 1:
+            reference_indices.add(subgraph.get_vertices()[0])
+    except StopIteration:
+        pass
+    return reference_indices
+
+def cliquePrune(component, graph, reference_indices, components_list):
+    """Wrapper function around :func:`~getCliqueRefs` so it can be
+       called by a multiprocessing pool
+    """
+    subgraph = gt.GraphView(graph, vfilt=components_list == component)
+    refs = reference_indices.copy()
+    if subgraph.num_vertices() <= 2:
+        refs.add(subgraph.get_vertices()[0])
+        ref_list = refs
+    else:
+        ref_list = getCliqueRefs(subgraph, refs)
+    return(list(ref_list))
+
+def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -105,65 +157,70 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None):
     """
     if existingRefs == None:
         references = set()
-        reference_indices = []
+        reference_indices = set()
     else:
         references = set(existingRefs)
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
-        reference_indices = [index_lookup[r] for r in references]
+        reference_indices = set([index_lookup[r] for r in references])
 
-    # extract cliques from network
-    cliques_in_overall_graph = [c.tolist() for c in gt.max_cliques(G)]
-    # order list by size of clique
-    cliques_in_overall_graph.sort(key = len, reverse = True)
-    # iterate through cliques
-    for clique in cliques_in_overall_graph:
-        alreadyRepresented = 0
-        for node in clique:
-            if node in reference_indices:
-                alreadyRepresented = 1
-                break
-        if alreadyRepresented == 0:
-            reference_indices.append(clique[0])
+    # Each component is independent, so can be multithreaded
+    components = gt.label_components(G)[0].a
 
-    # Find any clusters which are represented by multiple references
-    # First get cluster assignments
-    clusters_in_overall_graph = printClusters(G, dbOrder, printCSV=False)
-    # Construct a dict containing one empty set for each cluster
-    reference_clusters_in_overall_graph = [set() for c in set(clusters_in_overall_graph.items())]
-    # Iterate through references
-    for reference_index in reference_indices:
-        # Add references to the originally empty set for the appropriate cluster
-        # Allows enumeration of the number of references per cluster
-        reference_clusters_in_overall_graph[clusters_in_overall_graph[dbOrder[reference_index]]].add(reference_index)
+    # Turn gt threading off and on again either side of the parallel loop
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
+
+    # Cliques are pruned, taking one reference from each, until none remain
+    with Pool(processes=threads) as pool:
+        ref_lists = pool.map(partial(cliquePrune,
+                                        graph=G,
+                                        reference_indices=reference_indices,
+                                        components_list=components),
+                             set(components))
+    # Returns nested lists, which need to be flattened
+    reference_indices = set([entry for sublist in ref_lists for entry in sublist])
+
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(threads)
 
     # Use a vertex filter to extract the subgraph of refences
     # as a graphview
     reference_vertex = G.new_vertex_property('bool')
-    for n,vertex in enumerate(G.vertices()):
+    for n, vertex in enumerate(G.vertices()):
         if n in reference_indices:
             reference_vertex[vertex] = True
         else:
             reference_vertex[vertex] = False
     G_ref = gt.GraphView(G, vfilt = reference_vertex)
     G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
-    # Calculate component membership for reference graph
-    clusters_in_reference_graph = printClusters(G, dbOrder, printCSV=False)
-    # Record to which components references below in the reference graph
-    reference_clusters_in_reference_graph = {}
+
+    # Find any clusters which are represented by >1 references
+    # This creates a dictionary: cluster_id: set(ref_idx in cluster)
+    clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
+    reference_clusters_in_full_graph = defaultdict(set)
     for reference_index in reference_indices:
-        reference_clusters_in_reference_graph[dbOrder[reference_index]] = clusters_in_reference_graph[dbOrder[reference_index]]
+        reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
+
+    # Calculate the component membership within the reference graph
+    ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
+    clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
+    # Record the components/clusters the references are in the reference graph
+    # dict: name: ref_cluster
+    reference_clusters_in_reference_graph = {}
+    for reference_name in ref_order:
+        reference_clusters_in_reference_graph[reference_name] = clusters_in_reference_graph[reference_name]
 
     # Check if multi-reference components have been split as a validation test
     # First iterate through clusters
     network_update_required = False
-    for cluster in reference_clusters_in_overall_graph:
+    for cluster_id, ref_idxs in reference_clusters_in_full_graph.items():
         # Identify multi-reference clusters by this length
-        if len(cluster) > 1:
-            check = list(cluster)
+        if len(ref_idxs) > 1:
+            check = list(ref_idxs)
             # check if these are still in the same component in the reference graph
             for i in range(len(check)):
                 component_i = reference_clusters_in_reference_graph[dbOrder[check[i]]]
-                for j in range(i, len(check)):
+                for j in range(i + 1, len(check)):
                     # Add intermediate nodes
                     component_j = reference_clusters_in_reference_graph[dbOrder[check[j]]]
                     if component_i != component_j:
@@ -205,29 +262,8 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
-def writeDummyReferences(refList, outPrefix):
-    """Writes chosen references to file, for use with mash
-    Gives sequence name twice
-
-    Args:
-        refList (list)
-            Reference names to write
-        outPrefix (str)
-            Prefix for output file (.refs will be appended)
-
-    Returns:
-        refFileName (str)
-            The name of the file references were written to
-    """
-    # write references to file
-    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + ".mash.refs"
-    with open(refFileName, 'w') as rFile:
-        for ref in refList:
-            rFile.write("\t".join([ref, ref]) + '\n')
-
-    return refFileName
-
-def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
+def constructNetwork(rlist, qlist, assignments, within_label,
+                     summarise = True, edge_list = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -263,9 +299,14 @@ def constructNetwork(rlist, qlist, assignments, within_label, summarise = True):
         vertex_labels.append(qlist)
 
     # identify edges
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qlist, self = self_comparison)):
-        if assignment == within_label:
-            connections.append((ref, query))
+    if edge_list:
+        connections = assignments
+    else:
+        for assignment, (ref, query) in zip(assignments,
+                                            listDistInts(rlist, qlist,
+                                                         self = self_comparison)):
+            if assignment == within_label:
+                connections.append((ref, query))
 
     # build the graph
     G = gt.Graph(directed = False)
@@ -313,21 +354,19 @@ def networkSummary(G):
 
     return(components, density, transitivity, score)
 
-def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
-                        assignments, model, queryDB, queryQuery = False,
-                        use_mash = False, threads = 1):
+def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
+                      assignments, model, queryDB, queryQuery = False,
+                      strand_preserved = False, threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
     Args:
         dbFuncs (list)
             List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
-        rlist (list)
+        rList (list)
             List of reference names
         qList (list)
             List of query names
-        qFile (list)
-            File of query sequences
         G (graph)
             Network to add to (mutated)
         kmers (list)
@@ -341,11 +380,10 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
         queryQuery (bool)
             Add in all query-query distances
             (default = False)
-        use_mash (bool)
-            Use the mash backend
-        no_stream (bool)
-            Don't stream mash output
-            (default = False)
+        strand_preserved (bool)
+            Whether to treat strand as known (i.e. ignore rc k-mers)
+            when adding random distances. Only used if queryQuery = True
+            [default = False]
         threads (int)
             Number of threads to use if new db created
 
@@ -355,10 +393,7 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
             Query-query distances
     """
     # initalise functions
-    readDBParams = dbFuncs['readDBParams']
-    constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
-    readDBParams = dbFuncs['readDBParams']
 
     # initialise links data structure
     new_edges = []
@@ -368,8 +403,8 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     qqDistMat = None
 
     # store links for each query in a list of edge tuples
-    ref_count = len(rlist)
-    for assignment, (ref, query) in zip(assignments, listDistInts(rlist, qList, self = False)):
+    ref_count = len(rList)
+    for assignment, (ref, query) in zip(assignments, listDistInts(rList, qList, self = False)):
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
             new_edges.append((ref, query + ref_count))
@@ -378,14 +413,15 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     # Calculate all query-query distances too, if updating database
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
+        addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
         qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                        qNames = qList,
-                                        dbPrefix = queryDB,
-                                        queryPrefix = queryDB,
-                                        klist = kmers,
-                                        self = True,
-                                        number_plot_fits = 0,
-                                        threads = threads)
+                                                  qNames = qList,
+                                                  dbPrefix = queryDB,
+                                                  queryPrefix = queryDB,
+                                                  klist = kmers,
+                                                  self = True,
+                                                  number_plot_fits = 0,
+                                                  threads = threads)
 
         queryAssignation = model.assign(qqDistMat)
         for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):
@@ -402,6 +438,7 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
             sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
 
             # use database construction methods to find links between unassigned queries
+            addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
             qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
                                                     qNames = list(unassigned),
                                                     dbPrefix = queryDB,
@@ -425,13 +462,14 @@ def addQueryToNetwork(dbFuncs, rlist, qList, qFile, G, kmers,
     G.add_edge_list(new_edges)
 
     # including the vertex ID property map
-    for i,q in enumerate(qList):
-        G.vp.id[i + len(rlist)] = q
+    for i, q in enumerate(qList):
+        G.vp.id[i + len(rList)] = q
 
     return qqDistMat
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True, clustering_type = 'combined'):
+                  externalClusterCSV = None, printRef = True, printCSV = True,
+                  clustering_type = 'combined'):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -594,7 +632,9 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
 
     # Read in external clusters
     extClusters = \
-        readIsolateTypeFromCsv(extClusterFile, mode = 'external', return_dict = False)
+        readIsolateTypeFromCsv(extClusterFile,
+                               mode = 'external',
+                               return_dict = True)
 
     # Go through each cluster (as defined by poppunk) and find the external
     # clusters that had previously been assigned to any sample in the cluster

@@ -1,0 +1,5 @@
+12673_8_43	12673_8#43.contigs_velvet.fa
+19183_4_69	19183_4#69.contigs_velvet.fa
+12754_5_76	12754_5#76.contigs_velvet.fa
+12754_5_57	12754_5#57.contigs_velvet.fa
+19183_4_59	19183_4#59.contigs_velvet.fa

@@ -7,24 +7,17 @@ import os
 import sys
 # additional
 from shutil import copyfile
-import graph_tool.all as gt
 
 # import poppunk package
 from .__init__ import __version__
 
 from .sketchlib import removeFromDB
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
-
 from .network import extractReferences
-from .network import writeDummyReferences
 
 from .prune_db import prune_distance_matrix
 
+from .utils import setGtThreads
 from .utils import readPickle
 
 # command line parsing
@@ -62,6 +55,8 @@ def main():
     # Check input args ok
     args = get_options()
 
+    import graph_tool.all as gt
+
     # Check output path ok
     if not os.path.isdir(args.output):
         try:
@@ -69,29 +64,40 @@ def main():
         except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
+    setGtThreads(args.threads)
 
     # Read in all distances
-    refList, queryList, self, distMat = readPickle(args.distances)
-    if not self:
-        raise RuntimeError("Distance DB should be self-self distances")
+    refList, queryList, self, distMat = readPickle(args.distances, enforce_self=True)
 
     # Read in full network
-    genomeNetwork = gt.load_graph(network_file)
+    genomeNetwork = gt.load_graph(args.network)
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
     reference_indices, reference_names, refFileName, G_ref = \
-        extractReferences(genomeNetwork, refList, args.output)
+        extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
     G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
 
     # Prune distances
-    prune_distance_matrix(refList, nodes_to_remove, distMat,
-                          args.output + "/" + os.path.basename(args.output) + ".dists")
+    nodes_to_remove = set(range(len(refList))).difference(reference_indices)
+    names_to_remove = [refList[n] for n in nodes_to_remove]
 
     # 'Resketch'
     if len(nodes_to_remove) > 0:
-        removeFromDB(args.ref_db, args.output, set(refList) - set(newReferencesNames))
+        prune_distance_matrix(refList, names_to_remove, distMat,
+                          args.output + "/" + os.path.basename(args.output) + ".dists")
+
+        removeFromDB(args.ref_db, args.output, set(refList) - set(reference_names))
+
+        db_outfile = args.output + "/" + os.path.basename(args.output) + ".tmp.h5"
+        db_infile = args.output + "/" + os.path.basename(args.output) + ".h5"
+        if os.path.exists(db_infile):
+            sys.stderr.write("Sketch DB exists in " + args.output + "\n"
+                             "Not overwriting. Output DB is: " +
+                             db_outfile + "\n")
+        else:
+            os.rename(db_outfile, db_infile)
     else:
         sys.stderr.write("No sequences to remove\n")
 
