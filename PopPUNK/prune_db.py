@@ -14,12 +14,6 @@ from .__init__ import __version__
 
 from .sketchlib import removeFromDB
 
-from .mash import checkMashVersion
-from .mash import createDatabaseDir
-from .mash import constructDatabase
-from .mash import getKmersFromReferenceDatabase
-from .mash import getSketchSize
-
 from .utils import storePickle
 from .utils import readPickle
 from .utils import iterDistRows
@@ -130,14 +124,17 @@ def main():
     # Check input ok
     args = get_options()
 
-    if resketch and (args.ref_db is None or not os.path.isdir(args.ref_db)):
-        sys.stderr.write("Must provide original --ref-db if using --resketch\n")
-        sys.exit(1)
+    # Create the output directory
+    if not os.path.isdir(args.output):
+        try:
+            os.makedirs(args.output)
+        except OSError:
+            sys.stderr.write("Cannot create output directory\n")
+            sys.exit(1)
 
     # Read in old distances
-    refList, queryList, self, distMat = readPickle(args.distances)
-    if not self:
-        raise RuntimeError("Distance DB should be self-self distances")
+    refList, queryList, self, distMat = readPickle(args.distances,
+                                                   enforce_self=True)
 
     # Read in seqs to remove
     remove_seqs_in = []
@@ -146,12 +143,17 @@ def main():
             remove_seqs_in.append(line.rstrip())
 
     # reduce distance matrix
-    newRefList = prune_distance_matrix(refList, remove_seqs_in, distMat, args.output)[0]
+    newRefList = prune_distance_matrix(refList,
+                                       remove_seqs_in,
+                                       distMat,
+                                       args.output + "/" + os.path.basename(args.output))[0]
 
     if len(refList) != len(newRefList):
         if args.ref_db is not None:
             sys.stderr.write("Resketching sequences\n")
             removeFromDB(args.ref_db, args.output, remove_seqs_in)
+            os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
+                      args.output + "/" + os.path.basename(args.output) + ".h5")
     else:
         sys.stderr.write("No sequences to remove\n")
 

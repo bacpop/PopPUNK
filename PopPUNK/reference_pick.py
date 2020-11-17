@@ -7,7 +7,6 @@ import os
 import sys
 # additional
 from shutil import copyfile
-import graph_tool.all as gt
 
 # import poppunk package
 from .__init__ import __version__
@@ -56,6 +55,8 @@ def main():
     # Check input args ok
     args = get_options()
 
+    import graph_tool.all as gt
+
     # Check output path ok
     if not os.path.isdir(args.output):
         try:
@@ -66,9 +67,7 @@ def main():
     setGtThreads(args.threads)
 
     # Read in all distances
-    refList, queryList, self, distMat = readPickle(args.distances)
-    if not self:
-        raise RuntimeError("Distance DB should be self-self distances")
+    refList, queryList, self, distMat = readPickle(args.distances, enforce_self=True)
 
     # Read in full network
     genomeNetwork = gt.load_graph(args.network)

@@ -10,9 +10,9 @@ import sys
 import pickle
 import subprocess
 from collections import defaultdict
+from itertools import chain
 from tempfile import mkstemp
 from functools import partial
-import graph_tool.all as gt
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,7 @@ import h5py
 import pp_sketchlib
 
 def setGtThreads(threads):
+    import graph_tool.all as gt
     # Check on parallelisation of graph-tools
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(threads)
@@ -29,15 +30,13 @@ def setGtThreads(threads):
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, kmers, min_count, qc_dict):
+def setupDBFuncs(args, min_count, qc_dict):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
     Args:
         args (argparse.opts)
             Parsed command lines options
-        kmers (list)
-            List of k-mer sizes
         min_count (int)
             Minimum k-mer count for reads
         qc_dict (dict)
@@ -59,7 +58,6 @@ def setupDBFuncs(args, kmers, min_count, qc_dict):
     version = checkSketchlibVersion()
 
     constructDatabase = partial(constructDatabaseSketchlib,
-                                codon_phased = args.codon_phased,
                                 strand_preserved = args.strand_preserved,
                                 min_count = args.min_kmer_count,
                                 use_exact = args.exact_count,
@@ -105,7 +103,7 @@ def storePickle(rlist, qlist, self, X, pklName):
     np.save(pklName + ".npy", X)
 
 
-def readPickle(pklName):
+def readPickle(pklName, enforce_self = False):
     """Loads core and accessory distances saved by :func:`~storePickle`
 
     Called during ``--fit-model``
@@ -113,6 +111,10 @@ def readPickle(pklName):
     Args:
         pklName (str)
             Prefix for saved files
+        enforce_self (bool)
+            Error if self == False
+
+            [default = True]
 
     Returns:
         rlist (list)
@@ -126,6 +128,9 @@ def readPickle(pklName):
     """
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
+        if enforce_self and not self:
+            sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
+            sys.stderr.exit(1)
     X = np.load(pklName + ".npy")
     return rlist, qlist, self, X
 
@@ -193,24 +198,6 @@ def listDistInts(refSeqs, querySeqs, self=True):
 
     return comparisons
 
-def writeTmpFile(fileList):
-    """Writes a list to a temporary file. Used for turning variable into mash
-    input.
-
-    Args:
-        fileList (list)
-            List of files to write to file
-    Returns:
-        tmpName (str)
-            Name of temp file list written to
-    """
-    tmpName = mkstemp(suffix=".tmp", dir=".")[1]
-    with open(tmpName, 'w') as tmpFile:
-        for fileName in fileList:
-            tmpFile.write(fileName + '\t' + fileName + "\n")
-
-    return tmpName
-
 
 def qcDistMat(distMat, refList, queryList, a_max):
     """Checks distance matrix for outliers. At the moment
@@ -245,7 +232,7 @@ def qcDistMat(distMat, refList, queryList, a_max):
 
 
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
-    """Read isolate types from CSV file.
+    """Read cluster definitions from CSV file.
 
     Args:
         clustCSV (str)
@@ -297,6 +284,32 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
 
     # return data structure
     return clusters
+
+
+def joinClusterDicts(d1, d2):
+    """Join two dictionaries returned by :func:`~readIsolateTypeFromCsv` with
+    return_dict = True. Useful for concatenating ref and query assignments
+
+    Args:
+        d1 (dict of dicts)
+            First dictionary to concat
+        d2 (dict of dicts)
+            Second dictionary to concat
+
+    Returns:
+        d1 (dict of dicts)
+            d1 with d2 appended
+    """
+    if d1.keys() != d2.keys():
+        sys.stderr.write("Cluster columns not compatible\n")
+        sys.exit(1)
+
+    for column in d1.keys():
+        # Combine dicts: https://stackoverflow.com/a/15936211
+        d1[column] = \
+            dict(chain.from_iterable(d.items() for d in (d1[column], d2[column])))
+
+    return d1
 
 
 def update_distance_matrices(refList, distMat, queryList = None, query_ref_distMat = None,
@@ -412,148 +425,6 @@ def isolateNameToLabel(names):
     labels = [name.split('/')[-1].split('.')[0] for name in names]
     return labels
 
-
-def sketchlib_assembly_qc(prefix, klist, qc_dict, strand_preserved, threads):
-    """Calculates random match probability based on means of genomes
-    in assemblyList, and looks for length outliers.
-
-    Args:
-        prefix (str)
-            Prefix of output files
-        klist (list)
-            List of k-mer sizes to sketch
-        qc_dict (dict)
-            Dictionary of QC parameters
-        strand_preserved (bool)
-            Ignore reverse complement k-mers (default = False)
-        threads (int)
-            Number of threads to use in parallelisation
-
-    Returns:
-        retained (list)
-            List of sequences passing QC filters
-    """
-
-    # open databases
-    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-    # new database file if pruning
-    if qc_dict['qc_filter'] == 'prune':
-        filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
-        hdf_out = h5py.File(filtered_db_name, 'w')
-    # retain sketches of failed samples
-    if qc_dict['retain_failures']:
-        failed_db_name = prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5'
-        hdf_fail = h5py.File(failed_db_name, 'w')
-
-    # try/except structure to prevent h5 corruption
-    try:
-        # process data structures
-        read_grp = hdf_in['sketches']
-        if qc_dict['qc_filter'] == 'prune':
-            out_grp = hdf_out.create_group('sketches')
-        if qc_dict['retain_failures']:
-            fail_grp = hdf_fail.create_group('sketches')
-        seq_length = {}
-        seq_ambiguous = {}
-        retained = []
-
-        # iterate through sketches
-        for dataset in read_grp:
-            # test thresholds
-            remove = False
-            seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-            seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
-            # if no filtering to be undertaken, retain all sequences
-            if qc_dict['qc_filter'] == 'continue':
-                retained.append(dataset)
-
-        # calculate thresholds
-        # get mean length
-        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-        mean_genome_length = np.mean(genome_lengths)
-
-        # calculate length threshold unless user-supplied
-        if qc_dict['length_range'][0] is None:
-            lower_length = mean_genome_length - \
-                qc_dict['length_sigma'] * np.std(genome_lengths)
-            upper_length = mean_genome_length + \
-                qc_dict['length_sigma'] * np.std(genome_lengths)
-        else:
-            lower_length, upper_length = qc_dict['length_range']
-
-        # open file to report QC failures
-        with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
-            # iterate through and filter
-            failed_sample = False
-            for dataset in seq_length.keys():
-                # determine if sequence passes filters
-                remove = False
-                if seq_length[dataset] < lower_length:
-                    remove = True
-                    qc_file.write(dataset + '\tBelow lower length threshold\n')
-                elif seq_length[dataset] > upper_length:
-                    qc_file.write(dataset + '\tAbove upper length threshold\n')
-                if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
-                    remove = True
-                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-                elif seq_ambiguous[dataset] > qc_dict['prop_n'] * seq_length[dataset]:
-                    remove = True
-                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-
-                # write to files
-                if remove:
-                    sys.stderr.write(dataset + ' failed QC\n')
-                    failed_sample = True
-                    if qc_dict['retain_failures']:
-                        fail_grp.copy(read_grp[dataset], dataset)
-                else:
-                    retained.append(dataset)
-                    if qc_dict['qc_filter'] == 'prune':
-                        out_grp.copy(read_grp[dataset], dataset)
-
-            # close files
-            hdf_in.close()
-            if qc_dict['qc_filter'] == 'prune':
-                hdf_out.close()
-            if qc_dict['retain_failures']:
-                hdf_fail.close()
-
-        # replace original database with pruned version
-        if qc_dict['qc_filter'] == 'prune':
-            os.rename(filtered_db_name, db_name)
-
-    # if failure still close files to avoid corruption
-    except:
-        hdf_in.close()
-        if qc_dict['qc_filter'] == 'prune':
-           hdf_out.close()
-        if qc_dict['retain_failures']:
-           hdf_fail.close()
-        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-
-        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
-        raise
-
-    # stop if at least one sample fails QC and option is not continue/prune
-    if failed_sample and qc_dict['qc_filter'] == 'stop':
-        sys.stderr.write('Sequences failed QC filters - details in ' + \
-                         prefix + '/' + os.path.basename(prefix) + \
-                         '_qcreport.txt\n')
-        sys.exit(1)
-
-    # calculate random matches if any sequences pass QC filters
-    if len(retained) == 0:
-        sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
-        sys.exit(1)
-
-    # remove random matches if already present
-    hdf_in = h5py.File(db_name, 'r+')
-    if 'random' in hdf_in:
-        del hdf_in['random']
-    hdf_in.close()
-
-    return retained
 
 def createOverallLineage(rank_list, lineage_clusters):
     # process multirank lineages

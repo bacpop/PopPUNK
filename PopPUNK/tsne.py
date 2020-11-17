@@ -79,8 +79,16 @@ def main():
     elif args.verbosity > 0:
         verbosity = args.verbosity
 
+    if not os.path.isdir(args.output):
+        try:
+            os.makedirs(args.output)
+        except OSError:
+            sys.stderr.write("Cannot create output directory\n")
+            sys.exit(1)
+
     # load saved distance matrix
-    refList, queryList, self, distMat = readPickle(args.distances)
+    refList, queryList, self, distMat = readPickle(args.distances,
+                                                   enforce_self=True)
 
     # process list of file names
     seqLabels = [r.split('/')[-1].split('.')[0] for r in refList]

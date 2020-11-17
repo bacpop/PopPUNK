@@ -28,9 +28,8 @@ except ImportError as e:
     sys.stderr.write("Sketchlib backend not available")
     sys.exit(1)
 
-from .mash import fitKmerCurve
+from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 from .utils import iterDistRows
-from .utils import sketchlib_assembly_qc
 from .utils import readRfile
 from .plot import plot_fit
 
@@ -49,6 +48,16 @@ def checkSketchlibVersion():
         if line != '':
             version = line.rstrip().decode().split(" ")[1]
             break
+
+    sketchlib_version = [int(v) for v in version.split(".")]
+    if sketchlib_version[0] < SKETCHLIB_MAJOR or \
+        sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] < SKETCHLIB_MINOR or \
+        sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] == SKETCHLIB_MINOR and sketchlib_version[2] < SKETCHLIB_PATCH:
+        sys.stderr.write("This version of PopPUNK requires sketchlib "
+                            "v" + str(SKETCHLIB_MAJOR) + \
+                            "." + str(SKETCHLIB_MINOR) + \
+                            "." + str(SKETCHLIB_PATCH) + " or higher\n")
+        sys.exit(1)
 
     return version
 
@@ -111,9 +120,16 @@ def getSketchSize(dbPrefix):
     Returns:
         sketchSize (int)
             sketch size (64x C++ definition)
+        codonPhased (bool)
+            whether the DB used codon phased seeds
     """
     db_file = dbPrefix + "/" + os.path.basename(dbPrefix) + ".h5"
     ref_db = h5py.File(db_file, 'r')
+    try:
+        codon_phased = ref_db['sketches'].attrs['codon_phased']
+    except KeyError:
+        codon_phased = False
+
     prev_sketch = 0
     for sample_name in list(ref_db['sketches'].keys()):
         sketch_size = ref_db['sketches/' + sample_name].attrs['sketchsize64']
@@ -125,7 +141,7 @@ def getSketchSize(dbPrefix):
                              ", but smaller kmers have sketch sizes of " + str(sketch_size) + "\n")
             sys.exit(1)
 
-    return int(sketch_size)
+    return int(sketch_size), codon_phased
 
 def getKmersFromReferenceDatabase(dbPrefix):
     """Get kmers lengths from existing database
@@ -153,7 +169,7 @@ def getKmersFromReferenceDatabase(dbPrefix):
     kmers = np.asarray(prev_kmer_sizes)
     return kmers
 
-def readDBParams(dbPrefix, kmers, sketch_sizes):
+def readDBParams(dbPrefix):
     """Get kmers lengths and sketch sizes from existing database
 
     Calls :func:`~getKmersFromReferenceDatabase` and :func:`~getSketchSize`
@@ -162,27 +178,23 @@ def readDBParams(dbPrefix, kmers, sketch_sizes):
     Args:
         dbPrefix (str)
             Prefix for sketch DB files
-        kmers (list)
-            Kmers to use if db not found
-        sketch_sizes (list)
-            Sketch size to use if db not found
 
     Returns:
         kmers (list)
             List of k-mer lengths used in database
         sketch_sizes (list)
             List of sketch sizes used in database
+        codonPhased (bool)
+            whether the DB used codon phased seeds
     """
-
     db_kmers = getKmersFromReferenceDatabase(dbPrefix)
     if len(db_kmers) == 0:
-        sys.stderr.write("Couldn't find mash sketches in " + dbPrefix + "\n"
-                         "Using command line input parameters for k-mer and sketch sizes\n")
+        sys.stderr.write("Couldn't find sketches in " + dbPrefix + "\n")
+        sys.exit(1)
     else:
-        kmers = db_kmers
-        sketch_sizes = getSketchSize(dbPrefix)
+        sketch_sizes, codon_phased = getSketchSize(dbPrefix)
 
-    return kmers, sketch_sizes
+    return db_kmers, sketch_sizes, codon_phased
 
 
 def getSeqsInDb(dbname):
@@ -225,10 +237,12 @@ def joinDBs(db1, db2, output):
     # Can only copy into new group, so for second file these are appended one at a time
     try:
         hdf1.copy('sketches', hdf_join)
+        hdf1.copy('random', hdf_join)
         join_grp = hdf_join['sketches']
         read_grp = hdf2['sketches']
         for dataset in read_grp:
             join_grp.copy(read_grp[dataset], dataset)
+
     except RuntimeError as e:
         sys.stderr.write("ERROR: " + str(e) + "\n")
         sys.stderr.write("Joining sketches failed, try running without --update-db\n")
@@ -241,8 +255,8 @@ def joinDBs(db1, db2, output):
     os.rename(join_name + ".tmp", join_name)
 
 
-def removeFromDB(db_name, out_name, removeSeqs):
-    """Join two sketch databases with the low-level HDF5 copy interface
+def removeFromDB(db_name, out_name, removeSeqs, full_names = False):
+    """Remove sketches from the DB the low-level HDF5 copy interface
 
     Args:
         db_name (str)
@@ -251,17 +265,27 @@ def removeFromDB(db_name, out_name, removeSeqs):
             Prefix for output (pruned) database
         removeSeqs (list)
             Names of sequences to remove from database
+        full_names (bool)
+            If True, db_name and out_name are the full paths to h5 files
     """
     removeSeqs = set(removeSeqs)
-    db_file = db_name + "/" + os.path.basename(db_name) + ".h5"
-    out_file = out_name + "/" + os.path.basename(out_name) + ".tmp.h5"
+    if not full_names:
+        db_file = db_name + "/" + os.path.basename(db_name) + ".h5"
+        out_file = out_name + "/" + os.path.basename(out_name) + ".tmp.h5"
+    else:
+        db_file = db_name
+        out_file = out_name
 
     hdf_in = h5py.File(db_file, 'r')
     hdf_out = h5py.File(out_file, 'w')
 
     try:
+        if 'random' in hdf_in.keys():
+            hdf_in.copy('random', hdf_out)
         out_grp = hdf_out.create_group('sketches')
         read_grp = hdf_in['sketches']
+        for attr_name, attr_val in read_grp.attrs.items():
+            out_grp.attrs.create(attr_name, attr_val)
 
         removed = []
         for dataset in read_grp:
@@ -361,25 +385,65 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
 
     # QC sequences
     if qc_dict['run_qc']:
-        filtered_names = sketchlib_assembly_qc(oPrefix,
-                                               klist,
-                                               qc_dict,
-                                               strand_preserved,
-                                               threads)
+        filtered_names = sketchlibAssemblyQC(oPrefix,
+                                             klist,
+                                             qc_dict,
+                                             strand_preserved,
+                                             threads)
     else:
         filtered_names = names
 
     # Add random matches if required
     # (typically on for reference, off for query)
     if (calc_random):
-        pp_sketchlib.addRandom(dbname,
-                               filtered_names,
-                               klist,
-                               not strand_preserved,
-                               threads)
+        addRandom(oPrefix,
+                  filtered_names,
+                  klist,
+                  strand_preserved,
+                  overwrite = True,
+                  threads = threads)
 
     # return filtered file names
     return filtered_names
+
+
+def addRandom(oPrefix, sequence_names, klist,
+              strand_preserved = False, overwrite = False, threads = 1):
+    """Add chance of random match to a HDF5 sketch DB
+
+    Args:
+        oPrefix (str)
+            Sketch database prefix
+        sequence_names (list)
+            Names of sequences to include in calculation
+        klist (list)
+            List of k-mer sizes to sketch
+        strand_preserved (bool)
+            Set true to ignore rc k-mers
+        overwrite (str)
+            Set true to overwrite existing random match chances
+        threads (int)
+            Number of threads to use (default = 1)
+    """
+    if len(sequence_names) <= 2:
+        sys.stderr.write("Cannot add random match chances with this few genomes\n")
+    else:
+        dbname = oPrefix + "/" + os.path.basename(oPrefix)
+        hdf_in = h5py.File(dbname + ".h5", 'r+')
+
+        if 'random' in hdf_in:
+            if overwrite:
+                del hdf_in['random']
+            else:
+                sys.stderr.write("Using existing random match chances in DB\n")
+                return
+
+        hdf_in.close()
+        pp_sketchlib.addRandom(dbname,
+                            sequence_names,
+                            klist,
+                            not strand_preserved,
+                            threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
@@ -467,3 +531,205 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                              True, False, threads, use_gpu, deviceid)
 
     return(rNames, qNames, distMat)
+
+def calculateQueryQueryDistances(dbFuncs, qlist, kmers,
+                                 queryDB, threads = 1):
+    """Calculates distances between queries.
+
+    Args:
+        dbFuncs (list)
+            List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
+        rlist (list)
+            List of reference names
+        qlist (list)
+            List of query names
+        kmers (list)
+            List of k-mer sizes
+        queryDB (str)
+            Query database location
+        threads (int)
+            Number of threads to use if new db created
+            (default = 1)
+
+    Returns:
+        qlist1 (list)
+            Ordered list of queries
+        distMat (numpy.array)
+            Query-query distances
+    """
+
+    queryDatabase = dbFuncs['queryDatabase']
+
+    qlist1, qlist2, distMat = queryDatabase(rNames = qlist,
+                                            qNames = qlist,
+                                            dbPrefix = queryDB,
+                                            queryPrefix = queryDB,
+                                            klist = kmers,
+                                            self = True,
+                                            number_plot_fits = 0,
+                                            threads = threads)
+
+    return qlist1, distMat
+
+def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
+    """Calculates random match probability based on means of genomes
+    in assemblyList, and looks for length outliers.
+
+    Args:
+        prefix (str)
+            Prefix of output files
+        klist (list)
+            List of k-mer sizes to sketch
+        qc_dict (dict)
+            Dictionary of QC parameters
+        strand_preserved (bool)
+            Ignore reverse complement k-mers (default = False)
+        threads (int)
+            Number of threads to use in parallelisation
+
+    Returns:
+        retained (list)
+            List of sequences passing QC filters
+    """
+
+    # open databases
+    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+    hdf_in = h5py.File(db_name, 'r+')
+
+    # try/except structure to prevent h5 corruption
+    try:
+        # process data structures
+        read_grp = hdf_in['sketches']
+
+        seq_length = {}
+        seq_ambiguous = {}
+        retained = []
+        failed = []
+
+        # iterate through sketches
+        for dataset in read_grp:
+            # test thresholds
+            remove = False
+            seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
+            seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+            # if no filtering to be undertaken, retain all sequences
+            if qc_dict['qc_filter'] == 'continue':
+                retained.append(dataset)
+
+        # calculate thresholds
+        # get mean length
+        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
+        mean_genome_length = np.mean(genome_lengths)
+
+        # calculate length threshold unless user-supplied
+        if qc_dict['length_range'][0] is None:
+            lower_length = mean_genome_length - \
+                qc_dict['length_sigma'] * np.std(genome_lengths)
+            upper_length = mean_genome_length + \
+                qc_dict['length_sigma'] * np.std(genome_lengths)
+        else:
+            lower_length, upper_length = qc_dict['length_range']
+
+        # open file to report QC failures
+        with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
+            # iterate through and filter
+            failed_sample = False
+            for dataset in seq_length.keys():
+                # determine if sequence passes filters
+                remove = False
+                if seq_length[dataset] < lower_length:
+                    remove = True
+                    qc_file.write(dataset + '\tBelow lower length threshold\n')
+                elif seq_length[dataset] > upper_length:
+                    qc_file.write(dataset + '\tAbove upper length threshold\n')
+                if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
+                    remove = True
+                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
+                elif seq_ambiguous[dataset] > qc_dict['prop_n'] * seq_length[dataset]:
+                    remove = True
+                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
+
+                if remove:
+                    sys.stderr.write(dataset + ' failed QC\n')
+                    failed.append(dataset)
+                else:
+                    retained.append(dataset)
+
+            # retain sketches of failed samples
+            if qc_dict['retain_failures']:
+                removeFromDB(db_name,
+                             prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5',
+                             retained,
+                             full_names = True)
+            # new database file if pruning
+            if qc_dict['qc_filter'] == 'prune':
+                filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
+                removeFromDB(db_name,
+                             prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5',
+                             failed,
+                             full_names = True)
+                os.rename(filtered_db_name, db_name)
+
+    # if failure still close files to avoid corruption
+    except:
+        hdf_in.close()
+        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
+
+        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
+        raise
+
+    # stop if at least one sample fails QC and option is not continue/prune
+    if failed_sample and qc_dict['qc_filter'] == 'stop':
+        sys.stderr.write('Sequences failed QC filters - details in ' + \
+                         prefix + '/' + os.path.basename(prefix) + \
+                         '_qcreport.txt\n')
+        sys.exit(1)
+
+    # calculate random matches if any sequences pass QC filters
+    if len(retained) == 0:
+        sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
+        sys.exit(1)
+
+    # remove random matches if already present
+    if 'random' in hdf_in:
+        del hdf_in['random']
+    hdf_in.close()
+
+    return retained
+
+def fitKmerCurve(pairwise, klist, jacobian):
+    """Fit the function :math:`pr = (1-a)(1-c)^k`
+
+    Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``
+
+    Args:
+        pairwise (numpy.array)
+            Proportion of shared k-mers at k-mer values in klist
+        klist (list)
+            k-mer sizes used
+        jacobian (numpy.array)
+            Should be set as above (set once to try and save memory)
+
+    Returns:
+        transformed_params (numpy.array)
+            Column with core and accessory distance
+    """
+    # curve fit pr = (1-a)(1-c)^k
+    # log pr = log(1-a) + k*log(1-c)
+    # a = p[0]; c = p[1] (will flip on return)
+    try:
+        distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
+                                     x0=[0.0, -0.01],
+                                     jac=lambda p, x, y: jacobian,
+                                     args=(klist, np.log(pairwise)),
+                                     bounds=([-np.inf, -np.inf], [0, 0]))
+        transformed_params = 1 - np.exp(distFit.x)
+    except ValueError as e:
+        sys.stderr.write("Fitting k-mer curve failed: " + format(e) +
+                         "\nWith mash input " +
+                         np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
+                         "\nCheck for low quality input genomes\n")
+        exit(0)
+
+    # Return core, accessory
+    return(np.flipud(transformed_params))
