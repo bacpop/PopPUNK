@@ -206,15 +206,16 @@ def main():
         with open(args.subset, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
-        if len(viz_subset.difference(rlist + qlist)) > 0:
+        if len(viz_subset.difference(combined_seq)) > 0:
             sys.stderr.write("--subset contains names not in --distances")
 
         # Only keep found rows
         row_slice = [True if name in viz_subset else False for name in combined_seq]
         combined_seq = [name for name in combined_seq if name in viz_subset]
-        qlist = list(viz_subset.intersection(qlist))
-        core_distMat = core_distMat[row_slice, row_slice]
-        acc_distMat = acc_distMat[row_slice, row_slice]
+        if qlist != None:
+            qlist = list(viz_subset.intersection(qlist))
+        core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
+        acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
 
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}

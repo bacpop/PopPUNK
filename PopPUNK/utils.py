@@ -232,7 +232,7 @@ def qcDistMat(distMat, refList, queryList, a_max):
 
 
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
-    """Read isolate types from CSV file.
+    """Read cluster definitions from CSV file.
 
     Args:
         clustCSV (str)
@@ -287,6 +287,19 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
 
 
 def joinClusterDicts(d1, d2):
+    """Join two dictionaries returned by :func:`~readIsolateTypeFromCsv` with
+    return_dict = True. Useful for concatenating ref and query assignments
+
+    Args:
+        d1 (dict of dicts)
+            First dictionary to concat
+        d2 (dict of dicts)
+            Second dictionary to concat
+
+    Returns:
+        d1 (dict of dicts)
+            d1 with d2 appended
+    """
     if d1.keys() != d2.keys():
         sys.stderr.write("Cluster columns not compatible\n")
         sys.exit(1)
