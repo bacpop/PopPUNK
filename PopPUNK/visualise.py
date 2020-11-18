@@ -50,9 +50,6 @@ def get_options():
 
     # input options
     iGroup = parser.add_argument_group('Input files')
-    iGroup.add_argument('--subset',
-                         help='File with list of sequences to include in visualisation',
-                         default=None)
     iGroup.add_argument('--ref-db',
                         type = str,
                         help='Location of built reference database',
@@ -62,8 +59,10 @@ def get_options():
                         help='Location of query database, if distances '
                              'are from ref-query')
     iGroup.add_argument('--distances',
-                        help='Prefix of input pickle of pre-calculated distances',
-                        required=True)
+                        help='Prefix of input pickle of pre-calculated distances')
+    iGroup.add_argument('--subset',
+                         help='File with list of sequences to include in visualisation',
+                         default=None)
     iGroup.add_argument('--external-clustering',
                         help='File with cluster definitions or other labels '
                              'generated with any other method.',
@@ -150,7 +149,15 @@ def main():
             sys.exit(1)
 
     # Load original distances
-    rlist, qlist, self, complete_distMat = readPickle(args.distances)
+    if args.distances is None:
+        if args.query_db is None:
+            distances = os.path.basename(args.ref_db) + "/" + args.ref_db + ".dists"
+        else:
+            distances = os.path.basename(args.query_db) + "/" + args.query_db + ".dists"
+    else:
+        distances = args.distances
+
+    rlist, qlist, self, complete_distMat = readPickle(distances)
     if not self:
         qr_distMat = complete_distMat
     else:
@@ -158,7 +165,7 @@ def main():
 
     # Fill in qq-distances if required
     if self == False:
-        sys.stderr.write("Note: Distances in " + args.distances + " are from assign mode\n"
+        sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
                          "Note: Distance will be extended to full all-vs-all distances\n"
                          "Note: Re-run poppunk_assign with --update-db to avoid this\n")
 

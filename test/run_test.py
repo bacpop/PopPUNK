@@ -51,10 +51,10 @@ subprocess.run("python ../poppunk_assign-runner.py --query some_queries.txt --db
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_db/example_db.dists --ref-db example_db --output example_viz --microreact", shell=True, check=True)
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_db/example_db.dists --ref-db example_db --output example_viz_subset --microreact --subset subset.txt", shell=True, check=True)
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_query/example_query.dists --ref-db example_db --query-db example_query --output example_viz_query --microreact", shell=True, check=True)
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_db/example_db.dists --ref-db example_db --previous-clustering example_lineages --model-dir example_lineages --output example_lineage_viz --microreact", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --microreact", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_viz_subset --microreact --subset subset.txt", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --query-db example_query --output example_viz_query --microreact", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --previous-clustering example_lineages --model-dir example_lineages --output example_lineage_viz --microreact", shell=True, check=True)
 subprocess.run("python ../poppunk_visualise-runner.py --distances example_query/example_query.dists --ref-db example_db --model-dir example_lineages --query-db example_lineage_query --output example_viz_query_lineages --microreact", shell=True, check=True)
 
 # t-sne
