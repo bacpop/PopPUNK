@@ -28,7 +28,6 @@ def sketchAssign():
     """Recieve sketch and respond with clustering information"""
     if not request.json:
         return "not a json post"
-
     if request.json:
         sketch = request.json
         args = default_options()
@@ -55,8 +54,6 @@ def sketchAssign():
                                     args.external_clustering,
                                     args.core_only,
                                     args.accessory_only,
-                                    args.assign_lineage,
-                                    args.rank,
                                     args.web,
                                     sketch)
 

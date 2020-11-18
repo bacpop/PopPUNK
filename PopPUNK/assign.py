@@ -38,8 +38,6 @@ def assign_query(dbFuncs,
                  external_clustering,
                  core_only,
                  accessory_only,
-                 assign_lineage,
-                 rank,
                  web = False,
                  sketch = None):
     """Code for assign query mode. Written as a separate function so it can be called
@@ -134,7 +132,6 @@ def assign_query(dbFuncs,
                                     calc_random = False)
     else:
         qNames = sketch_to_hdf5(sketch, output)
-        
     # run query
     refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
                                                   qNames = qNames,
@@ -144,7 +141,6 @@ def assign_query(dbFuncs,
                                                   self = False,
                                                   number_plot_fits = plot_fit,
                                                   threads = threads)
-
     # QC distance matrix
     qcPass = qcDistMat(qrDistMat, refList, queryList, max_a_dist)
 
@@ -350,7 +346,7 @@ def get_options():
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
-
+    
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
 

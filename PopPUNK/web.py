@@ -17,7 +17,7 @@ def default_options():
         update_db = False
         write_references = False
         distances = os.path.join(ref_db, ref_db + ".dists")
-        threads = 6
+        threads = 1
         overwrite = True
         plot_fit = 0
         max_a_dist = 0.5
@@ -87,7 +87,7 @@ def sketch_to_hdf5(sketch, output):
             dists.append(np.array(value))
         except:
             if key == "bases":
-                sketch_props.attrs['bases'] = value
+                sketch_props.attrs['base_freq'] = value
             elif key == "bbits":
                 sketch_props.attrs['bbits'] = value
             elif key == "length":
@@ -97,13 +97,14 @@ def sketch_to_hdf5(sketch, output):
             elif key == "sketchsize64":
                 sketch_props.attrs['sketchsize64'] = value
             elif key == "version":
-                sketch_props.attrs['version'] = value
+                sketches.attrs['sketch_version'] = value
             else:
                 raise AttributeError(key + " Not recognised")
     
+    sketches.attrs['codon_phased'] = 0
     sketch_props.attrs['kmers'] = kmers
     for k_index in range(len(kmers)):
-        k_spec = sketch_props.create_dataset(str(kmers[k_index]), data=dists[k_index], dtype='u8')
+        k_spec = sketch_props.create_dataset(str(kmers[k_index]), data=dists[k_index], dtype='uint64')
         k_spec.attrs['kmer-size'] = kmers[k_index]
     queryDB.close()
     return qNames
