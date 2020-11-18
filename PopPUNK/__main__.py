@@ -447,7 +447,7 @@ def main():
         fit_type = model.type
         isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                      refList,
-                                                     utput + "/" + os.path.basename(output),
+                                                     output + "/" + os.path.basename(output),
                                                      externalClusterCSV = args.external_clustering)}
 
         # Write core and accessory based clusters, if they worked
