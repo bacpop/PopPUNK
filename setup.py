@@ -73,6 +73,7 @@ setup(
                       'DendroPy',
                       'pandas',
                       'matplotlib',
-                      'hdbscan'],
+                      'hdbscan',
+                      'requests'],
     test_suite="test",
 )
