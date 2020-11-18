@@ -209,9 +209,9 @@ def main():
                                      threads = args.threads)
 
     # extract subset of distances if requested
-    if args.subset is not None:
+    if args.include_files is not None:
         viz_subset = set()
-        with open(args.subset, 'r') as assemblyFiles:
+        with open(args.include_files, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
         if len(viz_subset.difference(combined_seq)) > 0:
