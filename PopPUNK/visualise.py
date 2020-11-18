@@ -60,8 +60,9 @@ def get_options():
                              'are from ref-query')
     iGroup.add_argument('--distances',
                         help='Prefix of input pickle of pre-calculated distances')
-    iGroup.add_argument('--subset',
-                         help='File with list of sequences to include in visualisation',
+    iGroup.add_argument('--include-files',
+                         help='File with list of sequences to include in visualisation. '
+                              'Default is to use all sequences in database.',
                          default=None)
     iGroup.add_argument('--external-clustering',
                         help='File with cluster definitions or other labels '
