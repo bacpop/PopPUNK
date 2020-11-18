@@ -53,7 +53,7 @@ def get_options():
 
     # output options
     oGroup = parser.add_argument_group('Output options')
-    oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
+    oGroup.add_argument('--output', help='Prefix for output files')
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
@@ -255,37 +255,37 @@ def main():
     #******************************#
     if args.create_db:
         sys.stderr.write("Mode: Building new database from input sequences\n")
-        if args.r_files is not None:
-            # generate sketches and QC sequences
-            createDatabaseDir(args.output, kmers)
-            seq_names = constructDatabase(
-                            args.r_files,
-                            kmers,
-                            sketch_sizes,
-                            args.output,
-                            args.threads,
-                            args.overwrite,
-                            codon_phased = args.codon_phased,
-                            calc_random = True)
-
-            rNames = seq_names
-            qNames = seq_names
-            refList, queryList, distMat = queryDatabase(rNames = rNames,
-                                                        qNames = qNames,
-                                                        dbPrefix = args.output,
-                                                        queryPrefix = args.output,
-                                                        klist = kmers,
-                                                        self = True,
-                                                        number_plot_fits = args.plot_fit,
-                                                        threads = args.threads)
-            qcDistMat(distMat, refList, queryList, args.max_a_dist)
-
-            # Save results
-            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-            storePickle(refList, queryList, True, distMat, dists_out)
-        else:
-            sys.stderr.write("Need to provide a list of reference files with --r-files\n")
+        if args.r_files is None or args.output is None:
+            sys.stderr.write("--create-db requires --r-files and --output")
             sys.exit(1)
+
+        # generate sketches and QC sequences
+        createDatabaseDir(args.output, kmers)
+        seq_names = constructDatabase(
+                        args.r_files,
+                        kmers,
+                        sketch_sizes,
+                        args.output,
+                        args.threads,
+                        args.overwrite,
+                        codon_phased = args.codon_phased,
+                        calc_random = True)
+
+        rNames = seq_names
+        qNames = seq_names
+        refList, queryList, distMat = queryDatabase(rNames = rNames,
+                                                    qNames = qNames,
+                                                    dbPrefix = args.output,
+                                                    queryPrefix = args.output,
+                                                    klist = kmers,
+                                                    self = True,
+                                                    number_plot_fits = args.plot_fit,
+                                                    threads = args.threads)
+        qcDistMat(distMat, refList, queryList, args.max_a_dist)
+
+        # Save results
+        dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
+        storePickle(refList, queryList, True, distMat, dists_out)
 
     #******************************#
     #*                            *#
@@ -301,12 +301,18 @@ def main():
         elif args.use_model:
             sys.stderr.write("Mode: Using previous model with a reference database\n\n")
 
-        if args.distances is not None and args.ref_db is not None:
-            distances = args.distances
+        # Check and set required parameters
+        if args.ref_db is None:
+            sys.stderr.write("Need to provide --ref-db where .h5 and .dists from "
+                             "--create-db mode were output")
+        if args.distances is None:
+            distances = os.path.basename(args.ref_db) + "/" + args.ref_db + ".dists"
         else:
-            sys.stderr.write("Need to provide an input set of distances with --distances "
-                             "and reference database directory with --ref-db\n\n")
-            sys.exit(1)
+            distances = args.distances
+        if args.output is None:
+            output = args.ref_db
+        else:
+            output = args.output
 
         # Set up variables for using previous models
         if args.fit_model == "refine" or args.use_model:
@@ -315,8 +321,8 @@ def main():
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
-                                   args.output)
-            print(model.type)
+                                   output)
+            sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
             if args.fit_model == "refine" and (model.type != 'bgmm' and model.type != 'dbscan'):
                 sys.stderr.write("Model needs to be from BGMM or DBSCAN to refine\n")
                 sys.exit(1)
@@ -337,16 +343,16 @@ def main():
         if args.fit_model:
             # Run DBSCAN model
             if args.fit_model == "dbscan":
-                model = DBSCANFit(args.output)
+                model = DBSCANFit(output)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
                 model.plot()
             # Run Gaussian model
             elif args.fit_model == "bgmm":
-                model = BGMMFit(args.output)
+                model = BGMMFit(output)
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)
             elif args.fit_model == "refine":
-                new_model = RefineFit(args.output)
+                new_model = RefineFit(output)
                 assignments = new_model.fit(distMat, refList, model,
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
@@ -356,7 +362,7 @@ def main():
                 new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "threshold":
-                new_model = RefineFit(args.output)
+                new_model = RefineFit(output)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
                 new_model.plot(distMat)
@@ -364,7 +370,7 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
-                model = LineageFit(args.output, rank_list)
+                model = LineageFit(output, rank_list)
                 model.fit(distMat, args.use_accessory, args.threads)
                 model.plot(distMat)
 
@@ -421,8 +427,8 @@ def main():
 
             # print output of each rank as CSV
             overall_lineage = createOverallLineage(rank_list, lineage_clusters)
-            writeClusterCsv(args.output + "/" + \
-                os.path.basename(args.output) + '_lineages.csv',
+            writeClusterCsv(output + "/" + \
+                os.path.basename(output) + '_lineages.csv',
                 refList,
                 refList,
                 overall_lineage,
@@ -441,7 +447,7 @@ def main():
         fit_type = model.type
         isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                      refList,
-                                                     args.output + "/" + os.path.basename(args.output),
+                                                     output + "/" + os.path.basename(output),
                                                      externalClusterCSV = args.external_clustering)}
 
         # Write core and accessory based clusters, if they worked
@@ -457,10 +463,10 @@ def main():
                 isolateClustering[dist_type] = \
                     printClusters(indivNetworks[dist_type],
                                   refList,
-                                  args.output + "/" + os.path.basename(args.output) + "_" + dist_type,
+                                  output + "/" + os.path.basename(output) + "_" + dist_type,
                                   externalClusterCSV = args.external_clustering)
                 indivNetworks[dist_type].save(
-                    args.output + "/" + os.path.basename(args.output) + \
+                    output + "/" + os.path.basename(output) + \
                     "_" + dist_type + '_graph.gt', fmt = 'gt')
 
             if args.core_only:
@@ -470,8 +476,8 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        genomeNetwork.save(args.output + "/" + \
-                           os.path.basename(args.output) + '_graph.gt',
+        genomeNetwork.save(output + "/" + \
+                           os.path.basename(output) + '_graph.gt',
                            fmt = 'gt')
 
         #******************************#
@@ -483,21 +489,21 @@ def main():
         # (this no longer loses information and should generally be kept on)
         if model.type != "lineage":
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
+                extractReferences(genomeNetwork, refList, output, threads = args.threads)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
 
             if (len(names_to_remove) > 0):
                 # Save reference distances
                 prune_distance_matrix(refList, names_to_remove, distMat,
-                                        args.output + "/" + os.path.basename(args.output) + ".refs.dists")
+                                      output + "/" + os.path.basename(output) + ".refs.dists")
                 # Save reference network
-                genomeNetwork.save(args.output + "/" + \
-                                    os.path.basename(args.output) + '.refs_graph.gt',
-                                    fmt = 'gt')
-                removeFromDB(args.ref_db, args.output, names_to_remove)
-                os.rename(args.output + "/" + os.path.basename(args.output) + ".tmp.h5",
-                        args.output + "/" + os.path.basename(args.output) + ".refs.h5")
+                genomeNetwork.save(output + "/" + \
+                                   os.path.basename(output) + '.refs_graph.gt',
+                                   fmt = 'gt')
+                removeFromDB(args.ref_db, output, names_to_remove)
+                os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
+                          output + "/" + os.path.basename(output) + ".refs.h5")
 
     sys.stderr.write("\nDone\n")
 
