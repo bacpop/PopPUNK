@@ -263,7 +263,7 @@ def writeReferences(refList, outPrefix):
     return refFileName
 
 def constructNetwork(rlist, qlist, assignments, within_label,
-                     summarise = True, edge_list = False):
+                     summarise = True, edge_list = False, weights = None):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -283,6 +283,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             Whether to calculate and print network summaries with :func:`~networkSummary`
 
             (default = True)
+        edge_list (bool)
+            Whether input is edges, tuples of (v1, v2). Used with lineage assignment
+        weights (numpy.array)
+            If passed, the core,accessory distances for each assignment, which will
+            be annotated as an edge attribute
 
     Returns:
         G (graph)
@@ -300,18 +305,34 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # identify edges
     if edge_list:
-        connections = assignments
+        if weights is not None:
+            connections = []
+            for weight, (ref, query) in zip(weights, assignments):
+                connections.append((ref, query, weight))
+        else:
+            connections = assignments
     else:
-        for assignment, (ref, query) in zip(assignments,
-                                            listDistInts(rlist, qlist,
-                                                         self = self_comparison)):
+        for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
+                                                                 listDistInts(rlist, qlist,
+                                                                              self = self_comparison))):
             if assignment == within_label:
-                connections.append((ref, query))
+                if weights is not None:
+                    dist = np.linalg.norm(weights[row_idx, :])
+                    edge_tuple = (ref, query, dist)
+                else:
+                    edge_tuple = (ref, query)
+                connections.append(edge_tuple)
 
     # build the graph
     G = gt.Graph(directed = False)
     G.add_vertex(len(vertex_labels))
-    G.add_edge_list(connections)
+
+    if weights is not None:
+        eweight = G.new_ep("float")
+        G.add_edge_list(connections, eprops = [eweight])
+        G.edge_properties["weight"] = eweight
+    else:
+        G.add_edge_list(connections)
 
     # add isolate ID to network
     vid = G.new_vertex_property('string',
@@ -356,7 +377,7 @@ def networkSummary(G):
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,
-                      strand_preserved = False, threads = 1):
+                      strand_preserved = False, weights = None, threads = 1):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -384,6 +405,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             Whether to treat strand as known (i.e. ignore rc k-mers)
             when adding random distances. Only used if queryQuery = True
             [default = False]
+        weights (numpy.array)
+            If passed, the core,accessory distances for each assignment, which will
+            be annotated as an edge attribute
         threads (int)
             Number of threads to use if new db created
 
@@ -404,10 +428,15 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
     # store links for each query in a list of edge tuples
     ref_count = len(rList)
-    for assignment, (ref, query) in zip(assignments, listDistInts(rList, qList, self = False)):
+    for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments, listDistInts(rList, qList, self = False))):
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
-            new_edges.append((ref, query + ref_count))
+            if weights is not None:
+                dist = np.linalg.norm(weights[row_idx, :])
+                edge_tuple = (ref, query + ref_count, dist)
+            else:
+                edge_tuple = (ref, query + ref_count)
+            new_edges.append(edge_tuple)
             assigned.add(qList[query])
 
     # Calculate all query-query distances too, if updating database
@@ -424,9 +453,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                   threads = threads)
 
         queryAssignation = model.assign(qqDistMat)
-        for assignment, (ref, query) in zip(queryAssignation, listDistInts(qList, qList, self = True)):
+        for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
             if assignment == model.within_label:
-                new_edges.append((ref + ref_count, query + ref_count))
+                if weights is not None:
+                    dist = np.linalg.norm(qqDistMat[row_idx, :])
+                    edge_tuple = (ref + ref_count, query + ref_count, dist)
+                else:
+                    edge_tuple = (ref + ref_count, query + ref_count)
+                new_edges.append(edge_tuple)
 
     # Otherwise only calculate query-query distances for new clusters
     else:
@@ -453,13 +487,24 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             # have to use names and link to query list in order to match to node indices
-            for assignment, (query1, query2) in zip(queryAssignation, iterDistRows(qlist1, qlist2, self = True)):
+            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qlist1, qlist2, self = True))):
                 if assignment == model.within_label:
-                    new_edges.append((query_indices[query1], query_indices[query2]))
+                    if weights is not None:
+                        dist = np.linalg.norm(qqDistMat[row_idx, :])
+                        edge_tuple = (query_indices[query1], query_indices[query2], dist)
+                    else:
+                        edge_tuple = (query_indices[query1], query_indices[query2])
+                    new_edges.append(edge_tuple)
 
     # finish by updating the network
     G.add_vertex(len(qList))
-    G.add_edge_list(new_edges)
+
+    if weights is not None:
+        eweight = G.new_ep("float")
+        G.add_edge_list(new_edges, eprops = [eweight])
+        G.edge_properties["weight"] = eweight
+    else:
+        G.add_edge_list(new_edges)
 
     # including the vertex ID property map
     for i, q in enumerate(qList):

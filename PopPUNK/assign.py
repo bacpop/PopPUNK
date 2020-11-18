@@ -31,6 +31,7 @@ def assign_query(dbFuncs,
                  threads,
                  overwrite,
                  plot_fit,
+                 graph_weights,
                  max_a_dist,
                  model_dir,
                  strand_preserved,
@@ -171,11 +172,16 @@ def assign_query(dbFuncs,
         for rank in model.ranks:
             assignment = model.assign(rank)
             # Overwrite the network loaded above
+            if graph_weights:
+                weights = model.edge_weights(rank)
+            else:
+                weights = None
             genomeNetwork[rank] = constructNetwork(rNames + qNames,
                                                    rNames + qNames,
                                                    assignment,
                                                    0,
-                                                   edge_list = True)
+                                                   edge_list = True,
+                                                   weights=weights)
 
             isolateClustering[rank] = \
                 printClusters(genomeNetwork[rank],
@@ -198,11 +204,16 @@ def assign_query(dbFuncs,
         queryAssignments = model.assign(qrDistMat)
 
         # Assign clustering by adding to network
+        if graph_weights:
+            weights = qrDistMat
+        else:
+            weights = None
         qqDistMat = \
             addQueryToNetwork(dbFuncs, refList, queryList,
                                 genomeNetwork, kmers,
                                 queryAssignments, model, output, update_db,
-                                strand_preserved, threads)
+                                strand_preserved,
+                                weights = weights, threads = threads)
 
         isolateClustering = \
             {'combined': printClusters(genomeNetwork, refList + queryList,
@@ -310,6 +321,7 @@ def get_options():
                                               default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
+    oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
@@ -406,6 +418,7 @@ def main():
                  args.threads,
                  args.overwrite,
                  args.plot_fit,
+                 args.graph_weights,
                  args.max_a_dist,
                  args.model_dir,
                  args.strand_preserved,
