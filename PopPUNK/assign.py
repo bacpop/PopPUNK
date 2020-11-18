@@ -76,7 +76,7 @@ def assign_query(dbFuncs,
     sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
     if ref_db == output:
         sys.stderr.write("--output and --ref-db must be different to "
-                            "prevent overwrite.\n")
+                         "prevent overwrite.\n")
         sys.exit(1)
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
@@ -297,9 +297,9 @@ def get_options():
 
     # input options
     iGroup = parser.add_argument_group('Input files')
-    iGroup.add_argument('--ref-db', required=True, type = str, help='Location of built reference database')
-    iGroup.add_argument('--q-files', required=True, help='File listing query input assemblies')
-    iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances')
+    iGroup.add_argument('--db', required=True, type = str, help='Location of built reference database')
+    iGroup.add_argument('--query', required=True, help='File listing query input assemblies')
+    iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances (if not in --db)')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
 
@@ -358,7 +358,7 @@ def get_options():
     args = parser.parse_args()
 
     # ensure directories do not have trailing forward slash
-    for arg in [args.ref_db, args.model_dir, args.output, args.previous_clustering]:
+    for arg in [args.db, args.model_dir, args.output, args.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
 
@@ -393,6 +393,11 @@ def main():
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
 
+    if args.distances is None:
+        distances = os.path.basename(args.db) + "/" + args.db + ".dists"
+    else:
+        distances = args.distances
+
     #*******************************#
     #*                             *#
     #* query assignment (function  *#
@@ -400,12 +405,12 @@ def main():
     #*                             *#
     #*******************************#
     assign_query(dbFuncs,
-                 args.ref_db,
-                 args.q_files,
+                 args.db,
+                 args.query,
                  args.output,
                  args.update_db,
                  args.write_references,
-                 args.distances,
+                 distances,
                  args.threads,
                  args.overwrite,
                  args.plot_fit,
