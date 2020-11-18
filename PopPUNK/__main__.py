@@ -57,6 +57,7 @@ def get_options():
     oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
+    oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Create DB options')
@@ -385,23 +386,33 @@ def main():
         #*                            *#
         #******************************#
         if model.type != "lineage":
+            if args.graph_weights:
+                weights = distMat
+            else:
+                weights = None
             genomeNetwork = \
                 constructNetwork(refList,
                                  queryList,
                                  assignments,
-                                 model.within_label)
+                                 model.within_label,
+                                 weights=weights)
         else:
             # Lineage fit requires some iteration
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
             for rank in sorted(rank_list):
                 sys.stderr.write("Network for rank " + str(rank) + "\n")
+                if args.graph_weights:
+                    weights = model.edge_weights(rank)
+                else:
+                    weights = None
                 indivNetworks[rank] = constructNetwork(
                                         refList,
                                         refList,
                                         assignments[rank],
                                         0,
-                                        edge_list = True
+                                        edge_list=True,
+                                        weights=weights
                                        )
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
