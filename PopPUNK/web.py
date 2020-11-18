@@ -5,7 +5,7 @@ import re
 import sys
 import numpy as np
 import pandas as pd
-import graph_tool.topology
+import graph_tool.all as gt
 import requests 
 
 def default_options():
@@ -20,6 +20,7 @@ def default_options():
         threads = 1
         overwrite = True
         plot_fit = 0
+        graph_weights = True
         max_a_dist = 0.5
         model_dir = ref_db
         strand_preserved = False
@@ -98,10 +99,13 @@ def sketch_to_hdf5(sketch, output):
                 sketch_props.attrs['sketchsize64'] = value
             elif key == "version":
                 sketches.attrs['sketch_version'] = value
+            elif key == "codon_phased":
+                sketches.attrs['codon_phased'] = value
+            elif key == "densified":
+                sketches.attrs['densified'] = value
             else:
                 raise AttributeError(key + " Not recognised")
     
-    sketches.attrs['codon_phased'] = 0
     sketch_props.attrs['kmers'] = kmers
     for k_index in range(len(kmers)):
         k_spec = sketch_props.create_dataset(str(kmers[k_index]), data=dists[k_index], dtype='uint64')
@@ -127,7 +131,8 @@ def ReformatEdge(edge_list):
         id = split[1]
         source = split[3]
         target = split[5]
-        data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '"}}'
+        weight = re.search('">(.*)</', edge.split("<data")[1]).group(1)
+        data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '","weight":' + str(weight) + '}}'
         json_edges.append(data)
     return json_edges
 
@@ -147,13 +152,12 @@ def clean_network(json):
     return jsonNetwork
 
 def graphml_to_json(query, output):
-    """Converts full GraphML file to JSON subgraph
-    (multiple format outputs depending on the network method)
-    """
-    G = graph_tool.load_graph(os.path.join(output, output + ".graphml"))
-    components = graph_tool.topology.label_components(G)[0].a
-    subgraph = graph_tool.GraphView(G, vfilt=(components == int(query)))
-    subgraph = graph_tool.Graph(subgraph, prune=True)
+    """Converts full GraphML file to JSON subgraph"""
+    query = 20
+    G = gt.load_graph(os.path.join(output, output + ".graphml"))
+    components = gt.label_components(G)[0].a
+    subgraph = gt.GraphView(G, vfilt=(components == int(query)))
+    subgraph = gt.Graph(subgraph, prune=True)
     subgraph.save(os.path.join(output,"subgraph.graphml")) 
     
     with open(os.path.join(output,"subgraph.graphml"), 'r') as f:
@@ -228,3 +232,4 @@ def summarise_clusters(output, ref_db):
     query_prevalence = prevalences[clusters.index(queryDQ)]
 
     return query, query_prevalence, clusters, prevalences
+    

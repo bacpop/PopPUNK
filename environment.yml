@@ -21,3 +21,5 @@ dependencies:
   - pp-sketchlib >=1.5.1
   - graph-tool
   - requests
+  - flask 
+  - flask-cors

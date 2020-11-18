@@ -29,7 +29,7 @@ def sketchAssign():
     if not request.json:
         return "not a json post"
     if request.json:
-        sketch = request.json
+        json_sketch = request.json
         args = default_options()
         if not os.path.exists(args.output):
             os.mkdir(args.output)
@@ -47,6 +47,7 @@ def sketchAssign():
                                     args.threads,
                                     args.overwrite,
                                     args.plot_fit,
+                                    args.graph_weights,
                                     args.max_a_dist,
                                     args.model_dir,
                                     args.strand_preserved,
@@ -55,7 +56,7 @@ def sketchAssign():
                                     args.core_only,
                                     args.accessory_only,
                                     args.web,
-                                    sketch)
+                                    json_sketch)
 
         species = 'Streptococcus pneumoniae'
         query, query_prevalence, clusters, prevalences = summarise_clusters(args.output, args.ref_db)
@@ -75,3 +76,4 @@ def sketchAssign():
 if __name__ == "__main__":
     app.secret_key = os.urandom(24)
     app.run(debug=False,use_reloader=False)
+    

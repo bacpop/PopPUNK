@@ -39,8 +39,8 @@ def assign_query(dbFuncs,
                  external_clustering,
                  core_only,
                  accessory_only,
-                 web = False,
-                 sketch = None):
+                 web,
+                 json_sketch):
     """Code for assign query mode. Written as a separate function so it can be called
     by web APIs"""
 
@@ -77,11 +77,6 @@ def assign_query(dbFuncs,
     readDBParams = dbFuncs['readDBParams']
     getSeqsInDb = dbFuncs['getSeqsInDb']
 
-    # if running simple query
-    print_full_clustering = False
-    if update_db:
-        print_full_clustering = True
-
     sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
     if ref_db == output:
         sys.stderr.write("--output and --ref-db must be different to "
@@ -90,7 +85,7 @@ def assign_query(dbFuncs,
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
         sys.exit(1)
-
+    
     # Load the previous model
     model_prefix = ref_db
     if model_dir is not None:
@@ -132,7 +127,7 @@ def assign_query(dbFuncs,
                                     codon_phased = codon_phased,
                                     calc_random = False)
     else:
-        qNames = sketch_to_hdf5(sketch, output)
+        qNames = sketch_to_hdf5(json_sketch, output)
     # run query
     refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
                                                   qNames = qNames,
@@ -290,6 +285,10 @@ def assign_query(dbFuncs,
     else:
         storePickle(refList, queryList, False, qrDistMat, dists_out)
 
+   # if web:
+        # remove query h5
+       # os.remove(os.path.join(output, output + ".h5"))
+
     return(isolateClustering)
 
 #******************************#
@@ -358,7 +357,6 @@ def get_options():
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
-    
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
 
@@ -425,7 +423,9 @@ def main():
                  args.previous_clustering,
                  args.external_clustering,
                  args.core_only,
-                 args.accessory_only)
+                 args.accessory_only,
+                 web = False,
+                 json_sketch = None)
 
     sys.stderr.write("\nDone\n")
 
