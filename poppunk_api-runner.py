@@ -16,7 +16,8 @@ def postNetwork():
     if not request.json:
         return "not a json post"
     if request.json:
-        args = default_options()
+        species_db = "GPS_v3_references"
+        args = default_options(species_db)
         with open(os.path.join(args.output, "subgraph.json")) as n:
             networkJson = n.read()
         networkResponse = '{"network":' + networkJson + '}'
@@ -30,7 +31,10 @@ def sketchAssign():
         return "not a json post"
     if request.json:
         json_sketch = request.json
-        args = default_options()
+
+        species_db = "GPS_v3_references"
+
+        args = default_options(species_db)
         if not os.path.exists(args.output):
             os.mkdir(args.output)
 
@@ -59,19 +63,22 @@ def sketchAssign():
                                     json_sketch)
 
         species = 'Streptococcus pneumoniae'
+
         query, query_prevalence, clusters, prevalences = summarise_clusters(args.output, args.ref_db)
         colours = str(get_colours(query, clusters)).replace("'", "")
         url = api(query, args.ref_db)
         networkJson = graphml_to_json(query, args.output)
 
-        response = '{"species":"' + species + '","prev":"' + str(query_prevalence)
-        response += '%","query":' + str(query) 
-        response += ',"clusters":' + str(clusters).replace("'", "") 
-        response += ',"prevalences":' + str(prevalences) 
-        response += ',"colours":' + colours 
-        response += ',"microreactUrl":"'+ url
-        response += '","network":'+ networkJson + '}'
-        return jsonify(response)
+        response = {"species":species, 
+                    "prev":str(query_prevalence) + '%', 
+                    "query":str(query), 
+                    "clusters":str(clusters).replace("'", ""), 
+                    "prevalences":prevalences, 
+                    "colours":colours, 
+                    "microreactUrl":url, 
+                    "network":networkJson}
+
+        return jsonify(str(response).replace("'", '"').replace('"[','[').replace(']"',']').replace('"{','{').replace('}"','}'))
 
 if __name__ == "__main__":
     app.secret_key = os.urandom(24)

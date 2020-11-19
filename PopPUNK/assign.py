@@ -285,9 +285,9 @@ def assign_query(dbFuncs,
     else:
         storePickle(refList, queryList, False, qrDistMat, dists_out)
 
-   # if web:
+    if web:
         # remove query h5
-       # os.remove(os.path.join(output, output + ".h5"))
+        os.remove(os.path.join(output, output + ".h5"))
 
     return(isolateClustering)
 

@@ -8,56 +8,21 @@ import pandas as pd
 import graph_tool.all as gt
 import requests 
 
-def default_options():
-    """Default options for WebAPI"""
-    class args:
-        ref_db = "GPS_v3_references" 
-        output = "output"
-        q_files = os.path.join(output, "queries.txt")
-        update_db = False
-        write_references = False
-        distances = os.path.join(ref_db, ref_db + ".dists")
-        threads = 1
-        overwrite = True
-        plot_fit = 0
-        graph_weights = True
-        max_a_dist = 0.5
-        model_dir = ref_db
-        strand_preserved = False
-        previous_clustering = ref_db
-        external_clustering = None
-        core_only = False
-        accessory_only = False
-        assign_lineage = True
-        rank = 1
-        exact_count = False
-        web = True
-        
-        #Options required by setupDBFuncs()
-        gpu_sketch = False
-        deviceid = 0
-        gpu_dist = False
-        min_kmer_count = 0
-        min_k = 14
-        max_k = 29
-        k_step = 3
-        use_accessory = False
-        use_mash = False
-        codon_phased = False
-        microreact = False
-        cytoscape = False
-        overwrite = True
-        phandango = False
-        grapetree = False
-        info_csv = None
-        rapidnj = None
-        perplexity = 20.0
-        existing_scheme = None
-        rank_list = None
-        sketch_sizes = 10000
-        no_stream = False
-        mash = None
+class ArgsStructure:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
 
+def default_options(species_db):
+    """Default options for WebAPI"""
+    with open(os.path.join(species_db, "args.txt")) as a:
+        args_json = a.read()
+    args_dict = json.loads(args_json)
+    args = ArgsStructure(**args_dict)
+    args.ref_db = species_db
+    args.previous_clustering = species_db
+    args.model_dir = species_db
+    args.distances = os.path.join(species_db, species_db + ".dists")
+    args.q_files = os.path.join(args.output, "queries.txt")
     return (args)
 
 def get_colours(query, clusters):
@@ -131,16 +96,20 @@ def ReformatEdge(edge_list):
         id = split[1]
         source = split[3]
         target = split[5]
-        weight = re.search('">(.*)</', edge.split("<data")[1]).group(1)
-        data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '","weight":' + str(weight) + '}}'
+        try:
+            weight = re.search('">(.*)</', edge.split("<data")[1]).group(1)
+            data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '","weight":' + str(weight) + '}}'
+        except:
+            data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '}}'
+            print("No weights specified")
         json_edges.append(data)
     return json_edges
 
 def clean_network(json):
     """Graphml subgraph network to JSON """
-    json = json.replace('"id"', 'id').replace('"source"', 'source').replace('"target"', 'target')
     json = json.split('<node')
     nodes = json[1:]
+    print(len(nodes))
     edges = json[-1].split('</edge>')[:-1]
     json_nodes = ReformatNode(nodes)
     try:
@@ -149,11 +118,12 @@ def clean_network(json):
         jsonNetwork = '{"elements":{"nodes":[' + ",".join(json_nodes) + '],"edges":[' + ",".join(json_edges) + ']}}'
     except:
         jsonNetwork = '{"elements":{"nodes":[{"data": {"id":"0", "label":"query"}}]}}'
+        print("No edges present")
     return jsonNetwork
 
 def graphml_to_json(query, output):
     """Converts full GraphML file to JSON subgraph"""
-    query = 20
+    query = int(query) - 1
     G = gt.load_graph(os.path.join(output, output + ".graphml"))
     components = gt.label_components(G)[0].a
     subgraph = gt.GraphView(G, vfilt=(components == int(query)))
@@ -172,7 +142,7 @@ def graphml_to_json(query, output):
 
 def highlight_cluster(query, cluster):
     """Colour assigned cluster in Microreact output"""
-    query = '"' + str(query) + '"'
+    query = stringify(str(query))
     if str(cluster) == query:
         colour = "red"
     else:
@@ -181,6 +151,7 @@ def highlight_cluster(query, cluster):
 
 def api(query, ref_db):
     """Post cluster and tree information to microreact"""
+    query = 63
     url = "https://microreact.org/api/project/"
     microreactDF = pd.read_csv(os.path.join(ref_db, ref_db + "_microreact_clusters.csv"))
     microreactDF["Cluster"] = microreactDF['Cluster_Cluster__autocolour']
@@ -216,7 +187,7 @@ def summarise_clusters(output, ref_db):
     queryDF = pd.read_csv(os.path.join(output, output + "_clusters.csv"))
     queryDF = queryDF.loc[queryDF['Taxon'] == "query"]
     query = str(queryDF["Cluster"][0])
-    queryDQ = '"' + query + '"'
+    queryDQ = stringify(query)
     clusterDF = pd.read_csv(os.path.join(ref_db, ref_db + "_clusters.csv"))
     clusterDF = clusterDF.append(queryDF)
     num_samples = len(clusterDF["Taxon"])
