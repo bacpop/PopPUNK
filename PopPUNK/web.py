@@ -90,7 +90,7 @@ def graphml_to_json(query, output):
     labels = []
     nodes_list = []
     edges_list = []
-    G = gt.load_graph(os.path.join(output, "GPS_v3_references" + ".graphml"))
+    G = gt.load_graph(os.path.join(output, output + ".graphml"))
     components = gt.label_components(G)[0].a
     subgraph = gt.GraphView(G, vfilt=(components == int(query)))
     subgraph = gt.Graph(subgraph, prune=True)
