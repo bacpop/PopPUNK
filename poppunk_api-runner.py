@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 import os 
 
-from PopPUNK.web import get_colours, default_options, graphml_to_json, highlight_cluster, api, calc_prevalence, stringify, summarise_clusters
+from PopPUNK.web import get_colours, default_options, graphml_to_json, api, summarise_clusters
 from PopPUNK.assign import assign_query
 from PopPUNK.utils import setupDBFuncs
 

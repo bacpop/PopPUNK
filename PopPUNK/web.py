@@ -7,10 +7,17 @@ import numpy as np
 import pandas as pd
 import graph_tool.all as gt
 import requests 
+import networkx as nx
+from networkx.readwrite import json_graph
 
 class ArgsStructure:
     def __init__(self, **entries):
         self.__dict__.update(entries)
+
+def stringify(cluster):
+    """Ensure Plotly.js interprets clusters as categorical variables"""
+    cluster = '"' + str(cluster) + '"'
+    return cluster
 
 def default_options(species_db):
     """Default options for WebAPI"""
@@ -28,7 +35,7 @@ def default_options(species_db):
 def get_colours(query, clusters):
     """Colour array for Plotly.js"""
     colours = []
-    query = '"' + str(query) + '"'
+    query = stringify(str(query))
     for clus in clusters:
         if not clus == query:
             colours.append('"blue"')
@@ -51,8 +58,14 @@ def sketch_to_hdf5(sketch, output):
         try:
             kmers.append(int(key))
             dists.append(np.array(value))
-        except:
-            if key == "bases":
+        except (TypeError, ValueError):
+            if key == "version":
+                sketches.attrs['sketch_version'] = value
+            elif key == "codon_phased":
+                sketches.attrs['codon_phased'] = value
+            elif key == "densified":
+                sketches.attrs['densified'] = value
+            elif key == "bases":
                 sketch_props.attrs['base_freq'] = value
             elif key == "bbits":
                 sketch_props.attrs['bbits'] = value
@@ -62,15 +75,9 @@ def sketch_to_hdf5(sketch, output):
                 sketch_props.attrs['missing_bases'] = value
             elif key == "sketchsize64":
                 sketch_props.attrs['sketchsize64'] = value
-            elif key == "version":
-                sketches.attrs['sketch_version'] = value
-            elif key == "codon_phased":
-                sketches.attrs['codon_phased'] = value
-            elif key == "densified":
-                sketches.attrs['densified'] = value
             else:
-                raise AttributeError(key + " Not recognised")
-    
+                print(key + " not recognised")
+
     sketch_props.attrs['kmers'] = kmers
     for k_index in range(len(kmers)):
         k_spec = sketch_props.create_dataset(str(kmers[k_index]), data=dists[k_index], dtype='uint64')
@@ -78,71 +85,42 @@ def sketch_to_hdf5(sketch, output):
     queryDB.close()
     return qNames
 
-def ReformatNode(node_list):
-    """Graphml node to JSON"""
-    json_nodes = []
-    for node in node_list:
-        id = node.split('"')[1]
-        label = re.search('<data key="key0">(.*)</data>', node).group(1)
-        data = '{"data": {"id":"' + id + '", "label":"' + label + '"}}'
-        json_nodes.append(data)
-    return json_nodes
-
-def ReformatEdge(edge_list):
-    """Graphml edge to JSON"""
-    json_edges = []
-    for edge in edge_list:
-        split = edge.split('"')
-        id = split[1]
-        source = split[3]
-        target = split[5]
-        try:
-            weight = re.search('">(.*)</', edge.split("<data")[1]).group(1)
-            data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '","weight":' + str(weight) + '}}'
-        except:
-            data = '{"data": {"id":"' + id + '", "source":"' + source + '", "target":"' + target + '}}'
-            print("No weights specified")
-        json_edges.append(data)
-    return json_edges
-
-def clean_network(json):
-    """Graphml subgraph network to JSON """
-    json = json.split('<node')
-    nodes = json[1:]
-    print(len(nodes))
-    edges = json[-1].split('</edge>')[:-1]
-    json_nodes = ReformatNode(nodes)
-    try:
-        edges[0] = "".join(edges[0].split("<edge")[1:])
-        json_edges = ReformatEdge(edges)
-        jsonNetwork = '{"elements":{"nodes":[' + ",".join(json_nodes) + '],"edges":[' + ",".join(json_edges) + ']}}'
-    except:
-        jsonNetwork = '{"elements":{"nodes":[{"data": {"id":"0", "label":"query"}}]}}'
-        print("No edges present")
-    return jsonNetwork
-
 def graphml_to_json(query, output):
     """Converts full GraphML file to JSON subgraph"""
-    query = int(query) - 1
-    G = gt.load_graph(os.path.join(output, output + ".graphml"))
+    labels = []
+    nodes_list = []
+    edges_list = []
+    G = gt.load_graph(os.path.join(output, "GPS_v3_references" + ".graphml"))
     components = gt.label_components(G)[0].a
     subgraph = gt.GraphView(G, vfilt=(components == int(query)))
     subgraph = gt.Graph(subgraph, prune=True)
     subgraph.save(os.path.join(output,"subgraph.graphml")) 
-    
-    with open(os.path.join(output,"subgraph.graphml"), 'r') as f:
-        network = str(f.read())
 
-    jsonNetwork = clean_network(network)
-    out_json = open(os.path.join(output,"subgraph.json"), 'w') #Format for Cytoscape.js
-    out_json.write(jsonNetwork)
-    out_json.close()
-    
-    return jsonNetwork
+    G=nx.read_graphml(os.path.join(output,"subgraph.graphml"))
+    for value in G.nodes.values():
+        labels.append(value['id'])
+    data = json_graph.node_link_data(G)
+
+    for k,v in data.items():
+        if k == "nodes":
+            for node in range(len(v)):
+                node_attr = v[node]
+                node_attr['label'] = labels[node]
+                nodes_list.append({'data':node_attr})
+        elif k == "links":
+             for edge in range(len(v)):
+                edge_attr = v[edge]
+                edges_list.append({'data':edge_attr})
+
+    network_dict = {'elements':{'nodes':nodes_list, 'edges':edges_list}}
+
+    with open(os.path.join(output,"subgraph.json"), 'w') as f:
+        json.dump(network_dict, f, indent=4)
+
+    return str(data).replace("'", "'").replace("False", "false")
 
 def highlight_cluster(query, cluster):
     """Colour assigned cluster in Microreact output"""
-    query = stringify(str(query))
     if str(cluster) == query:
         colour = "red"
     else:
@@ -151,7 +129,6 @@ def highlight_cluster(query, cluster):
 
 def api(query, ref_db):
     """Post cluster and tree information to microreact"""
-    query = 63
     url = "https://microreact.org/api/project/"
     microreactDF = pd.read_csv(os.path.join(ref_db, ref_db + "_microreact_clusters.csv"))
     microreactDF["Cluster"] = microreactDF['Cluster_Cluster__autocolour']
@@ -159,7 +136,7 @@ def api(query, ref_db):
     microreactDF = microreactDF.drop(columns=['Cluster_Cluster__autocolour'])
     clusters = microreactDF.to_csv()
 
-    with open("GPS_v3_references/GPS_v3_references.nwk", "r") as nwk:
+    with open(os.path.join(ref_db, ref_db + ".nwk"), "r") as nwk:
         tree = nwk.read()
 
     description = "A tree representing all samples in the reference database, excluding the query sequence but highlighting its assigned cluster. The cluster assigned to the query is coloured red. If no clusters are highlighted red, query sequence was assigned to a new cluster."
@@ -177,15 +154,11 @@ def calc_prevalence(cluster, cluster_list, num_samples):
     prevalence = round(clusterCount / num_samples * 100, 2)
     return prevalence 
 
-def stringify(cluster):
-    """Ensure Plotly.js interprets clusters as categorical variables"""
-    cluster = '"' + str(cluster) + '"'
-    return cluster
-
 def summarise_clusters(output, ref_db):
     """Retreieve assigned query and all cluster prevalences"""
     queryDF = pd.read_csv(os.path.join(output, output + "_clusters.csv"))
     queryDF = queryDF.loc[queryDF['Taxon'] == "query"]
+    queryDF = queryDF.reset_index(drop=True)
     query = str(queryDF["Cluster"][0])
     queryDQ = stringify(query)
     clusterDF = pd.read_csv(os.path.join(ref_db, ref_db + "_clusters.csv"))

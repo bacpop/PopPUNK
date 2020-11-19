@@ -92,6 +92,15 @@ def get_options():
                         help='Overwrite any existing visualisation files',
                         default=False,
                         action='store_true')
+                        
+    # query options
+    queryingGroup = parser.add_argument_group('Database querying options')
+    queryingGroup.add_argument('--core-only', help='(with a \'refine\' model) '
+                                                   'Use a core-distance only model for assigning queries '
+                                                   '[default = False]', default=False, action='store_true')
+    queryingGroup.add_argument('--accessory-only', help='(with a \'refine\' or \'lineage\' model) '
+                                                        'Use an accessory-distance only model for assigning queries '
+                                                        '[default = False]', default=False, action='store_true')
 
     # plot output
     faGroup = parser.add_argument_group('Visualisation options')
@@ -216,7 +225,8 @@ def main():
             qlist = list(viz_subset.intersection(qlist))
         core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
         acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
-
+    else:
+        viz_subset = None
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}
     # Use external clustering if specified
