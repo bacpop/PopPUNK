@@ -96,7 +96,7 @@ def graphml_to_json(query, output):
     subgraph = gt.Graph(subgraph, prune=True)
     subgraph.save(os.path.join(output,"subgraph.graphml")) 
 
-    G=nx.read_graphml(os.path.join(output,"subgraph.graphml"))
+    G = nx.read_graphml(os.path.join(output,"subgraph.graphml"))
     for value in G.nodes.values():
         labels.append(value['id'])
     data = json_graph.node_link_data(G)
@@ -117,7 +117,7 @@ def graphml_to_json(query, output):
     with open(os.path.join(output,"subgraph.json"), 'w') as f:
         json.dump(network_dict, f, indent=4)
 
-    return str(data).replace("'", "'").replace("False", "false")
+    return str(network_dict).replace("False", "false")
 
 def highlight_cluster(query, cluster):
     """Colour assigned cluster in Microreact output"""
