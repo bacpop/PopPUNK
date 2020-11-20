@@ -14,11 +14,6 @@ class ArgsStructure:
     def __init__(self, **entries):
         self.__dict__.update(entries)
 
-def stringify(cluster):
-    """Ensure Plotly.js interprets clusters as categorical variables"""
-    cluster = '"' + str(cluster) + '"'
-    return cluster
-
 def default_options(species_db):
     """Default options for WebAPI"""
     with open(os.path.join(species_db, "args.txt")) as a:
@@ -35,7 +30,7 @@ def default_options(species_db):
 def get_colours(query, clusters):
     """Colour array for Plotly.js"""
     colours = []
-    query = stringify(str(query))
+    query = str(query)
     for clus in clusters:
         if not clus == query:
             colours.append('"blue"')
@@ -57,7 +52,7 @@ def sketch_to_hdf5(sketch, output):
     for key, value in sketch_dict.items():
         try:
             kmers.append(int(key))
-            dists.append(np.array(value))
+            dists.append(np.array(value, dtype='uint64'))
         except (TypeError, ValueError):
             if key == "version":
                 sketches.attrs['sketch_version'] = value
@@ -85,18 +80,18 @@ def sketch_to_hdf5(sketch, output):
     queryDB.close()
     return qNames
 
-def graphml_to_json(query, output):
+def graphml_to_json(network_dir):
     """Converts full GraphML file to JSON subgraph"""
     labels = []
     nodes_list = []
     edges_list = []
-    G = gt.load_graph(os.path.join(output, output + ".graphml"))
+    G = gt.load_graph(os.path.join(network_dir, network_dir + ".graphml"))
     components = gt.label_components(G)[0].a
     subgraph = gt.GraphView(G, vfilt=(components == int(query)))
     subgraph = gt.Graph(subgraph, prune=True)
-    subgraph.save(os.path.join(output,"subgraph.graphml")) 
+    subgraph.save(os.path.join(network_dir,"subgraph.graphml")) 
 
-    G = nx.read_graphml(os.path.join(output,"subgraph.graphml"))
+    G = nx.read_graphml(os.path.join(network_dir,"subgraph.graphml"))
     for value in G.nodes.values():
         labels.append(value['id'])
     data = json_graph.node_link_data(G)
@@ -114,10 +109,7 @@ def graphml_to_json(query, output):
 
     network_dict = {'elements':{'nodes':nodes_list, 'edges':edges_list}}
 
-    with open(os.path.join(output,"subgraph.json"), 'w') as f:
-        json.dump(network_dict, f, indent=4)
-
-    return str(network_dict).replace("False", "false")
+    return network_dict
 
 def highlight_cluster(query, cluster):
     """Colour assigned cluster in Microreact output"""
@@ -160,11 +152,10 @@ def summarise_clusters(output, ref_db):
     queryDF = queryDF.loc[queryDF['Taxon'] == "query"]
     queryDF = queryDF.reset_index(drop=True)
     query = str(queryDF["Cluster"][0])
-    queryDQ = stringify(query)
     clusterDF = pd.read_csv(os.path.join(ref_db, ref_db + "_clusters.csv"))
     clusterDF = clusterDF.append(queryDF)
     num_samples = len(clusterDF["Taxon"])
-    clusterDF["Cluster"] = clusterDF["Cluster"].apply(stringify)
+    clusterDF["Cluster"] = clusterDF["Cluster"].astype(str)
     cluster_list = list(clusterDF["Cluster"])
 
     clusterDF["Prevalence"] = clusterDF.apply(lambda row: calc_prevalence(row["Cluster"], cluster_list, num_samples), axis = 1)
@@ -173,7 +164,7 @@ def summarise_clusters(output, ref_db):
     uniqueclusterDF = clusterDF.drop_duplicates(subset=['Cluster'])
     clusters = list(uniqueclusterDF['Cluster'])
     prevalences = list(uniqueclusterDF["Prevalence"])
-    query_prevalence = prevalences[clusters.index(queryDQ)]
+    query_prevalence = prevalences[clusters.index(query)]
 
     return query, query_prevalence, clusters, prevalences
     

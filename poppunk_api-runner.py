@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 import os 
+import json
 
 from PopPUNK.web import get_colours, default_options, graphml_to_json, api, summarise_clusters
 from PopPUNK.assign import assign_query
@@ -18,9 +19,10 @@ def postNetwork():
     if request.json:
         species_db = "GPS_v3_references"
         args = default_options(species_db)
-        with open(os.path.join(args.output, "subgraph.json")) as n:
+        networkJson = graphml_to_json('WebVis')
+        with open(os.path.join('WebVis', "subgraph.json")) as n:
             networkJson = n.read()
-        networkResponse = '{"network":' + networkJson + '}'
+        networkResponse = json.dumps({"network":networkJson})
         return jsonify(networkResponse)
 
 @app.route('/upload', methods=['POST'])
@@ -31,7 +33,9 @@ def sketchAssign():
         return "not a json post"
     if request.json:
         json_sketch = request.json
-
+        sketch_out = open("sketch.txt", "w")
+        sketch_out.write(json_sketch)
+        sketch_out.close()
         species_db = "GPS_v3_references"
 
         args = default_options(species_db)
@@ -46,6 +50,7 @@ def sketchAssign():
                                     args.q_files,
                                     args.output,
                                     args.update_db,
+                                    args.updated_dir,
                                     args.write_references,
                                     args.distances,
                                     args.threads,
@@ -67,18 +72,17 @@ def sketchAssign():
         query, query_prevalence, clusters, prevalences = summarise_clusters(args.output, args.ref_db)
         colours = str(get_colours(query, clusters)).replace("'", "")
         url = api(query, args.ref_db)
-        networkJson = graphml_to_json(query, args.output)
 
         response = {"species":species, 
                     "prev":str(query_prevalence) + '%', 
                     "query":str(query), 
-                    "clusters":str(clusters).replace("'", ""), 
+                    "clusters":clusters, 
                     "prevalences":prevalences, 
                     "colours":colours, 
-                    "microreactUrl":url, 
-                    "network":networkJson}
+                    "microreactUrl":url}
+        response = json.dumps(response)  
 
-        return jsonify(str(response).replace("'", '"').replace('"[','[').replace(']"',']').replace('"{','{').replace('}"','}'))
+        return jsonify(response)
 
 if __name__ == "__main__":
     app.secret_key = os.urandom(24)

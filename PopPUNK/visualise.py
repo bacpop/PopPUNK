@@ -136,36 +136,55 @@ def get_options():
             arg = arg.rstrip('\\')
 
     return args
-
-def main():
-    """Main function. Parses cmd line args and runs in the specified mode.
-    """
-    args = get_options()
+    
+def generate_visualisations(query_db,
+                            ref_db,
+                            distances,
+                            threads,
+                            output,
+                            gpu_dist,
+                            deviceid,
+                            external_clustering,
+                            microreact,
+                            phandango,
+                            grapetree,
+                            cytoscape,
+                            perplexity,
+                            strand_preserved,
+                            include_files,
+                            model_dir,
+                            previous_clustering,
+                            previous_query_clustering,
+                            info_csv,
+                            rapidnj,
+                            overwrite,
+                            core_only,
+                            accessory_only):
 
     # Check on parallelisation of graph-tools
-    setGtThreads(args.threads)
+    setGtThreads(threads)
 
     sys.stderr.write("PopPUNK: visualise\n")
-    if not (args.microreact or args.phandango or args.grapetree or args.cytoscape):
+    if not (microreact or phandango or grapetree or cytoscape):
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
 
     # make directory for new output files
-    if not os.path.isdir(args.output):
+    if not os.path.isdir(output):
         try:
-            os.makedirs(args.output)
+            os.makedirs(output)
         except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
     # Load original distances
-    if args.distances is None:
-        if args.query_db is None:
-            distances = os.path.basename(args.ref_db) + "/" + args.ref_db + ".dists"
+    if distances is None:
+        if query_db is None:
+            distances = os.path.basename(ref_db) + "/" + ref_db + ".dists"
         else:
-            distances = os.path.basename(args.query_db) + "/" + args.query_db + ".dists"
+            distances = os.path.basename(query_db) + "/" + query_db + ".dists"
     else:
-        distances = args.distances
+        distances = distances
 
     rlist, qlist, self, complete_distMat = readPickle(distances)
     if not self:
@@ -178,23 +197,21 @@ def main():
         sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
                          "Note: Distance will be extended to full all-vs-all distances\n"
                          "Note: Re-run poppunk_assign with --update-db to avoid this\n")
-
-        ref_db = os.path.basename(args.ref_db) + "/" + args.ref_db
-        query_db = os.path.basename(args.query_db) + "/" + args.query_db
+        ref_db = os.path.basename(ref_db) + "/" + ref_db
         rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db + ".dists")
         if not self_ref:
             sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
             sys.exit(1)
-
-        kmers, sketch_sizes, codon_phased = readDBParams(args.query_db)
-        addRandom(args.query_db, qlist, kmers,
-                  strand_preserved = args.strand_preserved, threads = args.threads)
+        kmers, sketch_sizes, codon_phased = readDBParams(query_db)
+        addRandom(query_db, qlist, kmers,
+                  strand_preserved = strand_preserved, threads = threads)
+        query_db = os.path.basename(query_db) + "/" + query_db
         qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
                                                 qlist, qlist, kmers,
                                                 True, False,
-                                                args.threads,
-                                                args.gpu_dist,
-                                                args.deviceid)
+                                                threads,
+                                                gpu_dist,
+                                                deviceid)
 
         # If the assignment was run with references, qrDistMat will be incomplete
         if rlist != rlist_original:
@@ -202,9 +219,9 @@ def main():
             qr_distMat = pp_sketchlib.queryDatabase(ref_db, query_db,
                                                     rlist, qlist, kmers,
                                                     True, False,
-                                                    args.threads,
-                                                    args.gpu_dist,
-                                                    args.deviceid)
+                                                    threads,
+                                                    gpu_dist,
+                                                    deviceid)
 
     else:
         qlist = None
@@ -215,12 +232,12 @@ def main():
     combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(rlist, rr_distMat,
                                      qlist, qr_distMat, qq_distMat,
-                                     threads = args.threads)
+                                     threads = threads)
 
     # extract subset of distances if requested
-    if args.include_files is not None:
+    if include_files is not None:
         viz_subset = set()
-        with open(args.include_files, 'r') as assemblyFiles:
+        with open(include_files, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
         if len(viz_subset.difference(combined_seq)) > 0:
@@ -238,22 +255,22 @@ def main():
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}
     # Use external clustering if specified
-    if args.external_clustering:
-        cluster_file = args.external_clustering
+    if external_clustering:
+        cluster_file = external_clustering
         isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                    mode = 'external',
                                                    return_dict = True)
 
     # identify existing model and cluster files
-    if args.model_dir is not None:
-        model_prefix = args.model_dir
+    if model_dir is not None:
+        model_prefix = model_dir
     else:
-        model_prefix = args.ref_db
-    model_file = model_prefix + "/" + os.path.basename(model_prefix)
+        model_prefix = ref_db
     try:
+        model_file = os.path.basename(model_prefix) + "/" + os.path.basename(model_prefix)
         model = loadClusterFit(model_file + '_fit.pkl',
-                               model_file + '_fit.npz')
-    except:
+                                model_file + '_fit.npz')
+    except FileNotFoundError:
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
 
@@ -268,8 +285,8 @@ def main():
                          "visualisation only supports combined boundary fit\n")
 
     # Set directories of previous fit
-    if args.previous_clustering is not None:
-        prev_clustering = args.previous_clustering
+    if previous_clustering is not None:
+        prev_clustering = previous_clustering
     else:
         prev_clustering = os.path.dirname(model_file)
     cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + suffix
@@ -278,36 +295,67 @@ def main():
                                                return_dict = True)
     # Join clusters with query clusters if required
     if not self:
-        if args.previous_query_clustering is not None:
-            prev_query_clustering = args.previous_query_clustering
+        if previous_query_clustering is not None:
+            prev_query_clustering = previous_query_clustering
         else:
-            prev_query_clustering = args.query_db
+            prev_query_clustering = query_db
 
         queryIsolateClustering = readIsolateTypeFromCsv(
-                prev_query_clustering + '/' + os.path.basename(prev_query_clustering) + suffix,
+                prev_query_clustering + suffix,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
 
     # Now have all the objects needed to generate selected visualisations
-    if args.microreact:
+    if microreact:
         sys.stderr.write("Writing microreact output\n")
-        outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, args.perplexity,
-                             args.output, args.info_csv, args.rapidnj, queryList = qlist, overwrite = args.overwrite)
-    if args.phandango:
+        outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
+                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite)
+    if phandango:
         sys.stderr.write("Writing phandango output\n")
-        outputsForPhandango(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                            queryList = qlist, overwrite = args.overwrite, microreact = args.microreact)
-    if args.grapetree:
+        outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+    if grapetree:
         sys.stderr.write("Writing grapetree output\n")
-        outputsForGrapetree(combined_seq, core_distMat, isolateClustering, args.output, args.info_csv, args.rapidnj,
-                            queryList = qlist, overwrite = args.overwrite, microreact = args.microreact)
-    if args.cytoscape:
+        outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
+                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+    if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, args.core_only, args.accessory_only)
-        outputsForCytoscape(genomeNetwork, isolateClustering, args.output, args.info_csv, viz_subset = viz_subset)
+        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
+        outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
+    
+    sys.stderr.write("\nDone\n")
+    
+def main():
+    """Main function. Parses cmd line args and runs in the specified mode.
+    """
+    args = get_options()
+
+    generate_visualisations(args.query_db,
+                            args.ref_db,
+                            args.distances,
+                            args.threads,
+                            args.output,
+                            args.gpu_dist,
+                            args.deviceid,
+                            args.external_clustering,
+                            args.microreact,
+                            args.phandango,
+                            args.grapetree,
+                            args.cytoscape,
+                            args.perplexity,
+                            args.strand_preserved,
+                            args.include_files,
+                            args.model_dir,
+                            args.previous_clustering,
+                            args.previous_query_clustering,
+                            args.info_csv,
+                            args.rapidnj,
+                            args.overwrite,
+                            args.core_only,
+                            args.accessory_only)
 
 if __name__ == '__main__':
     main()
