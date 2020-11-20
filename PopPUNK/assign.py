@@ -243,9 +243,13 @@ def assign_query(dbFuncs,
             update_distance_matrices(refList, rrDistMat,
                                     queryList, qrDistMat,
                                     qqDistMat, threads = threads)
+        assert combined_seq == refList + queryList
+
+        # Get full distance matrix and save
         complete_distMat = \
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                        pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+        storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
         # Clique pruning
         if model.type != 'lineage':
@@ -262,7 +266,7 @@ def assign_query(dbFuncs,
             names_to_remove = [dbOrder[n] for n in nodes_to_remove]
 
             if (len(names_to_remove) > 0):
-                # This function also writes out the new distance matrix
+                # This function also writes out the new ref distance matrix
                 postpruning_combined_seq, newDistMat = \
                     prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                           output + "/" + os.path.basename(output) + ".refs.dists")
@@ -273,11 +277,6 @@ def assign_query(dbFuncs,
 
                 # ensure sketch and distMat order match
                 assert postpruning_combined_seq == refList + newQueries
-        else:
-            storePickle(combined_seq, combined_seq, True,
-                        complete_distMat, dists_out)
-            # ensure sketch and distMat order match
-            assert combined_seq == refList + queryList
     else:
         storePickle(refList, queryList, False, qrDistMat, dists_out)
 
