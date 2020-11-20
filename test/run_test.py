@@ -22,39 +22,39 @@ subprocess.run("python ../poppunk-runner.py --create-db --r-files references.txt
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model bgmm --distances example_db/example_db.dists --ref-db example_db --output example_db --K 4 --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model bgmm --ref-db example_db --K 4 --overwrite", shell=True, check=True)
 
 #fit GMM
 sys.stderr.write("Running DBSCAN model fit (--fit-model dbscan)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model dbscan --distances example_db/example_db.dists --ref-db example_db --output example_dbscan --overwrite --graph-weights", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model dbscan --ref-db example_db --output example_dbscan --overwrite --graph-weights", shell=True, check=True)
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model refine --distances example_db/example_db.dists --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
-subprocess.run("python ../poppunk-runner.py --fit-model lineage --distances example_db/example_db.dists --output example_lineages --ranks 1,2,3,5 --ref-db example_db --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model lineage --output example_lineages --ranks 1,2,3,5 --ref-db example_db --overwrite", shell=True, check=True)
 
 #use model
 sys.stderr.write("Running with an existing model (--use-model)\n")
-subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --distances example_db/example_db.dists --output example_use --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
 
 # tests of other command line programs
 
 #assign query
 sys.stderr.write("Running query assignment\n")
-subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query --overwrite", shell=True, check=True)
-subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True)
-subprocess.run("python ../poppunk_assign-runner.py --q-files single_query.txt --distances example_db/example_db.dists --ref-db example_db --output example_single_query --update-db --overwrite", shell=True, check=True)
-subprocess.run("python ../poppunk_assign-runner.py --q-files some_queries.txt --distances example_db/example_db.dists --ref-db example_db --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --query single_query.txt --db example_db --output example_single_query --update-db --overwrite", shell=True, check=True)
+subprocess.run("python ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_db/example_db.dists --ref-db example_db --output example_viz --microreact", shell=True, check=True)
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_db/example_db.dists --ref-db example_db --output example_viz_subset --microreact --subset subset.txt", shell=True, check=True)
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_query/example_query.dists --ref-db example_db --query-db example_query --output example_viz_query --microreact", shell=True, check=True)
-subprocess.run("python ../poppunk_visualise-runner.py --distances example_db/example_db.dists --ref-db example_db --previous-clustering example_lineages --model-dir example_lineages --output example_lineage_viz --microreact", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --microreact", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_viz_subset --microreact --include-files subset.txt", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --query-db example_query --output example_viz_query --microreact", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --previous-clustering example_lineages --model-dir example_lineages --output example_lineage_viz --microreact", shell=True, check=True)
 subprocess.run("python ../poppunk_visualise-runner.py --distances example_query/example_query.dists --ref-db example_db --model-dir example_lineages --query-db example_lineage_query --output example_viz_query_lineages --microreact", shell=True, check=True)
 
 # t-sne

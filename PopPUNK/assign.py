@@ -81,7 +81,7 @@ def assign_query(dbFuncs,
     sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
     if ref_db == output:
         sys.stderr.write("--output and --ref-db must be different to "
-                            "prevent overwrite.\n")
+                         "prevent overwrite.\n")
         sys.exit(1)
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
@@ -253,9 +253,13 @@ def assign_query(dbFuncs,
             update_distance_matrices(refList, rrDistMat,
                                     queryList, qrDistMat,
                                     qqDistMat, threads = threads)
+        assert combined_seq == refList + queryList
+
+        # Get full distance matrix and save
         complete_distMat = \
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                        pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+        storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
         # Clique pruning
         if model.type != 'lineage':
@@ -272,7 +276,7 @@ def assign_query(dbFuncs,
             names_to_remove = [dbOrder[n] for n in nodes_to_remove]
 
             if (len(names_to_remove) > 0):
-                # This function also writes out the new distance matrix
+                # This function also writes out the new ref distance matrix
                 postpruning_combined_seq, newDistMat = \
                     prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                           output + "/" + os.path.basename(output) + ".refs.dists")
@@ -283,11 +287,6 @@ def assign_query(dbFuncs,
 
                 # ensure sketch and distMat order match
                 assert postpruning_combined_seq == refList + newQueries
-        else:
-            storePickle(combined_seq, combined_seq, True,
-                        complete_distMat, dists_out)
-            # ensure sketch and distMat order match
-            assert combined_seq == refList + queryList
     else:
         storePickle(refList, queryList, False, qrDistMat, dists_out)
 
@@ -307,9 +306,9 @@ def get_options():
 
     # input options
     iGroup = parser.add_argument_group('Input files')
-    iGroup.add_argument('--ref-db', required=True, type = str, help='Location of built reference database')
-    iGroup.add_argument('--q-files', required=True, help='File listing query input assemblies')
-    iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances')
+    iGroup.add_argument('--db', required=True, type = str, help='Location of built reference database')
+    iGroup.add_argument('--query', required=True, help='File listing query input assemblies')
+    iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances (if not in --db)')
     iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
                                                       'generated with any other method.', default=None)
 
@@ -368,7 +367,7 @@ def get_options():
     args = parser.parse_args()
 
     # ensure directories do not have trailing forward slash
-    for arg in [args.ref_db, args.model_dir, args.output, args.previous_clustering]:
+    for arg in [args.db, args.model_dir, args.output, args.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
 
@@ -403,6 +402,11 @@ def main():
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
 
+    if args.distances is None:
+        distances = os.path.basename(args.db) + "/" + args.db + ".dists"
+    else:
+        distances = args.distances
+
     #*******************************#
     #*                             *#
     #* query assignment (function  *#
@@ -410,13 +414,13 @@ def main():
     #*                             *#
     #*******************************#
     assign_query(dbFuncs,
-                 args.ref_db,
-                 args.q_files,
+                 args.db,
+                 args.query,
                  args.output,
                  args.update_db,
                  args.updated_dir,
                  args.write_references,
-                 args.distances,
+                 distances,
                  args.threads,
                  args.overwrite,
                  args.plot_fit,
