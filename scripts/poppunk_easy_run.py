@@ -13,8 +13,8 @@ def get_options():
                                      prog='easy_run')
 
     # input options
-    parser.add_argument('r-files', help='List of sequence names and files (as for --r-files')
-    parser.add_argument('output', help='Prefix for output files')
+    parser.add_argument('--r-files', help='List of sequence names and files (as for --r-files')
+    parser.add_argument('--output', help='Prefix for output files')
 
     parser.add_argument('--other-args', help="Other arguments to pass to poppunk. e.g. "
                                              "'--min-k 13 --max-k 29'")
@@ -40,17 +40,17 @@ if __name__ == "__main__":
         pp_args = args.other_args
 
     sys.stderr.write("Running --create-db\n")
-    create_db_cmd = poppunk + " --create-db " + args.r_files + " --output " + args.output + " " + pp_args
+    create_db_cmd = poppunk + " --create-db --r-files " + args.r_files + " --output " + args.output + " " + pp_args
     sys.stderr.write(create_db_cmd + "\n")
     subprocess.run(create_db_cmd, shell=True, check=True)
 
     sys.stderr.write("Running --fit-model dbscan\n")
-    dbscan_cmd = poppunk + " --fit-model dbscan --ref-db " + args.output + " " + pp_args
+    dbscan_cmd = poppunk + " --fit-model dbscan --ref-db " + args.output + " --output " + args.output + " " + pp_args
     sys.stderr.write(dbscan_cmd + "\n")
     subprocess.run(dbscan_cmd, shell=True, check=True)
 
     sys.stderr.write("Running --fit-model refine\n")
-    refine_cmd = poppunk + " --fit-model refine --ref-db " + args.output + " " + pp_args
+    refine_cmd = poppunk + " --fit-model refine --ref-db " + args.output + " --output " + args.output + " " + pp_args
     sys.stderr.write(refine_cmd + "\n")
     subprocess.run(refine_cmd, shell=True, check=True)
 
