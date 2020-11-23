@@ -26,7 +26,6 @@ def assign_query(dbFuncs,
                  q_files,
                  output,
                  update_db,
-                 updated_dir,
                  write_references,
                  distances,
                  threads,
@@ -228,13 +227,8 @@ def assign_query(dbFuncs,
         else:
             sys.stderr.write("Updating reference database to " + output + "\n")
 
-        # Update the network + ref list (everything)
-        if updated_dir is None:
-            updated_dir = output
-        else:
-            if not os.path.exists(updated_dir):
-                os.mkdir(updated_dir)    
-        joinDBs(ref_db, output, updated_dir)
+        # Update the network + ref list (everything) 
+        joinDBs(ref_db, output, output)
         if model.type == 'lineage':
             genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
         else:
@@ -320,7 +314,6 @@ def get_options():
     oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
                                               default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
-    oGroup.add_argument('--updated-dir', help='Output directory of updated reference database', type = str, default=None)
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
     oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
 
@@ -418,7 +411,6 @@ def main():
                  args.query,
                  args.output,
                  args.update_db,
-                 args.updated_dir,
                  args.write_references,
                  distances,
                  args.threads,

@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 import h5py
 import os 
 import re
@@ -10,32 +11,26 @@ import requests
 import networkx as nx
 from networkx.readwrite import json_graph
 
-class ArgsStructure:
-    def __init__(self, **entries):
-        self.__dict__.update(entries)
-
 def default_options(species_db):
     """Default options for WebAPI"""
     with open(os.path.join(species_db, "args.txt")) as a:
         args_json = a.read()
-    args_dict = json.loads(args_json)
-    args = ArgsStructure(**args_dict)
-    args.ref_db = species_db
-    args.previous_clustering = species_db
-    args.model_dir = species_db
-    args.distances = os.path.join(species_db, species_db + ".dists")
-    args.q_files = os.path.join(args.output, "queries.txt")
+    args = json.loads(args_json, object_hook=lambda d: SimpleNamespace(**d))
+    args.assign.ref_db = species_db
+    args.assign.previous_clustering = species_db
+    args.assign.model_dir = species_db
+    args.assign.distances = os.path.join(species_db, os.path.basename(species_db) + ".dists")
+    args.assign.q_files = os.path.join(args.assign.output, "queries.txt")
     return (args)
 
 def get_colours(query, clusters):
     """Colour array for Plotly.js"""
     colours = []
-    query = str(query)
     for clus in clusters:
-        if not clus == query:
-            colours.append('"blue"')
+        if str(clus) == str(query):
+            colours.append('rgb(255,128,128)')
         else:
-            colours.append('"rgb(255,128,128)"')
+            colours.append('blue')
     return colours
 
 def sketch_to_hdf5(sketch, output):
@@ -45,7 +40,7 @@ def sketch_to_hdf5(sketch, output):
 
     sketch_dict = json.loads(sketch)
     qNames = ["query"]
-    queryDB = h5py.File(os.path.join(output, output + '.h5'), 'w')
+    queryDB = h5py.File(os.path.join(output, os.path.basename(output) + '.h5'), 'w')
     sketches = queryDB.create_group("sketches")
     sketch_props = sketches.create_group(qNames[0])
 
@@ -85,9 +80,9 @@ def graphml_to_json(network_dir):
     labels = []
     nodes_list = []
     edges_list = []
-    G = gt.load_graph(os.path.join(network_dir, network_dir + ".graphml"))
-    components = gt.label_components(G)[0].a
-    subgraph = gt.GraphView(G, vfilt=(components == int(query)))
+    full_graph = gt.load_graph(os.path.join(network_dir, os.path.basename(network_dir) + "_cytoscape.graphml"))
+    components = gt.label_components(full_graph)[0].a
+    subgraph = gt.GraphView(full_graph, vfilt=(components == components[-1]))
     subgraph = gt.Graph(subgraph, prune=True)
     subgraph.save(os.path.join(network_dir,"subgraph.graphml")) 
 
@@ -113,7 +108,7 @@ def graphml_to_json(network_dir):
 
 def highlight_cluster(query, cluster):
     """Colour assigned cluster in Microreact output"""
-    if str(cluster) == query:
+    if str(cluster) == str(query):
         colour = "red"
     else:
         colour = "blue"
@@ -122,13 +117,13 @@ def highlight_cluster(query, cluster):
 def api(query, ref_db):
     """Post cluster and tree information to microreact"""
     url = "https://microreact.org/api/project/"
-    microreactDF = pd.read_csv(os.path.join(ref_db, ref_db + "_microreact_clusters.csv"))
+    microreactDF = pd.read_csv(os.path.join(ref_db, os.path.basename(ref_db) + "_microreact_clusters.csv"))
     microreactDF["Cluster"] = microreactDF['Cluster_Cluster__autocolour']
     microreactDF["CC__colour"] = microreactDF.apply(lambda row: highlight_cluster(query, row["Cluster_Cluster__autocolour"]), axis = 1)
     microreactDF = microreactDF.drop(columns=['Cluster_Cluster__autocolour'])
     clusters = microreactDF.to_csv()
 
-    with open(os.path.join(ref_db, ref_db + ".nwk"), "r") as nwk:
+    with open(os.path.join(ref_db, os.path.basename(ref_db) + ".nwk"), "r") as nwk:
         tree = nwk.read()
 
     description = "A tree representing all samples in the reference database, excluding the query sequence but highlighting its assigned cluster. The cluster assigned to the query is coloured red. If no clusters are highlighted red, query sequence was assigned to a new cluster."
@@ -148,11 +143,11 @@ def calc_prevalence(cluster, cluster_list, num_samples):
 
 def summarise_clusters(output, ref_db):
     """Retreieve assigned query and all cluster prevalences"""
-    queryDF = pd.read_csv(os.path.join(output, output + "_clusters.csv"))
+    queryDF = pd.read_csv(os.path.join(output, os.path.basename(output) + "_clusters.csv"))
     queryDF = queryDF.loc[queryDF['Taxon'] == "query"]
     queryDF = queryDF.reset_index(drop=True)
     query = str(queryDF["Cluster"][0])
-    clusterDF = pd.read_csv(os.path.join(ref_db, ref_db + "_clusters.csv"))
+    clusterDF = pd.read_csv(os.path.join(ref_db, os.path.basename(ref_db) + "_clusters.csv"))
     clusterDF = clusterDF.append(queryDF)
     num_samples = len(clusterDF["Taxon"])
     clusterDF["Cluster"] = clusterDF["Cluster"].astype(str)
