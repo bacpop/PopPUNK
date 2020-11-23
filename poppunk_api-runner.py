@@ -18,8 +18,11 @@ def sketchAssign():
     if not request.json:
         return "not a json post"
     if request.json:
-        json_sketch = request.json
-        species_db = "GPS_v3_references"
+        sketch_dict = request.json
+        # determine database to use
+        if sketch_dict["species"] == "S.pneumoniae":
+            species = 'Streptococcus pneumoniae'
+            species_db = "GPS_v3_references"
         args = default_options(species_db)
 
         if not os.path.exists(args.assign.output):
@@ -47,9 +50,7 @@ def sketchAssign():
                                     args.assign.core_only,
                                     args.assign.accessory_only,
                                     args.assign.web,
-                                    json_sketch)
-
-        species = 'Streptococcus pneumoniae'
+                                    sketch_dict["sketch"])
 
         query, query_prevalence, clusters, prevalences = summarise_clusters(args.assign.output, args.assign.ref_db)
         colours = get_colours(query, clusters)
@@ -73,7 +74,11 @@ def postNetwork():
     if not request.json:
         return "not a json post"
     if request.json:
-        species_db = "GPS_v3_references"
+        species_dict = request.json
+        print(species_dict)
+        # determine database to use
+        if species_dict["species"] == "S.pneumoniae":
+            species_db = "GPS_v3_references"
         args = default_options(species_db)
         generate_visualisations(args.visualise.query_db,
                                 args.visualise.ref_db,

@@ -65,6 +65,8 @@ def sketch_to_hdf5(sketch, output):
                 sketch_props.attrs['missing_bases'] = value
             elif key == "sketchsize64":
                 sketch_props.attrs['sketchsize64'] = value
+            elif key == "species":
+                pass
             else:
                 print(key + " not recognised")
 
