@@ -75,7 +75,6 @@ def postNetwork():
         return "not a json post"
     if request.json:
         species_dict = request.json
-        print(species_dict)
         # determine database to use
         if species_dict["species"] == "S.pneumoniae":
             species_db = "GPS_v3_references"

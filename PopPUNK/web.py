@@ -68,7 +68,7 @@ def sketch_to_hdf5(sketch, output):
             elif key == "species":
                 pass
             else:
-                print(key + " not recognised")
+                sys.stderr.write(key + " not recognised")
 
     sketch_props.attrs['kmers'] = kmers
     for k_index in range(len(kmers)):
