@@ -1,4 +1,4 @@
-# PopPUNK <img src='poppunk_logo.png' align="right" height="139" />
+# PopPUNK <img src='poppunk_logo.png' align="right" height="75" />
 
 POPulation Partitioning Using Nucleotide Kmers
 
