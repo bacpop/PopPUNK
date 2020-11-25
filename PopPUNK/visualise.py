@@ -159,7 +159,8 @@ def generate_visualisations(query_db,
                             rapidnj,
                             overwrite,
                             core_only,
-                            accessory_only):
+                            accessory_only,
+                            web):
 
     # Check on parallelisation of graph-tools
     setGtThreads(threads)
@@ -322,6 +323,8 @@ def generate_visualisations(query_db,
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
+        if web:
+            viz_subset = None
         outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
@@ -355,7 +358,8 @@ def main():
                             args.rapidnj,
                             args.overwrite,
                             args.core_only,
-                            args.accessory_only)
+                            args.accessory_only,
+                            web = False)
 
 if __name__ == '__main__':
     main()

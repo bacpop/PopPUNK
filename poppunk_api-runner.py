@@ -52,7 +52,7 @@ def sketchAssign():
                                     args.assign.web,
                                     sketch_dict["sketch"])
 
-        query, query_prevalence, clusters, prevalences = summarise_clusters(args.assign.output, args.assign.ref_db)
+        query, query_prevalence, clusters, prevalences = summarise_clusters(args.assign.output)
         colours = get_colours(query, clusters)
         url = api(query, args.assign.ref_db)
 
@@ -101,10 +101,13 @@ def postNetwork():
                                 args.visualise.rapidnj,
                                 args.visualise.overwrite,
                                 args.visualise.core_only,
-                                args.visualise.accessory_only)
+                                args.visualise.accessory_only,
+                                args.visualise.web)
         networkJson = graphml_to_json(args.visualise.output)
-        networkResponse = json.dumps({"network":networkJson})
-        return jsonify(networkResponse)
+        with open(os.path.join(args.visualise.output, os.path.basename(args.visualise.output) + "_core_NJ.nwk"), "r") as p:
+            phylogeny = p.read()
+        visResponse = json.dumps({"network":networkJson, "phylogeny": phylogeny})
+        return jsonify(visResponse)
 
 if __name__ == "__main__":
     app.secret_key = os.urandom(24)
