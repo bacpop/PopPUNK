@@ -296,12 +296,12 @@ def generate_visualisations(query_db,
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
-            prev_query_clustering = previous_query_clustering
+            prev_query_clustering = previous_query_clustering + '/' + os.path.basename(previous_query_clustering)
         else:
             prev_query_clustering = query_db
 
         queryIsolateClustering = readIsolateTypeFromCsv(
-                prev_query_clustering + '/' + os.path.basename(prev_query_clustering) + suffix,
+                prev_query_clustering + suffix,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
