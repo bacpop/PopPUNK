@@ -1,6 +1,4 @@
-# PopPUNK <img src='poppunk_logo.png' align="right" height="75" />
-
-POPulation Partitioning Using Nucleotide Kmers
+# POPulation Partitioning Using Nucleotide Kmers <img src='docs/images/poppunk_v2.png.png' align="right" height="100" />
 
 <!-- badges: start -->
 [![Dev build Status](https://dev.azure.com/jlees/PopPUNK/_apis/build/status/johnlees.PopPUNK?branchName=master)](https://dev.azure.com/jlees/PopPUNK/_build/latest?definitionId=1&branchName=master)
@@ -61,7 +59,3 @@ conda config --add channels conda-forge
 
 See the [quickstart](https://poppunk.readthedocs.io/en/latest/quickstart.html) guide
 for a brief tutorial.
-
-
-
-
