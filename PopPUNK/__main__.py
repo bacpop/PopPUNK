@@ -439,7 +439,7 @@ def main():
             genomeNetwork = indivNetworks[min(rank_list)]
 
         # Ensure all in dists are in final network
-        networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
+        networkMissing = set(map(str,set(range(len(refList))).difference(list(genomeNetwork.vertices()))))
         if len(networkMissing) > 0:
             missing_isolates = [refList[m] for m in networkMissing]
             sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")

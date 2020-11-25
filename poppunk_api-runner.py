@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
-import os 
+import os
 import json
 
 from PopPUNK.web import get_colours, default_options, graphml_to_json, api, summarise_clusters
@@ -56,15 +56,15 @@ def sketchAssign():
         colours = get_colours(query, clusters)
         url = api(query, args.assign.ref_db)
 
-        response = {"species":species, 
-                    "prev":str(query_prevalence) + '%', 
-                    "query":query, 
-                    "clusters":clusters, 
-                    "prevalences":prevalences, 
-                    "colours":colours, 
+        response = {"species":species,
+                    "prev":str(query_prevalence) + '%',
+                    "query":query,
+                    "clusters":clusters,
+                    "prevalences":prevalences,
+                    "colours":colours,
                     "microreactUrl":url}
-        response = json.dumps(response)  
-        
+        response = json.dumps(response)
+
         return jsonify(response)
 
 @app.route('/network', methods=['GET', 'POST'])
@@ -109,4 +109,3 @@ def postNetwork():
 if __name__ == "__main__":
     app.secret_key = os.urandom(24)
     app.run(debug=False,use_reloader=False)
-    

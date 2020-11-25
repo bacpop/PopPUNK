@@ -1,13 +1,13 @@
 import json
 from types import SimpleNamespace
 import h5py
-import os 
+import os
 import re
 import sys
 import numpy as np
 import pandas as pd
 import graph_tool.all as gt
-import requests 
+import requests
 import networkx as nx
 from networkx.readwrite import json_graph
 
@@ -86,7 +86,7 @@ def graphml_to_json(network_dir):
     components = gt.label_components(full_graph)[0].a
     subgraph = gt.GraphView(full_graph, vfilt=(components == components[-1]))
     subgraph = gt.Graph(subgraph, prune=True)
-    subgraph.save(os.path.join(network_dir,"subgraph.graphml")) 
+    subgraph.save(os.path.join(network_dir,"subgraph.graphml"))
 
     G = nx.read_graphml(os.path.join(network_dir,"subgraph.graphml"))
     for value in G.nodes.values():
@@ -141,7 +141,7 @@ def calc_prevalence(cluster, cluster_list, num_samples):
     """Cluster prevalences for Plotly.js"""
     clusterCount = cluster_list.count(cluster)
     prevalence = round(clusterCount / num_samples * 100, 2)
-    return prevalence 
+    return prevalence
 
 def summarise_clusters(output, ref_db):
     """Retreieve assigned query and all cluster prevalences"""
@@ -164,4 +164,3 @@ def summarise_clusters(output, ref_db):
     query_prevalence = prevalences[clusters.index(query)]
 
     return query, query_prevalence, clusters, prevalences
-    

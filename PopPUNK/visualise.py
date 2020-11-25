@@ -92,7 +92,7 @@ def get_options():
                         help='Overwrite any existing visualisation files',
                         default=False,
                         action='store_true')
-                        
+
     # query options
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--core-only', help='(with a \'refine\' model) '
@@ -136,7 +136,7 @@ def get_options():
             arg = arg.rstrip('\\')
 
     return args
-    
+
 def generate_visualisations(query_db,
                             ref_db,
                             distances,
@@ -269,7 +269,7 @@ def generate_visualisations(query_db,
     try:
         model_file = os.path.basename(model_prefix) + "/" + os.path.basename(model_prefix)
         model = loadClusterFit(model_file + '_fit.pkl',
-                                model_file + '_fit.npz')
+                               model_file + '_fit.npz')
     except FileNotFoundError:
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
@@ -301,7 +301,7 @@ def generate_visualisations(query_db,
             prev_query_clustering = query_db
 
         queryIsolateClustering = readIsolateTypeFromCsv(
-                prev_query_clustering + suffix,
+                prev_query_clustering + '/' + os.path.basename(prev_query_clustering) + suffix,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
@@ -325,9 +325,9 @@ def generate_visualisations(query_db,
         outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
-    
+
     sys.stderr.write("\nDone\n")
-    
+
 def main():
     """Main function. Parses cmd line args and runs in the specified mode.
     """

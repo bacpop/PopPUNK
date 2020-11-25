@@ -69,7 +69,7 @@ def assign_query(dbFuncs,
     from .utils import createOverallLineage
 
     from .web import sketch_to_hdf5
-    
+
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     joinDBs = dbFuncs['joinDBs']
@@ -85,7 +85,7 @@ def assign_query(dbFuncs,
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
         sys.exit(1)
-    
+
     # Load the previous model
     model_prefix = ref_db
     if model_dir is not None:
@@ -115,7 +115,10 @@ def assign_query(dbFuncs,
                 rNames.append(reference.rstrip())
     else:
         rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
-    if not web:
+    # construct database
+    if (web and json_sketch):
+        qNames = sketch_to_hdf5(json_sketch, output)
+    else:
         # construct database
         createDatabaseDir(output, kmers)
         qNames = constructDatabase(q_files,
@@ -126,8 +129,6 @@ def assign_query(dbFuncs,
                                     overwrite,
                                     codon_phased = codon_phased,
                                     calc_random = False)
-    else:
-        qNames = sketch_to_hdf5(json_sketch, output)
     # run query
     refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
                                                   qNames = qNames,
@@ -227,7 +228,7 @@ def assign_query(dbFuncs,
         else:
             sys.stderr.write("Updating reference database to " + output + "\n")
 
-        # Update the network + ref list (everything) 
+        # Update the network + ref list (everything)
         joinDBs(ref_db, output, output)
         if model.type == 'lineage':
             genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
