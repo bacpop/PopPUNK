@@ -87,7 +87,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # Ensure all in dists are in final network
-    networkMissing = set(range(len(refList))).difference(list(genomeNetwork.vertices()))
+    networkMissing = set(map(str,set(range(len(refList))).difference(list(genomeNetwork.vertices()))))
     if len(networkMissing) > 0:
         sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 

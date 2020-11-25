@@ -237,7 +237,8 @@ def joinDBs(db1, db2, output):
     # Can only copy into new group, so for second file these are appended one at a time
     try:
         hdf1.copy('sketches', hdf_join)
-        hdf1.copy('random', hdf_join)
+        if 'random' in hdf1:
+            hdf1.copy('random', hdf_join)
         join_grp = hdf_join['sketches']
         read_grp = hdf2['sketches']
         for dataset in read_grp:

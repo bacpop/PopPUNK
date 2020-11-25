@@ -38,10 +38,12 @@ def assign_query(dbFuncs,
                  previous_clustering,
                  external_clustering,
                  core_only,
-                 accessory_only):
-    """Code for assign query mode. Written as a separate function so it can
-    be called by web APIs
-    """
+                 accessory_only,
+                 web,
+                 json_sketch):
+    """Code for assign query mode. Written as a separate function so it can be called
+    by web APIs"""
+
     # Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)
     from .models import loadClusterFit, ClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
 
@@ -65,6 +67,8 @@ def assign_query(dbFuncs,
     from .utils import qcDistMat
     from .utils import update_distance_matrices
     from .utils import createOverallLineage
+
+    from .web import sketch_to_hdf5
 
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
@@ -111,18 +115,20 @@ def assign_query(dbFuncs,
                 rNames.append(reference.rstrip())
     else:
         rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
-
     # construct database
-    createDatabaseDir(output, kmers)
-    qNames = constructDatabase(q_files,
-                                kmers,
-                                sketch_sizes,
-                                output,
-                                threads,
-                                overwrite,
-                                codon_phased = codon_phased,
-                                calc_random = False)
-
+    if (web and json_sketch):
+        qNames = sketch_to_hdf5(json_sketch, output)
+    else:
+        # construct database
+        createDatabaseDir(output, kmers)
+        qNames = constructDatabase(q_files,
+                                    kmers,
+                                    sketch_sizes,
+                                    output,
+                                    threads,
+                                    overwrite,
+                                    codon_phased = codon_phased,
+                                    calc_random = False)
     # run query
     refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
                                                   qNames = qNames,
@@ -132,7 +138,6 @@ def assign_query(dbFuncs,
                                                   self = False,
                                                   number_plot_fits = plot_fit,
                                                   threads = threads)
-
     # QC distance matrix
     qcPass = qcDistMat(qrDistMat, refList, queryList, max_a_dist)
 
@@ -348,7 +353,6 @@ def get_options():
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
-
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
 
@@ -420,7 +424,9 @@ def main():
                  args.previous_clustering,
                  args.external_clustering,
                  args.core_only,
-                 args.accessory_only)
+                 args.accessory_only,
+                 web = False,
+                 json_sketch = None)
 
     sys.stderr.write("\nDone\n")
 
