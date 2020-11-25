@@ -1,4 +1,6 @@
-# PopPUNK (POPulation Partitioning Using Nucleotide Kmers) <img src='poppunk_logo.png' align="right" height="139" />
+# PopPUNK <img src='poppunk_logo.png' align="right" height="50" />
+
+POPulation Partitioning Using Nucleotide Kmers
 
 <!-- badges: start -->
 [![Dev build Status](https://dev.azure.com/jlees/PopPUNK/_apis/build/status/johnlees.PopPUNK?branchName=master)](https://dev.azure.com/jlees/PopPUNK/_build/latest?definitionId=1&branchName=master)
