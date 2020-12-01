@@ -73,3 +73,11 @@ utils.py
 
 .. automodule:: PopPUNK.utils
    :members:
+
+web.py
+--------
+
+Functions used by the web API to convert a sketch to an h5 database, then generate visualisations and post results to PopPUNK-web.
+
+.. automodule:: PopPUNK.web
+   :members:
