@@ -14,10 +14,10 @@ This means your raw genomic sequences remain anonymous and secure as they never 
 
 Using PopPUNK-web
 -----------------------
-PopPUNK-web allows you to upload a single isolate's genomic sequence each run through our user-friendly drag and drop interface (shown below).
+PopPUNK-web allows you to upload a single isolate's genomic sequence through our user-friendly drag and drop interface (shown below).
 After sketching and lineage assignment, information is returned on the species and lineage your query has been assigned to, relative to the genomic sequences in our pre-built databases.
 We then use this assignment to generate and return a series of visualisations that provide additional information on the relationship of your sequence to those in our databases.
-Currently, PopPUNK-web only supports *S. pnuemoniae* sequences but we hope to expand this in the near future.
+Currently, PopPUNK-web only supports *S. pneumoniae* sequences but we hope to expand this in the near future.
 
 .. image:: images/web_home.png
    :alt:  PopPUNK-web homepage
@@ -25,7 +25,7 @@ Currently, PopPUNK-web only supports *S. pnuemoniae* sequences but we hope to ex
 
 Outputs
 -------
-The interactive outputs of PopPUNK-web are conventiently organised into a single page.
+The interactive outputs of PopPUNK-web are conventiently located in a single results page.
 You can navigate through the different outputs by using the tabs at the top of the results page.
 
 Sequence metrics
