@@ -120,8 +120,8 @@ def api(query, ref_db):
     """Post cluster and tree information to microreact"""
     url = "https://microreact.org/api/project/"
     microreactDF = pd.read_csv(os.path.join(ref_db, os.path.basename(ref_db) + "_microreact_clusters.csv"))
-    microreactDF["Cluster"] = microreactDF['Cluster_Cluster__autocolour']
-    microreactDF["CC__colour"] = microreactDF.apply(lambda row: highlight_cluster(query, row["Cluster_Cluster__autocolour"]), axis = 1)
+    microreactDF["Cluster__autocolour"] = microreactDF['Cluster_Cluster__autocolour']
+    microreactDF["Highlight_Query__colour"] = microreactDF.apply(lambda row: highlight_cluster(query, row["Cluster__autocolour"]), axis = 1)
     microreactDF = microreactDF.drop(columns=['Cluster_Cluster__autocolour'])
     clusters = microreactDF.to_csv()
 
