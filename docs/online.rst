@@ -64,7 +64,7 @@ By default, isolates are coloured based on their assigned cluster in our databas
    :alt:  PopPUNK-web population phylogeny
    :align: center
 
-This phylogeny does not include your query isolate however, the cluster your query has been assigned to can be highlighted by colouring by "Highlight_query," instead of "Cluster" (as shown below).
+This phylogeny does not include your query isolate however, the cluster your query has been assigned to can be highlighted by selecting "Highlight_query," instead of "Cluster" (as shown below).
 
 .. image:: images/web_micro_change.png
    :alt:  PopPUNK-web population phylogeny change
