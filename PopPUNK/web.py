@@ -143,7 +143,17 @@ def calc_prevalence(cluster, cluster_list, num_samples):
     prevalence = round(clusterCount / num_samples * 100, 2)
     return prevalence
 
-def summarise_clusters(output):
+def get_aliases(aliasDF, clusterLabels, species):
+    if species == 'Streptococcus pneumoniae':
+        GPS_name = 'unrecognised'
+        for label in clusterLabels:
+            if label in list(aliasDF['sample']):
+                index = list(aliasDF['sample']).index(label)
+                GPS_name = aliasDF['GPSC'][index]
+        alias_dict = {"GPS cluster":str(GPS_name)}
+    return alias_dict
+
+def summarise_clusters(output, species, species_db):
     """Retreieve assigned query and all cluster prevalences.
     Write list of all isolates in cluster for tree subsetting"""
     totalDF = pd.read_csv(os.path.join(output, os.path.basename(output) + "_clusters.csv"))
@@ -165,5 +175,7 @@ def summarise_clusters(output):
     clusterDF = totalDF.loc[totalDF['Cluster'] == query]
     with open(os.path.join(output, "include.txt"), "w") as i:
         i.write("\n".join(list(clusterDF['Taxon'])))
-
-    return query, query_prevalence, clusters, prevalences
+    # get aliases
+    aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
+    alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
+    return query, query_prevalence, clusters, prevalences, alias_dict

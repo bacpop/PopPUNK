@@ -52,7 +52,7 @@ def sketchAssign():
                                     args.assign.web,
                                     sketch_dict["sketch"])
 
-        query, query_prevalence, clusters, prevalences = summarise_clusters(args.assign.output)
+        query, query_prevalence, clusters, prevalences, alias_dict = summarise_clusters(args.assign.output, species, species_db)
         colours = get_colours(query, clusters)
         url = api(query, args.assign.ref_db)
 
@@ -62,7 +62,8 @@ def sketchAssign():
                     "clusters":clusters,
                     "prevalences":prevalences,
                     "colours":colours,
-                    "microreactUrl":url}
+                    "microreactUrl":url,
+                    "aliases":alias_dict}
         response = json.dumps(response)
 
         return jsonify(response)
