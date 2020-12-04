@@ -159,7 +159,8 @@ def generate_visualisations(query_db,
                             rapidnj,
                             overwrite,
                             core_only,
-                            accessory_only):
+                            accessory_only,
+                            web):
 
     # Check on parallelisation of graph-tools
     setGtThreads(threads)
@@ -355,7 +356,8 @@ def main():
                             args.rapidnj,
                             args.overwrite,
                             args.core_only,
-                            args.accessory_only)
+                            args.accessory_only,
+                            web = False)
 
 if __name__ == '__main__':
     main()

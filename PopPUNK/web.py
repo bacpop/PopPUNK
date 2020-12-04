@@ -120,8 +120,8 @@ def api(query, ref_db):
     """Post cluster and tree information to microreact"""
     url = "https://microreact.org/api/project/"
     microreactDF = pd.read_csv(os.path.join(ref_db, os.path.basename(ref_db) + "_microreact_clusters.csv"))
-    microreactDF["Cluster"] = microreactDF['Cluster_Cluster__autocolour']
-    microreactDF["CC__colour"] = microreactDF.apply(lambda row: highlight_cluster(query, row["Cluster_Cluster__autocolour"]), axis = 1)
+    microreactDF["Cluster__autocolour"] = microreactDF['Cluster_Cluster__autocolour']
+    microreactDF["Highlight_Query__colour"] = microreactDF.apply(lambda row: highlight_cluster(query, row["Cluster__autocolour"]), axis = 1)
     microreactDF = microreactDF.drop(columns=['Cluster_Cluster__autocolour'])
     clusters = microreactDF.to_csv()
 
@@ -143,24 +143,39 @@ def calc_prevalence(cluster, cluster_list, num_samples):
     prevalence = round(clusterCount / num_samples * 100, 2)
     return prevalence
 
-def summarise_clusters(output, ref_db):
-    """Retreieve assigned query and all cluster prevalences"""
-    queryDF = pd.read_csv(os.path.join(output, os.path.basename(output) + "_clusters.csv"))
-    queryDF = queryDF.loc[queryDF['Taxon'] == "query"]
+def get_aliases(aliasDF, clusterLabels, species):
+    if species == 'Streptococcus pneumoniae':
+        GPS_name = 'unrecognised'
+        for label in clusterLabels:
+            if label in list(aliasDF['sample']):
+                index = list(aliasDF['sample']).index(label)
+                GPS_name = aliasDF['GPSC'][index]
+        alias_dict = {"GPSC":str(GPS_name)}
+    return alias_dict
+
+def summarise_clusters(output, species, species_db):
+    """Retreieve assigned query and all cluster prevalences.
+    Write list of all isolates in cluster for tree subsetting"""
+    totalDF = pd.read_csv(os.path.join(output, os.path.basename(output) + "_clusters.csv"))
+    queryDF = totalDF.loc[totalDF['Taxon'] == "query"]
     queryDF = queryDF.reset_index(drop=True)
     query = str(queryDF["Cluster"][0])
-    clusterDF = pd.read_csv(os.path.join(ref_db, os.path.basename(ref_db) + "_clusters.csv"))
-    clusterDF = clusterDF.append(queryDF)
-    num_samples = len(clusterDF["Taxon"])
-    clusterDF["Cluster"] = clusterDF["Cluster"].astype(str)
-    cluster_list = list(clusterDF["Cluster"])
+    num_samples = len(totalDF["Taxon"])
+    totalDF["Cluster"] = totalDF["Cluster"].astype(str)
+    cluster_list = list(totalDF["Cluster"])
 
-    clusterDF["Prevalence"] = clusterDF.apply(lambda row: calc_prevalence(row["Cluster"], cluster_list, num_samples), axis = 1)
-    clusterDF = clusterDF.sort_values(by='Prevalence', ascending=False)
+    totalDF["Prevalence"] = totalDF.apply(lambda row: calc_prevalence(row["Cluster"], cluster_list, num_samples), axis = 1)
+    totalDF = totalDF.sort_values(by='Prevalence', ascending=False)
 
-    uniqueclusterDF = clusterDF.drop_duplicates(subset=['Cluster'])
-    clusters = list(uniqueclusterDF['Cluster'])
-    prevalences = list(uniqueclusterDF["Prevalence"])
+    uniquetotalDF = totalDF.drop_duplicates(subset=['Cluster'])
+    clusters = list(uniquetotalDF['Cluster'])
+    prevalences = list(uniquetotalDF["Prevalence"])
     query_prevalence = prevalences[clusters.index(query)]
-
-    return query, query_prevalence, clusters, prevalences
+    # write list of all isolates in cluster
+    clusterDF = totalDF.loc[totalDF['Cluster'] == query]
+    with open(os.path.join(output, "include.txt"), "w") as i:
+        i.write("\n".join(list(clusterDF['Taxon'])))
+    # get aliases
+    aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
+    alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
+    return query, query_prevalence, clusters, prevalences, alias_dict
