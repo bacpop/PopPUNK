@@ -7,7 +7,6 @@ channels:
 dependencies:
   - pip
   - numpy
-  - mkl
   - scipy
   - python-dateutil
   - pandas
@@ -21,6 +20,6 @@ dependencies:
   - pp-sketchlib >=1.5.1
   - graph-tool
   - requests
-  - flask 
+  - flask
   - flask-cors
   - networkx
