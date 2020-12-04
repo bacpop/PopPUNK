@@ -65,12 +65,5 @@ setup(
              'scripts/poppunk_calculate_silhouette.py',
              'scripts/poppunk_extract_distances.py',
              'scripts/poppunk_pickle_fix.py'],
-    install_requires=['numpy',
-                      'scipy',
-                      'scikit-learn',
-                      'DendroPy',
-                      'pandas',
-                      'matplotlib',
-                      'hdbscan'],
     test_suite="test",
 )
