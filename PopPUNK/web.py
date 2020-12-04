@@ -150,7 +150,7 @@ def get_aliases(aliasDF, clusterLabels, species):
             if label in list(aliasDF['sample']):
                 index = list(aliasDF['sample']).index(label)
                 GPS_name = aliasDF['GPSC'][index]
-        alias_dict = {"GPS cluster":str(GPS_name)}
+        alias_dict = {"GPSC":str(GPS_name)}
     return alias_dict
 
 def summarise_clusters(output, species, species_db):
