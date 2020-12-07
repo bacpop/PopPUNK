@@ -20,7 +20,7 @@ from PopPUNK.utils import setupDBFuncs
 from PopPUNK.visualise import generate_visualisations
 
 app = Flask(__name__, instance_relative_config=True)
-app.config.from_pyfile('/run/secrets/flask_secret.cfg', silent=True)
+app.config.from_pyfile('/run/secrets/flask_secret', silent=True)
 CORS(app, expose_headers='Authorization')
 
 @app.route('/upload', methods=['POST'])
@@ -68,7 +68,8 @@ def sketchAssign():
                                     args.assign.web,
                                     sketch_dict["sketch"])
 
-        query, query_prevalence, clusters, prevalences, alias_dict = summarise_clusters(args.assign.output, species, species_db)
+        query, query_prevalence, clusters, prevalences, alias_dict = \
+            summarise_clusters(args.assign.output, species, species_db)
         colours = get_colours(query, clusters)
         url = api(query, args.assign.ref_db)
 
@@ -121,12 +122,13 @@ def postNetwork():
                                 args.visualise.accessory_only,
                                 args.visualise.web)
         networkJson = graphml_to_json(args.visualise.output)
-        if not len(to_include) < 3:
+        if args.visualise.microreact:
             with open(os.path.join(args.visualise.output, os.path.basename(args.visualise.output) + "_core_NJ.nwk"), "r") as p:
                 phylogeny = p.read()
         else:
-            phylogeny = "A tree cannot be built with fewer than 3 samples.")
-        visResponse = json.dumps({"network":networkJson, "phylogeny": phylogeny})
+            phylogeny = "A tree cannot be built with fewer than 3 samples."
+        visResponse = json.dumps({"network": networkJson,
+                                  "phylogeny": phylogeny})
         return jsonify(visResponse)
 
 def default_options(species_db):
