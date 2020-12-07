@@ -66,8 +66,11 @@ RUN conda config --add channels defaults && \
     conda env create --prefix $ENV_PREFIX --file /tmp/environment.yml --force && \
     conda clean --all --yes
 
+RUN echo "SECRET_KEY = ${FLASK_SECRET_PPWEB}" > $HOME/flask_application.cfg
+
 # use an entrypoint script to insure conda environment is properly activated at runtime
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
-CMD [ "gunicorn", "--bind=0.0.0.0", "--timeout", "600", "PopPUNK:web" ]
+EXPOSE 80
+CMD [ "gunicorn", "--bind=0.0.0.0", "--timeout", "600", "PopPUNK.web:main" ]

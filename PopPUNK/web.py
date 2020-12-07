@@ -19,7 +19,8 @@ from PopPUNK.assign import assign_query
 from PopPUNK.utils import setupDBFuncs
 from PopPUNK.visualise import generate_visualisations
 
-app = Flask(__name__)
+app = Flask(__name__, instance_relative_config=True)
+app.config.from_pyfile('flask_application.cfg', silent=True)
 CORS(app, expose_headers='Authorization')
 
 @app.route('/upload', methods=['POST'])
@@ -291,5 +292,4 @@ def summarise_clusters(output, species, species_db):
     return query, query_prevalence, clusters, prevalences, alias_dict
 
 def main():
-    app.secret_key = os.urandom(24)
     app.run(debug=False,use_reloader=False)
