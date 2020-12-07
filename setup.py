@@ -69,12 +69,5 @@ setup(
              'scripts/poppunk_add_weights.py',
              'scripts/poppunk_easy_run.py',
              'scripts/poppunk_pickle_fix.py'],
-    install_requires=['numpy',
-                      'scipy',
-                      'scikit-learn',
-                      'DendroPy',
-                      'pandas',
-                      'matplotlib',
-                      'hdbscan'],
     test_suite="test",
 )
