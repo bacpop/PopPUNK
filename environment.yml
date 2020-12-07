@@ -22,4 +22,5 @@ dependencies:
   - requests
   - flask
   - flask-cors
+  - gunicorn
   - networkx
