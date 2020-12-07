@@ -36,10 +36,6 @@ def sketchAssign():
             species = 'Streptococcus pneumoniae'
             species_db = "GPS_v3_references"
         args = default_options(species_db)
-        with open(args.visualise.include_files, "r") as i:
-            to_include = (i.read()).split("\n")
-        if len(to_include) < 3:
-            args.visualise.microreact = False
 
         if not os.path.exists(args.assign.output):
             os.mkdir(args.assign.output)
@@ -97,6 +93,10 @@ def postNetwork():
         if species_dict["species"] == "S.pneumoniae":
             species_db = "GPS_v3_references"
         args = default_options(species_db)
+        with open(args.visualise.include_files, "r") as i:
+            to_include = (i.read()).split("\n")
+        if len(to_include) < 3:
+            args.visualise.microreact = False
         generate_visualisations(args.visualise.query_db,
                                 args.visualise.ref_db,
                                 args.visualise.distances,
@@ -122,7 +122,7 @@ def postNetwork():
                                 args.visualise.accessory_only,
                                 args.visualise.web)
         networkJson = graphml_to_json(args.visualise.output)
-        if args.visualise.microreact:
+        if len(to_include) >= 3:
             with open(os.path.join(args.visualise.output, os.path.basename(args.visualise.output) + "_core_NJ.nwk"), "r") as p:
                 phylogeny = p.read()
         else:
