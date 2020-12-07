@@ -7,13 +7,15 @@ on:
       - docker
 
 jobs:
-  - uses: azure/docker-login@v1
-    with:
-      login-server: index.docker.io
-      username: ${{ secrets.REGISTRY_USERNAME }}
-      password: ${{ secrets.REGISTRY_PASSWORD }}
+  docker:
+    steps:
+    - uses: azure/docker-login@v1
+      with:
+        login-server: index.docker.io
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
 
-  - run: |
-      echo "SECRET_KEY = ${{ secrets.FLASK_SECRET_PPWEB }}" | docker secret create flask_secret
-      docker build --file docker/Dockerfile -t poppunk/poppunk_api:${{ github.sha }}
-      docker push poppunk/poppunk_api:${{ github.sha }}
+    - run: |
+        echo "SECRET_KEY = ${{ secrets.FLASK_SECRET_PPWEB }}" | docker secret create flask_secret
+        docker build --file docker/Dockerfile -t poppunk/poppunk_api:${{ github.sha }}
+        docker push poppunk/poppunk_api:${{ github.sha }}
