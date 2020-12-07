@@ -27,5 +27,5 @@ jobs:
     - name: Install and run_test.py
       run: |
         $CONDA/bin/python -m pip install --no-deps --ignore-installed .
-        cd test && $CONDA/bin/python run_test.py
+        cd test && export POPPUNK_PYTHON=$CONDA/bin/python && $CONDA/bin/python run_test.py
 
