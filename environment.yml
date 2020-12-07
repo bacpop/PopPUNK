@@ -12,8 +12,7 @@ dependencies:
   - pandas
   - scikit-learn
   - dendropy
-  - matplotlib
-  - mash
+  - matplotlib-base
   - hdbscan
   - rapidnj
   - h5py
@@ -24,3 +23,12 @@ dependencies:
   - flask-cors
   - gunicorn
   - networkx
+  - xorg-libxi
+  - xorg-libxcursor
+  - xorg-libxdamage
+  - xorg-libxcomposite
+  - xorg-libxrandr
+  - xorg-libxinerama
+  - xorg-libxpm
+  - xorg-libxaw
+  - xorg-libxfixes
