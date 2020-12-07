@@ -1,0 +1,33 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Add conda to PATH
+    - run: echo "##vso[task.prependpath]$CONDA/bin"
+
+    - name: Create Anaconda environment and install dependencies
+    - run: conda env create --quiet --file environment.yml
+
+    - name: 'Install and run_test.py'
+    - run: |
+        source activate pp_env
+        python -m pip install --no-deps --ignore-installed .
+        cd test && python run_test.py
