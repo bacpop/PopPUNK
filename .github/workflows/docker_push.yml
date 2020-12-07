@@ -19,6 +19,5 @@ jobs:
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
     - run: |
-        echo "SECRET_KEY = ${{ secrets.FLASK_SECRET_PPWEB }}" | docker secret create flask_secret -
         docker build --file docker/Dockerfile -t poppunk/poppunk_api:${{ github.sha }}
         docker push poppunk/poppunk_api:${{ github.sha }}

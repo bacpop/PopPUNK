@@ -26,7 +26,8 @@ jobs:
         $CONDA/bin/conda env update --file environment.yml --name base
     - name: Install and run_test.py
       run: |
-        $CONDA/bin/activate
+        PATH=$CONDA/bin/bin:$PATH
+        source $CONDA/bin/activate base
         $CONDA/bin/python -m pip install --no-deps --ignore-installed .
         cd test && export POPPUNK_PYTHON=$CONDA/bin/python && $CONDA/bin/python run_test.py
 
