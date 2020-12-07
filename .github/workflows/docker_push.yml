@@ -27,7 +27,6 @@ jobs:
       with:
         push: true
         tags: poppunk/poppunk_api:latest
-        build-args: |
-          file=docker/Dockerfile
+        file: docker/Dockerfile
     - name: Image digest
       run: echo ${{ steps.docker_build.outputs.digest }}
