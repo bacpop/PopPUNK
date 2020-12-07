@@ -23,13 +23,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Add conda to PATH
-    - run: echo "##vso[task.prependpath]$CONDA/bin"
+      run: echo "##vso[task.prependpath]$CONDA/bin"
 
     - name: Create Anaconda environment and install dependencies
-    - run: conda env create --quiet --file environment.yml
+      run: conda env create --quiet --file environment.yml
 
     - name: 'Install and run_test.py'
-    - run: |
+      run: |
         source activate pp_env
         python -m pip install --no-deps --ignore-installed .
         cd test && python run_test.py
