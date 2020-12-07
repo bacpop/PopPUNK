@@ -19,5 +19,5 @@ jobs:
         password: ${{ secrets.REGISTRY_PASSWORD }}
 
     - run: |
-        docker build --file docker/Dockerfile -t poppunk/poppunk_api:${{ github.sha }}
+        docker build . --file docker/Dockerfile -t poppunk/poppunk_api:${{ github.sha }}
         docker push poppunk/poppunk_api:${{ github.sha }}

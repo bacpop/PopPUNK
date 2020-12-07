@@ -43,7 +43,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --output 
 
 #use model
 sys.stderr.write("Running with an existing model (--use-model)\n")
-subprocess.run(python_cmd + "../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
 
 # tests of other command line programs
 
