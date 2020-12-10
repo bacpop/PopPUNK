@@ -55,6 +55,8 @@ RUN conda init bash
 # create a project directory inside user home
 ENV PROJECT_DIR $HOME/app
 RUN mkdir $PROJECT_DIR
+# copy the code in
+COPY . $PROJECT_DIR
 WORKDIR $PROJECT_DIR
 
 # build the conda environment
@@ -68,4 +70,4 @@ ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
 EXPOSE 80
-CMD [ "gunicorn", "--bind=0.0.0.0", "--timeout", "600", "PopPUNK.web:app" ]
+CMD [ "gunicorn", "--bind=0.0.0.0:80", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]

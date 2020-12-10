@@ -3,8 +3,10 @@ name: Build and push Docker image
 on:
   push:
     branches:
-      - master
       - docker
+  create:
+    tags:
+      - v*
 
 jobs:
   docker:

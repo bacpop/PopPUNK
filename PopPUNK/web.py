@@ -19,8 +19,12 @@ from PopPUNK.assign import assign_query
 from PopPUNK.utils import setupDBFuncs
 from PopPUNK.visualise import generate_visualisations
 
+db_location = os.environ.get('POPPUNK_DBS_LOC')
 app = Flask(__name__, instance_relative_config=True)
-app.config.from_pyfile('/run/secrets/flask_secret', silent=True)
+app.config.update(
+    TESTING=True,
+    SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
+)
 CORS(app, expose_headers='Authorization')
 
 @app.route('/upload', methods=['POST'])
@@ -34,7 +38,7 @@ def sketchAssign():
         # determine database to use
         if sketch_dict["species"] == "S.pneumoniae":
             species = 'Streptococcus pneumoniae'
-            species_db = "GPS_v3_references"
+            species_db = db_location + "/GPS_v3_references"
         args = default_options(species_db)
 
         if not os.path.exists(args.assign.output):
