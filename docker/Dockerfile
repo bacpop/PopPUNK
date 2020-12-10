@@ -69,5 +69,5 @@ RUN conda update --name base --channel defaults conda && \
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
-EXPOSE 80
-CMD [ "gunicorn", "--bind=0.0.0.0:80", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
+EXPOSE 8080
+CMD [ "gunicorn", "--bind=0.0.0.0", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
