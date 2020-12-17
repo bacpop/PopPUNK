@@ -523,7 +523,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                         raw_fit,
                         corrected,
                         corrected_fit,
-                        dbPrefix + "/" + dbPrefix + "fit_example_" + str(plot_idx + 1),
+                        dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
                         "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
