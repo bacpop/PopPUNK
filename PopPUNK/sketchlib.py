@@ -682,6 +682,8 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
                          prefix + '/' + os.path.basename(prefix) + \
                          '_qcreport.txt\n')
         sys.exit(1)
+    elif qc_dict['qc_filter'] == 'continue':
+        retained = retained + failed
 
     # calculate random matches if any sequences pass QC filters
     if len(retained) == 0:
