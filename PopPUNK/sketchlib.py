@@ -613,9 +613,6 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
             remove = False
             seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
             seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
-            # if no filtering to be undertaken, retain all sequences
-            if qc_dict['qc_filter'] == 'continue':
-                retained.append(dataset)
 
         # calculate thresholds
         # get mean length
@@ -685,6 +682,8 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
                          prefix + '/' + os.path.basename(prefix) + \
                          '_qcreport.txt\n')
         sys.exit(1)
+    elif qc_dict['qc_filter'] == 'continue':
+        retained = retained + failed
 
     # calculate random matches if any sequences pass QC filters
     if len(retained) == 0:
