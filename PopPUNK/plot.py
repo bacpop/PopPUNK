@@ -71,7 +71,7 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_fit(klist, matching, fit, out_prefix, title):
+def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, out_prefix, title):
     """Draw a scatter plot (pdf) of k-mer sizes vs match probability, and the
     fit used to assign core and accessory distance
 
@@ -81,28 +81,39 @@ def plot_fit(klist, matching, fit, out_prefix, title):
     Args:
         klist (list)
             List of k-mer sizes
-        matching (list)
+        raw_matching (list)
             Proportion of matching k-mers at each klist value
-        kfit (numpy.array)
-            Fit to klist and matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
+        raw_fit (numpy.array)
+            Fit to klist and raw_matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
+        corrected_matching (list)
+            Corrected proportion of matching k-mers at each klist value
+        corrected_fit (numpy.array)
+            Fit to klist and corrected_matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
         out_prefix (str)
             Prefix for output plot file (.pdf will be appended)
         title (str)
             The title to display above the plot
     """
     k_fit = np.linspace(0, klist[-1], num = 100)
-    matching_fit = (1 - fit[1]) * np.power((1 - fit[0]), k_fit)
+    raw_matching_fit = (1 - raw_fit[1]) * np.power((1 - raw_fit[0]), k_fit)
+    corrected_matching_fit = (1 - corrected_fit[1]) * np.power((1 - corrected_fit[0]), k_fit)
 
     fig, ax = plt.subplots()
     ax.set_yscale("log")
-    ax.set_xlabel('k-mer length')
-    ax.set_ylabel('Proportion of matches')
+    ax.set_xlabel('k-mer length', fontsize = 9)
+    ax.set_ylabel('Proportion of matches', fontsize = 9)
+    ax.tick_params(axis='both', which='major', labelsize=9)
+    ax.tick_params(axis='both', which='minor', labelsize=9)
 
     plt.tight_layout()
-    plt.plot(klist, matching, 'o')
-    plt.plot(k_fit, matching_fit, 'r-')
+    plt.plot(klist, raw_matching, 'o', label= 'Raw matching k-mer proportion')
+    plt.plot(k_fit, raw_matching_fit, 'b-', label= 'Fit to raw matches')
+    plt.plot(klist, corrected_matching, 'mx', label= 'Corrected matching k-mer proportion')
+    plt.plot(k_fit, corrected_matching_fit, 'm--', label= 'Fit to corrected matches')
 
-    plt.title(title)
+    plt.legend(loc='upper right', prop={'size': 8})
+
+    plt.title(title, fontsize = 10)
     plt.savefig(out_prefix + ".pdf", bbox_inches='tight')
     plt.close()
 

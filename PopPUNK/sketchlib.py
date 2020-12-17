@@ -518,8 +518,12 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                     corrected[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, True)
                 raw_fit = fitKmerCurve(raw, klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected, klist, jacobian)
-                plot_fit(klist, raw, raw_fit,
-                        dbPrefix + "/fit_example_" + str(plot_idx + 1),
+                plot_fit(klist,
+                        raw,
+                        raw_fit,
+                        corrected,
+                        corrected_fit,
+                        dbPrefix + "/" + dbPrefix + "fit_example_" + str(plot_idx + 1),
                         "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
