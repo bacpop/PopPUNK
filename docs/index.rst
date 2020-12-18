@@ -21,6 +21,11 @@ in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
 If you are new to PopPUNK, we'd recommend starting on :doc:`installation`, then
 by reading the :doc:`best_practises`.
 
+.. important::
+   Looking for older versions of the documentation? For previous versions with
+   the old API (`--assign-query`, `--refine-fit` etc) see `v2.2.0 <https://poppunk.readthedocs.io/en/v2.2.0-docs/>`__.
+   For older versions which used mash, see `v1.2.0 <https://poppunk.readthedocs.io/en/v1.2.2-docs/>`__.
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
