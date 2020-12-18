@@ -27,7 +27,6 @@ Where ``references.txt`` is a list of assembly fasta files, one per line. See
    tutorial.rst
    troubleshooting.rst
    scripts.rst
-   api.rst
    miscellaneous.rst
 
 Details
