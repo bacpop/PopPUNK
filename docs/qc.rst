@@ -1,9 +1,38 @@
 Data quality control
 ====================
-TODO: new QC options
+PopPUNK now comes with some basic quality control options which are applied by
+default when running ``--create-db``:
 
-Removing samples from a database
---------------------------------
+- Outlying genome length (calculated during sketching, for assemblies or reads).
+- Too many 'N's.
+- Outlying accessory distance.
+
+Accessory distance is also used with ``poppunk_assign``.
+
+You can set the behaviour when creating the database by setting ``--qc-filter``
+to one of the following three values if any failing samples are found:
+
+- ``stop`` (default) -- Do not proceed past the sketching step, and throw an error.
+- ``prune`` -- Remove failing samples from the sketch database before continuing.
+- ``continue`` -- Ignore failing samples and run anyway.
+
+In all cases a file will be written at ``qcreport.txt`` which lists the failing samples, and the
+reasons why they failed. If running with either prune or continue, you may also add ``--retain-failures``
+to write a separate sketch database with the failed samples.
+
+You can change the genome length cutoff with ``--length-sigma`` which sets the maximum number
+of standard deviations from the mean, and ``--length-range`` which sets an absolute range of
+allowable sizes.
+
+Ambiguous bases are controlled by ``--prop-n`` which gives the maximum percentage of Ns,
+and ``--upper-n`` which gives the absolute maximum value.
+
+The maximum allowed accessory distance is 0.5 to ensure you check for contamination. However,
+many species do really have high accessory values above this range, in which case you
+should increase the value of ``--max-a-dist``.
+
+Removing samples from an existing database
+------------------------------------------
 You can use the ``prune_poppunk`` command to remove samples from a database,
 for example those found to be of poor quality (see :ref:`qc`). Create a file
 ``remove.txt`` with the names of the samples you wish to remove, one per line,
@@ -14,18 +43,12 @@ and run::
 This will remove the samples from the ``strain_db.dists`` files, from which
 ``--model-fit`` can be run again.
 
-If you would like to create the mash sketches again, which is recommended if
-you plan to use ``--full-db`` and/or assign future query sequences, add the
-``--resketch`` argument::
-
-   prune_poppunk --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db --resketch --ref-db strain_db --threads 4
-
 Dealing with poor quality data
 ------------------------------
 In this example we analyse 76 *Haemophilus influenzae* isolates. One isolate, 14412_4_15,
 is contaminated with 12% of reads being *Haemophilus parainfluenzae* and a total
-assembly length of 3.8Mb. It should be removed before input, but its presence
-can also be found with ``PopPUNK``.
+assembly length of 3.8Mb. It would be removed before input, but its presence
+can also be found with ``PopPUNK --qc-filter continue``.
 
 With the distances
 ^^^^^^^^^^^^^^^^^^

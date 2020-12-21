@@ -219,6 +219,10 @@ We assume you have a GPU of at least compute capability v7.0 (Tesla) with driver
 correctly installed. You do not need the CUDA toolkit installed, as all libraries are
 included with the pp-sketchlib executable.
 
+.. note::
+   You will see 'GPU' in the progress message if a GPU is successfully being used. If you
+   see the usual CPU version your install may not have been compiled with CUDA.
+
 Sketching read data with the GPU is a hybrid algorithm which can take advantage of
 CPU threads too (which are used to read and process the fastq files). You can add
 up to around 16 ``--threads`` to keep a typical consumer GPU busy. The sequence data

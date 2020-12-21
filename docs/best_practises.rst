@@ -10,7 +10,8 @@ run PopPUNK, if possible.
 Use an online interface
 -----------------------
 If available, you may want to use one of the browser-based interfaces to
-PopPUNK. These include PopPUNK-web and `pathogen.watch <https://pathogen.watch/genomes/all?genusId=1301&speciesId=1313>`__
+PopPUNK. These include `PopPUNK-web <https://web.poppunk.net/>`__ and
+`pathogen.watch <https://pathogen.watch/genomes/all?genusId=1301&speciesId=1313>`__
 (*S. pneumoniae* only). See the :doc:`online` page for full details.
 
 Using these interfaces requires nothing to be installed or set up, doesn't require any
