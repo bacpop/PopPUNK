@@ -237,7 +237,8 @@ def joinDBs(db1, db2, output):
     # Can only copy into new group, so for second file these are appended one at a time
     try:
         hdf1.copy('sketches', hdf_join)
-        hdf1.copy('random', hdf_join)
+        if 'random' in hdf1:
+            hdf1.copy('random', hdf_join)
         join_grp = hdf_join['sketches']
         read_grp = hdf2['sketches']
         for dataset in read_grp:
@@ -511,12 +512,18 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             for plot_idx in range(number_plot_fits):
                 example = sample(rNames, k=2)
                 raw = np.zeros(len(klist))
+                corrected = np.zeros(len(klist))
                 for kidx, kmer in enumerate(klist):
-                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer)
-
-                fit = fitKmerCurve(raw, klist, jacobian)
-                plot_fit(klist, raw, fit,
-                        dbPrefix + "/fit_example_" + str(plot_idx + 1),
+                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, False)
+                    corrected[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, True)
+                raw_fit = fitKmerCurve(raw, klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected, klist, jacobian)
+                plot_fit(klist,
+                        raw,
+                        raw_fit,
+                        corrected,
+                        corrected_fit,
+                        dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
                         "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
@@ -612,9 +619,6 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
             remove = False
             seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
             seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
-            # if no filtering to be undertaken, retain all sequences
-            if qc_dict['qc_filter'] == 'continue':
-                retained.append(dataset)
 
         # calculate thresholds
         # get mean length
@@ -684,6 +688,8 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
                          prefix + '/' + os.path.basename(prefix) + \
                          '_qcreport.txt\n')
         sys.exit(1)
+    elif qc_dict['qc_filter'] == 'continue':
+        retained = retained + failed
 
     # calculate random matches if any sequences pass QC filters
     if len(retained) == 0:
