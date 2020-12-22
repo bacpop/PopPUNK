@@ -20,6 +20,9 @@ In all cases a file will be written at ``qcreport.txt`` which lists the failing 
 reasons why they failed. If running with either prune or continue, you may also add ``--retain-failures``
 to write a separate sketch database with the failed samples.
 
+Random match chances in PopPUNK are only calculated and added to the database after the chosen
+QC step. If you use ``poppunk_sketch`` directly, they will be added without any automated QC.
+
 You can change the genome length cutoff with ``--length-sigma`` which sets the maximum number
 of standard deviations from the mean, and ``--length-range`` which sets an absolute range of
 allowable sizes.
@@ -34,7 +37,7 @@ should increase the value of ``--max-a-dist``.
 Removing samples from an existing database
 ------------------------------------------
 You can use the ``prune_poppunk`` command to remove samples from a database,
-for example those found to be of poor quality (see :ref:`qc`). Create a file
+for example those found to be of poor quality. Create a file
 ``remove.txt`` with the names of the samples you wish to remove, one per line,
 and run::
 

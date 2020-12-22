@@ -175,6 +175,7 @@ def main():
     from .network import printClusters
 
     from .plot import writeClusterCsv
+    from .plot import plot_scatter
 
     from .prune_db import prune_distance_matrix
 
@@ -286,6 +287,11 @@ def main():
         # Save results
         dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
         storePickle(refList, queryList, True, distMat, dists_out)
+
+        # Plot results
+        plot_scatter(distMat,
+                     args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
+                     args.output + " distances")
 
     #******************************#
     #*                            *#

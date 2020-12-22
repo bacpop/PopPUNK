@@ -6,6 +6,7 @@
 import sys
 import os
 import subprocess
+import random
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
@@ -18,7 +19,7 @@ from shutil import copyfile
 import pandas as pd
 from collections import defaultdict
 from scipy import spatial
-from sklearn import manifold
+from sklearn import manifold, utils
 try:  # sklearn >= 0.22
     from sklearn.neighbors import KernelDensity
 except ImportError:
@@ -27,7 +28,7 @@ import dendropy
 
 from .utils import isolateNameToLabel
 
-def plot_scatter(X, scale, out_prefix, title, kde = True):
+def plot_scatter(X, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
 
     Also draws contours of kernel density estimare
@@ -35,8 +36,6 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
     Args:
         X (numpy.array)
             n x 2 array of core and accessory distances for n samples.
-        scale (numpy.array)
-            Scaling factor from :class:`~PopPUNK.models.BGMMFit`
         out_prefix (str)
             Prefix for output plot file (.png will be appended)
         title (str)
@@ -46,6 +45,15 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
 
             (default = True)
     """
+    # Plot results - max 1M for speed
+    max_plot_samples = 1000000
+    if X.shape[0] > max_plot_samples:
+        X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_plot_samples,]
+
+    # Kernel estimate uses scaled data 0-1 on each axis
+    scale = np.amax(X, axis = 0)
+    X /= scale
+
     plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     if kde:
         xx, yy, xy = get_grid(0, 1, 100)
@@ -58,11 +66,13 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
         z = z.reshape(xx.shape).T
 
         levels = np.linspace(z.min(), z.max(), 10)
+        # Rescale contours
         plt.contour(xx*scale[0], yy*scale[1], z, levels=levels[1:], cmap='plasma')
         scatter_alpha = 1
     else:
         scatter_alpha = 0.1
 
+    # Plot on correct scale
     plt.scatter(X[:,0]*scale[0].flat, X[:,1]*scale[1].flat, s=1, alpha=scatter_alpha)
 
     plt.title(title)

@@ -11,6 +11,17 @@ installed with the prefix 'poppunk' (e.g to run ``extract_distances.py``, run th
 .. contents::
    :local:
 
+Easy run mode
+-------------
+Previous versions of the software had an ``--easy-run`` mode which would run a pipeline of:
+
+- ``--create-db`` to sketch genomes
+- ``--fit-model --dbscan`` to fit a flexible model
+- ``--refine-model`` to improve this model
+
+This is now available as ``poppunk_easy_run.py`` which will chain calls to ``poppunk``
+and ``poppunk_visualise`` to replicate this functionality.
+
 Writing the pairwise distances to an output file
 ------------------------------------------------
 By default PopPUNK does not write the calculated :math:`\pi_n` and :math:`a` distances out, as this

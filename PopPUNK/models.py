@@ -21,8 +21,6 @@ from scipy.sparse import coo_matrix, bmat, find
 
 import pp_sketchlib
 
-from .plot import plot_scatter
-
 # BGMM
 from .bgmm import fit2dMultiGaussian
 from .bgmm import assign_samples
@@ -126,7 +124,6 @@ class ClusterFit:
         '''Initial steps for all fit functions.
 
         Creates output directory. If preprocess is set then subsamples passed X
-        and draws a scatter plot from result using :func:`~PopPUNK.plot.plot_scatter`.
 
         Args:
             X (numpy.array)
@@ -158,12 +155,6 @@ class ClusterFit:
             # perform scaling
             self.scale = np.amax(self.subsampled_X, axis = 0)
             self.subsampled_X /= self.scale
-
-            # Show clustering
-            plot_scatter(self.subsampled_X,
-                         self.scale,
-                         self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_distanceDistribution",
-                         self.outPrefix + " distances")
 
     def plot(self, X=None):
         '''Initial steps for all plot functions.

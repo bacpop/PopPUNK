@@ -42,6 +42,9 @@ has many advantages:
 
 See :doc:`query_assignment` for instructions on how to use this mode.
 
+You can think of this as being similar to using an existing MLST/cgMLST/wgMLST scheme
+to define your sample's strains.
+
 Fit your own model
 ^^^^^^^^^^^^^^^^^^
 If a database isn't available for your species, you can fit your own. Details

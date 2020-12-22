@@ -1,6 +1,6 @@
 PopPUNK-web
 =================
-This is the newest feature in the PopPUNK pipeline, available at http://poppunk.net/web.
+This is the newest feature in the PopPUNK pipeline, available at https://web.poppunk.net/.
 PoPUNK-web has been designed for non-specialists and allows you to easily analyse and assign lineages to your query genomic sequences,
 using pre-optimised species-specific databases and default parameters.
 
