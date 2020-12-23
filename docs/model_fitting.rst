@@ -1,6 +1,9 @@
 Fitting new models
 ==================
 
+.. |nbsp| unicode:: 0xA0
+   :trim:
+
 If you cannot find an existing model for your species in the
 `list <https://poppunk.net/pages/databases.html>`__ you will want to fit your own.
 This process is flexible, and there are five different models you can use depending
@@ -47,13 +50,18 @@ A completed fit will consist of:
 - A ``.refs`` file, which lists the samples kept as 'references' for assigning
   future samples (see :doc:`model_distribution` for more details).
 
-This page will use 128 *Listeria monocytogenes* samples from `Kremer et al <https://doi.org/10.1016/j.cmi.2016.12.008>`__,
+This page will use 128 *Listeria*\ |nbsp| \ *monocytogenes* genomes from `Kremer et al <https://doi.org/10.1016/j.cmi.2016.12.008>`__,
 which can be downloaded from `figshare <https://doi.org/10.6084/m9.figshare.7083389>`__. The distribution of
-core and accessory distances from the ``--create-db`` step is as follows
+core and accessory distances from the ``--create-db`` step is as follows:
 
 .. image:: images/listeria_dists.png
    :alt:  Core and accessory distances for the example data
    :align: center
+
+We also show some examples with 616 *Streptococcus*\ |nbsp| \ *pneumoniae* genomes, which are more complex.
+These genomes were collected from Massachusetts,
+first reported `here <https://www.nature.com/articles/ng.2625>`__ and can be accessed
+`here <https://www.nature.com/articles/sdata201558>`__.
 
 Common arguments
 ----------------
@@ -100,6 +108,8 @@ All fits will output a network summary which looks similar to this::
 - Score synthesises the above as :math:`(1 - \mathrm{density}) * \mathrm{transitivity}`,
   which gives a single number between 0 (bad) and 1 (good) which in many cases is
   at a maximum when it accurately describes strains in the data.
+
+.. _bgmm:
 
 bgmm
 ----
@@ -257,6 +267,8 @@ a bad fit:
 This is clearly a poor fit. The real issue is that the component whose mean is nearest
 the origin is unclear, and doesn't include all of the smallest distances.
 
+.. _dbscan:
+
 dbscan
 ------
 This mode uses `HDBSCAN <https://hdbscan.readthedocs.io/en/latest/>`__ to find clusters
@@ -377,6 +389,101 @@ Setting either ``--min-cluster-prop`` or ``--D`` too low can cause the fit to fa
 
 refine
 ------
+Model refinement is slightly different: it takes a model already fitted by :ref:`bgmm`
+or :ref:`dbscan` and tries to improve it by optimising the network score. This starts
+with a parallelised global optimisation step, followed by a serial local optimisation
+step (which can be turned off with ``--no-local``). Use of multiple ``--cpus`` is
+effective for these model fits.
+
+Briefly:
+
+* A line between the within- and between-strain means is constructed
+* The point on this line where samples go from being assigned as within-strain to between-strain is used as the starting point
+* A line normal to the first line, passing through this point is constructed. The triangle formed by this line and the x- and y-axes is now the decision boundary. Points within this line are within-strain.
+* The starting point is shifted by a distance along the first line, and a new decision boundary formed in the same way. The network is reconstructed.
+* The shift of the starting point is optimised, as judged by the network score. First globally by a grid search, then locally near the global optimum.
+
+Applying this to the *Listeria* DBSCAN fit (noting that you may specify a separate
+directory to load the model from with ``--model-dir``, if multiple model fits are available)::
+
+    poppunk --fit-model refine --ref-db listeria --model-dir dbscan
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.0
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting refine model to reference database
+
+    Loading DBSCAN model
+    Loaded previous model of type: dbscan
+    Initial model-based network construction based on DBSCAN fit
+    Initial boundary based network construction
+    Decision boundary starts at (0.63,0.62)
+    Trying to optimise score globally
+    Trying to optimise score locally
+
+    Optimization terminated successfully;
+    The returned value satisfies the termination criteria
+    (using xtol =  1e-05 )
+    Network summary:
+        Components	29
+        Density	0.0897
+        Transitivity	0.9984
+        Score	0.9088
+    Removing 93 sequences
+
+    Done
+
+As this model was already well fitted, this doesn't change much, and finds very similar
+clusters (though noise points are eliminated):
+
+.. image:: images/listeria_refined.png
+   :alt:  A refine fit on Listeria
+   :align: center
+
+The default is to search along the entire range between the within- and between-strain clusters,
+but sometimes this can include undesired optima, particularly near the origin. To exclude these,
+use ``--pos-shift`` to alter the distance between the end of the search range and the origin
+and ``--neg-shift`` for the start of the search range.
+
+This mode is more useful in species with a relatively high recombination rate the distinction between
+the within- and between-strain distributions may be blurred in core and
+accessory space. This does not give the mixture model enough information to
+draw a good boundary as the likelihood is very flat in this region:
+
+.. image:: images/pneumo_unrefined.png
+   :alt:  A bad DPGMM fit
+   :align: center
+
+Although the score of this fit looks ok (0.904), inspection of the network and
+microreact reveals that it is too liberal and clusters have been merged. This
+is because some of the blur between the origin and the central distribution has
+been included, and connected clusters together erroneously.
+
+The likelihood of the model fit and the decision boundary looks like this:
+
+.. image:: images/pneumo_likelihood.png
+   :alt:  The likelihood and decision boundary of the above fit
+   :align: center
+
+Using the core and accessory distributions alone does not give much information
+about exactly where to put the boundary, and the only way to fix this would be
+by specifying strong priors on the weights of the distributions. Fortunately
+the network properties give information in the region, and we can use
+``--refine-fit`` to tweak the existing fit and pick a better boundary.
+
+Here is the refined fit, which has a score of 0.939, and 62 rather than 32
+components:
+
+.. image:: images/pneumo_refined.png
+   :alt:  The refined fit
+   :align: center
+
+Which, looking at the `microreact output <https://microreact.org/project/SJxxLMcaf>`__, is much better:
+
+.. image:: images/refined_microreact.png
+   :alt:  The refined fit, in microreact
+   :align: center
 
 .. _manual-start:
 
@@ -394,7 +501,82 @@ A key, followed by its value (space separated).
 
 ``mean0`` and ``mean1`` define the points (x,y) to draw the line between, and
 ``start_point`` is the distance along this line to draw the initial boundary
-(which is normal to the line).
+(which is normal to the line). These define the three red points (and therefore the
+search range) in the output plot
+
+.. _indiv-refine:
+
+Using core/accessory only
+^^^^^^^^^^^^^^^^^^^^^^^^^
+In some cases, such as analysis within a lineage, it may be desirable to use
+only core or accessory distances to classify further queries. This can be
+achieved by adding the ``--indiv-refine both`` option, which will allow these boundaries to be
+placed independently, allowing the best fit in each case::
+
+    poppunk --fit-model refine --ref-db listeria --model-dir dbscan --indiv-refine both
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.0
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting refine model to reference database
+
+    Loading DBSCAN model
+    Loaded previous model of type: dbscan
+    Initial model-based network construction based on DBSCAN fit
+    Initial boundary based network construction
+    Decision boundary starts at (0.63,0.62)
+    Trying to optimise score globally
+    Trying to optimise score locally
+
+    Optimization terminated successfully;
+    The returned value satisfies the termination criteria
+    (using xtol =  1e-05 )
+    Refining core and accessory separately
+    Initial boundary based network construction
+    Decision boundary starts at (0.63,0.62)
+    Trying to optimise score globally
+    Trying to optimise score locally
+
+    Optimization terminated successfully;
+    The returned value satisfies the termination criteria
+    (using xtol =  1e-05 )
+    Initial boundary based network construction
+    Decision boundary starts at (0.63,0.62)
+    Trying to optimise score globally
+    Trying to optimise score locally
+
+    Optimization terminated successfully;
+    The returned value satisfies the termination criteria
+    (using xtol =  1e-05 )
+    Network summary:
+        Components	29
+        Density	0.0897
+        Transitivity	0.9984
+        Score	0.9088
+    Network summary:
+        Components	31
+        Density	0.0897
+        Transitivity	1.0000
+        Score	0.9103
+    Network summary:
+        Components	31
+        Density	0.0808
+        Transitivity	0.9862
+        Score	0.9064
+    Removing 93 sequences
+
+    Done
+
+There are three different networks, and the core and accessory boundaries will
+also be shown on the _refined_fit.png plot as dashed gray lines:
+
+.. image:: images/indiv_refine.png
+   :alt:  Refining fit with core and accessory individuals independently
+   :align: center
+
+To use one of these for your saved model, rerun, but instead setting
+``--indiv-refine core`` or ``--indiv-refine accessory``.
 
 lineage
 -------

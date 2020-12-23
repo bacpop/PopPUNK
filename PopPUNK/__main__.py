@@ -111,12 +111,13 @@ def get_options():
             type=float, default = None)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
-    refinementGroup.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually', default=False,
-            action='store_true')
+    refinementGroup.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
+            choices=['both', 'core', 'accessory'], default = False)
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
+    refinementGroup.add_argument('--core-only', help='Save the core distance fit (with ')
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -475,10 +476,10 @@ def main():
                     output + "/" + os.path.basename(output) + \
                     "_" + dist_type + '_graph.gt', fmt = 'gt')
 
-            if args.core_only:
+            if args.indiv_refine == 'core':
                 fit_type = 'core'
                 genomeNetwork = indivNetworks['core']
-            elif args.accessory_only:
+            elif args.indiv_refine == 'accessory':
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 

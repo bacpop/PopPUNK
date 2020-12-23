@@ -114,7 +114,8 @@ Command line options::
     --manual-start MANUAL_START
                           A file containing information for a start point.
                           See documentation for help.
-    --indiv-refine        Also run refinement for core and accessory
+    --indiv-refine {both,core,accessory}
+                          Also run refinement for core and accessory
                           individually
     --no-local            Do not perform the local optimization step (speed
                           up on very large datasets)
