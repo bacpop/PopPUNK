@@ -22,6 +22,15 @@ Previous versions of the software had an ``--easy-run`` mode which would run a p
 This is now available as ``poppunk_easy_run.py`` which will chain calls to ``poppunk``
 and ``poppunk_visualise`` to replicate this functionality.
 
+Adding weights to the network
+-----------------------------
+Converts binary within-cluster edge weights to the Euclidean core-accessory distance.
+This is equivalent to running with ``--graph-weights``::
+
+  poppunk_add_weights <name>_graph.gt <name>.dists <output>
+
+Default output is a graph-tool file. Add ``--graphml`` to save as .graphml instead.
+
 Writing the pairwise distances to an output file
 ------------------------------------------------
 By default PopPUNK does not write the calculated :math:`\pi_n` and :math:`a` distances out, as this

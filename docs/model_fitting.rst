@@ -61,6 +61,8 @@ Common arguments
 - ``--output``: where to save the model. If not specified this defaults to ``ref-db``.
 - ``--overwrite``: overwrite any existing files in the output directory.
 - ``--external-clustering``: any additional labels to add to the cluster output.
+- ``--graph-weights``: save the edges weights in the network as their Euclidean core-accessory
+  distances, rather than as 0 or 1 (useful for visualising the network).
 
 External clusters may be other cluster names, such as serotype, sequence type, cgMLST etc.
 PopPUNK clusters are mapped as one-to-many, so that each strain is labelled with all of
@@ -109,7 +111,8 @@ boundary found exactly.
 
 However, when there are a very large number of points the likelihood has a tendency
 to totally override the prior in the estimated posterior, meaning many overlapping components
-may be fitted, which may give poor clusters, and is less robust to adding more data.
+may be fitted, which may give poor clusters, and is less robust to adding more data. It is possible
+for this mode to fail to converge, but it is more likely to produce a bad fit in difficult cases.
 
 The key parameter to specify is the maximum number of components ``--K``. You should
 choose a number based on the number of components you can see on your distance plot. This
@@ -256,7 +259,121 @@ the origin is unclear, and doesn't include all of the smallest distances.
 
 dbscan
 ------
+This mode uses `HDBSCAN <https://hdbscan.readthedocs.io/en/latest/>`__ to find clusters
+in the core and accessory distances. This is a versatile clustering algorithm capable of
+finding non-linear structure in the data, and can represent irregularly shaped components
+well. Possible drawbacks are that a fit cannot always be found (this can happen
+for small datasets with sparse points, or for datasets without much structure in the core
+and accessory), and that some points are classified as 'noise' so not all of their
+edges are included in the network (these are the small black points).
 
+dbscan usually needs little modification to run::
+
+    poppunk --fit-model dbscan --ref-db listeria
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+	(with backend: sketchlib v1.6.0
+	 sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting dbscan model to reference database
+
+    Fit summary:
+        Number of clusters	5
+        Number of datapoints	8128
+        Number of assignments	7804
+
+    Scaled component means
+        [0.94155383 0.90322459]
+        [0.00527493 0.07044794]
+        [0.20945986 0.37491995]
+        [0.12876077 0.34294888]
+        [0.11413982 0.24224743]
+
+    Network summary:
+        Components	31
+        Density	0.0897
+        Transitivity	1.0000
+        Score	0.9103
+    Removing 97 sequences
+
+    Done
+
+In the output to the terminal:
+
+- The number of clusters is the number of spatial components found in the data.
+- Number of datapoints is the number of points used (all-vs-all distances), which
+  may have been subsampled from the maximum.
+- Number of assignments is the number of points assign to one of the spatial components,
+  so excluding noise points.
+- Scaled component means are the centres of the fitted components in the model, where
+  the core and accessory distances have been rescaled between 0 and 1. These can be
+  used with :ref:`manual-start`.
+
+The fit actually just uses the component closest to the origin -- any distances
+assigned to this component are within-strain. This is the most important part of the
+fit in this mode. In this case the identification of this component is identical to the bgmm
+fit, so they produce the same strains. Note there is a small yellow cluster which is poorly
+defined, but as it does not impact the within-strain cluster the fit is unaffected:
+
+.. image:: images/dbscan_fit.png
+   :alt:  DBSCAN fit
+   :align: center
+
+You can alter the fit with ``--D``, which sets a maximum number of clusters, and
+``--min-cluster-prop`` which sets the minimum number of points a cluster can have (as
+a proportion of 'Number of datapoints). If the means of both of the core and accessory are not
+strictly increasing between the within-strain and next further component, the clustering
+fails. In this case the minimum number of samples per cluster is halved, and the fit is
+tried again. If this goes below ten, no fit can be found.
+
+Increasing ``--min-cluster-prop`` or decreasing ``--D`` gets rid of the errant cluster above::
+
+    poppunk --fit-model dbscan --ref-db listeria --min-cluster-prop 0.01
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.0
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting dbscan model to reference database
+
+    Fit summary:
+        Number of clusters	4
+        Number of datapoints	8128
+        Number of assignments	7805
+
+    Scaled component means
+        [0.94155383 0.90322459]
+        [0.00522549 0.06876396]
+        [0.11515678 0.24488282]
+        [0.21152104 0.37635505]
+
+    Network summary:
+        Components	31
+        Density	0.0886
+        Transitivity	0.9953
+        Score	0.9071
+    Removing 95 sequences
+
+    Done
+
+But note that a few more noise points are generated, and fewer samples are removed
+when pruning cliques:
+
+.. image:: images/dbscan_fit_min_prop.png
+   :alt:  DBSCAN fit increasing assignments per cluster
+   :align: center
+
+Setting either ``--min-cluster-prop`` or ``--D`` too low can cause the fit to fail::
+
+    poppunk --fit-model dbscan --ref-db listeria --min-cluster-prop 0.05
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.0
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting dbscan model to reference database
+
+    Failed to find distinct clusters in this dataset
 
 refine
 ------

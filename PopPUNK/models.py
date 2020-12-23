@@ -465,7 +465,7 @@ class DBSCANFit(ClusterFit):
         if not hasattr(self, 'subsampled_X'):
             self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
-        non_noise = np.sum(np.where(self.labels != -1))
+        non_noise = np.sum(self.labels != -1)
         sys.stderr.write("Fit summary:\n" + "\n".join(["\tNumber of clusters\t" + str(self.n_clusters),
                                                         "\tNumber of datapoints\t" + str(self.subsampled_X.shape[0]),
                                                         "\tNumber of assignments\t" + str(non_noise)]) + "\n\n")
