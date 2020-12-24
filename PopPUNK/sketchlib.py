@@ -645,6 +645,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
                     remove = True
                     qc_file.write(dataset + '\tBelow lower length threshold\n')
                 elif seq_length[dataset] > upper_length:
+                    remove = True
                     qc_file.write(dataset + '\tAbove upper length threshold\n')
                 if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
                     remove = True
@@ -691,7 +692,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
     elif qc_dict['qc_filter'] == 'continue':
         retained = retained + failed
 
-    # calculate random matches if any sequences pass QC filters
+    # stop if no sequences pass QC
     if len(retained) == 0:
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)
