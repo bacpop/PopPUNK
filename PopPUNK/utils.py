@@ -426,7 +426,7 @@ def return_duplicate_names(names):
         count[name] = count[name] + 1
     for name in count:
         if count[name] > 1:
-            nonunique.append()
+            nonunique.append(name)
     return nonunique
 
 def isolateNameToLabel(names):
