@@ -529,7 +529,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
 
         if len(set(rNames).intersection(set(qNames))) > 0:
-            sys.stderr.write("Sample names in query are contained in reference database\n")
+            sys.stderr.write("Sample names in query are contained in reference database:\n")
+            sys.stderr.write(str(set(rNames).intersection(set(qNames))))
             sys.stderr.write("Unique names are required!\n")
             exit(0)
 

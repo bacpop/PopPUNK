@@ -405,9 +405,29 @@ def readRfile(rFile, oneSeq=False):
 
     if len(set(names)) != len(names):
         sys.stderr.write("Input contains duplicate names! All names must be unique\n")
+        sys.stderr.write("Non-unique names are " + str(return_duplicate_names(names)))
         sys.exit(1)
 
     return (names, sequences)
+
+def return_duplicate_names(names):
+    """Function to return duplicated names in database.
+    
+    Args:
+        names (list)
+            List of isolate names.
+    Returns:
+        nonunique (list)
+            List of duplicated names.
+    """
+    count = {name:0 for name in names}
+    nonunique = []
+    for name in names:
+        count[name] = count[name] + 1
+    for name in count:
+        if count[name] > 1:
+            nonunique.append()
+    return nonunique
 
 def isolateNameToLabel(names):
     """Function to process isolate names to labels
