@@ -30,12 +30,12 @@ Then, use ``poppunk --fit-model <model_name>`` with one of the following model n
   and attempts to improve it by maximising the network score. Particularly useful when
   components overlap significantly (often due to recombination), or when the strain boundary
   is thought to lie somewhere within a component.
-- ``lineage`` -- Lineage clustering. To find lineages within a strain (subclustering), or
-  find clusters in a population without strain structure. Uses a simple nearest neighbour approach
-  so is more of a heuristic. Network scores are not meaningful in this mode.
 - ``threshold`` -- Apply a given core or accessory distance threshold to define clusters. Useful if
   a cutoff threshold is already known/calculated, is estimated from a plot, or to compare a threshold
   between datasets or species.
+- ``lineage`` -- Lineage clustering. To find lineages within a strain (subclustering), or
+  find clusters in a population without strain structure. Uses a simple nearest neighbour approach
+  so is more of a heuristic. Network scores are not meaningful in this mode.
 
 The most useful guide to deciding which model to use is the ``_distanceDistribution.png`` file
 showing the core and accessory distances. More details on each of these models is given
@@ -578,12 +578,151 @@ also be shown on the _refined_fit.png plot as dashed gray lines:
 To use one of these for your saved model, rerun, but instead setting
 ``--indiv-refine core`` or ``--indiv-refine accessory``.
 
-lineage
--------
-
-
 threshold
 ---------
+In this mode no model is fitted. You provide the threshold at which within- and
+between-strain distances is drawn. This can be useful if ``refine`` cannot find a boundary
+due to a poorly performing network score, but one can clearly be seen from the plot.
+It may also be useful to compare with other fits from related species where a boundary
+has been identified using one of the fitting procedures.
+
+Currently only a core-distance boundary is supported (if you would like an accessory or
+combined mode available, please `raise an issue <https://github.com/johnlees/PopPUNK/issues>`__).
+Provide the cutoff with ``--threshold``::
+
+    poppunk --fit-model threshold --ref-db listeria --threshold 0.003
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.0
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting threshold model to reference database
+
+    Network summary:
+        Components	31
+        Density	0.0897
+        Transitivity	1.0000
+        Score	0.9103
+    Removing 97 sequences
+
+    Done
+
+.. image:: images/listeria_threshold.png
+   :alt:  A threshold fit on Listeria
+   :align: center
+
+lineage
+-------
+This mode defines clusters by joining nearest neighbours. As this will typically
+define subclusters within strains, we refer to these as 'lineages'. This can be used
+to find subclusters in addition to one of the above models, or for species without
+strain-structure (e.g. some viruses, *Neisseria gonorrhoeae*, *Mycobacterium tuberculosis*).
+This is the highest resolution (most specific clusters) provided directly by PopPUNK. If it does
+not meet your needs, take a look at :doc:`subclustering` for other options.
+
+A model is not fitted, and a simple data-driven heuristic is used. For each sample, the
+nearest :math:`k` neighbours will be indentified, and joined in the network. Connected components
+of the network define lineages, as in the other models. Only core distances are used (add ``--use-accessory`` to modify this),
+and in the case of ties all distances are included. Note that these are not necessarily
+expected to be transitive, so network scores are not as informative of the optimum.
+
+We refer to :math:`k` as the 'rank' of the model. Typically you won't know which rank
+to use beforehand, so you can provide multiple integer values to the ``--rank`` option, comma separated.
+Clusters from all ranks will be output, and all used with :doc:`query_assignment`. :math:`k = 1` is the
+most specific rank, and higher values will form looser clusters. With the *Listeria* example::
+
+    poppunk --fit-model lineage --ref-db listeria --ranks 1,2,3,5
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.0
+        sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Fitting lineage model to reference database
+
+    Network for rank 1
+    Network summary:
+        Components	26
+        Density	0.0271
+        Transitivity	0.1834
+        Score	0.1785
+    Network for rank 2
+    Network summary:
+        Components	12
+        Density	0.0428
+        Transitivity	0.3528
+        Score	0.3377
+    Network for rank 3
+    Network summary:
+        Components	6
+        Density	0.0589
+        Transitivity	0.4191
+        Score	0.3944
+    Network for rank 5
+    Network summary:
+        Components	2
+        Density	0.0904
+        Transitivity	0.5319
+        Score	0.4838
+    Parsed data, now writing to CSV
+
+    Done
+
+This has produced four fits, with ranks 1, 2, 3 and 5 (with fit information contained in
+the .pkl file, and a .npz file for each rank). The _clusters.csv will contain the clusters
+from the lowest rank. The _lineages.csv file contains all of the assignments, a column
+with all of the ranks hyphen-separated (which will give clusters indentical to the lowest rank)::
+
+    id,Rank_1_Lineage,Rank_2_Lineage,Rank_3_Lineage,Rank_5_Lineage,overall_Lineage
+    12673_8#24,18,2,2,1,18-2-2-1
+    12673_8#26,4,2,2,1,4-2-2-1
+    12673_8#27,26,1,1,1,26-1-1-1
+    12673_8#28,1,1,1,1,1-1-1-1
+    12673_8#29,4,2,2,1,4-2-2-1
+    12673_8#31,18,2,2,1,18-2-2-1
+    12673_8#32,9,8,1,1,9-8-1-1
+    12673_8#34,7,7,1,1,7-7-1-1
+    12673_8#36,1,1,1,1,1-1-1-1
+
+The best way to assess the ranks is by visualising them (:doc:`visualisation`)::
+
+    poppunk_visualise --distances listeria/listeria.dists --ref-db listeria --microreact
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    PopPUNK: visualise
+    Loading previously lineage cluster model
+    Writing microreact output
+    Parsed data, now writing to CSV
+    Building phylogeny
+    Running t-SNE
+
+    Done
+
+This can be loaded in microreact: https://microreact.org/project/dVNMftmK6VXRvDxBfrH2y.
+Rank 1 has the smallest clusters:
+
+.. image:: images/listeria_lineage_rank_1.png
+   :alt:  Rank 1 lineage fit for Listeria
+   :align: center
+
+Rank 3 has larger clusters. Some of these clusters are polyphyletic on the core neighbour-joining
+tree:
+
+.. image:: images/listeria_lineage_rank_3.png
+   :alt:  Rank 3 lineage fit for Listeria
+   :align: center
+
+At the model fit stage, you will also get histograms which show the distances included
+in the network, a useful comparison with the original distance distribution and between ranks:
+
+.. list-table::
+
+    * - .. figure:: images/listeria_lineage_rank_1_histogram.png
+
+           Rank 1
+
+      - .. figure:: images/listeria_lineage_rank_3_histogram.png
+
+           Rank 3
 
 Use an existing model with new data
 -----------------------------------
@@ -592,4 +731,23 @@ There is also one further mode, ``--use-model``, which may be useful in limited 
 applies any of the above models to a new dataset without refitting it. This may be useful if a reference
 dataset has changed (been added to or removed from) and you do not wish to refit the model, for example
 because it is already in use. However, typically you would use :doc:`query_assignment` with ``--update-db``
-to add to a model.
+to add to a model::
+
+    poppunk --use-model --ref-db new_db --model-dir old_db
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+	(with backend: sketchlib v1.6.0
+	 sketchlib: /Users/jlees/miniconda3/envs/pp-py38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Mode: Using previous model with a reference database
+
+    Loading BGMM 2D Gaussian model
+    Loaded previous model of type: bgmm
+    Network summary:
+        Components	31
+        Density	0.0897
+        Transitivity	1.0000
+        Score	0.9103
+    Removing 97 sequences
+
+    Done

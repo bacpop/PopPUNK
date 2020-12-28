@@ -441,7 +441,6 @@ def main():
                 overall_lineage,
                 output_format = 'phandango',
                 epiCsv = None,
-                queryNames = refList,
                 suffix = '_Lineage')
             genomeNetwork = indivNetworks[min(rank_list)]
 
