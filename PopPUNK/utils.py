@@ -404,7 +404,10 @@ def readRfile(rFile, oneSeq=False):
                 sequences.append(sample_files)
 
     if len(set(names)) != len(names):
+        seen = set()
+        dupes = set(x for x in names if x in seen or seen.add(x))
         sys.stderr.write("Input contains duplicate names! All names must be unique\n")
+        sys.stderr.write("Non-unique names are " + ",".join(dupes) + "\n")
         sys.exit(1)
 
     return (names, sequences)

@@ -519,21 +519,22 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 raw_fit = fitKmerCurve(raw, klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected, klist, jacobian)
                 plot_fit(klist,
-                        raw,
-                        raw_fit,
-                        corrected,
-                        corrected_fit,
-                        dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
-                        "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
+                         raw,
+                         raw_fit,
+                         corrected,
+                         corrected_fit,
+                         dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
+                         "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
-        query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
-
-        if len(set(rNames).intersection(set(qNames))) > 0:
-            sys.stderr.write("Sample names in query are contained in reference database\n")
+        duplicated = set(rNames).intersection(set(qNames))
+        if len(duplicated) > 0:
+            sys.stderr.write("Sample names in query are contained in reference database:\n")
+            sys.stderr.write("\n".join(duplicated))
             sys.stderr.write("Unique names are required!\n")
-            exit(0)
+            sys.exit(1)
 
         # Calls to library
+        query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
         distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
                                              True, False, threads, use_gpu, deviceid)
 
@@ -645,6 +646,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
                     remove = True
                     qc_file.write(dataset + '\tBelow lower length threshold\n')
                 elif seq_length[dataset] > upper_length:
+                    remove = True
                     qc_file.write(dataset + '\tAbove upper length threshold\n')
                 if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
                     remove = True
@@ -691,7 +693,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
     elif qc_dict['qc_filter'] == 'continue':
         retained = retained + failed
 
-    # calculate random matches if any sequences pass QC filters
+    # stop if no sequences pass QC
     if len(retained) == 0:
         sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
         sys.exit(1)
