@@ -1,3 +1,5 @@
 Distributing PopPUNK models
 ===========================
-i.e. reference pruning choices
+
+
+Previous fans (users) of PopPUNK may remember the ``--full-db`` option
