@@ -41,7 +41,7 @@ algorithm has changed slightly from the originally published one:
 #. Split the graph into connected components (strains), which are analysed in parallel.
 #. Identify a clique. If no samples in the clique are already references, add one sample as a reference.
 #. Prune the clique from the graph, creating a subgraph.
-#. Recursively apply steps until only two samples or fewer remain.
+#. Recursively apply steps 2-3 until only two samples or fewer remain.
 #. Add the remaining samples as references
 #. Create the reference graph, and find connected components again.
 #. For any samples which are no longer in the same connected component, find a minimum path

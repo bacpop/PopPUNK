@@ -36,12 +36,12 @@ should increase the value of ``--max-a-dist``.
 
 Removing samples from an existing database
 ------------------------------------------
-You can use the ``prune_poppunk`` command to remove samples from a database,
+You can use the ``poppunk_prune`` command to remove samples from a database,
 for example those found to be of poor quality. Create a file
 ``remove.txt`` with the names of the samples you wish to remove, one per line,
 and run::
 
-   prune_poppunk --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db
+   poppunk_prune --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db
 
 This will remove the samples from the ``strain_db.dists`` files, from which
 ``--model-fit`` can be run again.
