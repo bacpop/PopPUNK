@@ -9,6 +9,11 @@ If you cannot find an existing model for your species in the
 This process is flexible, and there are five different models you can use depending
 on the population structure of your dataset.
 
+.. note::
+    After fitting a model to a new species we would like to share it on our website,
+    so others can use it for assigning queries. If you are open to this, please read
+    :doc:`model_distribution` after this page.
+
 .. contents::
    :local:
 
@@ -610,6 +615,8 @@ Provide the cutoff with ``--threshold``::
 .. image:: images/listeria_threshold.png
    :alt:  A threshold fit on Listeria
    :align: center
+
+.. _lineage-fit:
 
 lineage
 -------
