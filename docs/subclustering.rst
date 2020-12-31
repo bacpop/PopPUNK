@@ -101,7 +101,7 @@ fastbaps configuration
 
 Updating a run
 -----------------
-Running `snakemake` from the same directory will keep outputs where possible,
+Running ``snakemake`` from the same directory will keep outputs where possible,
 so new additions will automatically be included.
 
 **TODO**: How to do this when adding new isolates with ``poppunk_assign``
