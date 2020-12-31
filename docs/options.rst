@@ -1,6 +1,14 @@
 Options
 =======
 
+**Contents**:
+
+.. contents::
+   :local:
+
+poppunk
+-------
+
 Usage::
 
        poppunk [-h]
@@ -137,4 +145,173 @@ Command line options::
     --gpu-dist            Use a GPU when calculating distances [default =
                           False]
     --deviceid DEVICEID   CUDA device ID, if using GPU [default = 0]
+    --version             show program's version number and exit
+
+poppunk_assign
+--------------
+
+Usage::
+
+  poppunk_assign [-h] --db DB --query QUERY [--distances DISTANCES]
+                        [--external-clustering EXTERNAL_CLUSTERING] --output
+                        OUTPUT [--plot-fit PLOT_FIT] [--write-references]
+                        [--update-db] [--overwrite] [--graph-weights]
+                        [--min-kmer-count MIN_KMER_COUNT] [--exact-count]
+                        [--strand-preserved] [--max-a-dist MAX_A_DIST]
+                        [--model-dir MODEL_DIR]
+                        [--previous-clustering PREVIOUS_CLUSTERING]
+                        [--core-only] [--accessory-only] [--threads THREADS]
+                        [--gpu-sketch] [--gpu-dist] [--deviceid DEVICEID]
+                        [--version]
+
+Command line options::
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+  Input files:
+    --db DB               Location of built reference database
+    --query QUERY         File listing query input assemblies
+    --distances DISTANCES
+                          Prefix of input pickle of pre-calculated distances
+                          (if not in --db)
+    --external-clustering EXTERNAL_CLUSTERING
+                          File with cluster definitions or other labels
+                          generated with any other method.
+
+  Output options:
+    --output OUTPUT       Prefix for output files (required)
+    --plot-fit PLOT_FIT   Create this many plots of some fits relating k-mer
+                          to core/accessory distances [default = 0]
+    --write-references    Write reference database isolates' cluster
+                          assignments out too
+    --update-db           Update reference database with query sequences
+    --overwrite           Overwrite any existing database files
+    --graph-weights       Save within-strain Euclidean distances into the
+                          graph
+
+  Kmer comparison options:
+    --min-kmer-count MIN_KMER_COUNT
+                          Minimum k-mer count when using reads as input
+                          [default = 0]
+    --exact-count         Use the exact k-mer counter with reads [default =
+                          use countmin counter]
+    --strand-preserved    Treat input as being on the same strand, and
+                          ignore reverse complement k-mers [default = use
+                          canonical k-mers]
+
+  Quality control options:
+    --max-a-dist MAX_A_DIST
+                          Maximum accessory distance to permit [default =
+                          0.5]
+
+  Database querying options:
+    --model-dir MODEL_DIR
+                          Directory containing model to use for assigning
+                          queries to clusters [default = reference database
+                          directory]
+    --previous-clustering PREVIOUS_CLUSTERING
+                          Directory containing previous cluster definitions
+                          and network [default = use that in the directory
+                          containing the model]
+    --core-only           (with a 'refine' model) Use a core-distance only
+                          model for assigning queries [default = False]
+    --accessory-only      (with a 'refine' or 'lineage' model) Use an
+                          accessory-distance only model for assigning
+                          queries [default = False]
+
+  Other options:
+    --threads THREADS     Number of threads to use [default = 1]
+    --gpu-sketch          Use a GPU when calculating sketches (read data
+                          only) [default = False]
+    --gpu-dist            Use a GPU when calculating distances [default =
+                          False]
+    --deviceid DEVICEID   CUDA device ID, if using GPU [default = 0]
+    --version             show program's version number and exit
+
+poppunk_visualise
+-----------------
+
+Usage::
+
+  poppunk_visualise [-h] --ref-db REF_DB [--query-db QUERY_DB]
+                          [--distances DISTANCES]
+                          [--include-files INCLUDE_FILES]
+                          [--external-clustering EXTERNAL_CLUSTERING]
+                          [--model-dir MODEL_DIR]
+                          [--previous-clustering PREVIOUS_CLUSTERING]
+                          [--previous-query-clustering PREVIOUS_QUERY_CLUSTERING]
+                          --output OUTPUT [--overwrite] [--core-only]
+                          [--accessory-only] [--microreact] [--cytoscape]
+                          [--phandango] [--grapetree] [--rapidnj RAPIDNJ]
+                          [--perplexity PERPLEXITY] [--info-csv INFO_CSV]
+                          [--threads THREADS] [--gpu-dist]
+                          [--deviceid DEVICEID] [--strand-preserved]
+                          [--version]
+
+Command line options::
+
+  optional arguments:
+    -h, --help            show this help message and exit
+
+  Input files:
+    --ref-db REF_DB       Location of built reference database
+    --query-db QUERY_DB   Location of query database, if distances are from
+                          ref-query
+    --distances DISTANCES
+                          Prefix of input pickle of pre-calculated distances
+    --include-files INCLUDE_FILES
+                          File with list of sequences to include in
+                          visualisation. Default is to use all sequences in
+                          database.
+    --external-clustering EXTERNAL_CLUSTERING
+                          File with cluster definitions or other labels
+                          generated with any other method.
+    --model-dir MODEL_DIR
+                          Directory containing model to use for assigning
+                          queries to clusters [default = reference database
+                          directory]
+    --previous-clustering PREVIOUS_CLUSTERING
+                          Directory containing previous cluster definitions
+                          and network [default = use that in the directory
+                          containing the model]
+    --previous-query-clustering PREVIOUS_QUERY_CLUSTERING
+                          Directory containing previous cluster definitions
+                          from poppunk_assign [default = use that in the
+                          directory containing the model]
+
+  Output options:
+    --output OUTPUT       Prefix for output files (required)
+    --overwrite           Overwrite any existing visualisation files
+
+  Database querying options:
+    --core-only           (with a 'refine' model) Use a core-distance only
+                          model for assigning queries [default = False]
+    --accessory-only      (with a 'refine' or 'lineage' model) Use an
+                          accessory-distance only model for assigning
+                          queries [default = False]
+
+  Visualisation options:
+    --microreact          Generate output files for microreact visualisation
+    --cytoscape           Generate network output files for Cytoscape
+    --phandango           Generate phylogeny and TSV for Phandango
+                          visualisation
+    --grapetree           Generate phylogeny and CSV for grapetree
+                          visualisation
+    --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for
+                          Microreact
+    --perplexity PERPLEXITY
+                          Perplexity used to calculate t-SNE projection
+                          (with --microreact) [default=20.0]
+    --info-csv INFO_CSV   Epidemiological information CSV formatted for
+                          microreact (can be used with other outputs)
+
+  Other options:
+    --threads THREADS     Number of threads to use [default = 1]
+    --gpu-dist            Use a GPU when calculating distances [default =
+                          False]
+    --deviceid DEVICEID   CUDA device ID, if using GPU [default = 0]
+    --strand-preserved    If distances being calculated, treat strand as
+                          known when calculating random match chances
+                          [default = False]
     --version             show program's version number and exit
