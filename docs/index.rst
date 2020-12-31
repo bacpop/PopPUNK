@@ -9,57 +9,62 @@ PopPUNK documentation
    :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
    :align: center
 
-In straightforward cases, usage can be as simple as::
+PopPUNK is a tool for clustering genomes. The first version was targeted specifically
+as bacterial genomes, but the current version has also been used for viruses
+(e.g. enterovirus, influenza, SARS-CoV-2) and eukaryotes (e.g. *Candida* sp.,
+*P. falciparum*). Under the hood, PopPUNK uses
+`pp-sketchlib <https://github.com/johnlees/pp-sketchlib>`__ to rapidly calculate
+core and accessory distances, and machine learning tools written in python to
+use these to cluster genomes. A detailed description of the method can be found
+in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
 
-   poppunk --easy-run --r-files references.txt --output poppunk_db
+If you are new to PopPUNK, we'd recommend starting on :doc:`installation`, then
+by reading the :doc:`best_practises`.
 
-Where ``references.txt`` is a list of assembly fasta files, one per line. See
-:doc:`quickstart` and the :doc:`tutorial` for full details.
+.. important::
+   Looking for older versions of the documentation? For previous versions with
+   the old API (``--assign-query``, ``--refine-fit`` etc) see `v2.2.0 <https://poppunk.readthedocs.io/en/v2.2.0-docs/>`__.
+   For older versions which used mash, see `v1.2.0 <https://poppunk.readthedocs.io/en/v1.2.2-docs/>`__.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    self
    installation.rst
-   options.rst
-   quickstart.rst
-   tutorial.rst
+   best_practises.rst
+   online.rst
+   query_assignment.rst
+   sketching.rst
+   qc.rst
+   model_fitting.rst
+   model_distribution.rst
+   visualisation.rst
+   subclustering.rst
    troubleshooting.rst
+   options.rst
    scripts.rst
    api.rst
    miscellaneous.rst
 
-Details
--------
-A full description of the method can be found in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
+Why use PopPUNK?
+----------------
+The advantages of PopPUNK are broadly that:
 
-``PopPUNK`` uses the fast k-mer distance estimation enabled by `mash <https://mash.readthedocs.io/en/latest/>`_
-to calculate core and accessory distances between all pairs of isolates of bacteria in a collection. By clustering
-these distances into 'within-strain' and 'between-strain' distances a network
-of within-strain comparisons can be constructed. The use of a network has
-a number of convenient properties, the first being that the connected
-components represent a cluster of strains.
-
-As well as identifying strains, the pairwise distance distribution also helps
-with assembly quality control (particularly in the case of contaminated
-contigs) and may be informative of the level of recombination in the
-population. The network representation also allows definition of representative isolates by
-sampling one example from each clique, and calculation of various statistics
-which can show how good the clustering is.
-
-The advantages of this approach are broadly that:
-
-- It is fast, and scalable to :math:`10^{4}` genomes in a single run.
+- It is fast, and scalable to over :math:`10^{5}` genomes in a single run.
 - Assigning new query sequences to a cluster using an existing database is scalable even beyond this.
+- Cluster names remain consistent between studies, and other cluster labels such as MLST
+  can be appended.
 - Databases can be updated online (as sequences arrive).
 - Online updating is equivalent to building databases from scratch.
 - Databases can be kept small and managable by only keeping representative isolates.
+- Databases naturally allow in-depth analysis of single clusters,
+  but keeping the full context of the whole database.
 - There is no bin cluster. Outlier isolates will be in their own cluster.
 - Pre-processing, such as generation of an alignment, is not required.
-- The definition of clusters is biologically relevant to how bacteria evolve.
-- There is a lot of quantitative and graphical output to assist with
-  clustering.
+- Raw sequence reads can be used as input, while being filtered for sequencing errors.
+- The definition of clusters are biologically relevant.
+- Many quantitative and graphical outputs are provided.
 - A direct import into  `microreact <https://microreact.org/>`_ is
   available, as well as `cytoscape <http://www.cytoscape.org/>`_,
   `grapetree <http://dx.doi.org/10.1101/gr.232397.117>`_ and
