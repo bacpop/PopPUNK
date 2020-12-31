@@ -1,5 +1,11 @@
 Creating visualisations
 =======================
+
+**Contents**:
+
+.. contents::
+   :local:
+
 We have moved visualisation tools into their own program ``poppunk_visualise``, both
 to reinforce our commitment to UK spellings, and so that you can rerun visualisations
 with different outputs and settings without rerunning the other parts of the code.
@@ -10,8 +16,10 @@ can create outputs for external interactive visualisation tools:
 
 - `Microreact <https://microreact.org/>`__ -- a genomic epidemiology visualisation tool, displaying clusters, phylogeny and accessory clustering.
 - `GrapeTree <https://achtman-lab.github.io/GrapeTree/MSTree_holder.html>`__ -- a tool to visualise strains (designed for cgMLST).
-- `Cytoscape <https://cytoscape.org/>`__ -- a network visualisation tool, which can be used to create, view and manipulate a layout of the graph.
 - `Phandango <https://jameshadfield.github.io/phandango/#/>`__ -- visualisation linking genomes and phylogenies.
+- `Cytoscape <https://cytoscape.org/>`__ -- a network visualisation tool, which can be used to create, view and manipulate a layout of the graph.
+
+At least one of these output types must be specified as a flag.
 
 .. important::
    If you run a visualisation on output from query assignment (:doc:`query_assignment`)
@@ -20,11 +28,6 @@ can create outputs for external interactive visualisation tools:
    You will see a message ``Note: Distance will be extended to full all-vs-all distances``.
    If you are running multiple visualisations this calculation will be completed every time. To avoid
    this re-run your assignment with ``--update-db``, which will add these distances in permanently.
-
-**Contents**:
-
-.. contents::
-   :local:
 
 Common options
 --------------
@@ -66,6 +69,39 @@ Notable modifiers include:
 
 Microreact
 ----------
+Adding the ``--microreact`` flag will create the following files:
+
+- _microreact_clusters.csv -- the strain or lineage assignments with headers formatted for microreact, plus anything from ``--info-csv``.
+- _core_NJ.nwk -- a neighbour-joining tree from the core distances.
+- _perplexity20.0_accessory_tsne.dot -- a 2D embedding of the accessory distances, produced using t-SNE (in this case with
+  :ref:`perplexity` 20).
+
+Open https://microreact.org/upload in your browser, and drag and drop these three files
+to create your visualisation. Here is the result of running the visualisation on the
+*Listeria* BGMM model::
+
+   poppunk_visualise --ref-db listeria --microreact
+
+   Graph-tools OpenMP parallelisation enabled: with 1 threads
+   PopPUNK: visualise
+   Loading BGMM 2D Gaussian model
+   Writing microreact output
+   Parsed data, now writing to CSV
+   Building phylogeny
+   Running t-SNE
+
+   Done
+
+This can be viewed at https://microreact.org/project/8PeGg9fCjZADaAGuNJwU9z:
+
+.. image:: images/listeria_microreact.png
+   :alt:  Microreact page for Listeria monocytogenes
+   :align: center
+
+Useful controls include the tree shape, accessed with the control slider in the
+top right of the phylogeny page, and the metadata labels, accessed with the 'eye'
+on the right of the page. When visualising lineages, changing the 'Colour by' is useful
+to compare results from different ranks.
 
 .. _perplexity:
 
@@ -78,7 +114,7 @@ will visually appear in clusters together.
 The perplexity sets a guess about the number of close neighbours each point
 has, and is a trade-off between local and global structure. t-SNE is reasonably
 robust to changes in the perplexity parameter (set with ``--perplexity`` when
-creating microreact output with ``--microreact`` in the``--fit-model`` mode),
+creating microreact output with ``--microreact``),
 however we would recommend trying a few values to get
 a good embedding for the accessory distances.
 
@@ -109,13 +145,81 @@ command, providing the distances from the previous run::
 
 GrapeTree
 ---------
+Adding the ``--grapetree`` flag will create:
+
+- _microreact_clusters.csv -- the strain or lineage assignments with headers formatted for grapetree, plus anything from ``--info-csv``.
+- _core_NJ.nwk -- a neighbour-joining tree from the core distances.
+
+Open https://achtman-lab.github.io/GrapeTree/MSTree_holder.html in your browser, and use
+the 'Load files' button once for each of the files to add the tree and strain assignments to
+GrapeTree. This will display an unrooted tree with your clusters:
+
+.. image:: images/grapetree.png
+   :alt:  Grapetree visualisation of results
+   :align: center
+
+One of GrapeTree's key features is the ability to collapse branches, and condense information
+into nodes. By going to Tree Layout -> Branch style -> Collapse branches, and setting the long
+branch to be shortened, one can obtain a view which shows strain prevalence and relationships:
+
+.. image:: images/grapetree_collapse.png
+   :alt:  Grapetree visualisation of results
+   :align: center
+
+There is also a handy 'Export to Microreact' button in GrapeTree, though this will
+not include the accessory embedding, so you may wish to add the ``--microreact`` flag
+and generate the files yourself.
+
+Phandango
+---------
+Adding the ``--phandango`` flag will create:
+
+- _phandango_clusters.csv -- the strain or lineage assignments with headers formatted for phandango, plus anything from ``--info-csv``.
+- _core_NJ.tree -- a neighbour-joining tree from the core distances.
+
+Open https://www.phandango.net in your browser, and use
+the 'Load files' button once for each of the files to add the tree and strain assignments to
+GrapeTree. This will display the tree with your clusters:
+
+.. image:: images/phandango.png
+   :alt:  Phandango visualisation of results
+   :align: center
+
+Press 's' to access settings, and 'p' to create an .svg file. Phandango is most useful
+with a genome (.gff file), and either a plot of recombination, accessory genome analysis
+or GWAS results. See the documentation for more information.
 
 .. _cytoscape-view:
 
 Cytoscape
 ---------
-If you add the ``--cytoscape`` option when running ``--fit-model`` _cytoscape.graphml
-and _cytoscape.csv files will be written to the output directory.
+Cytoscape is different from the above modes as it creates a layout and visualisation of
+the graph used to create strains from distances. This can be useful for more detailed
+investigation of network scores, particularly in strains which have less than perfect transitivity.
+
+Add the ``--cytoscape`` option::
+
+   poppunk_visualise --ref-db listeria --cytoscape
+
+   Graph-tools OpenMP parallelisation enabled: with 1 threads
+   PopPUNK: visualise
+   Loading BGMM 2D Gaussian model
+   Writing cytoscape output
+   Network loaded: 128 samples
+   Parsed data, now writing to CSV
+
+   Done
+
+Which will create:
+
+- _cytoscape.csv -- the strain or lineage assignments with headers formatted for cytoscape, plus anything from ``--info-csv``.
+- _cytoscape.graphml -- the network in graphml format.
+
+The .graphml file is an XML file which contains definitions of the nodes (samples)
+and edges (within-strain distances) connecting them. If you used ``--graph-weights``
+when you fitted your model the edges will be annotated with their Euclidean distances
+in the 'weight' attribute (which you will need to tell cytoscape). These can be added
+with the ``poppunk_add_weights`` script if this flag was not used.
 
 Open `cytoscape <http://www.cytoscape.org/>`_ and drag and drop the .graphml
 file onto the window to import the network. Import -> table -> file to load the
@@ -123,13 +227,39 @@ CSV. Click 'Select None' then add the 'id' column as a key, and any required
 metadata columns (at least the 'Cluster' column) as attributes. Make sure
 'Node Table Columns' is selected as the data type.
 
+The graphml file does not contain a layout for the graph, that is, positions of
+nodes and edges are not specified for a visualisation. These will be calculated by cytoscape,
+automatically for small graphs, and with the 'Layout' menu for larger graphs. The 'Prefuse force directed layout'
+or 'yFiles Organic Layout' work well. Select the 'weight' dropdown to use the edge-lengths
+when drawing the network.
+
+.. warning::
+   We have found that making graphs with >10k nodes may exceed the memory on a typical
+   laptop. To view larger graphs, first splitting into subgraphs of each connected component
+   is very helpful. Older versions of cytoscape allowed you to split the graph into connected
+   components, but newer versions have removed this feature. This can be done programmatically
+   with ``networkx`` or ``graph-tool`` in python, or ``igraph`` in R.
+
 Click on 'Style' and change the node fill colour to be by cluster, the mapping
-type as discrete, then right click to autogenerate a colour scheme. You can
-also modify the node size here. In the :doc:`model_fitting` example, the components
-are nicely separated and the network has high transitivity:
+type as discrete, then right click to autogenerate a colour scheme ('Random' is usually best). You can
+also modify the node size and shape here. Here is the *Listeria* example, using edge weights in the layout:
 
 .. image:: images/cytoscape.png
    :alt:  Cytoscape plot of network
+   :align: center
+
+If you used assign query mode you will also have a column with 'Query' or 'Reference', which can
+be used to map to different shapes or colours:
+
+.. image:: images/assign_network.png
+   :alt:  Network produced after query assignment
+   :align: center
+
+Adding an info CSV, or loading external tables directly into cytoscapes gives further options
+for investigating individual strains:
+
+.. image:: images/cytoscape_gpsc.png
+   :alt:  Network with added annotation
    :align: center
 
 In some cases, edges which are between strain links may have been erroneously included
@@ -148,6 +278,3 @@ large cluster, which should be split:
 The incorrect node in question has a low CluteringCoefficient and high Stress.
 The EdgeBetweeness of its connections are also high. Sorting the node and edge
 tables by these columns can find individual problems such as this.
-
-Phandango
----------

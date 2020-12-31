@@ -6,6 +6,13 @@ Documentation for module functions (for developers)
 .. contents::
    :local:
 
+assign.py
+---------
+``poppunk_assign`` main function
+
+.. automodule:: PopPUNK.assign
+   :members:
+
 bgmm.py
 --------
 
@@ -72,6 +79,13 @@ utils.py
 --------
 
 .. automodule:: PopPUNK.utils
+   :members:
+
+visualise.py
+------------
+``poppunk_visualise`` main function
+
+.. automodule:: PopPUNK.visualise
    :members:
 
 web.py
