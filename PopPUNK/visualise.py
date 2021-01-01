@@ -314,15 +314,15 @@ def generate_visualisations(query_db,
     if microreact:
         sys.stderr.write("Writing microreact output\n")
         outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
-                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite)
+                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite, threads = threads)
     if phandango:
         sys.stderr.write("Writing phandango output\n")
         outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+                            queryList = qlist, overwrite = overwrite, microreact = microreact, threads = threads)
     if grapetree:
         sys.stderr.write("Writing grapetree output\n")
         outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+                            queryList = qlist, overwrite = overwrite, microreact = microreact, threads = threads)
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
