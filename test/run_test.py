@@ -23,7 +23,7 @@ subprocess.run("python ../poppunk-runner.py --create-db --r-files references.txt
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
 subprocess.run("python ../poppunk-runner.py --fit-model bgmm --ref-db example_db --K 4 --overwrite", shell=True, check=True)
 
-#fit GMM
+#fit dbscan
 sys.stderr.write("Running DBSCAN model fit (--fit-model dbscan)\n")
 subprocess.run("python ../poppunk-runner.py --fit-model dbscan --ref-db example_db --output example_dbscan --overwrite --graph-weights", shell=True, check=True)
 
@@ -31,6 +31,7 @@ subprocess.run("python ../poppunk-runner.py --fit-model dbscan --ref-db example_
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
 subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite", shell=True, check=True)
 subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
