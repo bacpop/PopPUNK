@@ -706,37 +706,52 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
 
-def generate_minimum_spanning_tree(G):
+def generate_minimum_spanning_tree(G, names):
     """Generate a minimum spanning tree from a network
 
     Args:
        G (network)
            Graph tool network
+       names (list)
+           List of sequence names
 
     Returns:
        T (tree)
            Newick representation of the minimum spanning tree
     """
     # Define sequences names for tree
-    taxon_namespace = dendropy.TaxonNamespace([str(v) for v in G.vertices()])
+    taxon_namespace = dendropy.TaxonNamespace(names)
     # Get network components
     component_assignments, component_frequencies = gt.label_components(G)
+    # Test if weighted network
+    weighted_network = False
+    if "weight" in G.edge_properties:
+        weighted_network = True
+    # Store trees for each component in a list
     mst_list = []
     for component_index in range(len(component_frequencies)):
         # Get members of component
         component_members = component_assignments.a == component_index
         component = gt.GraphView(G, vfilt = component_members)
         # Calculate minimum spanning tree
-        mst_edge_prop_map = gt.min_spanning_tree(component)#, weights = weight)
+        if weighted_network:
+            mst_edge_prop_map = gt.min_spanning_tree(component, weights = component.ep["weight"])
+        else:
+            mst_edge_prop_map = gt.min_spanning_tree(component)
         mst_network = gt.GraphView(component, efilt = mst_edge_prop_map)
         # Initialise tree
         tree = dendropy.Tree(taxon_namespace=taxon_namespace)
         # Process edges to ensure taxa are added in a consistent order
-        component_edges = np.sort(component.get_edges(),axis=1) # Source always numberically first
+        component_edges = np.sort(mst_network.get_edges(),axis=1) # Source always numerically first
         edge_sort_order = component_edges[:,0].argsort() # Use to sort edge lengths
         component_edges = component_edges[edge_sort_order]
-        component_edges = np.c_[ component_edges, np.ones(component_edges.shape[0]) ]
-        # Here should add lengths as extra column
+        print('Edges: ' + str(component_edges))
+        if weighted_network:
+            edge_lengths = np.array(list(mst_network.edge_properties["weight"]))
+            print('Edge lengths!: ' + str(edge_lengths))
+        else:
+            edge_lengths = np.ones(component_edges.shape[0])
+        component_edges = np.c_[component_edges, edge_lengths[edge_sort_order]]
         # Iterate over edges
         first_edge = True
         added_leaves = dict()
@@ -755,40 +770,9 @@ def generate_minimum_spanning_tree(G):
                 if source in added_leaves.keys() and target not in added_leaves.keys():
                     added_leaves[target] = dendropy.Node(edge_length=edge_length,taxon=taxon_namespace[int(target)])
                     added_leaves[source].add_child(added_leaves[int(target)])
-        
-        # Save tree
+        # Save trees
         mst_list.append(tree)
-    print(T)
-    return T
-
-# https://stackoverflow.com/questions/46444454/save-networkx-tree-in-newick-format
-def tree_from_edge_lst(G):
-    tree = {'1': {}}
-    for e in G.edges():
-        src = e.source()
-        dst = e.target()
-        subt = recursive_search(tree, src)
-        print('src: ' + str(src) + ' dst: ' + str(dst) + ' subt: ' + str(subt) + '\n')
-        subt[dst] = {}
-    return tree
-
-def recursive_search(dict, key):
-    if key in dict:
-        return dict[key]
-    for k, v in dict.items():
-        item = recursive_search(v, key)
-        if item is not None:
-            return item
-
-def tree_to_newick(tree):
-    items = []
-    for k in tree.keys():
-        s = ''
-        if len(tree[k].keys()) > 0:
-            subt = tree_to_newick(tree[k])
-            if subt != '':
-                s += '(' + subt + ')'
-        s += k
-        items.append(s)
-    return ','.join(items)
-
+    # Print list of trees
+    with open('mst_out.tre','w') as mst_out:
+        [mst_out.write(t.as_string("newick")) for t in mst_list]
+    

@@ -16,7 +16,7 @@ from .__init__ import __version__
 
 from .models import loadClusterFit
 
-from .network import fetchNetwork
+from .network import constructNetwork, fetchNetwork, generate_minimum_spanning_tree
 
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
@@ -108,6 +108,7 @@ def get_options():
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
+    faGroup.add_argument('--mst', help='Calculate a minimum spanning tree', default=False, action='store_true')
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
@@ -297,6 +298,7 @@ def generate_visualisations(query_db,
     isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                mode = mode,
                                                return_dict = True)
+
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
@@ -309,6 +311,22 @@ def generate_visualisations(query_db,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
+
+    # Temporary - put MST here
+    if qr_distMat is not None:
+        combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
+    else:
+        combined_dists = rr_distMat
+    print("WEIGHTS: " + str(combined_dists))
+    G = constructNetwork(
+                         combined_seq,
+                         combined_seq,
+                         [0]*combined_dists.shape[0],
+                         0,
+                         edge_list=False,
+                         weights=combined_dists
+                        )
+    generate_minimum_spanning_tree(G, combined_seq)
 
     # Now have all the objects needed to generate selected visualisations
     if microreact:
