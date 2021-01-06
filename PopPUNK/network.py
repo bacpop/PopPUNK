@@ -20,6 +20,7 @@ from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
 import graph_tool.all as gt
+import dendropy
 
 from .sketchlib import addRandom
 
@@ -704,3 +705,90 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
     pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
+
+def generate_minimum_spanning_tree(G):
+    """Generate a minimum spanning tree from a network
+
+    Args:
+       G (network)
+           Graph tool network
+
+    Returns:
+       T (tree)
+           Newick representation of the minimum spanning tree
+    """
+    # Define sequences names for tree
+    taxon_namespace = dendropy.TaxonNamespace([str(v) for v in G.vertices()])
+    # Get network components
+    component_assignments, component_frequencies = gt.label_components(G)
+    mst_list = []
+    for component_index in range(len(component_frequencies)):
+        # Get members of component
+        component_members = component_assignments.a == component_index
+        component = gt.GraphView(G, vfilt = component_members)
+        # Calculate minimum spanning tree
+        mst_edge_prop_map = gt.min_spanning_tree(component)#, weights = weight)
+        mst_network = gt.GraphView(component, efilt = mst_edge_prop_map)
+        # Initialise tree
+        tree = dendropy.Tree(taxon_namespace=taxon_namespace)
+        # Process edges to ensure taxa are added in a consistent order
+        component_edges = np.sort(component.get_edges(),axis=1) # Source always numberically first
+        edge_sort_order = component_edges[:,0].argsort() # Use to sort edge lengths
+        component_edges = component_edges[edge_sort_order]
+        component_edges = np.c_[ component_edges, np.ones(component_edges.shape[0]) ]
+        # Here should add lengths as extra column
+        # Iterate over edges
+        first_edge = True
+        added_leaves = dict()
+        for row in component_edges:
+            # Extract information
+            source = row[0]
+            target = row[1]
+            edge_length = row[2]
+            # Add first edge
+            if first_edge:
+                added_leaves[source] = tree.seed_node.new_child(edge_length=edge_length/2,taxon=taxon_namespace[int(source)])
+                added_leaves[target] = tree.seed_node.new_child(edge_length=edge_length/2,taxon=taxon_namespace[int(target)])
+                first_edge = False
+            # Add later edges
+            else:
+                if source in added_leaves.keys() and target not in added_leaves.keys():
+                    added_leaves[target] = dendropy.Node(edge_length=edge_length,taxon=taxon_namespace[int(target)])
+                    added_leaves[source].add_child(added_leaves[int(target)])
+        
+        # Save tree
+        mst_list.append(tree)
+    print(T)
+    return T
+
+# https://stackoverflow.com/questions/46444454/save-networkx-tree-in-newick-format
+def tree_from_edge_lst(G):
+    tree = {'1': {}}
+    for e in G.edges():
+        src = e.source()
+        dst = e.target()
+        subt = recursive_search(tree, src)
+        print('src: ' + str(src) + ' dst: ' + str(dst) + ' subt: ' + str(subt) + '\n')
+        subt[dst] = {}
+    return tree
+
+def recursive_search(dict, key):
+    if key in dict:
+        return dict[key]
+    for k, v in dict.items():
+        item = recursive_search(v, key)
+        if item is not None:
+            return item
+
+def tree_to_newick(tree):
+    items = []
+    for k in tree.keys():
+        s = ''
+        if len(tree[k].keys()) > 0:
+            subt = tree_to_newick(tree[k])
+            if subt != '':
+                s += '(' + subt + ')'
+        s += k
+        items.append(s)
+    return ','.join(items)
+
