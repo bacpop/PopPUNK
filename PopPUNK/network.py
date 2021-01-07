@@ -311,10 +311,10 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         vertex_labels.append(qlist)
 
     # identify edges
-    if edge_list:
+    if edge_list or sparse:
         if sparse:
             connections = []
-            for (ref, query), weight in sparse_input:
+            for ref,query,weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
                 connections.append((ref, query, weight))
         elif weights is not None:
             connections = []
