@@ -47,7 +47,6 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
                 Names of references that should be in the network
             ref_graph (bool)
                 Use ref only graph, if available
-
                 [default = False]
             core_only (bool)
                 Return the network created using only core distances
@@ -264,7 +263,8 @@ def writeReferences(refList, outPrefix):
     return refFileName
 
 def constructNetwork(rlist, qlist, assignments, within_label,
-                     summarise = True, edge_list = False, weights = None, weights_type = 'euclidean'):
+                     summarise = True, edge_list = False, weights = None,
+                     weights_type = 'euclidean', sparse = False, sparse_input = None):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -282,7 +282,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             from :func:`~PopPUNK.bgmm.findWithinLabel`
         summarise (bool)
             Whether to calculate and print network summaries with :func:`~networkSummary`
-
             (default = True)
         edge_list (bool)
             Whether input is edges, tuples of (v1, v2). Used with lineage assignment
@@ -292,6 +291,10 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         weights_type (str)
             Specifies the type of weight to be annotated on the graph - core, accessory
             or Euclidean distance
+        sparse (bool)
+            Whether input is a sparse distance matrix
+        sparse_input (numpy.array)
+            Sparse distance matrix from lineage fit
 
     Returns:
         G (graph)
@@ -309,7 +312,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # identify edges
     if edge_list:
-        if weights is not None:
+        if sparse:
+            connections = []
+            for (ref, query), weight in sparse_input:
+                connections.append((ref, query, weight))
+        elif weights is not None:
             connections = []
             for weight, (ref, query) in zip(weights, assignments):
                 connections.append((ref, query, weight))
@@ -731,6 +738,7 @@ def generate_minimum_spanning_tree(G, names):
        tree_string (str)
            Newick representation of the minimum spanning tree
     """
+    sys.stderr.write("Starting calculation of minimum-spanning tree\n")
     # Define sequences names for tree
     taxon_namespace = dendropy.TaxonNamespace(names)
     # Test if weighted network
@@ -750,7 +758,10 @@ def generate_minimum_spanning_tree(G, names):
     # Identify edges
     tree_edges = {v:[] for v in tree_nodes.keys()}
     tree_edge_lengths = {v:[] for v in tree_nodes.keys()}
-    network_edge_weights = list(mst_network.ep["weight"])
+    if weighted_network:
+        network_edge_weights = list(mst_network.ep["weight"])
+    else:
+        network_edge_weights = [1.0]*len(mst_network.get_edges())
     for i,edge in enumerate(mst_network.get_edges()):
         # Connectivity
         tree_edges[edge[0]].append(edge[1])
@@ -779,6 +790,7 @@ def generate_minimum_spanning_tree(G, names):
                 parent_node_indices.append(child_node_index)
         i = i + 1
     # Return tree as string
+    sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
     return tree_string
     

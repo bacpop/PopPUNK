@@ -8,6 +8,7 @@ import sys
 # additional
 import numpy as np
 import dendropy
+import scipy.sparse
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
@@ -63,6 +64,10 @@ def get_options():
                              'are from ref-query')
     iGroup.add_argument('--distances',
                         help='Prefix of input pickle of pre-calculated distances')
+    iGroup.add_argument('--sparse-distances',
+                        help='File (with a name *_rank*_fit.npz) storing a sparse'
+                             ' distance matrix',
+                        default=None)
     iGroup.add_argument('--include-files',
                          help='File with list of sequences to include in visualisation. '
                               'Default is to use all sequences in database.',
@@ -148,6 +153,7 @@ def get_options():
 def generate_visualisations(query_db,
                             ref_db,
                             distances,
+                            sparse_distMat,
                             threads,
                             output,
                             gpu_dist,
@@ -325,19 +331,28 @@ def generate_visualisations(query_db,
         if not overwrite:
             existing_tree = check_tree_exists(output, "MST")
         if existing_tree is None:
-            if qr_distMat is not None:
+            G = None
+            if sparse_distMat is not None:
+                combined_dists = scipy.sparse.load_npz(sparse_distMat)
+                print('Sparse distmat: ' + str(combined_dists))
+                G = constructNetwork(combined_seq,
+                                     combined_seq,
+                                     [0]*combined_dists.shape[0],
+                                     0,
+                                     edge_list=False,
+                                     sparse = True,
+                                     sparse_input = combined_dists)
+            elif qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
                 combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
             else:
                 combined_dists = rr_distMat
-            G = constructNetwork(
-                                 combined_seq,
-                                 combined_seq,
-                                 [0]*combined_dists.shape[0],
-                                 0,
-                                 edge_list=False,
-                                 weights=combined_dists,
-                                 weights_type='core'
-                                )
+                G = constructNetwork(combined_seq,
+                                     combined_seq,
+                                     [0]*combined_dists.shape[0],
+                                     0,
+                                     edge_list=False,
+                                     weights=combined_dists,
+                                     weights_type='core')
             mst_tree = generate_minimum_spanning_tree(G, combined_seq)
         else:
             mst_tree = existing_tree
@@ -409,6 +424,7 @@ def main():
     generate_visualisations(args.query_db,
                             args.ref_db,
                             args.distances,
+                            args.sparse_distances,
                             args.threads,
                             args.output,
                             args.gpu_dist,
