@@ -619,11 +619,13 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         for col in d:
             this_col_items = len(d[col])
             if prev_col_items > -1 and prev_col_items != this_col_items:
-                sys.stderr.write("Discrepant length between " + prev_col_name + " (length of " + prev_col_items + ") and " + col + "(length of " + this_col_items + ")\n")
+                sys.stderr.write("Discrepant length between " + prev_col_name + \
+                                 " (length of " + prev_col_items + ") and " + \
+                                 col + "(length of " + this_col_items + ")\n")
         sys.exit(1)
 
 
-def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
+def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename, threads = 1):
     """Use rapidNJ for more rapid tree building
 
     Creates a phylip of core distances, system call to rapidnj executable, loads tree as
@@ -642,6 +644,8 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
         tree_filename (str)
             Filename for output tree (saved to disk)
+        threads (int)
+            Number of threads to use
 
     Returns:
         tree (dendropy.Tree)
@@ -657,7 +661,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
             pFile.write("\n")
 
     # construct tree
-    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw"
+    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw -c " + str(threads)
     try:
         # run command
         subprocess.run(rapidnj_cmd, shell=True, check=True)
@@ -680,7 +684,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
     return tree
 
 def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity, outPrefix, epiCsv,
-                         rapidnj, queryList = None, overwrite = False):
+                         rapidnj, queryList = None, overwrite = False, threads = 1):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -711,6 +715,8 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # Avoid recursive import
     from .tsne import generate_tsne
@@ -724,10 +730,10 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
 
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
+    generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite, threads)
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
 
-def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite):
+def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite, threads):
     """Generate phylogeny using dendropy or RapidNJ
 
     Writes a neighbour joining tree (.nwk) from core distances.
@@ -746,6 +752,8 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
             use dendropy by default
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # Save distances to file
     core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
@@ -756,7 +764,7 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
     if overwrite or not os.path.isfile(tree_filename):
         sys.stderr.write("Building phylogeny\n")
         if rapidnj is not None:
-            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename)
+            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename, threads)
         else:
             pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
                                                                delimiter=",",
@@ -779,7 +787,7 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
     os.remove(core_dist_file)
 
 def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
-                        queryList = None, overwrite = False, microreact = False):
+                        queryList = None, overwrite = False, microreact = False, threads = 1):
     """Generate files for Phandango
 
     Write a neighbour joining tree (.tree) from core distances
@@ -808,6 +816,8 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Overwrite existing output if present (default = False)
         microreact (bool)
             Avoid regenerating tree if already built for microreact (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
@@ -823,10 +833,10 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
         sys.stderr.write('Copying microreact tree')
         copyfile(microreact_tree_filename, phandango_tree_filename)
     else:
-        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite)
+        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite, threads)
 
 def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
-                        queryList = None, overwrite = False, microreact = False):
+                        queryList = None, overwrite = False, microreact = False, threads = 1):
     """Generate files for Grapetree
 
     Write a neighbour joining tree (.nwk) from core distances
@@ -859,6 +869,8 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Overwrite existing output if present (default = False).
         microreact (bool)
             Avoid regenerating tree if already built for microreact (default = False).
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
@@ -872,6 +884,6 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     if microreact and os.path.isfile(microreact_tree_filename):
         sys.stderr.write('Using microreact tree')
     else:
-        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
+        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite, threads)
 
 
