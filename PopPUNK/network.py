@@ -264,7 +264,7 @@ def writeReferences(refList, outPrefix):
     return refFileName
 
 def constructNetwork(rlist, qlist, assignments, within_label,
-                     summarise = True, edge_list = False, weights = None):
+                     summarise = True, edge_list = False, weights = None, weights_type = 'euclidean'):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -289,6 +289,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         weights (numpy.array)
             If passed, the core,accessory distances for each assignment, which will
             be annotated as an edge attribute
+        weights_type (str)
+            Specifies the type of weight to be annotated on the graph - core, accessory
+            or Euclidean distance
 
     Returns:
         G (graph)
@@ -318,7 +321,16 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                                                               self = self_comparison))):
             if assignment == within_label:
                 if weights is not None:
-                    dist = np.linalg.norm(weights[row_idx, :])
+                    if weights_type == 'euclidean':
+                        dist = np.linalg.norm(weights[row_idx, :])
+                    elif weights_type == 'core':
+                        dist = weights[row_idx, 0]
+                    elif weights_type == 'accessory':
+                        dist = weights[row_idx, 1]
+                    else:
+                        sys.stderr.write('Unable to parse network weight type ' + weights_type + '; '
+                         'options are core, accessory or euclidean')
+                        sys.exit(1)
                     edge_tuple = (ref, query, dist)
                 else:
                     edge_tuple = (ref, query)
@@ -716,63 +728,57 @@ def generate_minimum_spanning_tree(G, names):
            List of sequence names
 
     Returns:
-       T (tree)
+       tree_string (str)
            Newick representation of the minimum spanning tree
     """
     # Define sequences names for tree
     taxon_namespace = dendropy.TaxonNamespace(names)
-    # Get network components
-    component_assignments, component_frequencies = gt.label_components(G)
     # Test if weighted network
     weighted_network = False
     if "weight" in G.edge_properties:
         weighted_network = True
-    # Store trees for each component in a list
-    mst_list = []
-    for component_index in range(len(component_frequencies)):
-        # Get members of component
-        component_members = component_assignments.a == component_index
-        component = gt.GraphView(G, vfilt = component_members)
-        # Calculate minimum spanning tree
-        if weighted_network:
-            mst_edge_prop_map = gt.min_spanning_tree(component, weights = component.ep["weight"])
-        else:
-            mst_edge_prop_map = gt.min_spanning_tree(component)
-        mst_network = gt.GraphView(component, efilt = mst_edge_prop_map)
-        # Initialise tree
-        tree = dendropy.Tree(taxon_namespace=taxon_namespace)
-        # Process edges to ensure taxa are added in a consistent order
-        component_edges = np.sort(mst_network.get_edges(),axis=1) # Source always numerically first
-        edge_sort_order = component_edges[:,0].argsort() # Use to sort edge lengths
-        component_edges = component_edges[edge_sort_order]
-        print('Edges: ' + str(component_edges))
-        if weighted_network:
-            edge_lengths = np.array(list(mst_network.edge_properties["weight"]))
-            print('Edge lengths!: ' + str(edge_lengths))
-        else:
-            edge_lengths = np.ones(component_edges.shape[0])
-        component_edges = np.c_[component_edges, edge_lengths[edge_sort_order]]
-        # Iterate over edges
-        first_edge = True
-        added_leaves = dict()
-        for row in component_edges:
-            # Extract information
-            source = row[0]
-            target = row[1]
-            edge_length = row[2]
-            # Add first edge
-            if first_edge:
-                added_leaves[source] = tree.seed_node.new_child(edge_length=edge_length/2,taxon=taxon_namespace[int(source)])
-                added_leaves[target] = tree.seed_node.new_child(edge_length=edge_length/2,taxon=taxon_namespace[int(target)])
-                first_edge = False
-            # Add later edges
-            else:
-                if source in added_leaves.keys() and target not in added_leaves.keys():
-                    added_leaves[target] = dendropy.Node(edge_length=edge_length,taxon=taxon_namespace[int(target)])
-                    added_leaves[source].add_child(added_leaves[int(target)])
-        # Save trees
-        mst_list.append(tree)
-    # Print list of trees
-    with open('mst_out.tre','w') as mst_out:
-        [mst_out.write(t.as_string("newick")) for t in mst_list]
+    # Calculate minimum spanning tree
+    if weighted_network:
+        mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
+    else:
+        mst_edge_prop_map = gt.min_spanning_tree(G)
+    mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+    # Initialise tree
+    tree = dendropy.Tree(taxon_namespace=taxon_namespace)
+    # Create nodes
+    tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
+    # Identify edges
+    tree_edges = {v:[] for v in tree_nodes.keys()}
+    tree_edge_lengths = {v:[] for v in tree_nodes.keys()}
+    network_edge_weights = list(mst_network.ep["weight"])
+    for i,edge in enumerate(mst_network.get_edges()):
+        # Connectivity
+        tree_edges[edge[0]].append(edge[1])
+        tree_edges[edge[1]].append(edge[0])
+        # Length
+        tree_edge_lengths[edge[0]].append(network_edge_weights[i])
+        tree_edge_lengths[edge[1]].append(network_edge_weights[i])
+    # Identify seed node as that with most links
+    max_links = 0
+    seed_node_index = None
+    for vertex in tree_edges.keys():
+        if len(tree_edges[vertex]) > max_links:
+            max_links = len(tree_edges[vertex])
+            seed_node_index = vertex
+    tree.seed_node = tree_nodes[seed_node_index]
+    # Generate links of tree
+    parent_node_indices = [seed_node_index]
+    added_node = set(parent_node_indices)
+    i = 0
+    while i < len(parent_node_indices):
+        for x,child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
+            if child_node_index not in added_node:
+                tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
+                tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
+                added_node.add(child_node_index)
+                parent_node_indices.append(child_node_index)
+        i = i + 1
+    # Return tree as string
+    tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+    return tree_string
     

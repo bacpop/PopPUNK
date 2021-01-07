@@ -7,6 +7,7 @@ import os
 import sys
 # additional
 import numpy as np
+import dendropy
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
@@ -23,6 +24,8 @@ from .plot import outputsForCytoscape
 from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
 from .plot import writeClusterCsv
+from .plot import generate_nj_tree
+from .plot import check_tree_exists
 
 from .prune_db import prune_distance_matrix
 
@@ -110,6 +113,7 @@ def get_options():
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
     faGroup.add_argument('--mst', help='Calculate a minimum spanning tree', default=False, action='store_true')
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
+    faGroup.add_argument('--no-nj', help='Do no calculate an NJ tree', default=False, action='store_true')
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
@@ -161,6 +165,8 @@ def generate_visualisations(query_db,
                             previous_query_clustering,
                             info_csv,
                             rapidnj,
+                            no_nj,
+                            mst,
                             overwrite,
                             core_only,
                             accessory_only,
@@ -312,35 +318,80 @@ def generate_visualisations(query_db,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
 
-    # Temporary - put MST here
-    if qr_distMat is not None:
-        combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
-    else:
-        combined_dists = rr_distMat
-    print("WEIGHTS: " + str(combined_dists))
-    G = constructNetwork(
-                         combined_seq,
-                         combined_seq,
-                         [0]*combined_dists.shape[0],
-                         0,
-                         edge_list=False,
-                         weights=combined_dists
-                        )
-    generate_minimum_spanning_tree(G, combined_seq)
+    # Generate MST
+    mst_tree = None
+    if mst:
+        existing_tree = None
+        if not overwrite:
+            existing_tree = check_tree_exists(output, "MST")
+        if existing_tree is None:
+            if qr_distMat is not None:
+                combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
+            else:
+                combined_dists = rr_distMat
+            G = constructNetwork(
+                                 combined_seq,
+                                 combined_seq,
+                                 [0]*combined_dists.shape[0],
+                                 0,
+                                 edge_list=False,
+                                 weights=combined_dists,
+                                 weights_type='core'
+                                )
+            mst_tree = generate_minimum_spanning_tree(G, combined_seq)
+        else:
+            mst_tree = existing_tree
+
+    # Generate NJ tree
+    nj_tree = None
+    if (microreact or phandango or grapetree) and not no_nj:
+        existing_tree = None
+        if not overwrite:
+            existing_tree = check_tree_exists(output, "NJ")
+        if existing_tree is None:
+            nj_tree = generate_nj_tree(core_distMat,
+                                        combined_seq,
+                                        output,
+                                        rapidnj)
+        else:
+            nj_tree = existing_tree
 
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
-        outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
-                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite)
+        outputsForMicroreact(combined_seq,
+                             isolateClustering,
+                             nj_tree,
+                             mst_tree,
+                             acc_distMat,
+                             perplexity,
+                             output,
+                             info_csv,
+                             queryList = qlist,
+                             overwrite = overwrite)
+
     if phandango:
         sys.stderr.write("Writing phandango output\n")
-        outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+        outputsForPhandango(combined_seq,
+                            isolateClustering,
+                            nj_tree,
+                            mst_tree,
+                            output,
+                            info_csv,
+                            queryList = qlist,
+                            overwrite = overwrite)
+
     if grapetree:
         sys.stderr.write("Writing grapetree output\n")
-        outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+        outputsForGrapetree(combined_seq,
+                            isolateClustering,
+                            nj_tree,
+                            mst_tree,
+                            output,
+                            info_csv,
+                            queryList = qlist,
+                            overwrite = overwrite)
+        
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
@@ -375,6 +426,8 @@ def main():
                             args.previous_query_clustering,
                             args.info_csv,
                             args.rapidnj,
+                            args.no_nj,
+                            args.mst,
                             args.overwrite,
                             args.core_only,
                             args.accessory_only,
