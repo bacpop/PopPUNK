@@ -334,14 +334,13 @@ def generate_visualisations(query_db,
             G = None
             if sparse_distMat is not None:
                 combined_dists = scipy.sparse.load_npz(sparse_distMat)
-                print('Sparse distmat: ' + str(combined_dists))
                 G = constructNetwork(combined_seq,
                                      combined_seq,
                                      [0]*combined_dists.shape[0],
                                      0,
                                      edge_list=False,
-                                     sparse = True,
-                                     sparse_input = combined_dists)
+                                     sparse=True,
+                                     sparse_input=combined_dists)
             elif qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
                 combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
             else:

@@ -347,7 +347,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     G = gt.Graph(directed = False)
     G.add_vertex(len(vertex_labels))
 
-    if weights is not None:
+    if weights is not None or sparse:
         eweight = G.new_ep("float")
         G.add_edge_list(connections, eprops = [eweight])
         G.edge_properties["weight"] = eweight
