@@ -334,7 +334,10 @@ def generate_visualisations(query_db,
         if existing_tree is None:
             G = None
             if sparse_distMat is not None:
+                sys.stderr.write("Started sparse distance matrix processing\n")
                 combined_dists = scipy.sparse.load_npz(sparse_distMat)
+                sys.stderr.write("Completed sparse distance matrix processing\n")
+                sys.stderr.write("Started constructing partial graph\n")
                 G = constructNetwork(combined_seq,
                                      combined_seq,
                                      [0]*combined_dists.shape[0],
@@ -342,6 +345,8 @@ def generate_visualisations(query_db,
                                      edge_list=False,
                                      sparse=True,
                                      sparse_input=combined_dists)
+                
+                sys.stderr.write("Completed constructing partial graph\n")
             else:
                 sys.stderr.write("Started distance matrix processing\n")
                 if qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
@@ -358,7 +363,7 @@ def generate_visualisations(query_db,
                                      edge_list=False,
                                      weights=combined_dists,
                                      weights_type='core')
-                sys.stderr.write("Finished constructing complete graph\n")
+                sys.stderr.write("Completed constructing complete graph\n")
                     #### Alternative approach - slower on a small network
 #                    import graph_tool.all as gt
     #                G = gt.complete_graph(len(combined_seq))
@@ -367,7 +372,7 @@ def generate_visualisations(query_db,
     #                                                                        combined_seq,
     #                                                                         self = True)):
     #                    eprop_dist[G.edge(ref,query)] = combined_dists[row_idx, 0]
-            mst_tree = generate_minimum_spanning_tree(G, combined_seq)
+            mst_tree = generate_minimum_spanning_tree(G, combined_seq, rr_distMat)
         else:
             mst_tree = existing_tree
 

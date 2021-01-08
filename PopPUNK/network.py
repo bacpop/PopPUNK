@@ -725,7 +725,7 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
 
-def generate_minimum_spanning_tree(G, names):
+def generate_minimum_spanning_tree(G, names, distMat):
     """Generate a minimum spanning tree from a network
 
     Args:
@@ -751,6 +751,44 @@ def generate_minimum_spanning_tree(G, names):
     else:
         mst_edge_prop_map = gt.min_spanning_tree(G)
     mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+    # Find seed nodes as those with greatest outdegree in each component
+    seed_vertices = set()
+    component_assignments, component_frequencies = gt.label_components(mst_network)
+    for component_index in range(len(component_frequencies)):
+        component_members = component_assignments.a == component_index
+        component = gt.GraphView(mst_network, vfilt = component_members)
+        component_vertices = component.get_vertices()
+        out_degrees = component.get_out_degrees(component_vertices)
+        print('Out degrees: ' + str(out_degrees) + '\nClass: ' + str(type(out_degrees)))
+        seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
+        print('SEEDS: ' + str(seed_vertex) + ' TYPE: ' + str(type(seed_vertex)))
+        seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+        print('Seed: ' + str(seed_vertex))
+    # If multiple components, calculate distances between seed nodes
+    if len(component_frequencies) > 1:
+        # Extract distances
+        connections = []
+        for row_idx, (ref, query) in enumerate(listDistInts(names, names, self = True)):
+            if ref in seed_vertices and query in seed_vertices:
+                dist = distMat[row_idx, 0]
+                edge_tuple = (ref, query, dist)
+                connections.append(edge_tuple)
+        # Construct graph
+        seed_G = gt.Graph(directed = False)
+        seed_G.add_vertex(len(seed_vertex))
+        if weighted_network:
+            eweight = seed_G.new_ep("float")
+            seed_G.add_edge_list(connections, eprops = [eweight])
+            seed_G.edge_properties["weight"] = eweight
+            seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
+            seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
+            # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
+            deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
+#            print("Deep: " + str(deep_edges))
+            mst_network.add_edge_list(deep_edges)
+        else:
+            sys.stderr.write('I do not currently know what to do in this case\n')
+        
     # Initialise tree
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
     # Create nodes
