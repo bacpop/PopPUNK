@@ -343,12 +343,14 @@ def generate_visualisations(query_db,
                                      sparse=True,
                                      sparse_input=combined_dists)
             else:
+                sys.stderr.write("Started distance matrix processing\n")
                 if qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
                     combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
                 else:
                     combined_dists = rr_distMat
+                sys.stderr.write("Completed distance matrix processing\n")
                 ####
-                sys.stderr.write("Started constructing complete graph")
+                sys.stderr.write("Started constructing complete graph\n")
                 G = constructNetwork(combined_seq,
                                      combined_seq,
                                      [0]*combined_dists.shape[0],
@@ -356,7 +358,7 @@ def generate_visualisations(query_db,
                                      edge_list=False,
                                      weights=combined_dists,
                                      weights_type='core')
-                sys.stderr.write("Finished constructing complete graph")
+                sys.stderr.write("Finished constructing complete graph\n")
                     #### Alternative approach - slower on a small network
 #                    import graph_tool.all as gt
     #                G = gt.complete_graph(len(combined_seq))

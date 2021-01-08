@@ -96,7 +96,7 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
     load_obj.load(fit_data, fit_object)
-    sys.stderr.write("Completed model loading")
+    sys.stderr.write("Completed model loading\n")
     return load_obj
 
 class ClusterFit:
