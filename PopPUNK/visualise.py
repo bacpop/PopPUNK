@@ -39,6 +39,7 @@ from .utils import setGtThreads
 from .utils import update_distance_matrices
 from .utils import readIsolateTypeFromCsv
 from .utils import joinClusterDicts
+from .utils import listDistInts
 
 #******************************#
 #*                            *#
@@ -341,17 +342,29 @@ def generate_visualisations(query_db,
                                      edge_list=False,
                                      sparse=True,
                                      sparse_input=combined_dists)
-            elif qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
-                combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
             else:
-                combined_dists = rr_distMat
-                G = constructNetwork(combined_seq,
-                                     combined_seq,
-                                     [0]*combined_dists.shape[0],
-                                     0,
-                                     edge_list=False,
-                                     weights=combined_dists,
-                                     weights_type='core')
+                if qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
+                    combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
+                else:
+                    combined_dists = rr_distMat
+                    ####
+                    sys.stderr.write("Started constructing complete graph")
+                    G = constructNetwork(combined_seq,
+                                         combined_seq,
+                                         [0]*combined_dists.shape[0],
+                                         0,
+                                         edge_list=False,
+                                         weights=combined_dists,
+                                         weights_type='core')
+                    sys.stderr.write("Finished constructing complete graph")
+                    #### Alternative approach - slower on a small network
+#                    import graph_tool.all as gt
+    #                G = gt.complete_graph(len(combined_seq))
+    #                eprop_dist = G.new_edge_property("double")
+    #                for row_idx, (ref, query) in enumerate(listDistInts(combined_seq,
+    #                                                                        combined_seq,
+    #                                                                         self = True)):
+    #                    eprop_dist[G.edge(ref,query)] = combined_dists[row_idx, 0]
             mst_tree = generate_minimum_spanning_tree(G, combined_seq)
         else:
             mst_tree = existing_tree
