@@ -347,16 +347,16 @@ def generate_visualisations(query_db,
                     combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
                 else:
                     combined_dists = rr_distMat
-                    ####
-                    sys.stderr.write("Started constructing complete graph")
-                    G = constructNetwork(combined_seq,
-                                         combined_seq,
-                                         [0]*combined_dists.shape[0],
-                                         0,
-                                         edge_list=False,
-                                         weights=combined_dists,
-                                         weights_type='core')
-                    sys.stderr.write("Finished constructing complete graph")
+                ####
+                sys.stderr.write("Started constructing complete graph")
+                G = constructNetwork(combined_seq,
+                                     combined_seq,
+                                     [0]*combined_dists.shape[0],
+                                     0,
+                                     edge_list=False,
+                                     weights=combined_dists,
+                                     weights_type='core')
+                sys.stderr.write("Finished constructing complete graph")
                     #### Alternative approach - slower on a small network
 #                    import graph_tool.all as gt
     #                G = gt.complete_graph(len(combined_seq))
