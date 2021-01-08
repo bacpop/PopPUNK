@@ -788,7 +788,9 @@ def generate_minimum_spanning_tree(G, names, distMat):
             mst_network.add_edge_list(deep_edges)
         else:
             sys.stderr.write('I do not currently know what to do in this case\n')
-        
+    # Print graph
+    pos = gt.sfdp_layout(mst_network)
+    gt.graph_draw(mst_network, pos, output="mst_network.pdf")
     # Initialise tree
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
     # Create nodes
@@ -827,6 +829,12 @@ def generate_minimum_spanning_tree(G, names, distMat):
                 added_node.add(child_node_index)
                 parent_node_indices.append(child_node_index)
         i = i + 1
+    # Add zero length branches for internal nodes in MST
+    for node in tree.preorder_node_iter():
+        if not node.is_leaf():
+            new_child = dendropy.Node(taxon=node.taxon,edge_length=0.0)
+            node.taxon = None
+            node.add_child(new_child)
     # Return tree as string
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
