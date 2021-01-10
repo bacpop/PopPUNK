@@ -786,7 +786,12 @@ def generate_minimum_spanning_tree(G, names, distMat):
             deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
             # debug
             for row in range(deep_edges.shape[0]):
-                print("Linking " + str(names[deep_edges[row,0]) + " with " + str(names[deep_edges[row,1]) + " edge " + str(deep_edges[row,2))
+                print("Row: " + str(row) + " deep: " + str(deep_edges[row,0]))
+                source_index = int(deep_edges[row,0])
+                target_index = int(deep_edges[row,1])
+                print("Linking " + names[source_index] + " with " + names[target_index] + " edge " + str(deep_edges[row,2]))
+            pos = gt.sfdp_layout(seed_mst_network)
+            gt.graph_draw(seed_mst_network, pos, output="seed_mst_network.pdf")
 #            print("Deep: " + str(deep_edges))
             mst_network.add_edge_list(deep_edges)
         else:
