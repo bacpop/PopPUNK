@@ -784,6 +784,9 @@ def generate_minimum_spanning_tree(G, names, distMat):
             seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
             # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
             deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
+            # debug
+            for row in range(deep_edges.shape[0]):
+                print("Linking " + str(names[deep_edges[row,0]) + " with " + str(names[deep_edges[row,1]) + " edge " + str(deep_edges[row,2))
 #            print("Deep: " + str(deep_edges))
             mst_network.add_edge_list(deep_edges)
         else:
