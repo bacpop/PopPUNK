@@ -751,7 +751,6 @@ def generate_minimum_spanning_tree(G, names, distMat):
     else:
         mst_edge_prop_map = gt.min_spanning_tree(G)
     mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
-#    mst_network.save("original_mst.graphml",fmt="graphml")
     # Find seed nodes as those with greatest outdegree in each component
     seed_vertices = set()
     component_assignments, component_frequencies = gt.label_components(mst_network)
@@ -760,11 +759,8 @@ def generate_minimum_spanning_tree(G, names, distMat):
         component = gt.GraphView(mst_network, vfilt = component_members)
         component_vertices = component.get_vertices()
         out_degrees = component.get_out_degrees(component_vertices)
-        print('Out degrees: ' + str(out_degrees) + '\nClass: ' + str(type(out_degrees)))
         seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
-        print('SEEDS: ' + str(seed_vertex) + ' TYPE: ' + str(type(seed_vertex)))
         seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
-        print('Seed: ' + str(seed_vertex))
     # If multiple components, calculate distances between seed nodes
     if len(component_frequencies) > 1:
         # Extract distances
@@ -785,21 +781,9 @@ def generate_minimum_spanning_tree(G, names, distMat):
             seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
             # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
             deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
-            # debug
-            for row in range(deep_edges.shape[0]):
-                print("Row: " + str(row) + " deep: " + str(deep_edges[row,0]))
-                source_index = int(deep_edges[row,0])
-                target_index = int(deep_edges[row,1])
-                print("Linking " + names[source_index] + " with " + names[target_index] + " edge " + str(deep_edges[row,2]))
-            pos = gt.sfdp_layout(seed_mst_network)
-            gt.graph_draw(seed_mst_network, pos, output="seed_mst_network.pdf")
-#            print("Deep: " + str(deep_edges))
             mst_network.add_edge_list(deep_edges)
         else:
             sys.stderr.write('I do not currently know what to do in this case\n')
-    # Print graph
-    pos = gt.sfdp_layout(mst_network)
-    gt.graph_draw(mst_network, pos, output="mst_network.pdf")
     # Initialise tree
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
     # Create nodes
