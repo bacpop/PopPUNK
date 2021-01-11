@@ -832,6 +832,8 @@ def generate_minimum_spanning_tree(G, names, distMat):
             node.add_child(new_child)
     # Return tree as string
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
-    tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+    tree_string = tree.as_string(schema="newick",
+                                 suppress_rooting=True,
+                                 unquoted_underscores=True)
     return tree_string
     
