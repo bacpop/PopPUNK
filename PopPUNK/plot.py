@@ -771,7 +771,9 @@ def check_tree_exists(prefix, type):
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
                 tree = dendropy.Tree.get(path=tree_fn, schema="newick")
-                tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+                tree_string = tree.as_string(schema="newick",
+                suppress_rooting=True,
+                unquoted_underscores=True)
                 sys.stderr.write("Reading existing tree from " + tree_fn + "\n")
                 break
 
