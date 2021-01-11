@@ -749,6 +749,8 @@ def write_tree(tree, prefix, suffix, overwrite):
     if overwrite or not os.path.isfile(tree_filename):
         with open(tree_filename, 'w') as tree_file:
             tree_file.write(tree)
+    else:
+        sys.stderr.write("Unable to write phylogeny to " + tree_filename + "\n")
 
 def load_tree(prefix, type):
     """Checks for existing trees from previous runs.
