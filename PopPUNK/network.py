@@ -827,7 +827,7 @@ def generate_minimum_spanning_tree(G, names, distMat):
     # Add zero length branches for internal nodes in MST
     for node in tree.preorder_node_iter():
         if not node.is_leaf():
-            new_child = dendropy.Node(taxon=node.taxon,edge_length=0.0)
+            new_child = dendropy.Node(taxon=node.taxon, edge_length=0.0)
             node.taxon = None
             node.add_child(new_child)
     # Return tree as string
