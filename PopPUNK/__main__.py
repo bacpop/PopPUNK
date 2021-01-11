@@ -238,7 +238,7 @@ def main():
     # check if working with lineages
     if args.fit_model == 'lineage':
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
-        if min(rank_list) == 0 or max(rank_list) > 100:
+        if floor(min(rank_list)) == 0 or max(rank_list) > 1000:
             sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
             sys.exit(1)
 
