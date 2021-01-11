@@ -823,7 +823,9 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
     os.remove(core_dist_file)
     
     # return Newick string
-    tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+    tree_string = tree.as_string(schema="newick",
+    suppress_rooting=True,
+    unquoted_underscores=True)
     return tree_string
 
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
