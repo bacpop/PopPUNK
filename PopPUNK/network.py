@@ -795,7 +795,7 @@ def generate_minimum_spanning_tree(G, names, distMat):
         network_edge_weights = list(mst_network.ep["weight"])
     else:
         network_edge_weights = [1.0]*len(mst_network.get_edges())
-    for i,edge in enumerate(mst_network.get_edges()):
+    for i, edge in enumerate(mst_network.get_edges()):
         # Connectivity
         tree_edges[edge[0]].append(edge[1])
         tree_edges[edge[1]].append(edge[0])
