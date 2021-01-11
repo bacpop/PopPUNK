@@ -751,7 +751,7 @@ def generate_minimum_spanning_tree(G, names, distMat):
     else:
         mst_edge_prop_map = gt.min_spanning_tree(G)
     mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
-    mst_network.save("original_mst.graphml",fmt="graphml")
+#    mst_network.save("original_mst.graphml",fmt="graphml")
     # Find seed nodes as those with greatest outdegree in each component
     seed_vertices = set()
     component_assignments, component_frequencies = gt.label_components(mst_network)
