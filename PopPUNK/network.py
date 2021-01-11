@@ -817,7 +817,7 @@ def generate_minimum_spanning_tree(G, names, distMat):
     added_node = set(parent_node_indices)
     i = 0
     while i < len(parent_node_indices):
-        for x,child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
+        for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
             if child_node_index not in added_node:
                 tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
                 tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
