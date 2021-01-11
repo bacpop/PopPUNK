@@ -364,14 +364,6 @@ def generate_visualisations(query_db,
                                      weights=combined_dists,
                                      weights_type='core')
                 sys.stderr.write("Completed constructing complete graph\n")
-                    #### Alternative approach - slower on a small network
-#                    import graph_tool.all as gt
-    #                G = gt.complete_graph(len(combined_seq))
-    #                eprop_dist = G.new_edge_property("double")
-    #                for row_idx, (ref, query) in enumerate(listDistInts(combined_seq,
-    #                                                                        combined_seq,
-    #                                                                         self = True)):
-    #                    eprop_dist[G.edge(ref,query)] = combined_dists[row_idx, 0]
             mst_tree = generate_minimum_spanning_tree(G, combined_seq, rr_distMat)
         else:
             mst_tree = existing_tree
