@@ -747,7 +747,6 @@ def write_tree(tree, prefix, suffix, overwrite):
         overwrite (bool)
             Whether to overwrite existing files
     """
-    fn = prefix + '/' + prefix
     tree_filename = prefix + "/" + os.path.basename(prefix) + suffix
     if overwrite or not os.path.isfile(tree_filename):
         with open(tree_filename,'w') as tree_file:
