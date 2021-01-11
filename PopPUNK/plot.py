@@ -817,8 +817,6 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
         tree = pdm.nj_tree()
 
     # Midpoint root tree and write outout
-    suppress_rooting=True,
-    unquoted_underscores=True
     tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
 
     # remove file as it can be large
