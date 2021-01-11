@@ -829,7 +829,6 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
     tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
     return tree_string
 
-<<<<<<< HEAD
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv, rapidnj,
                         queryList = None, overwrite = False, threads = 1):
     """Generate files for Phandango
