@@ -619,11 +619,12 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         for col in d:
             this_col_items = len(d[col])
             if prev_col_items > -1 and prev_col_items != this_col_items:
-                sys.stderr.write("Discrepant length between " + prev_col_name + " (length of " + prev_col_items + ") and " + col + "(length of " + this_col_items + ")\n")
+                sys.stderr.write("Discrepant length between " + prev_col_name + \
+                                 " (length of " + prev_col_items + ") and " + \
+                                 col + "(length of " + this_col_items + ")\n")
         sys.exit(1)
 
-
-def buildRapidNJ(rapidnj, refList, coreMat, outPrefix):
+def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
     """Use rapidNJ for more rapid tree building
 
     Creates a phylip of core distances, system call to rapidnj executable, loads tree as
@@ -638,6 +639,8 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix):
             NxN core distance matrix produced in :func:`~outputsForMicroreact`
         outPrefix (str)
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        threads (int)
+            Number of threads to use
 
     Returns:
         tree (str)
@@ -654,7 +657,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix):
 
     # construct tree
     tree_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk"
-    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw"
+    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw -c " + str(threads)
     try:
         # run command
         subprocess.run(rapidnj_cmd, shell=True, check=True)
@@ -677,7 +680,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix):
     return tree
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
-                         outPrefix, epiCsv, queryList = None, overwrite = False):
+                         outPrefix, epiCsv, queryList = None, overwrite = False, threads = 1):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -707,6 +710,8 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # Avoid recursive import
     from .tsne import generate_tsne
@@ -775,7 +780,7 @@ def check_tree_exists(prefix, type):
 
     return tree_string
 
-def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj):
+def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
     """Generate phylogeny using dendropy or RapidNJ
 
     Writes a neighbour joining tree (.nwk) from core distances.
@@ -790,6 +795,8 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj):
         rapidnj (str)
             A string with the location of the rapidnj executable for tree-building. If None, will
             use dendropy by default
+        threads (int)
+            Number of threads to use with rapidnj
             
     Returns:
         tree_string (str)
@@ -802,7 +809,7 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj):
     # calculate phylogeny
     sys.stderr.write("Building phylogeny\n")
     if rapidnj is not None:
-        tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix)
+        tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, threads = threads)
     else:
         pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
                                                            delimiter=",",
@@ -822,8 +829,9 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj):
     tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
     return tree_string
 
+<<<<<<< HEAD
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv, rapidnj,
-                        queryList = None, overwrite = False, microreact = False):
+                        queryList = None, overwrite = False, threads = 1):
     """Generate files for Phandango
 
     Write a neighbour joining tree (.tree) from core distances
@@ -849,6 +857,8 @@ def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix,
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
@@ -864,7 +874,7 @@ def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix,
         sys.stderr.write("Need an NJ tree for a Phandango output")
 
 def outputsForGrapetree(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
-                        queryList = None, overwrite = False):
+                        queryList = None, overwrite = False, threads = 1):
     """Generate files for Grapetree
 
     Write a neighbour joining tree (.nwk) from core distances
@@ -889,11 +899,11 @@ def outputsForGrapetree(combined_list, clustering, nj_tree, mst_tree, outPrefix,
             A CSV containing other information, to include with the CSV of clusters
         queryList (list)
             Optional list of isolates that have been added as a query for colouring
-            in the CSV.
-
-            (default = None)
+            in the CSV. (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False).
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)

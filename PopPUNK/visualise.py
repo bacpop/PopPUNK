@@ -386,7 +386,8 @@ def generate_visualisations(query_db,
             nj_tree = generate_nj_tree(core_distMat,
                                         combined_seq,
                                         output,
-                                        rapidnj)
+                                        rapidnj,
+                                        threads = threads)
         else:
             nj_tree = existing_tree
 
@@ -402,7 +403,8 @@ def generate_visualisations(query_db,
                              output,
                              info_csv,
                              queryList = qlist,
-                             overwrite = overwrite)
+                             overwrite = overwrite,
+                             threads = threads)
 
     if phandango:
         sys.stderr.write("Writing phandango output\n")
@@ -413,7 +415,8 @@ def generate_visualisations(query_db,
                             output,
                             info_csv,
                             queryList = qlist,
-                            overwrite = overwrite)
+                            overwrite = overwrite,
+                            threads = threads)
 
     if grapetree:
         sys.stderr.write("Writing grapetree output\n")
@@ -424,8 +427,9 @@ def generate_visualisations(query_db,
                             output,
                             info_csv,
                             queryList = qlist,
-                            overwrite = overwrite)
-        
+                            overwrite = overwrite,
+                            threads = threads)
+
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
