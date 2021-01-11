@@ -733,9 +733,7 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
 
 def write_tree(tree, prefix, suffix, overwrite):
-    """Generate phylogeny using dendropy or RapidNJ
-
-    Writes a neighbour joining tree (.nwk) from core distances.
+    """Prints a Newick-formatted string to an output file
 
     Args:
         tree (str)
