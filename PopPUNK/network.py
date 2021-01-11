@@ -796,10 +796,12 @@ def generate_minimum_spanning_tree(G, names, distMat):
     else:
         network_edge_weights = [1.0]*len(mst_network.get_edges())
     for i, edge in enumerate(mst_network.get_edges()):
-        # Connectivity
+        # Connectivity - add both directions as unrooted tree is not directional -
+        # do not know which will be leaf node
         tree_edges[edge[0]].append(edge[1])
         tree_edges[edge[1]].append(edge[0])
-        # Length
+        # Lengths added in the same order as the corresponding children to enable
+        # branches to be matched to child nodes
         tree_edge_lengths[edge[0]].append(network_edge_weights[i])
         tree_edge_lengths[edge[1]].append(network_edge_weights[i])
     # Identify seed node as that with most links
