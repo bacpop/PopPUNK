@@ -747,10 +747,9 @@ def write_tree(tree, prefix, suffix, overwrite):
         overwrite (bool)
             Whether to overwrite existing files
     """
-    fn = prefix + '/' + prefix
     tree_filename = prefix + "/" + os.path.basename(prefix) + suffix
     if overwrite or not os.path.isfile(tree_filename):
-        with open(tree_filename,'w') as tree_file:
+        with open(tree_filename, 'w') as tree_file:
             tree_file.write(tree)
 
 def load_tree(prefix, type):
@@ -772,7 +771,9 @@ def load_tree(prefix, type):
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
                 tree = dendropy.Tree.get(path=tree_fn, schema="newick")
-                tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+                tree_string = tree.as_string(schema="newick",
+                suppress_rooting=True,
+                unquoted_underscores=True)
                 sys.stderr.write("Reading existing tree from " + tree_fn + "\n")
                 break
 
@@ -816,15 +817,15 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
         tree = pdm.nj_tree()
 
     # Midpoint root tree and write outout
-    suppress_rooting=True,
-    unquoted_underscores=True
     tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
 
     # remove file as it can be large
     os.remove(core_dist_file)
     
     # return Newick string
-    tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+    tree_string = tree.as_string(schema="newick",
+    suppress_rooting=True,
+    unquoted_underscores=True)
     return tree_string
 
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,

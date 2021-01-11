@@ -817,7 +817,7 @@ def generate_minimum_spanning_tree(G, names, distMat):
     added_node = set(parent_node_indices)
     i = 0
     while i < len(parent_node_indices):
-        for x,child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
+        for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
             if child_node_index not in added_node:
                 tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
                 tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
@@ -827,11 +827,13 @@ def generate_minimum_spanning_tree(G, names, distMat):
     # Add zero length branches for internal nodes in MST
     for node in tree.preorder_node_iter():
         if not node.is_leaf():
-            new_child = dendropy.Node(taxon=node.taxon,edge_length=0.0)
+            new_child = dendropy.Node(taxon=node.taxon, edge_length=0.0)
             node.taxon = None
             node.add_child(new_child)
     # Return tree as string
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
-    tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
+    tree_string = tree.as_string(schema="newick",
+                                 suppress_rooting=True,
+                                 unquoted_underscores=True)
     return tree_string
     
