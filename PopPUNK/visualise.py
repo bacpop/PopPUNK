@@ -403,8 +403,7 @@ def generate_visualisations(query_db,
                              output,
                              info_csv,
                              queryList = qlist,
-                             overwrite = overwrite,
-                             threads = threads)
+                             overwrite = overwrite)
 
     if phandango:
         sys.stderr.write("Writing phandango output\n")
@@ -415,8 +414,7 @@ def generate_visualisations(query_db,
                             output,
                             info_csv,
                             queryList = qlist,
-                            overwrite = overwrite,
-                            threads = threads)
+                            overwrite = overwrite)
 
     if grapetree:
         sys.stderr.write("Writing grapetree output\n")
@@ -427,8 +425,7 @@ def generate_visualisations(query_db,
                             output,
                             info_csv,
                             queryList = qlist,
-                            overwrite = overwrite,
-                            threads = threads)
+                            overwrite = overwrite)
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")

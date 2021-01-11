@@ -680,7 +680,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
     return tree
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
-                         outPrefix, epiCsv, queryList = None, overwrite = False, threads = 1):
+                         outPrefix, epiCsv, queryList = None, overwrite = False):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -710,8 +710,6 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
-        threads (int)
-            Number of threads to use with rapidnj
     """
     # Avoid recursive import
     from .tsne import generate_tsne
@@ -829,8 +827,8 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
     tree_string = tree.as_string(schema="newick",suppress_rooting=True,unquoted_underscores=True)
     return tree_string
 
-def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv, rapidnj,
-                        queryList = None, overwrite = False, threads = 1):
+def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
+                        queryList = None, overwrite = False):
     """Generate files for Phandango
 
     Write a neighbour joining tree (.tree) from core distances
@@ -873,7 +871,7 @@ def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix,
         sys.stderr.write("Need an NJ tree for a Phandango output")
 
 def outputsForGrapetree(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
-                        queryList = None, overwrite = False, threads = 1):
+                        queryList = None, overwrite = False):
     """Generate files for Grapetree
 
     Write a neighbour joining tree (.nwk) from core distances
@@ -901,8 +899,6 @@ def outputsForGrapetree(combined_list, clustering, nj_tree, mst_tree, outPrefix,
             in the CSV. (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False).
-        threads (int)
-            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
