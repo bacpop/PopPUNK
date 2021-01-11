@@ -814,14 +814,14 @@ def generate_minimum_spanning_tree(G, names, distMat):
     tree.seed_node = tree_nodes[seed_node_index]
     # Generate links of tree
     parent_node_indices = [seed_node_index]
-    added_node = set(parent_node_indices)
+    added_nodes = set(parent_node_indices)
     i = 0
     while i < len(parent_node_indices):
         for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
-            if child_node_index not in added_node:
+            if child_node_index not in added_nodes:
                 tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
                 tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
-                added_node.add(child_node_index)
+                added_nodes.add(child_node_index)
                 parent_node_indices.append(child_node_index)
         i = i + 1
     # Add zero length branches for internal nodes in MST
