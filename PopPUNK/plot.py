@@ -753,7 +753,7 @@ def write_tree(tree, prefix, suffix, overwrite):
         with open(tree_filename,'w') as tree_file:
             tree_file.write(tree)
 
-def check_tree_exists(prefix, type):
+def load_tree(prefix, type):
     """Checks for existing trees from previous runs.
 
     Args:

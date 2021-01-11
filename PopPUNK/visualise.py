@@ -26,7 +26,7 @@ from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
 from .plot import writeClusterCsv
 from .plot import generate_nj_tree
-from .plot import check_tree_exists
+from .plot import load_tree
 
 from .prune_db import prune_distance_matrix
 
