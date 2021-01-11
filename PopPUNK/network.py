@@ -314,7 +314,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     if edge_list or sparse:
         if sparse:
             connections = []
-            for ref,query,weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
+            for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
                 connections.append((ref, query, weight))
         elif weights is not None:
             connections = []
