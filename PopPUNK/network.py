@@ -289,8 +289,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             If passed, the core,accessory distances for each assignment, which will
             be annotated as an edge attribute
         weights_type (str)
-            Specifies the type of weight to be annotated on the graph - core, accessory
-            or Euclidean distance
+            Specifies the type of weight to be annotated on the graph - options are core,
+            accessory or euclidean distance
         sparse (bool)
             Whether input is a sparse distance matrix
         sparse_input (numpy.array)
@@ -309,6 +309,13 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     if rlist != qlist:
         self_comparison = False
         vertex_labels.append(qlist)
+
+    # Check weights type is valid
+    accepted_weights_types = ["core", "accessory", "euclidean"]
+    if weights_type not in accepted_weights_types:
+        sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
+        "accepted types are " + str(accepted_weights_types) + "\n")
+        sys.exit(1)
 
     # identify edges
     if edge_list or sparse:
