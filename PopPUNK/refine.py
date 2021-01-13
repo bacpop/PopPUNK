@@ -90,34 +90,39 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
 
     # Move distMat into shared memory
-    with SharedMemoryManager() as smm:
-        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
-        distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-        distances_shared_array[:] = distMat[:]
-        distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
+    for s_idx, s in enumerate(s_range):
+        new_intercept = transformLine(s, start_point, mean1)
+        if slope == 2:
+            x_max, y_max = decisionBoundary(new_intercept, gradient)
+        elif slope == 0:
+            x_max = new_intercept[0]
+            y_max = 0
+        elif slope == 1:
+            x_max = 0
+            y_max = new_intercept[1]
 
-        with Pool(processes = num_processes) as pool:
-            global_s = pool.map(partial(newNetwork,
-                                        sample_names = sample_names,
-                                        distMat = distances_shared,
-                                        start_point = start_point,
-                                        mean1 = mean1,
-                                        gradient = gradient,
-                                        slope = slope),
-                                s_range)
+        # Make network
+        boundary_assignments = pp_sketchlib.assignThreshold(distMat, slope, x_max, y_max, 1)
+        G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
+
+        # Return score
+        metrics = networkSummary(G)
+        G.save("test." + str(s_idx) + ".gt")
+        G.save("test." + str(s_idx) + ".graphml", fmt='graphml')
+        print("\t".join([str(x) for x in [s] + metrics]))
 
     # Local optimisation around global optimum
-    min_idx = np.argmin(np.array(global_s))
-    if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
-        sys.stderr.write("Trying to optimise score locally\n")
-        local_s = scipy.optimize.minimize_scalar(newNetwork,
-                        bounds=[s_range[min_idx-1], s_range[min_idx+1]],
-                        method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient, slope))
-        optimised_s = local_s.x
-    else:
-        optimised_s = s_range[min_idx]
-
+    #min_idx = np.argmin(np.array(global_s))
+    #if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
+    #    sys.stderr.write("Trying to optimise score locally\n")
+    #    local_s = scipy.optimize.minimize_scalar(newNetwork,
+    #                    bounds=[s_range[min_idx-1], s_range[min_idx+1]],
+    #                    method='Bounded', options={'disp': True},
+    #                    args = (sample_names, distMat, start_point, mean1, gradient, slope))
+    #    optimised_s = local_s.x
+    #else:
+    #    optimised_s = s_range[min_idx]
+    optimised_s = s_range[9]
     optimised_coor = transformLine(optimised_s, start_point, mean1)
     if slope == 2:
         optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
