@@ -117,7 +117,9 @@ def get_options():
             default=False, action='store_true')
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
-    refinementGroup.add_argument('--core-only', help='Save the core distance fit (with ')
+    refinementGroup.add_argument('--score-idx',
+            help='Index of score to use [default = 0]',
+            type=int, default = 0, choices=[0, 1, 2])
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -364,6 +366,7 @@ def main():
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
                                             args.indiv_refine,
+                                            args.score_idx,
                                             args.no_local,
                                             args.threads)
                 new_model.plot(distMat)

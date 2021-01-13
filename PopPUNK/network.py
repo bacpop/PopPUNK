@@ -341,11 +341,15 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # print some summaries
     if summarise:
-        (components, density, transitivity, score) = networkSummary(G)
-        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
-                                                       "\tDensity\t" + "{:.4f}".format(density),
-                                                       "\tTransitivity\t" + "{:.4f}".format(transitivity),
-                                                       "\tScore\t" + "{:.4f}".format(score)])
+        (metrics, scores) = networkSummary(G)
+        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
+                                                       "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
+                                                       "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
+                                                       "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
+                                                       "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
+                                                       "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
+                                                       "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
+                                                       "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
                                                        + "\n")
 
     return G
@@ -358,22 +362,29 @@ def networkSummary(G):
             The network of strains from :func:`~constructNetwork`
 
     Returns:
-        components (int)
-            The number of connected components (and clusters)
-        density (float)
-            The proportion of possible edges used
-        transitivity (float)
-            Network transitivity (triads/triangles)
-        score (float)
-            A score of network fit, given by :math:`\mathrm{transitivity} * (1-\mathrm{density})`
+        metrics (list)
+            List with # components, density, transitivity, mean betweenness
+            and weighted mean betweenness
+        scores (list)
+            List of scores
     """
     component_assignments, component_frequencies = gt.label_components(G)
     components = len(component_frequencies)
     density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
     transitivity = gt.global_clustering(G)[0]
-    score = transitivity * (1-density)
 
-    return(components, density, transitivity, score)
+    betweenness = []
+    sizes = []
+    for component in set(component_assignments):
+      vfilt = component_assignments.a == component
+      subgraph = gt.GraphView(G, vfilt=vfilt)
+      betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+      sizes.append(sum(vfilt))
+
+    metrics = [components, density, transitivity, np.mean(betweenness), np.average(betweenness, weights=sizes)]
+    score = transitivity * (1 - density)
+    scores = [score, score * (1 - metrics[3]), score * (1 - metrics[4])]
+    return(metrics, scores)
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,

@@ -25,7 +25,8 @@ from .network import constructNetwork
 from .network import networkSummary
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
-        max_move, min_move, slope = 2, no_local = False, num_processes = 1):
+              max_move, min_move, slope = 2, score_idx = 0,
+              no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -48,6 +49,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         slope (int)
             Set to 0 for a vertical line, 1 for a horizontal line, or
             2 to use a slope
+        score_idx (int)
+            Index of score from :func:`~PopPUNK.network.networkSummary` to use
+            [default = 0]
         no_local (bool)
             Turn off the local optimisation step.
             Quicker, but may be less well refined.
@@ -89,6 +93,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     global_grid_resolution = 40 # Seems to work
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
 
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
+
     # Move distMat into shared memory
     with SharedMemoryManager() as smm:
         shm_distMat = smm.SharedMemory(size = distMat.nbytes)
@@ -103,8 +110,13 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                         start_point = start_point,
                                         mean1 = mean1,
                                         gradient = gradient,
-                                        slope = slope),
+                                        slope = slope,
+                                        score_idx = score_idx,
+                                        cpus = 1),
                                 s_range)
+
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(num_processes)
 
     # Local optimisation around global optimum
     min_idx = np.argmin(np.array(global_s))
@@ -131,7 +143,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y, min_move, max_move
 
 
-def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2, cpus = 1):
+def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
+               slope=2, score_idx=0, cpus=1):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -154,6 +167,10 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2, 
         slope (int)
             Set to 0 for a vertical line, 1 for a horizontal line, or
             2 to use a slope
+            [default = 2]
+        score_idx (int)
+            Index of score from :func:`~PopPUNK.network.networkSummary` to use
+            [default = 0]
         cpus (int)
             Number of CPUs to use for calculating assignment
     Returns:
@@ -180,7 +197,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient, slope=2, 
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score
-    score = networkSummary(G)[3]
+    score = networkSummary(G)[1][score_idx]
     return(-score)
 
 def readManualStart(startFile):

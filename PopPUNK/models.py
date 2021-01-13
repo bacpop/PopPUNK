@@ -527,7 +527,7 @@ class RefineFit(ClusterFit):
         self.threshold = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            no_local = False, threads = 1):
+            score_idx = 0, no_local = False, threads = 1):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -556,6 +556,9 @@ class RefineFit(ClusterFit):
                 Run refinement for core and accessory distances separately
 
                 (default = False).
+            score_idx (int)
+                Index of score from :func:`~PopPUNK.network.networkSummary` to use
+                [default = 0]
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
@@ -606,9 +609,10 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
-        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = refineFit(X/self.scale,
-                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                slope = 2, no_local = no_local, num_processes = threads)
+        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = \
+          refineFit(X/self.scale,
+                    sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                    slope = 2, score_idx = score_idx, no_local = no_local, num_processes = threads)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -618,13 +622,15 @@ class RefineFit(ClusterFit):
             try:
                 sys.stderr.write("Refining core and accessory separately\n")
                 # optimise core distance boundary
-                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = refineFit(X/self.scale,
-                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                slope = 0, no_local = no_local,num_processes = threads)
+                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
+                  refineFit(X/self.scale,
+                            sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                            slope = 0, score_idx = score_idx, no_local = no_local,num_processes = threads)
                 # optimise accessory distance boundary
-                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = refineFit(X/self.scale,
-                sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move, slope = 1,
-                no_local = no_local, num_processes = threads)
+                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
+                  refineFit(X/self.scale,
+                            sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
+                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
