@@ -24,7 +24,6 @@ try:  # sklearn >= 0.22
     from sklearn.neighbors import KernelDensity
 except ImportError:
     from sklearn.neighbors.kde import KernelDensity
-import dendropy
 
 from .trees import write_tree
 

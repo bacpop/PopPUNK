@@ -7,7 +7,6 @@ import os
 import sys
 # additional
 import numpy as np
-import dendropy
 import scipy.sparse
 
 # required from v2.1.1 onwards (no mash support)
