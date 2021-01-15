@@ -224,7 +224,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
 
 def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_boundary,
         mean0, mean1, start_point, min_move, max_move, scale, threshold, indiv_boundaries,
-        title, out_prefix):
+        unconstrained, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
     A scatter plot of core and accessory distances, coloured by component

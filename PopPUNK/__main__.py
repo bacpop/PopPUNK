@@ -117,8 +117,6 @@ def get_options():
             type=float, default = None)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
-    refinementGroup.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
-            choices=['both', 'core', 'accessory'], default = False)
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
@@ -126,6 +124,12 @@ def get_options():
     refinementGroup.add_argument('--score-idx',
             help='Index of score to use [default = 0]',
             type=int, default = 0, choices=[0, 1, 2])
+    refineMode = refinementGroup.add_mutually_exclusive_group()
+    refineMode.add_argument('--unconstrained',
+            help='Optimise both boundary gradient and intercept',
+            default=False, action='store_true')
+    refineMode.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
+            choices=['both', 'core', 'accessory'], default=False)
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -372,6 +376,7 @@ def main():
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
                                             args.indiv_refine,
+                                            args.unconstrained,
                                             args.score_idx,
                                             args.no_local,
                                             args.threads)

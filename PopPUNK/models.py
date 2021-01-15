@@ -525,9 +525,10 @@ class RefineFit(ClusterFit):
         self.within_label = -1
         self.slope = 2
         self.threshold = False
+        self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            score_idx = 0, no_local = False, threads = 1):
+            unconstrained = False, score_idx = 0, no_local = False, threads = 1):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -574,6 +575,7 @@ class RefineFit(ClusterFit):
         self.scale = np.copy(model.scale)
         self.max_move = max_move
         self.min_move = min_move
+        self.unconstrained = unconstrained
 
         # Get starting point
         assignment = model.assign(X)
@@ -612,7 +614,8 @@ class RefineFit(ClusterFit):
         self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = \
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                    slope = 2, score_idx = score_idx, no_local = no_local, num_processes = threads)
+                    slope = 2, score_idx = score_idx, unconstrained = unconstrained,
+                    no_local = no_local, num_processes = threads)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -675,6 +678,7 @@ class RefineFit(ClusterFit):
         self.fitted = True
         self.threshold = True
         self.indiv_fitted = False
+        self.unconstrained = False
 
         y = self.assign(X)
         return y
@@ -745,8 +749,8 @@ class RefineFit(ClusterFit):
 
         plot_refined_results(plot_X, self.assign(plot_X), self.optimal_x, self.optimal_y, self.core_boundary,
             self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
-            self.max_move, self.scale, self.threshold, self.indiv_fitted, "Refined fit boundary",
-            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
+            self.max_move, self.scale, self.threshold, self.indiv_fitted, self.unconstrained,
+            "Refined fit boundary", self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
     def assign(self, X, slope=None, cpus=1):

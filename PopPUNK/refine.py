@@ -7,6 +7,7 @@
 import os
 import sys
 # additional
+from itertools import chain
 from functools import partial
 import numpy as np
 import scipy.optimize
@@ -26,7 +27,7 @@ from .network import networkSummary
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
-              no_local = False, num_processes = 1):
+              unconstrained = False, no_local = False, num_processes = 1):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -52,6 +53,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        unconstrained (bool)
+            If True, search in 2D and change the slope of the boundary
         no_local (bool)
             Turn off the local optimisation step.
             Quicker, but may be less well refined.
@@ -83,61 +86,123 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
-    global_grid_resolution = 40 # Seems to work
-    s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
 
-    i_vec, j_vec, idx_vec = \
-      pp_sketchlib.thresholdIterate1D(distMat, s_range, slope,
-                                      start_point[0], start_point[1],
-                                      mean1[0], mean1[1], num_processes)
+    if unconstrained:
+        if slope != 2:
+            raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
 
-    global_s = []
-    edge_list = []
-    prev_idx = 0
-    # Grow a network
-    for i, j, idx in zip(i_vec, j_vec, idx_vec):
-      if idx > prev_idx:
-        # At first offset, make a new network, otherwise just add the new edges
-        if prev_idx == 0:
-          G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                               summarise=False, edge_list=True)
+        global_grid_resolution = 10
+        x_max_start, y_max_start = decisionBoundary(mean0, gradient)
+        x_max_end, y_max_end = decisionBoundary(mean1, gradient)
+        x_max = np.linspace(x_max_start, x_max_end, global_grid_resolution, dtype=np.float32)
+        y_max = np.linspace(y_max_start, y_max_end, global_grid_resolution, dtype=np.float32)
+
+        if gt.openmp_enabled():
+            gt.openmp_set_num_threads(1)
+
+        '''with SharedMemoryManager() as smm:
+            shm_distMat = smm.SharedMemory(size = distMat.nbytes)
+            distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
+            distances_shared_array[:] = distMat[:]
+            distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
+
+            with Pool(processes = num_processes) as pool:
+                global_s = pool.map(partial(newNetwork2D,
+                                            sample_names = sample_names,
+                                            distMat = distances_shared,
+                                            x_range = x_max,
+                                            score_idx = score_idx),
+                                    y_max)
+
+        if gt.openmp_enabled():
+            gt.openmp_set_num_threads(num_processes)
+        '''
+        global_s = []
+        for y in y_max:
+            scores = newNetwork2D(y, sample_names, distMat, x_max, score_idx)
+            global_s.append(scores)
+        global_s = list(chain.from_iterable(global_s))
+        min_idx = np.argmin(np.array(global_s))
+        optimal_x = x_max[min_idx % global_grid_resolution]
+        optimal_y = y_max[min_idx // global_grid_resolution]
+
+        if not (optimal_x > x_max_start and optimal_x < x_max_end and \
+                optimal_y > y_max_start and optimal_y < y_max_end):
+            no_local = True
+        elif not no_local:
+            # We have a fixed gradient and want to optimised the intercept
+            # This parameterisation is a little awkward to match the 1D case:
+            # Make two points along the right slope
+            gradient = optimal_x / optimal_y # of 1D search
+            delta = x_max[1] - x_max[0]
+            bounds = [-delta, delta]
+            start_point = (optimal_x, 0)
+            mean1 = (optimal_x + delta, delta * gradient)
+
+    else:
+        global_grid_resolution = 40 # Seems to work
+        s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
+        i_vec, j_vec, idx_vec = \
+            pp_sketchlib.thresholdIterate1D(distMat, s_range, slope,
+                                            start_point[0], start_point[1],
+                                            mean1[0], mean1[1], num_processes)
+        global_s = growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx)
+        min_idx = np.argmin(np.array(global_s))
+        if min_idx > 0 and min_idx < len(s_range) - 1:
+            bounds = [s_range[min_idx-1], s_range[min_idx+1]]
         else:
-          G.add_edge_list(edge_list)
-        # Add score into vector for any offsets passed (should usually just be one)
-        for s in range(prev_idx, idx):
-          global_s.append(-networkSummary(G)[1][score_idx])
-        prev_idx = idx
-        edge_list = []
-      edge_list.append((i, j))
-
-    # Add score for final offset(s) at end of loop
-    G.add_edge_list(edge_list)
-    for s in range(prev_idx, len(s_range)):
-      global_s.append(-networkSummary(G)[1][score_idx])
+            no_local = True
+            optimised_s = s_range[min_idx]
 
     # Local optimisation around global optimum
-    min_idx = np.argmin(np.array(global_s))
-    if min_idx > 0 and min_idx < len(s_range) - 1 and not no_local:
+    if not no_local:
         sys.stderr.write("Trying to optimise score locally\n")
         local_s = scipy.optimize.minimize_scalar(newNetwork,
-                        bounds=[s_range[min_idx-1], s_range[min_idx+1]],
+                        bounds=bounds,
                         method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient, slope))
+                        args = (sample_names, distMat, start_point, mean1, gradient, slope, score_idx))
         optimised_s = local_s.x
-    else:
-        optimised_s = s_range[min_idx]
 
-    optimised_coor = transformLine(optimised_s, start_point, mean1)
-    if slope == 2:
-        optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
-    else:
-        optimal_x = optimised_coor[0]
-        optimal_y = optimised_coor[1]
+    # Convert to x_max, y_max if needed
+    if not unconstrained or not no_local:
+        optimised_coor = transformLine(optimised_s, start_point, mean1)
+        if slope == 2:
+            optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
+        else:
+            optimal_x = optimised_coor[0]
+            optimal_y = optimised_coor[1]
 
     if optimal_x < 0 or optimal_y < 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
     return start_point, optimal_x, optimal_y, min_move, max_move
+
+
+def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
+    scores = []
+    edge_list = []
+    prev_idx = 0
+    # Grow a network
+    for i, j, idx in zip(i_vec, j_vec, idx_vec):
+        if idx > prev_idx:
+            # At first offset, make a new network, otherwise just add the new edges
+            if prev_idx == 0:
+                G = constructNetwork(sample_names, sample_names, edge_list, -1,
+                                    summarise=False, edge_list=True)
+            else:
+                G.add_edge_list(edge_list)
+            # Add score into vector for any offsets passed (should usually just be one)
+            for s in range(prev_idx, idx):
+                scores.append(-networkSummary(G)[1][score_idx])
+            prev_idx = idx
+            edge_list = []
+        edge_list.append((i, j))
+
+    # Add score for final offset(s) at end of loop
+    G.add_edge_list(edge_list)
+    for s in range(prev_idx, len(s_range)):
+        scores.append(-networkSummary(G)[1][score_idx])
+    return(scores)
 
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
@@ -196,6 +261,18 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     # Return score
     score = networkSummary(G)[1][score_idx]
     return(-score)
+
+def newNetwork2D(y_max, sample_names, distMat, x_range, score_idx=0):
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
+    if isinstance(distMat, NumpyShared):
+        distMat_shm = shared_memory.SharedMemory(name = distMat.name)
+        distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+
+    i_vec, j_vec, idx_vec = \
+            pp_sketchlib.thresholdIterate2D(distMat, x_range, y_max)
+    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx)
+    return(scores)
 
 def readManualStart(startFile):
     """Reads a file to define a manual start point, rather than using ``--fit-model``

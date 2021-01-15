@@ -125,6 +125,8 @@ def cliquePrune(component, graph, reference_indices, components_list):
     """Wrapper function around :func:`~getCliqueRefs` so it can be
        called by a multiprocessing pool
     """
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
     refs = reference_indices.copy()
     if subgraph.num_vertices() <= 2:
