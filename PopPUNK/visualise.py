@@ -119,7 +119,8 @@ def get_options():
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
     faGroup.add_argument('--mst', help='Calculate a minimum spanning tree', default=False, action='store_true')
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
-    faGroup.add_argument('--no-nj', help='Do no calculate an NJ tree', default=False, action='store_true')
+    faGroup.add_argument('--tree', help='Do no calculate an NJ tree', type=str, default='nj',
+        choices=['nj', 'mst', 'both'])
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
@@ -172,8 +173,7 @@ def generate_visualisations(query_db,
                             previous_query_clustering,
                             info_csv,
                             rapidnj,
-                            no_nj,
-                            mst,
+                            tree,
                             overwrite,
                             core_only,
                             accessory_only,
@@ -327,7 +327,7 @@ def generate_visualisations(query_db,
 
     # Generate MST
     mst_tree = None
-    if mst:
+    if tree == 'mst' or tree == 'both':
         existing_tree = None
         if not overwrite:
             existing_tree = load_tree(output, "MST")
@@ -370,7 +370,7 @@ def generate_visualisations(query_db,
 
     # Generate NJ tree
     nj_tree = None
-    if (microreact or phandango or grapetree) and not no_nj:
+    if tree == 'nj' or tree == 'both':
         existing_tree = None
         if not overwrite:
             existing_tree = load_tree(output, "NJ")
@@ -454,8 +454,7 @@ def main():
                             args.previous_query_clustering,
                             args.info_csv,
                             args.rapidnj,
-                            args.no_nj,
-                            args.mst,
+                            args.tree,
                             args.overwrite,
                             args.core_only,
                             args.accessory_only,
