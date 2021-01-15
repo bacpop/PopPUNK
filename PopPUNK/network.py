@@ -377,9 +377,11 @@ def networkSummary(G):
     sizes = []
     for component in set(component_assignments):
       vfilt = component_assignments.a == component
-      subgraph = gt.GraphView(G, vfilt=vfilt)
-      betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
-      sizes.append(sum(vfilt))
+      size = sum(vfilt)
+      if size > 3:
+        subgraph = gt.GraphView(G, vfilt=vfilt)
+        betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+        sizes.append(size)
 
     metrics = [components, density, transitivity, np.mean(betweenness), np.average(betweenness, weights=sizes)]
     score = transitivity * (1 - density)

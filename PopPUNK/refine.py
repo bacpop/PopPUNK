@@ -81,42 +81,39 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
 
-    # ALTERNATIVE - use a single network
-    # Move boundary along in steps, and find those samples which have changed
-    # Use remove_edges/add_edges with index k lookup (n total) to find sample IDs
-    # https://stackoverflow.com/questions/27086195/linear-index-upper-triangular-matrix
-    # i = n - 2 - int(sqrt(-8*k + 4*n*(n-1)-7)/2.0 - 0.5)
-    # j = k + i + 1 - n*(n-1)/2 + (n-i)*((n-i)-1)/2
-
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
     global_grid_resolution = 40 # Seems to work
     s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
 
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(1)
+    i_vec, j_vec, idx_vec = \
+      pp_sketchlib.thresholdIterate1D(distMat, s_range, slope,
+                                      start_point[0], start_point[1],
+                                      mean1[0], mean1[1], num_processes)
 
-    # Move distMat into shared memory
-    with SharedMemoryManager() as smm:
-        shm_distMat = smm.SharedMemory(size = distMat.nbytes)
-        distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-        distances_shared_array[:] = distMat[:]
-        distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
+    global_s = []
+    edge_list = []
+    prev_idx = 0
+    # Grow a network
+    for i, j, idx in zip(i_vec, j_vec, idx_vec):
+      if idx > prev_idx:
+        # At first offset, make a new network, otherwise just add the new edges
+        if prev_idx == 0:
+          G = constructNetwork(sample_names, sample_names, edge_list, -1,
+                               summarise=False, edge_list=True)
+        else:
+          G.add_edge_list(edge_list)
+        # Add score into vector for any offsets passed (should usually just be one)
+        for s in range(prev_idx, idx):
+          global_s.append(-networkSummary(G)[1][score_idx])
+        prev_idx = idx
+        edge_list = []
+      edge_list.append((i, j))
 
-        with Pool(processes = num_processes) as pool:
-            global_s = pool.map(partial(newNetwork,
-                                        sample_names = sample_names,
-                                        distMat = distances_shared,
-                                        start_point = start_point,
-                                        mean1 = mean1,
-                                        gradient = gradient,
-                                        slope = slope,
-                                        score_idx = score_idx,
-                                        cpus = 1),
-                                s_range)
-
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(num_processes)
+    # Add score for final offset(s) at end of loop
+    G.add_edge_list(edge_list)
+    for s in range(prev_idx, len(s_range)):
+      global_s.append(-networkSummary(G)[1][score_idx])
 
     # Local optimisation around global optimum
     min_idx = np.argmin(np.array(global_s))

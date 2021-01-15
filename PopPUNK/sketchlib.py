@@ -20,13 +20,8 @@ from random import sample
 import numpy as np
 from scipy import optimize
 
-# Try to import sketchlib
-try:
-    import pp_sketchlib
-    import h5py
-except ImportError as e:
-    sys.stderr.write("Sketchlib backend not available")
-    sys.exit(1)
+import pp_sketchlib
+import h5py
 
 from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 from .utils import iterDistRows

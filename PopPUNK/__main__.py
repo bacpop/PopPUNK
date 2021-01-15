@@ -10,8 +10,14 @@ import numpy as np
 import subprocess
 from collections import defaultdict
 
-# required from v2.1.1 onwards (no mash support)
-import pp_sketchlib
+# Try to import sketchlib
+try:
+    sys.path.insert(0, '/Users/jlees/Documents/Imperial/pp-sketchlib/build/lib.macosx-10.9-x86_64-3.8')
+    import pp_sketchlib
+    import h5py
+except ImportError as e:
+    sys.stderr.write("Sketchlib backend not available")
+    sys.exit(1)
 
 # import poppunk package
 from .__init__ import __version__
