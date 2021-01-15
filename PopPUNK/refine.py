@@ -119,12 +119,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(num_processes)
-        '''
-        global_s = []
-        for y in y_max:
-            scores = newNetwork2D(y, sample_names, distMat, x_max, score_idx)
-            global_s.append(scores)
-        '''
+
         global_s = list(chain.from_iterable(global_s))
         min_idx = np.argmin(np.array(global_s))
         optimal_x = x_max[min_idx % global_grid_resolution]
@@ -183,6 +178,29 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
+    """Construct a network, then add edges to it iteratively.
+    Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
+
+    Args:
+        sample_names (list)
+            Sample names corresponding to distMat (accessed by iterator)
+        i_vec (list)
+            Ordered ref vertex index to add
+        j_vec (list)
+            Ordered query (==ref) vertex index to add
+        idx_vec (list)
+            For each i, j tuple, the index of the intercept at which these enter
+            the network. These are sorted and increasing
+        s_range (list)
+            Offsets which correspond to idx_vec entries
+        score_idx (int)
+            Index of score from :func:`~PopPUNK.network.networkSummary` to use
+            [default = 0]
+    Returns:
+        scores (list)
+            -1 * network score for each of x_range.
+            Where network score is from :func:`~PopPUNK.network.networkSummary`
+    """
     scores = []
     edge_list = []
     prev_idx = 0
@@ -267,6 +285,28 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     return(-score)
 
 def newNetwork2D(y_max, sample_names, distMat, x_range, score_idx=0):
+    """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
+
+    For a given y_max, constructs networks across x_range and returns a list
+    of scores
+
+    Args:
+        y_max (float)
+            Maximum y-intercept of boundary
+        sample_names (list)
+            Sample names corresponding to distMat (accessed by iterator)
+        distMat (numpy.array or NumpyShared)
+            Core and accessory distances or NumpyShared describing these in sharedmem
+        x_range (list)
+            Sorted list of x-intercepts to search
+        score_idx (int)
+            Index of score from :func:`~PopPUNK.network.networkSummary` to use
+            [default = 0]
+    Returns:
+        scores (list)
+            -1 * network score for each of x_range.
+            Where network score is from :func:`~PopPUNK.network.networkSummary`
+    """
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
     if isinstance(distMat, NumpyShared):

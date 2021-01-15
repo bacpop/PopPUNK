@@ -557,6 +557,8 @@ class RefineFit(ClusterFit):
                 Run refinement for core and accessory distances separately
 
                 (default = False).
+            unconstrained (bool)
+                If True, search in 2D and change the slope of the boundary
             score_idx (int)
                 Index of score from :func:`~PopPUNK.network.networkSummary` to use
                 [default = 0]

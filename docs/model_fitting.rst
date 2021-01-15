@@ -490,6 +490,62 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
    :alt:  The refined fit, in microreact
    :align: center
 
+Unconstrained (two-dimensional) optimisation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In the default mode described above, the boundary gradient is set from the identified
+means in the input model, and the position of the intercept is optimised (one-dimensional optimisation).
+
+In cases where the gradient of the boundary is not well set by the two means in the
+plot, you can optimise both the intercept and the gradient by adding the ``--unconstrained`` option
+(which is incompatible with ``--indiv-refine``). This will perform a global search
+of 20 x 20 (400 total) x- and y-intercept positions, followed by a 1D local search
+to further optimise the intercept (unless ``--no-local`` is added).
+
+As this calculates the boundary at ten times as many positions, it is generally expected to
+take ten times longer. However, you can effectively parallelise this with up to 20 ``--threads``::
+
+    poppunk --fit-model refine --ref-db listeria --model-dir dbscan --unconstrained --threads 4
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.2
+        sketchlib: /Users/jlees/Documents/Imperial/pp-sketchlib/build/lib.macosx-10.9-x86_64-3.8/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 4 threads
+    Mode: Fitting refine model to reference database
+
+    Loading BGMM 2D Gaussian model
+    Loaded previous model of type: bgmm
+    Initial model-based network construction based on Gaussian fit
+    Initial boundary based network construction
+    Decision boundary starts at (0.52,0.43)
+    Trying to optimise score globally
+    Trying to optimise score locally
+
+    Optimization terminated successfully;
+    The returned value satisfies the termination criteria
+    (using xtol =  1e-05 )
+    Network summary:
+        Components				59
+        Density					0.0531
+        Transitivity				0.9966
+        Mean betweenness			0.0331
+        Weighted-mean betweenness		0.0454
+        Score					0.9438
+        Score (w/ betweenness)			0.9126
+        Score (w/ weighted-betweenness)		0.9009
+    Removing 545 sequences
+
+    Done
+
+Which gives a slightly higher network score, though overall similar clusters:
+
+.. image:: images/unconstrained_refine.png
+   :alt:  Refining fit with --unconstrained
+   :align: center
+
+The search range will always be defined by a trapezium in light red -- bounded by
+the two axes, and two lines passing through the means which are normal to the line
+which connects the means.
+
 .. _manual-start:
 
 Using fit refinement when mixture model totally fails
