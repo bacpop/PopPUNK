@@ -98,7 +98,7 @@ def load_tree(prefix, type):
             Newick-formatted string of NJ tree
     """
     tree_string = None
-    tree_prefix = prefix + "/" + os.path.basename(prefix)
+    tree_prefix = os.path.join(prefix,os.path.basename(prefix))
     for suffix in ["_core_" + type + ".tree","_core_" + type + ".nwk"]:
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
