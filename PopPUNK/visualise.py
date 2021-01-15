@@ -330,7 +330,7 @@ def generate_visualisations(query_db,
     if mst:
         existing_tree = None
         if not overwrite:
-            existing_tree = check_tree_exists(output, "MST")
+            existing_tree = load_tree(output, "MST")
         if existing_tree is None:
             G = None
             if sparse_distMat is not None:
@@ -373,7 +373,7 @@ def generate_visualisations(query_db,
     if (microreact or phandango or grapetree) and not no_nj:
         existing_tree = None
         if not overwrite:
-            existing_tree = check_tree_exists(output, "NJ")
+            existing_tree = load_tree(output, "NJ")
         if existing_tree is None:
             nj_tree = generate_nj_tree(core_distMat,
                                         combined_seq,
