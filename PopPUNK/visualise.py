@@ -25,14 +25,14 @@ from .plot import outputsForCytoscape
 from .plot import outputsForPhandango
 from .plot import outputsForGrapetree
 from .plot import writeClusterCsv
-from .plot import generate_nj_tree
-from .plot import load_tree
 
 from .prune_db import prune_distance_matrix
 
 from .sketchlib import readDBParams
 from .sketchlib import getKmersFromReferenceDatabase
 from .sketchlib import addRandom
+
+from .trees import load_tree, generate_nj_tree
 
 from .utils import readPickle
 from .utils import setGtThreads
