@@ -732,7 +732,7 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
 
-def generate_minimum_spanning_tree(G, names, distMat):
+def generate_minimum_spanning_tree(G, names, distMat, distType):
     """Generate a minimum spanning tree from a network
 
     Args:
@@ -740,12 +740,23 @@ def generate_minimum_spanning_tree(G, names, distMat):
            Graph tool network
        names (list)
            List of sequence names
-
+       distMat (numpy array or scipy sparse matrix)
+           Distance matrix
+       distType (str)
+           Type of distance used to construct tree: core or accessory
     Returns:
        tree_string (str)
            Newick representation of the minimum spanning tree
     """
     sys.stderr.write("Starting calculation of minimum-spanning tree\n")
+    # Define index of distances used to construct MST
+    if distType == 'core':
+        dist_index = 0
+    elif distType == 'accessory':
+        dist_index = 1
+    else:
+        sys.stderr.write('Unable to use distance type ' + str(distType) + '\n')
+        sys.exit(1)
     # Define sequences names for tree
     taxon_namespace = dendropy.TaxonNamespace(names)
     # Test if weighted network
@@ -774,7 +785,7 @@ def generate_minimum_spanning_tree(G, names, distMat):
         connections = []
         for row_idx, (ref, query) in enumerate(listDistInts(names, names, self = True)):
             if ref in seed_vertices and query in seed_vertices:
-                dist = distMat[row_idx, 0]
+                dist = distMat[row_idx, dist_index]
                 edge_tuple = (ref, query, dist)
                 connections.append(edge_tuple)
         # Construct graph

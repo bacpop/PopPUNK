@@ -84,7 +84,7 @@ def write_tree(tree, prefix, suffix, overwrite):
     else:
         sys.stderr.write("Unable to write phylogeny to " + tree_filename + "\n")
 
-def load_tree(prefix, type):
+def load_tree(prefix, type, distances = 'core'):
     """Checks for existing trees from previous runs.
 
     Args:
@@ -99,7 +99,7 @@ def load_tree(prefix, type):
     """
     tree_string = None
     tree_prefix = os.path.join(prefix,os.path.basename(prefix))
-    for suffix in ["_core_" + type + ".tree","_core_" + type + ".nwk"]:
+    for suffix in ['_' + distances + '_' + type + ".tree",'_' + distances + '_' + type + ".nwk"]:
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
                 tree = dendropy.Tree.get(path=tree_fn, schema="newick")

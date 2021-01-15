@@ -116,10 +116,12 @@ def get_options():
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
-    faGroup.add_argument('--mst', help='Calculate a minimum spanning tree', default=False, action='store_true')
-    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
-    faGroup.add_argument('--tree', help='Do no calculate an NJ tree', type=str, default='nj',
+    faGroup.add_argument('--tree', help='Type of tree to calculate (nj, mst or both)', type=str, default='nj',
         choices=['nj', 'mst', 'both'])
+    faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree', type=str,
+        default='core', choice=['core','accessory'])
+    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
+
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
@@ -173,6 +175,7 @@ def generate_visualisations(query_db,
                             info_csv,
                             rapidnj,
                             tree,
+                            mst_distances,
                             overwrite,
                             core_only,
                             accessory_only,
@@ -329,7 +332,7 @@ def generate_visualisations(query_db,
     if tree == 'mst' or tree == 'both':
         existing_tree = None
         if not overwrite:
-            existing_tree = load_tree(output, "MST")
+            existing_tree = load_tree(output, "MST", distances=mst_distances)
         if existing_tree is None:
             G = None
             if sparse_distMat is not None:
@@ -361,9 +364,9 @@ def generate_visualisations(query_db,
                                      0,
                                      edge_list=False,
                                      weights=combined_dists,
-                                     weights_type='core')
+                                     weights_type=mst_distances)
                 sys.stderr.write("Completed constructing complete graph\n")
-            mst_tree = generate_minimum_spanning_tree(G, combined_seq, rr_distMat)
+            mst_tree = generate_minimum_spanning_tree(G, combined_seq, rr_distMat, mst_distances)
         else:
             mst_tree = existing_tree
 
@@ -454,6 +457,7 @@ def main():
                             args.info_csv,
                             args.rapidnj,
                             args.tree,
+                            args.mst_distances,
                             args.overwrite,
                             args.core_only,
                             args.accessory_only,
