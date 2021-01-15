@@ -25,6 +25,9 @@ import graph_tool.all as gt
 from .network import constructNetwork
 from .network import networkSummary
 
+from .utils import transformLine
+from .utils import decisionBoundary
+
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
               unconstrained = False, no_local = False, num_processes = 1):
@@ -91,7 +94,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         if slope != 2:
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
 
-        global_grid_resolution = 10
+        global_grid_resolution = 20
         x_max_start, y_max_start = decisionBoundary(mean0, gradient)
         x_max_end, y_max_end = decisionBoundary(mean1, gradient)
         x_max = np.linspace(x_max_start, x_max_end, global_grid_resolution, dtype=np.float32)
@@ -100,7 +103,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(1)
 
-        '''with SharedMemoryManager() as smm:
+        with SharedMemoryManager() as smm:
             shm_distMat = smm.SharedMemory(size = distMat.nbytes)
             distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
             distances_shared_array[:] = distMat[:]
@@ -121,6 +124,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         for y in y_max:
             scores = newNetwork2D(y, sample_names, distMat, x_max, score_idx)
             global_s.append(scores)
+        '''
         global_s = list(chain.from_iterable(global_s))
         min_idx = np.argmin(np.array(global_s))
         optimal_x = x_max[min_idx % global_grid_resolution]
@@ -351,49 +355,4 @@ def likelihoodBoundary(s, model, start, end, within, between):
     X = transformLine(s, start, end).reshape(1, -1)
     responsibilities = model.assign(X, values = True)
     return(responsibilities[0, within] - responsibilities[0, between])
-
-
-def transformLine(s, mean0, mean1):
-    """Return x and y co-ordinates for traversing along a line between mean0 and mean1, parameterised by
-    a single scalar distance s from the start point mean0.
-
-    Args:
-        s (float)
-            Distance along line from mean0
-        mean0 (numpy.array)
-            Start position of line (x0, y0)
-        mean1 (numpy.array)
-            End position of line (x1, y1)
-    Returns:
-        x (float)
-            The Cartesian x-coordinate
-        y (float)
-            The Cartesian y-coordinate
-    """
-    tan_theta = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x = mean0[0] + s * (1/np.sqrt(1+tan_theta))
-    y = mean0[1] + s * (tan_theta/np.sqrt(1+tan_theta))
-
-    return np.array([x, y])
-
-
-def decisionBoundary(intercept, gradient):
-    """Returns the co-ordinates where the triangle the decision boundary forms
-    meets the x- and y-axes.
-
-    Args:
-        intercept (numpy.array)
-            Cartesian co-ordinates of point along line (:func:`~transformLine`)
-            which intercepts the boundary
-        gradient (float)
-            Gradient of the line
-    Returns:
-        x (float)
-            The x-axis intercept
-        y (float)
-            The y-axis intercept
-    """
-    x = intercept[0] + intercept[1] * gradient
-    y = intercept[1] + intercept[0] / gradient
-    return(x, y)
 

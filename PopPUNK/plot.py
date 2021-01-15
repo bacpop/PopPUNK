@@ -27,6 +27,7 @@ except ImportError:
 import dendropy
 
 from .utils import isolateNameToLabel
+from .utils import decisionBoundary
 
 def plot_scatter(X, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
@@ -284,12 +285,21 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
 
         # Draw boundary search range
         if mean0 is not None and mean1 is not None and min_move is not None and max_move is not None and start_point is not None:
-            minimum_xy = transformLine(-min_move, start_point, mean1) * scale
-            maximum_xy = transformLine(max_move, start_point, mean1) * scale
-            plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
-                    color='k', linewidth=1, linestyle=':', label='Search range')
-            start_point *= scale
-            plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
+            if unconstrained:
+                gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
+                opt_start = decisionBoundary(mean0, gradient) * scale
+                opt_end = decisionBoundary(mean1, gradient) * scale
+                plt.fill([opt_start[0], opt_end[0], 0, 0],
+                         [0, 0, opt_end[1], opt_start[1]],
+                         fill=True, facecolor='lightcoral', alpha = 0.2,
+                         label='Search range')
+            else:
+                minimum_xy = transformLine(-min_move, start_point, mean1) * scale
+                maximum_xy = transformLine(max_move, start_point, mean1) * scale
+                plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
+                        color='k', linewidth=1, linestyle=':', label='Search range')
+                start_point *= scale
+                plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
 
             mean0 *= scale
             mean1 *= scale
