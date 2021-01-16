@@ -119,7 +119,7 @@ def get_options():
     faGroup.add_argument('--tree', help='Type of tree to calculate (nj, mst or both)', type=str, default='nj',
         choices=['nj', 'mst', 'both'])
     faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree', type=str,
-        default='core', choice=['core','accessory'])
+        default='core', choices=['core','accessory'])
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
 
     faGroup.add_argument('--perplexity',
