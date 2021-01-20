@@ -380,19 +380,19 @@ def networkSummary(G, calc_betweenness=True):
     mean_bt = 0
     weighted_mean_bt = 0
     if calc_betweenness:
-    betweenness = []
-    sizes = []
-    for component in set(component_assignments):
-      vfilt = component_assignments.a == component
-      size = sum(vfilt)
-      if size > 3:
-        subgraph = gt.GraphView(G, vfilt=vfilt)
-        betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
-        sizes.append(size)
+        betweenness = []
+        sizes = []
+        for component in set(component_assignments):
+        vfilt = component_assignments.a == component
+        size = sum(vfilt)
+        if size > 3:
+            subgraph = gt.GraphView(G, vfilt=vfilt)
+            betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+            sizes.append(size)
 
-        if len(betweenness) > 1:
-            mean_bt = np.mean(betweenness)
-            np.average(betweenness, weights=sizes)
+            if len(betweenness) > 1:
+                mean_bt = np.mean(betweenness)
+                np.average(betweenness, weights=sizes)
 
     metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
     base_score = transitivity * (1 - density)
