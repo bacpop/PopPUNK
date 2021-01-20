@@ -215,7 +215,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
                 G.add_edge_list(edge_list)
             # Add score into vector for any offsets passed (should usually just be one)
             for s in range(prev_idx, idx):
-                scores.append(-networkSummary(G)[1][score_idx])
+                scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
             prev_idx = idx
             edge_list = []
         edge_list.append((i, j))
@@ -223,7 +223,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
     # Add score for final offset(s) at end of loop
     G.add_edge_list(edge_list)
     for s in range(prev_idx, len(s_range)):
-        scores.append(-networkSummary(G)[1][score_idx])
+        scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
     return(scores)
 
 
@@ -281,7 +281,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score
-    score = networkSummary(G)[1][score_idx]
+    score = networkSummary(G, score_idx > 0)[1][score_idx]
     return(-score)
 
 def newNetwork2D(y_max, sample_names, distMat, x_range, score_idx=0):

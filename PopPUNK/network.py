@@ -356,12 +356,14 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     return G
 
-def networkSummary(G):
+def networkSummary(G, calc_betweenness=True):
     """Provides summary values about the network
 
     Args:
         G (graph)
             The network of strains from :func:`~constructNetwork`
+        calc_betweenness (bool)
+            Whether to calculate betweenness stats
 
     Returns:
         metrics (list)
@@ -375,6 +377,9 @@ def networkSummary(G):
     density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
     transitivity = gt.global_clustering(G)[0]
 
+    mean_bt = 0
+    weighted_mean_bt = 0
+    if calc_betweenness:
     betweenness = []
     sizes = []
     for component in set(component_assignments):
@@ -385,12 +390,9 @@ def networkSummary(G):
         betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
         sizes.append(size)
 
-    if len(betweenness) < 1:
-        mean_bt = 0
-        weighted_mean_bt = 0
-    else:
-        mean_bt = np.mean(betweenness)
-        np.average(betweenness, weights=sizes)
+        if len(betweenness) > 1:
+            mean_bt = np.mean(betweenness)
+            np.average(betweenness, weights=sizes)
 
     metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
     base_score = transitivity * (1 - density)
