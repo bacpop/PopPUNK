@@ -580,7 +580,6 @@ class RefineFit(ClusterFit):
         self.unconstrained = unconstrained
 
         # Get starting point
-        assignment = model.assign(X)
         model.no_scale()
         if startFile:
             self.mean0, self.mean1, self.start_s = readManualStart(startFile)
