@@ -385,9 +385,16 @@ def networkSummary(G):
         betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
         sizes.append(size)
 
-    metrics = [components, density, transitivity, np.mean(betweenness), np.average(betweenness, weights=sizes)]
-    score = transitivity * (1 - density)
-    scores = [score, score * (1 - metrics[3]), score * (1 - metrics[4])]
+    if len(betweenness) < 1:
+        mean_bt = 0
+        weighted_mean_bt = 0
+    else:
+        mean_bt = np.mean(betweenness)
+        np.average(betweenness, weights=sizes)
+
+    metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
+    base_score = transitivity * (1 - density)
+    scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
     return(metrics, scores)
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
