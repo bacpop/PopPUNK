@@ -6,6 +6,13 @@ Documentation for module functions (for developers)
 .. contents::
    :local:
 
+assign.py
+---------
+``poppunk_assign`` main function
+
+.. automodule:: PopPUNK.assign
+   :members:
+
 bgmm.py
 --------
 
@@ -22,12 +29,6 @@ Functions used to fit DBSCAN to a database. Access using
 :class:`~PopPUNK.models.DBSCANFit`.
 
 .. automodule:: PopPUNK.dbscan
-   :members:
-
-mash.py
---------
-
-.. automodule:: PopPUNK.mash
    :members:
 
 models.py
@@ -78,6 +79,13 @@ utils.py
 --------
 
 .. automodule:: PopPUNK.utils
+   :members:
+
+visualise.py
+------------
+``poppunk_visualise`` main function
+
+.. automodule:: PopPUNK.visualise
    :members:
 
 web.py

@@ -6,6 +6,7 @@
 import sys
 import os
 import subprocess
+import random
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
@@ -18,7 +19,7 @@ from shutil import copyfile
 import pandas as pd
 from collections import defaultdict
 from scipy import spatial
-from sklearn import manifold
+from sklearn import manifold, utils
 try:  # sklearn >= 0.22
     from sklearn.neighbors import KernelDensity
 except ImportError:
@@ -27,7 +28,7 @@ import dendropy
 
 from .utils import isolateNameToLabel
 
-def plot_scatter(X, scale, out_prefix, title, kde = True):
+def plot_scatter(X, out_prefix, title, kde = True):
     """Draws a 2D scatter plot (png) of the core and accessory distances
 
     Also draws contours of kernel density estimare
@@ -35,8 +36,6 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
     Args:
         X (numpy.array)
             n x 2 array of core and accessory distances for n samples.
-        scale (numpy.array)
-            Scaling factor from :class:`~PopPUNK.models.BGMMFit`
         out_prefix (str)
             Prefix for output plot file (.png will be appended)
         title (str)
@@ -46,6 +45,15 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
 
             (default = True)
     """
+    # Plot results - max 1M for speed
+    max_plot_samples = 1000000
+    if X.shape[0] > max_plot_samples:
+        X = utils.shuffle(X, random_state=random.randint(1,10000))[0:max_plot_samples,]
+
+    # Kernel estimate uses scaled data 0-1 on each axis
+    scale = np.amax(X, axis = 0)
+    X /= scale
+
     plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
     if kde:
         xx, yy, xy = get_grid(0, 1, 100)
@@ -58,11 +66,13 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
         z = z.reshape(xx.shape).T
 
         levels = np.linspace(z.min(), z.max(), 10)
+        # Rescale contours
         plt.contour(xx*scale[0], yy*scale[1], z, levels=levels[1:], cmap='plasma')
         scatter_alpha = 1
     else:
         scatter_alpha = 0.1
 
+    # Plot on correct scale
     plt.scatter(X[:,0]*scale[0].flat, X[:,1]*scale[1].flat, s=1, alpha=scatter_alpha)
 
     plt.title(title)
@@ -71,7 +81,7 @@ def plot_scatter(X, scale, out_prefix, title, kde = True):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_fit(klist, matching, fit, out_prefix, title):
+def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, out_prefix, title):
     """Draw a scatter plot (pdf) of k-mer sizes vs match probability, and the
     fit used to assign core and accessory distance
 
@@ -81,28 +91,39 @@ def plot_fit(klist, matching, fit, out_prefix, title):
     Args:
         klist (list)
             List of k-mer sizes
-        matching (list)
+        raw_matching (list)
             Proportion of matching k-mers at each klist value
-        kfit (numpy.array)
-            Fit to klist and matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
+        raw_fit (numpy.array)
+            Fit to klist and raw_matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
+        corrected_matching (list)
+            Corrected proportion of matching k-mers at each klist value
+        corrected_fit (numpy.array)
+            Fit to klist and corrected_matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`
         out_prefix (str)
             Prefix for output plot file (.pdf will be appended)
         title (str)
             The title to display above the plot
     """
     k_fit = np.linspace(0, klist[-1], num = 100)
-    matching_fit = (1 - fit[1]) * np.power((1 - fit[0]), k_fit)
+    raw_matching_fit = (1 - raw_fit[1]) * np.power((1 - raw_fit[0]), k_fit)
+    corrected_matching_fit = (1 - corrected_fit[1]) * np.power((1 - corrected_fit[0]), k_fit)
 
     fig, ax = plt.subplots()
     ax.set_yscale("log")
-    ax.set_xlabel('k-mer length')
-    ax.set_ylabel('Proportion of matches')
+    ax.set_xlabel('k-mer length', fontsize = 9)
+    ax.set_ylabel('Proportion of matches', fontsize = 9)
+    ax.tick_params(axis='both', which='major', labelsize=9)
+    ax.tick_params(axis='both', which='minor', labelsize=9)
 
     plt.tight_layout()
-    plt.plot(klist, matching, 'o')
-    plt.plot(k_fit, matching_fit, 'r-')
+    plt.plot(klist, raw_matching, 'o', label= 'Raw matching k-mer proportion')
+    plt.plot(k_fit, raw_matching_fit, 'b-', label= 'Fit to raw matches')
+    plt.plot(klist, corrected_matching, 'mx', label= 'Corrected matching k-mer proportion')
+    plt.plot(k_fit, corrected_matching_fit, 'm--', label= 'Fit to corrected matches')
 
-    plt.title(title)
+    plt.legend(loc='upper right', prop={'size': 8})
+
+    plt.title(title, fontsize = 10)
     plt.savefig(out_prefix + ".pdf", bbox_inches='tight')
     plt.close()
 
@@ -598,11 +619,13 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         for col in d:
             this_col_items = len(d[col])
             if prev_col_items > -1 and prev_col_items != this_col_items:
-                sys.stderr.write("Discrepant length between " + prev_col_name + " (length of " + prev_col_items + ") and " + col + "(length of " + this_col_items + ")\n")
+                sys.stderr.write("Discrepant length between " + prev_col_name + \
+                                 " (length of " + prev_col_items + ") and " + \
+                                 col + "(length of " + this_col_items + ")\n")
         sys.exit(1)
 
 
-def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
+def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename, threads = 1):
     """Use rapidNJ for more rapid tree building
 
     Creates a phylip of core distances, system call to rapidnj executable, loads tree as
@@ -621,6 +644,8 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
         tree_filename (str)
             Filename for output tree (saved to disk)
+        threads (int)
+            Number of threads to use
 
     Returns:
         tree (dendropy.Tree)
@@ -636,7 +661,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
             pFile.write("\n")
 
     # construct tree
-    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw"
+    rapidnj_cmd = rapidnj + " " + phylip_name + " -n -i pd -o t -x " + tree_filename + ".raw -c " + str(threads)
     try:
         # run command
         subprocess.run(rapidnj_cmd, shell=True, check=True)
@@ -659,7 +684,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tree_filename):
     return tree
 
 def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity, outPrefix, epiCsv,
-                         rapidnj, queryList = None, overwrite = False):
+                         rapidnj, queryList = None, overwrite = False, threads = 1):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -690,6 +715,8 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # Avoid recursive import
     from .tsne import generate_tsne
@@ -703,10 +730,10 @@ def outputsForMicroreact(combined_list, coreMat, accMat, clustering, perplexity,
 
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
+    generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite, threads)
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
 
-def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite):
+def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, overwrite, threads):
     """Generate phylogeny using dendropy or RapidNJ
 
     Writes a neighbour joining tree (.nwk) from core distances.
@@ -725,6 +752,8 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
             use dendropy by default
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # Save distances to file
     core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
@@ -735,7 +764,7 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
     if overwrite or not os.path.isfile(tree_filename):
         sys.stderr.write("Building phylogeny\n")
         if rapidnj is not None:
-            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename)
+            tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tree_filename, threads)
         else:
             pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
                                                                delimiter=",",
@@ -758,7 +787,7 @@ def generate_phylogeny(coreMat, seqLabels, outPrefix, tree_suffix, rapidnj, over
     os.remove(core_dist_file)
 
 def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
-                        queryList = None, overwrite = False, microreact = False):
+                        queryList = None, overwrite = False, microreact = False, threads = 1):
     """Generate files for Phandango
 
     Write a neighbour joining tree (.tree) from core distances
@@ -787,6 +816,8 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Overwrite existing output if present (default = False)
         microreact (bool)
             Avoid regenerating tree if already built for microreact (default = False)
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
@@ -802,10 +833,10 @@ def outputsForPhandango(combined_list, coreMat, clustering, outPrefix, epiCsv, r
         sys.stderr.write('Copying microreact tree')
         copyfile(microreact_tree_filename, phandango_tree_filename)
     else:
-        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite)
+        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.tree", rapidnj, overwrite, threads)
 
 def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, rapidnj,
-                        queryList = None, overwrite = False, microreact = False):
+                        queryList = None, overwrite = False, microreact = False, threads = 1):
     """Generate files for Grapetree
 
     Write a neighbour joining tree (.nwk) from core distances
@@ -838,6 +869,8 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
             Overwrite existing output if present (default = False).
         microreact (bool)
             Avoid regenerating tree if already built for microreact (default = False).
+        threads (int)
+            Number of threads to use with rapidnj
     """
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
@@ -851,6 +884,6 @@ def outputsForGrapetree(combined_list, coreMat, clustering, outPrefix, epiCsv, r
     if microreact and os.path.isfile(microreact_tree_filename):
         sys.stderr.write('Using microreact tree')
     else:
-        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite)
+        generate_phylogeny(coreMat, seqLabels, outPrefix, "_core_NJ.nwk", rapidnj, overwrite, threads)
 
 

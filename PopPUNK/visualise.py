@@ -108,7 +108,7 @@ def get_options():
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
-    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default=None)
+    faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
@@ -134,6 +134,9 @@ def get_options():
     for arg in [args.ref_db, args.model_dir, args.output, args.external_clustering, args.previous_clustering]:
         if arg is not None:
             arg = arg.rstrip('\\')
+
+    if args.rapidnj == "":
+        args.rapidnj = None
 
     return args
 
@@ -311,15 +314,15 @@ def generate_visualisations(query_db,
     if microreact:
         sys.stderr.write("Writing microreact output\n")
         outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
-                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite)
+                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite, threads = threads)
     if phandango:
         sys.stderr.write("Writing phandango output\n")
         outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+                            queryList = qlist, overwrite = overwrite, microreact = microreact, threads = threads)
     if grapetree:
         sys.stderr.write("Writing grapetree output\n")
         outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact)
+                            queryList = qlist, overwrite = overwrite, microreact = microreact, threads = threads)
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)

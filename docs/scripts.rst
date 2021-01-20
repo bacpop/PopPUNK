@@ -6,10 +6,30 @@ Scripts
 Brief documentation on the helper scripts included in the package in the ``/scripts`` directory.
 To use these scripts you will need to have a clone of the git repository, or they should also be
 installed with the prefix 'poppunk' (e.g to run ``extract_distances.py``, run the command
-``poppunk_extract_distances.py``).  
+``poppunk_extract_distances.py``).
 
 .. contents::
    :local:
+
+Easy run mode
+-------------
+Previous versions of the software had an ``--easy-run`` mode which would run a pipeline of:
+
+- ``--create-db`` to sketch genomes
+- ``--fit-model --dbscan`` to fit a flexible model
+- ``--refine-model`` to improve this model
+
+This is now available as ``poppunk_easy_run.py`` which will chain calls to ``poppunk``
+and ``poppunk_visualise`` to replicate this functionality.
+
+Adding weights to the network
+-----------------------------
+Converts binary within-cluster edge weights to the Euclidean core-accessory distance.
+This is equivalent to running with ``--graph-weights``::
+
+  poppunk_add_weights <name>_graph.gt <name>.dists <output>
+
+Default output is a graph-tool file. Add ``--graphml`` to save as .graphml instead.
 
 Writing the pairwise distances to an output file
 ------------------------------------------------

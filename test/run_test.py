@@ -29,13 +29,15 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files referen
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model bgmm --ref-db example_db --K 4 --overwrite", shell=True, check=True)
 
-#fit GMM
+#fit dbscan
 sys.stderr.write("Running DBSCAN model fit (--fit-model dbscan)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db example_db --output example_dbscan --overwrite --graph-weights", shell=True, check=True)
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
@@ -57,6 +59,9 @@ subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.t
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --microreact", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --phandango", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --grapetree", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz_subset --microreact --include-files subset.txt", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --query-db example_query --output example_viz_query --microreact", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --previous-clustering example_lineages --model-dir example_lineages --output example_lineage_viz --microreact", shell=True, check=True)
