@@ -27,6 +27,10 @@ app.config.update(
 )
 CORS(app, expose_headers='Authorization')
 
+@app.route('/')
+def api_up():
+    return 'PopPUNK.web running\n'
+
 @app.route('/upload', methods=['POST'])
 @cross_origin()
 def sketchAssign():
