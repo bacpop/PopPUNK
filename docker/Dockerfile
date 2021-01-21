@@ -10,6 +10,14 @@ RUN apt-get update --fix-missing && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Install ssh
+ENV SSH_PASSWD "root:Docker!"
+RUN apt-get install -y --no-install-recommends dialog \
+        && apt-get update \
+  && apt-get install -y --no-install-recommends openssh-server \
+  && echo "$SSH_PASSWD" | chpasswd
+COPY docker/sshd_config /etc/ssh
+
 # Create a non-root user
 ARG username=poppunk-usr
 ARG uid=1000
@@ -69,5 +77,5 @@ RUN conda update --name base --channel defaults conda && \
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
-EXPOSE 8000
+EXPOSE 8000 2222
 CMD [ "gunicorn", "-b", "0.0.0.0:8000", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
