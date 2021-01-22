@@ -70,4 +70,4 @@ ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
 EXPOSE 8000
-CMD [ "gunicorn", "-b", "127.0.0.1:8000", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
+CMD [ "gunicorn", "-b", "0.0.0.0:8000", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
