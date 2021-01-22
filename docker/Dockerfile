@@ -87,6 +87,10 @@ ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 # default command will be to launch flask server for deployment
 # see https://pythonspeed.com/articles/gunicorn-in-docker/
 EXPOSE 8000 2222
-CMD [ "gunicorn","-b", "0.0.0.0:8000", "--worker-tmp-dir", "/dev/shm", \
-     "--chdir", "PopPUNK", "--timeout", "600", "--log-file=-",\
-     "--workers=2", "--threads=4", "--worker-class=gthread", "web:app" ]
+CMD [ "gunicorn", \
+      "-b", "0.0.0.0:8000", \
+      "--worker-tmp-dir", "/dev/shm", \
+      "--timeout", "600", \
+      "--workers=2", "--threads=4", "--worker-class=gthread", \
+      "--chdir", "PopPUNK", \
+      "web:app" ]
