@@ -1,5 +1,5 @@
 # From https://github.com/kaust-vislab/python-data-science-project
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 
 LABEL maintainer="johnlees <john@johnlees.me>"
 
@@ -9,20 +9,6 @@ RUN apt-get update --fix-missing && \
     apt-get install -y wget bzip2 curl git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-# Install ssh
-ENV SSH_PASSWD "root:Docker!"
-ENV ROOT_PASSWD "Docker!"
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends dialog \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends openssh-server \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends sudo \
-  && echo "$SSH_PASSWD" | chpasswd
-COPY docker/sshd_config /etc/ssh
-# Use root password for sudo access
-RUN echo "Defaults rootpw" >> /etc/sudoers
 
 # Create a non-root user
 ARG username=poppunk-usr
@@ -39,7 +25,6 @@ RUN adduser --disabled-password \
     --gid $GID \
     --home $HOME \
     $USER
-RUN usermod -aG sudo $USER
 
 COPY environment.yml requirements.txt /tmp/
 RUN chown $UID:$GID /tmp/environment.yml /tmp/requirements.txt
@@ -81,17 +66,8 @@ RUN conda update --name base --channel defaults conda && \
     conda clean --all --yes
 
 # use an entrypoint script to insure conda environment is properly activated at runtime
-USER root
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
-# see https://pythonspeed.com/articles/gunicorn-in-docker/
-EXPOSE 8000 2222
-CMD [ "gunicorn", \
-      "-b", "0.0.0.0:8000", \
-#      "--worker-tmp-dir", "/dev/shm", \
-#      "--log-file=-", \
-      "--timeout", "600", \
-#      "--workers=2", "--threads=4", "--worker-class=gthread", \
-      "--chdir", "PopPUNK", \
-      "web:app" ]
+EXPOSE 8000
+CMD [ "gunicorn", "-b", "127.0.0.1:8000", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
