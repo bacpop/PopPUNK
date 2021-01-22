@@ -69,5 +69,12 @@ RUN conda update --name base --channel defaults conda && \
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # default command will be to launch flask server for deployment
-EXPOSE 8000
-CMD [ "gunicorn", "-b", "0.0.0.0:8000", "--chdir", "PopPUNK", "--timeout", "600", "web:app" ]
+# see https://pythonspeed.com/articles/gunicorn-in-docker/
+EXPOSE 8000 2222
+CMD [ "gunicorn", \
+      "-b", "0.0.0.0:8000", \
+      "--worker-tmp-dir", "/dev/shm", \
+      "--timeout", "600", \
+      "--workers=2", "--threads=4", "--worker-class=gthread", \
+      "--chdir", "PopPUNK", \
+      "web:app" ]
