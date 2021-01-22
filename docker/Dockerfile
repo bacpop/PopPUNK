@@ -13,7 +13,7 @@ RUN apt-get update --fix-missing && \
 # Install ssh
 ENV SSH_PASSWD "root:Docker!"
 ENV ROOT_PASSWD "Docker!"
-RUN apt-get update
+RUN apt-get update \
   && apt-get install -y --no-install-recommends dialog \
   && apt-get update \
   && apt-get install -y --no-install-recommends openssh-server \
