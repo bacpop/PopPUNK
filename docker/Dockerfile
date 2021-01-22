@@ -89,9 +89,9 @@ ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 EXPOSE 8000 2222
 CMD [ "gunicorn", \
       "-b", "0.0.0.0:8000", \
-      "--worker-tmp-dir", "/dev/shm", \
-      "--log-file=-", \
+#      "--worker-tmp-dir", "/dev/shm", \
+#      "--log-file=-", \
       "--timeout", "600", \
-      "--workers=2", "--threads=4", "--worker-class=gthread", \
+#      "--workers=2", "--threads=4", "--worker-class=gthread", \
       "--chdir", "PopPUNK", \
       "web:app" ]
