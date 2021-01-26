@@ -102,7 +102,7 @@ setup(
     ],
     python_requires='>=3.8.0',
     keywords='bacteria genomics population-genetics k-mer',
-    packages=['PopPUNK', 'poppunk_refine'],
+    packages=['PopPUNK'],
     entry_points={
         "console_scripts": [
             'poppunk = PopPUNK.__main__:main',
