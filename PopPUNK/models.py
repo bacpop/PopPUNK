@@ -20,6 +20,7 @@ from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
 
 import pp_sketchlib
+import poppunk_refine
 
 # BGMM
 from .bgmm import fit2dMultiGaussian
@@ -775,11 +776,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if slope == 2 or (slope == None and self.slope == 2):
-                y = pp_sketchlib.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = pp_sketchlib.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = pp_sketchlib.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
 
         return y
 

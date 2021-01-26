@@ -42,6 +42,8 @@ sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
 
 # tests of other command line programs
+sys.stderr.write("Testing C++ extension\n")
+subprocess.run("python test-refine.py", shell=True, check=True)
 
 #assign query
 sys.stderr.write("Running query assignment\n")

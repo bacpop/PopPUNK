@@ -20,6 +20,7 @@ except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
 import pp_sketchlib
+import poppunk_refine
 import graph_tool.all as gt
 
 from .network import constructNetwork
@@ -142,9 +143,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         global_grid_resolution = 40 # Seems to work
         s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
         i_vec, j_vec, idx_vec = \
-            pp_sketchlib.thresholdIterate1D(distMat, s_range, slope,
-                                            start_point[0], start_point[1],
-                                            mean1[0], mean1[1], num_processes)
+            poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
+                                                  start_point[0], start_point[1],
+                                                  mean1[0], mean1[1], num_processes)
         global_s = growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx)
         min_idx = np.argmin(np.array(global_s))
         if min_idx > 0 and min_idx < len(s_range) - 1:
@@ -277,7 +278,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         y_max = new_intercept[1]
 
     # Make network
-    boundary_assignments = pp_sketchlib.assignThreshold(distMat, slope, x_max, y_max, cpus)
+    boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
 
     # Return score
@@ -314,7 +315,7 @@ def newNetwork2D(y_max, sample_names, distMat, x_range, score_idx=0):
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
 
     i_vec, j_vec, idx_vec = \
-            pp_sketchlib.thresholdIterate2D(distMat, x_range, y_max)
+            poppunk_refine.thresholdIterate2D(distMat, x_range, y_max)
     scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx)
     return(scores)
 

@@ -23,3 +23,10 @@ dependencies:
   - flask
   - flask-cors
   - networkx
+  - pybind11
+  - eigen
+  - openblas
+  - cmake >= 3.18
+  - libgfortran-ng
+  - boost-cpp
+  - libgomp
