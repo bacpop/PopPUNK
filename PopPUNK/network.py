@@ -757,18 +757,21 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
     else:
         sys.stderr.write('Unable to use distance type ' + str(distType) + '\n')
         sys.exit(1)
+
+    #
+    # Create MST
+    #
+
     # Define sequences names for tree
     taxon_namespace = dendropy.TaxonNamespace(names)
-    # Test if weighted network
-    weighted_network = False
+    # Test if weighted network and calculate minimum spanning tree
     if "weight" in G.edge_properties:
-        weighted_network = True
-    # Calculate minimum spanning tree
-    if weighted_network:
         mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
+        mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
     else:
-        mst_edge_prop_map = gt.min_spanning_tree(G)
-    mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+        sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
+        raise RuntimeError("MST passed unweighted graph")
+
     # Find seed nodes as those with greatest outdegree in each component
     seed_vertices = set()
     component_assignments, component_frequencies = gt.label_components(mst_network)
@@ -779,6 +782,7 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
         out_degrees = component.get_out_degrees(component_vertices)
         seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
         seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+
     # If multiple components, calculate distances between seed nodes
     if len(component_frequencies) > 1:
         # Extract distances
@@ -791,28 +795,27 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
         # Construct graph
         seed_G = gt.Graph(directed = False)
         seed_G.add_vertex(len(seed_vertex))
-        if weighted_network:
-            eweight = seed_G.new_ep("float")
-            seed_G.add_edge_list(connections, eprops = [eweight])
-            seed_G.edge_properties["weight"] = eweight
-            seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
-            seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
-            # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
-            deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
-            mst_network.add_edge_list(deep_edges)
-        else:
-            sys.stderr.write('I do not currently know what to do in this case\n')
-    # Initialise tree
+        eweight = seed_G.new_ep("float")
+        seed_G.add_edge_list(connections, eprops = [eweight])
+        seed_G.edge_properties["weight"] = eweight
+        seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
+        seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
+        # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
+        deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
+        mst_network.add_edge_list(deep_edges)
+
+    #
+    # MST graph -> phylogeny
+    #
+
+    # Initialise tree and create nodes
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
-    # Create nodes
     tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
+
     # Identify edges
     tree_edges = {v:[] for v in tree_nodes.keys()}
     tree_edge_lengths = {v:[] for v in tree_nodes.keys()}
-    if weighted_network:
-        network_edge_weights = list(mst_network.ep["weight"])
-    else:
-        network_edge_weights = [1.0]*len(mst_network.get_edges())
+    network_edge_weights = list(mst_network.ep["weight"])
     for i, edge in enumerate(mst_network.get_edges()):
         # Connectivity - add both directions as unrooted tree is not directional -
         # do not know which will be leaf node
@@ -822,6 +825,7 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
         # branches to be matched to child nodes
         tree_edge_lengths[edge[0]].append(network_edge_weights[i])
         tree_edge_lengths[edge[1]].append(network_edge_weights[i])
+
     # Identify seed node as that with most links
     max_links = 0
     seed_node_index = None
@@ -830,11 +834,12 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
             max_links = len(tree_edges[vertex])
             seed_node_index = vertex
     tree.seed_node = tree_nodes[seed_node_index]
+
     # Generate links of tree
     parent_node_indices = [seed_node_index]
     added_nodes = set(parent_node_indices)
     i = 0
-    while i < len(parent_node_indices):
+    while i < len(parent_node_indices): # NB loop end will increase
         for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
             if child_node_index not in added_nodes:
                 tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
@@ -842,16 +847,17 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
                 added_nodes.add(child_node_index)
                 parent_node_indices.append(child_node_index)
         i = i + 1
+
     # Add zero length branches for internal nodes in MST
     for node in tree.preorder_node_iter():
         if not node.is_leaf():
             new_child = dendropy.Node(taxon=node.taxon, edge_length=0.0)
             node.taxon = None
             node.add_child(new_child)
+
     # Return tree as string
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     tree_string = tree.as_string(schema="newick",
                                  suppress_rooting=True,
                                  unquoted_underscores=True)
     return tree_string
-    
