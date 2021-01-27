@@ -45,7 +45,7 @@ set_target_properties("${TARGET_NAME}" PROPERTIES
 )
 
 target_link_libraries("${TARGET_NAME}" PRIVATE pybind11::module Eigen3::Eigen
-                                               z gomp openblas lapack gfortran m dl)
+                                               z gomp openblas gfortran m dl)
 #if(OpenMP_CXX_FOUND)
 #    target_link_libraries("${TARGET_NAME}" PRIVATE OpenMP::OpenMP_CXX)
 #endif()

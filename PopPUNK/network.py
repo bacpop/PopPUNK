@@ -392,7 +392,7 @@ def networkSummary(G, calc_betweenness=True):
 
         if len(betweenness) > 1:
             mean_bt = np.mean(betweenness)
-            np.average(betweenness, weights=sizes)
+            weighted_mean_bt = np.average(betweenness, weights=sizes)
 
     metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
     base_score = transitivity * (1 - density)
