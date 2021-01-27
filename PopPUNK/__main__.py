@@ -13,10 +13,12 @@ from collections import defaultdict
 # Try to import sketchlib
 try:
     import pp_sketchlib
-    import h5py
 except ImportError as e:
-    sys.stderr.write("Sketchlib backend not available")
+    sys.stderr.write("Sketchlib backend not available\n")
     sys.exit(1)
+
+import poppunk_refine
+import h5py
 
 # import poppunk package
 from .__init__ import __version__
@@ -341,7 +343,8 @@ def main():
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
                                    output)
             sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
-            if args.fit_model == "refine" and (not args.manual_start or (model.type != 'bgmm' and model.type != 'dbscan')):
+            if args.fit_model == "refine" and args.manual_start == None \
+                and model.type != 'bgmm' and model.type != 'dbscan':
                 sys.stderr.write("Model needs to be from BGMM or DBSCAN to refine\n")
                 sys.exit(1)
 
