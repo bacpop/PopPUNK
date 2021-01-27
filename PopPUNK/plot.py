@@ -14,6 +14,7 @@ mpl.rcParams.update({'font.size': 18})
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import itertools
+from math import sqrt
 # for other outputs
 from shutil import copyfile
 import pandas as pd
@@ -405,10 +406,11 @@ def distHistogram(dists, rank, outPrefix):
     plt.close()
 
 def drawMST(mst, outPrefix):
+    import graph_tool.all as gt
     pos = gt.sfdp_layout(mst, eweight = mst.edge_properties["weight"])
-    deg = g.degree_property_map("in")
+    deg = mst.degree_property_map("in")
     deg.a = 4 * (sqrt(deg.a) * 0.5 + 0.4)
-    ebet = gt.betweenness(g)[1]
+    ebet = gt.betweenness(mst)[1]
     ebet.a /= ebet.a.max() / 10.
     eorder = ebet.copy()
     eorder.a *= -1

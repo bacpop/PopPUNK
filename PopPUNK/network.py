@@ -266,7 +266,7 @@ def writeReferences(refList, outPrefix):
 
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
-                     weights_type = 'euclidean', sparse = False, sparse_input = None):
+                     weights_type = 'euclidean', sparse_input = None):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -728,12 +728,15 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
 
-def generate_minimum_spanning_tree(G):
+def generate_minimum_spanning_tree(G, from_cugraph = False):
     """Generate a minimum spanning tree from a network
 
     Args:
        G (network)
            Graph tool network
+       from_cugraph (bool)
+            If a pre-calculated MST from cugraph
+            [default = False]
 
     Returns:
        mst_network (str)
@@ -742,15 +745,18 @@ def generate_minimum_spanning_tree(G):
     #
     # Create MST
     #
-    sys.stderr.write("Starting calculation of minimum-spanning tree\n")
+    if not from_cugraph:
+        sys.stderr.write("Starting calculation of minimum-spanning tree\n")
 
-    # Test if weighted network and calculate minimum spanning tree
-    if "weight" in G.edge_properties:
-        mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
-        mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+        # Test if weighted network and calculate minimum spanning tree
+        if "weight" in G.edge_properties:
+            mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
+            mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+        else:
+            sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
+            raise RuntimeError("MST passed unweighted graph")
     else:
-        sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
-        raise RuntimeError("MST passed unweighted graph")
+        mst_network = G
 
     # Find seed nodes as those with greatest outdegree in each component
     seed_vertices = set()
