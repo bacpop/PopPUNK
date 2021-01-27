@@ -341,7 +341,7 @@ def main():
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
                                    output)
             sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
-            if args.fit_model == "refine" and (model.type != 'bgmm' and model.type != 'dbscan'):
+            if args.fit_model == "refine" and (not args.manual_start or (model.type != 'bgmm' and model.type != 'dbscan')):
                 sys.stderr.write("Model needs to be from BGMM or DBSCAN to refine\n")
                 sys.exit(1)
 
