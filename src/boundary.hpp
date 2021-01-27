@@ -13,6 +13,7 @@
 
 #include <Eigen/Dense>
 
+typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> NumpyMatrix;
 typedef std::tuple<std::vector<long>, std::vector<long>, std::vector<long>> network_coo;
 
 Eigen::VectorXf assign_threshold(const NumpyMatrix &distMat,
