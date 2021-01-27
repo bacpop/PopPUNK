@@ -92,7 +92,7 @@ def load_tree(prefix, type, distances = 'core'):
             Output prefix used for search
         type (str)
             Type of tree (NJ or MST)
-            
+
     Returns:
         tree_string (str)
             Newick-formatted string of NJ tree
@@ -128,7 +128,7 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
             use dendropy by default
         threads (int)
             Number of threads to use with rapidnj
-            
+
     Returns:
         tree_string (str)
             Newick-formatted string of NJ tree
@@ -153,9 +153,79 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
 
     # remove file as it can be large
     os.remove(core_dist_file)
-    
+
     # return Newick string
     tree_string = tree.as_string(schema="newick",
     suppress_rooting=True,
     unquoted_underscores=True)
+    return tree_string
+
+def mst_to_phylogeny(mst_network, names):
+    """Convert a MST graph to a phylogeny
+
+    Args:
+       mst_network (network)
+           Minimum spanning tree from
+           :func:`~PopPUNK.network.generate_minimum_spanning_tree`
+
+    Returns:
+       mst_network (str)
+           Minimum spanning tree (as graph-tool graph)
+    """
+    #
+    # MST graph -> phylogeny
+    #
+    # Define sequences names for tree
+    taxon_namespace = dendropy.TaxonNamespace(names)
+    # Initialise tree and create nodes
+    tree = dendropy.Tree(taxon_namespace=taxon_namespace)
+    tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
+
+    # Identify edges
+    tree_edges = {v:[] for v in tree_nodes.keys()}
+    tree_edge_lengths = {v:[] for v in tree_nodes.keys()}
+    network_edge_weights = list(mst_network.ep["weight"])
+    for i, edge in enumerate(mst_network.get_edges()):
+        # Connectivity - add both directions as unrooted tree is not directional -
+        # do not know which will be leaf node
+        tree_edges[edge[0]].append(edge[1])
+        tree_edges[edge[1]].append(edge[0])
+        # Lengths added in the same order as the corresponding children to enable
+        # branches to be matched to child nodes
+        tree_edge_lengths[edge[0]].append(network_edge_weights[i])
+        tree_edge_lengths[edge[1]].append(network_edge_weights[i])
+
+    # Identify seed node as that with most links
+    max_links = 0
+    seed_node_index = None
+    for vertex in tree_edges.keys():
+        if len(tree_edges[vertex]) > max_links:
+            max_links = len(tree_edges[vertex])
+            seed_node_index = vertex
+    tree.seed_node = tree_nodes[seed_node_index]
+
+    # Generate links of tree
+    parent_node_indices = [seed_node_index]
+    added_nodes = set(parent_node_indices)
+    i = 0
+    while i < len(parent_node_indices): # NB loop end will increase
+        for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
+            if child_node_index not in added_nodes:
+                tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
+                tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
+                added_nodes.add(child_node_index)
+                parent_node_indices.append(child_node_index)
+        i = i + 1
+
+    # Add zero length branches for internal nodes in MST
+    for node in tree.preorder_node_iter():
+        if not node.is_leaf():
+            new_child = dendropy.Node(taxon=node.taxon, edge_length=0.0)
+            node.taxon = None
+            node.add_child(new_child)
+
+    # Return tree as string
+    tree_string = tree.as_string(schema="newick",
+                                 suppress_rooting=True,
+                                 unquoted_underscores=True)
     return tree_string

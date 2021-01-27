@@ -31,6 +31,8 @@ from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
+accepted_weights_types = ["core", "accessory", "euclidean"]
+
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False):
     """Load the network based on input options
@@ -291,8 +293,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         weights_type (str)
             Specifies the type of weight to be annotated on the graph - options are core,
             accessory or euclidean distance
-        sparse (bool)
-            Whether input is a sparse distance matrix
         sparse_input (numpy.array)
             Sparse distance matrix from lineage fit
 
@@ -311,24 +311,24 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         vertex_labels.append(qlist)
 
     # Check weights type is valid
-    accepted_weights_types = ["core", "accessory", "euclidean"]
     if weights_type not in accepted_weights_types:
         sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
-        "accepted types are " + str(accepted_weights_types) + "\n")
+                         "accepted types are " + str(accepted_weights_types) + "\n")
         sys.exit(1)
+    if edge_list and sparse_input:
+        raise RuntimeError("Cannot construct network from edge list and sparse matrix")
 
     # identify edges
-    if edge_list or sparse:
-        if sparse:
-            connections = []
-            for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
-                connections.append((ref, query, weight))
-        elif weights is not None:
-            connections = []
+    connections = []
+    if edge_list:
+        if weights != None:
             for weight, (ref, query) in zip(weights, assignments):
                 connections.append((ref, query, weight))
         else:
             connections = assignments
+    elif sparse_input != None:
+        for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
+            connections.append((ref, query, weight))
     else:
         for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
                                                                  listDistInts(rlist, qlist,
@@ -341,10 +341,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                         dist = weights[row_idx, 0]
                     elif weights_type == 'accessory':
                         dist = weights[row_idx, 1]
-                    else:
-                        sys.stderr.write('Unable to parse network weight type ' + weights_type + '; '
-                         'options are core, accessory or euclidean')
-                        sys.exit(1)
                     edge_tuple = (ref, query, dist)
                 else:
                     edge_tuple = (ref, query)
@@ -732,38 +728,22 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
 
-def generate_minimum_spanning_tree(G, names, distMat, distType):
+def generate_minimum_spanning_tree(G):
     """Generate a minimum spanning tree from a network
 
     Args:
        G (network)
            Graph tool network
-       names (list)
-           List of sequence names
-       distMat (numpy array or scipy sparse matrix)
-           Distance matrix
-       distType (str)
-           Type of distance used to construct tree: core or accessory
-    Returns:
-       tree_string (str)
-           Newick representation of the minimum spanning tree
-    """
-    sys.stderr.write("Starting calculation of minimum-spanning tree\n")
-    # Define index of distances used to construct MST
-    if distType == 'core':
-        dist_index = 0
-    elif distType == 'accessory':
-        dist_index = 1
-    else:
-        sys.stderr.write('Unable to use distance type ' + str(distType) + '\n')
-        sys.exit(1)
 
+    Returns:
+       mst_network (str)
+           Minimum spanning tree (as graph-tool graph)
+    """
     #
     # Create MST
     #
+    sys.stderr.write("Starting calculation of minimum-spanning tree\n")
 
-    # Define sequences names for tree
-    taxon_namespace = dendropy.TaxonNamespace(names)
     # Test if weighted network and calculate minimum spanning tree
     if "weight" in G.edge_properties:
         mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
@@ -787,11 +767,19 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
     if len(component_frequencies) > 1:
         # Extract distances
         connections = []
-        for row_idx, (ref, query) in enumerate(listDistInts(names, names, self = True)):
-            if ref in seed_vertices and query in seed_vertices:
-                dist = distMat[row_idx, dist_index]
-                edge_tuple = (ref, query, dist)
-                connections.append(edge_tuple)
+        max_weight = np.max(G.edge_properties["weight"].a)
+        for ref in seed_vertices:
+            seed_edges = G.get_all_edges(ref, ["weight"])
+            found = False  # Not all edges may be in graph
+            for seed_edge in seed_edges:
+                if seed_edge[1] in seed_vertices:
+                    found = True
+                    connections.append((seed_edge))
+            if found == False:
+                for query in seed_vertices:
+                    if query != ref:
+                        connections.append((ref, query, max_weight))
+
         # Construct graph
         seed_G = gt.Graph(directed = False)
         seed_G.add_vertex(len(seed_vertex))
@@ -804,60 +792,5 @@ def generate_minimum_spanning_tree(G, names, distMat, distType):
         deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
         mst_network.add_edge_list(deep_edges)
 
-    #
-    # MST graph -> phylogeny
-    #
-
-    # Initialise tree and create nodes
-    tree = dendropy.Tree(taxon_namespace=taxon_namespace)
-    tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
-
-    # Identify edges
-    tree_edges = {v:[] for v in tree_nodes.keys()}
-    tree_edge_lengths = {v:[] for v in tree_nodes.keys()}
-    network_edge_weights = list(mst_network.ep["weight"])
-    for i, edge in enumerate(mst_network.get_edges()):
-        # Connectivity - add both directions as unrooted tree is not directional -
-        # do not know which will be leaf node
-        tree_edges[edge[0]].append(edge[1])
-        tree_edges[edge[1]].append(edge[0])
-        # Lengths added in the same order as the corresponding children to enable
-        # branches to be matched to child nodes
-        tree_edge_lengths[edge[0]].append(network_edge_weights[i])
-        tree_edge_lengths[edge[1]].append(network_edge_weights[i])
-
-    # Identify seed node as that with most links
-    max_links = 0
-    seed_node_index = None
-    for vertex in tree_edges.keys():
-        if len(tree_edges[vertex]) > max_links:
-            max_links = len(tree_edges[vertex])
-            seed_node_index = vertex
-    tree.seed_node = tree_nodes[seed_node_index]
-
-    # Generate links of tree
-    parent_node_indices = [seed_node_index]
-    added_nodes = set(parent_node_indices)
-    i = 0
-    while i < len(parent_node_indices): # NB loop end will increase
-        for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
-            if child_node_index not in added_nodes:
-                tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
-                tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
-                added_nodes.add(child_node_index)
-                parent_node_indices.append(child_node_index)
-        i = i + 1
-
-    # Add zero length branches for internal nodes in MST
-    for node in tree.preorder_node_iter():
-        if not node.is_leaf():
-            new_child = dendropy.Node(taxon=node.taxon, edge_length=0.0)
-            node.taxon = None
-            node.add_child(new_child)
-
-    # Return tree as string
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
-    tree_string = tree.as_string(schema="newick",
-                                 suppress_rooting=True,
-                                 unquoted_underscores=True)
-    return tree_string
+    return mst_network

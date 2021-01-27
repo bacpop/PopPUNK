@@ -238,14 +238,15 @@ def main():
     # check if working with lineages
     if args.fit_model == 'lineage':
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
-        if int(min(rank_list)) == 0 or max(rank_list) > 1000:
-            sys.stderr.write('Ranks should be small non-zero integers for sensible results\n')
-            sys.exit(1)
+        if int(min(rank_list)) == 0:
+            sys.stderr.write("Ranks must be >= 1\n")
+        if max(rank_list) > 100:
+            sys.stderr.write("WARNING: Ranks should be small non-zero integers for sensible lineage results\n")
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
     sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
-    sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
+    sys.stderr.write("\t sketchlib: " + checkSketchlibLibrary() + ")\n")
 
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)

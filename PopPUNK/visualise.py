@@ -17,7 +17,10 @@ from .__init__ import __version__
 
 from .models import loadClusterFit
 
-from .network import constructNetwork, fetchNetwork, generate_minimum_spanning_tree
+from .network import constructNetwork
+from .network import fetchNetwork
+from .network import generate_minimum_spanning_tree
+from .network import accepted_weights_types
 
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
@@ -64,10 +67,6 @@ def get_options():
                              'are from ref-query')
     iGroup.add_argument('--distances',
                         help='Prefix of input pickle of pre-calculated distances')
-    iGroup.add_argument('--sparse-distances',
-                        help='File (with a name *_rank*_fit.npz) storing a sparse'
-                             ' distance matrix',
-                        default=None)
     iGroup.add_argument('--include-files',
                          help='File with list of sequences to include in visualisation. '
                               'Default is to use all sequences in database.',
@@ -119,7 +118,7 @@ def get_options():
     faGroup.add_argument('--tree', help='Type of tree to calculate (nj, mst or both)', type=str, default='nj',
         choices=['nj', 'mst', 'both'])
     faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree', type=str,
-        default='core', choices=['core','accessory'])
+        default='core', choices=accepted_weights_types)
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
 
     faGroup.add_argument('--perplexity',
@@ -197,7 +196,6 @@ def generate_visualisations(query_db,
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
-    # Load original distances
     if distances is None:
         if query_db is None:
             distances = os.path.basename(ref_db) + "/" + ref_db + ".dists"
@@ -272,6 +270,7 @@ def generate_visualisations(query_db,
         acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
     else:
         viz_subset = None
+
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}
     # Use external clustering if specified
@@ -334,39 +333,19 @@ def generate_visualisations(query_db,
         if not overwrite:
             existing_tree = load_tree(output, "MST", distances=mst_distances)
         if existing_tree is None:
-            G = None
-            if sparse_distMat is not None:
-                sys.stderr.write("Started sparse distance matrix processing\n")
-                combined_dists = scipy.sparse.load_npz(sparse_distMat)
-                sys.stderr.write("Completed sparse distance matrix processing\n")
-                sys.stderr.write("Started constructing partial graph\n")
-                G = constructNetwork(combined_seq,
-                                     combined_seq,
-                                     [0]*combined_dists.shape[0],
-                                     0,
-                                     edge_list=False,
-                                     sparse=True,
-                                     sparse_input=combined_dists)
-                
-                sys.stderr.write("Completed constructing partial graph\n")
-            else:
-                sys.stderr.write("Started distance matrix processing\n")
-                if qr_distMat is not None: # not sure how to concatenate QR/QQ matrices to sparse matrix
-                    combined_dists = np.concatenate((rr_distMat, qr_distMat, qq_distMat), axis = 0)
-                else:
-                    combined_dists = rr_distMat
-                sys.stderr.write("Completed distance matrix processing\n")
-                ####
-                sys.stderr.write("Started constructing complete graph\n")
-                G = constructNetwork(combined_seq,
-                                     combined_seq,
-                                     [0]*combined_dists.shape[0],
-                                     0,
-                                     edge_list=False,
-                                     weights=combined_dists,
-                                     weights_type=mst_distances)
-                sys.stderr.write("Completed constructing complete graph\n")
-            mst_tree = generate_minimum_spanning_tree(G, combined_seq, rr_distMat, mst_distances)
+            complete_distMat = \
+                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                           pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+            # Dense network may be slow
+            sys.stderr.write("Generating MST from dense distances (may be slow)\n")
+            G = constructNetwork(combined_seq,
+                                 combined_seq,
+                                 np.zeros(complete_distMat.shape[0]),
+                                 0,
+                                 edge_list=False,
+                                 weights=complete_distMat,
+                                 weights_type=mst_distances)
+            mst_tree = generate_minimum_spanning_tree(G)
         else:
             mst_tree = existing_tree
 

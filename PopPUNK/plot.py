@@ -25,7 +25,7 @@ try:  # sklearn >= 0.22
 except ImportError:
     from sklearn.neighbors.kde import KernelDensity
 
-from .trees import write_tree
+from .trees import write_tree, mst_to_phylogeny
 
 from .utils import isolateNameToLabel
 
@@ -404,7 +404,21 @@ def distHistogram(dists, rank, outPrefix):
                 "_rank_" + str(rank) + "_histogram.png")
     plt.close()
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None, suffix = None, writeCsv = True, viz_subset = None):
+def drawMST(mst, outPrefix):
+    pos = gt.sfdp_layout(mst, eweight = mst.edge_properties["weight"])
+    deg = g.degree_property_map("in")
+    deg.a = 4 * (sqrt(deg.a) * 0.5 + 0.4)
+    ebet = gt.betweenness(g)[1]
+    ebet.a /= ebet.a.max() / 10.
+    eorder = ebet.copy()
+    eorder.a *= -1
+    graph_file_name = outPrefix + "/" + os.path.basename(outPrefix) + "_mst_plot.png"
+    gt.graph_draw(mst, pos=pos, vertex_size=deg, vertex_fill_color=deg, vorder=deg,
+              edge_color=ebet, eorder=eorder, edge_pen_width=ebet,
+              output=graph_file_name, output_szie=(1500, 1500))
+
+def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None,
+                        suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -673,7 +687,9 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
 
     # write MST
     if mst_tree is not None:
-        write_tree(mst_tree, outPrefix, "_core_MST.nwk", overwrite)
+        drawMST(mst_tree, outPrefix)
+        mst_as_tree = mst_to_phylogeny(mst_tree, seqLabels)
+        write_tree(mst_as_tree, outPrefix, "_core_MST.nwk", overwrite)
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
     generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
