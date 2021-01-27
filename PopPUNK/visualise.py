@@ -342,7 +342,6 @@ def generate_visualisations(query_db,
                                  combined_seq,
                                  np.zeros(complete_distMat.shape[0]),
                                  0,
-                                 edge_list=False,
                                  weights=complete_distMat,
                                  weights_type=mst_distances)
             mst_tree = generate_minimum_spanning_tree(G)
