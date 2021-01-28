@@ -7,6 +7,7 @@ import os
 import sys
 
 import pickle
+import re
 import pandas as pd
 from scipy import sparse
 
@@ -16,7 +17,7 @@ from .__init__ import __version__
 from .network import constructNetwork, generate_minimum_spanning_tree
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
-from .utils import setGtThreads
+from .utils import setGtThreads, readIsolateTypeFromCsv
 
 # command line parsing
 def get_options():
@@ -30,6 +31,7 @@ def get_options():
     iGroup = parser.add_argument_group('Input files')
     iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances (required)')
     iGroup.add_argument('--rank-fit', required=True, help='Location of rank fit, a sparse matrix (*_rank*_fit.npz)')
+    iGroup.add_argument('--previous-clustering', help='CSV file with cluster definitions')
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -105,8 +107,23 @@ def main():
     sys.stderr.write("Generating output\n")
     mst_as_tree = mst_to_phylogeny(mst, rlist)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
+
+    # Make plots
     if not args.no_plot:
-        drawMST(mst, args.output, True)
+        if args.previous_clustering != None:
+            mode = "clusters"
+            if re.match(r"_lineages\.csv$", args.previous_clustering):
+                mode = "lineages"
+            isolateClustering = readIsolateTypeFromCsv(args.previous_clustering,
+                                                       mode = mode,
+                                                       return_dict = True)
+        else:
+            # Create dictionary with everything in the same cluster if none passed
+            isolateClustering = {'Cluster': {}}
+            for v in mst.vertices:
+                isolateClustering['Cluster'][mst.vp.id[v]] = '0'
+
+        drawMST(mst, args.output, isolateClustering, True)
 
     sys.exit(0)
 
