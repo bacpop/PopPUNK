@@ -14,7 +14,7 @@ import scipy.optimize
 import collections
 from tqdm import tqdm
 try:
-    from multiprocessing import Pool, shared_memory
+    from multiprocessing import Pool, shared_memory, current_process
     from multiprocessing.managers import SharedMemoryManager
     NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
 except ImportError as e:
@@ -116,7 +116,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                             sample_names = sample_names,
                                             distMat = distances_shared,
                                             x_range = x_max,
-                                            score_idx = score_idx),
+                                            score_idx = score_idx,
+                                            thread_idx = current_process()),
                                     y_max)
 
         if gt.openmp_enabled():
@@ -179,7 +180,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y, min_move, max_move
 
 
-def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
+def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_idx = 0):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -198,6 +199,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        thread_idx (int)
+            Optional thread idx (if multithreaded) to offset progress bar by
     Returns:
         scores (list)
             -1 * network score for each of x_range.
@@ -210,7 +213,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
     with tqdm(total=(idx_vec[-1] + 1),
               bar_format="{bar}| {n_fmt}/{total_fmt}",
               leave=None,
-              ncols=40) as pbar:
+              ncols=40,
+              position=thread_idx) as pbar:
         for i, j, idx in zip(i_vec, j_vec, idx_vec):
             if idx > prev_idx:
                 # At first offset, make a new network, otherwise just add the new edges
