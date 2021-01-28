@@ -405,6 +405,18 @@ def distHistogram(dists, rank, outPrefix):
     plt.close()
 
 def drawMST(mst, outPrefix, isolate_clustering, overwrite):
+    """Plot a layout of the minimum spanning tree
+
+    Args:
+        mst (graph_tool.Graph)
+            A minimum spanning tree
+        outPrefix (str)
+            Output prefix for save files
+        isolate_clustering (dict)
+            Dictionary of ID: cluster, used for colouring vertices
+        overwrite (bool)
+            Overwrite existing output files
+    """
     import graph_tool.all as gt
     graph1_file_name = outPrefix + "/" + os.path.basename(outPrefix) + "_mst_stress_plot.png"
     graph2_file_name = outPrefix + "/" + os.path.basename(outPrefix) + "_mst_cluster_plot.png"
