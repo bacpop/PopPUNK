@@ -116,9 +116,10 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                             sample_names = sample_names,
                                             distMat = distances_shared,
                                             x_range = x_max,
+                                            y_range = y_max
                                             score_idx = score_idx,
                                             thread_idx = current_process()),
-                                    y_max)
+                                    range(y_max))
 
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(num_processes)
@@ -297,21 +298,23 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     score = networkSummary(G, score_idx > 0)[1][score_idx]
     return(-score)
 
-def newNetwork2D(y_max, sample_names, distMat, x_range, score_idx=0):
+def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
     of scores
 
     Args:
-        y_max (float)
-            Maximum y-intercept of boundary
+        y_idx (float)
+            Maximum y-intercept of boundary, as index into y_range
         sample_names (list)
             Sample names corresponding to distMat (accessed by iterator)
         distMat (numpy.array or NumpyShared)
             Core and accessory distances or NumpyShared describing these in sharedmem
         x_range (list)
             Sorted list of x-intercepts to search
+        y_range (list)
+            Sorted list of y-intercepts to search
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
@@ -326,9 +329,10 @@ def newNetwork2D(y_max, sample_names, distMat, x_range, score_idx=0):
         distMat_shm = shared_memory.SharedMemory(name = distMat.name)
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
 
+    y_max = y_range[y_idx]
     i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate2D(distMat, x_range, y_max)
-    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx)
+    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx, y_idx)
     return(scores)
 
 def readManualStart(startFile):
