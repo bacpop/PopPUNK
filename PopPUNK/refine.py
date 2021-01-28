@@ -12,6 +12,7 @@ from functools import partial
 import numpy as np
 import scipy.optimize
 import collections
+from tqdm import tqdm
 try:
     from multiprocessing import Pool, shared_memory
     from multiprocessing.managers import SharedMemoryManager
@@ -206,7 +207,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
     edge_list = []
     prev_idx = 0
     # Grow a network
-    for i, j, idx in zip(i_vec, j_vec, idx_vec):
+    for i, j, idx in tqdm(zip(i_vec, j_vec, idx_vec)):
         if idx > prev_idx:
             # At first offset, make a new network, otherwise just add the new edges
             if prev_idx == 0:
