@@ -781,6 +781,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
                 if seed_edge[1] in seed_vertices:
                     found = True
                     connections.append((seed_edge))
+            # TODO: alternative would be to requery the DB (likely quick)
             if found == False:
                 for query in seed_vertices:
                     if query != ref:
