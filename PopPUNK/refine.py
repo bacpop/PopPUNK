@@ -207,7 +207,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
     edge_list = []
     prev_idx = 0
     # Grow a network
-    with tdqm(total=idx_vec[-1], unit='boundary') as pbar:
+    with tqdm(total=idx_vec[-1], unit='boundary') as pbar:
         for i, j, idx in zip(i_vec, j_vec, idx_vec):
             if idx > prev_idx:
                 # At first offset, make a new network, otherwise just add the new edges
