@@ -219,7 +219,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                 # At first offset, make a new network, otherwise just add the new edges
                 if prev_idx == 0:
                     G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                        summarise=False, edge_list=True)
+                                         summarise=False, edge_list=True)
                 else:
                     G.add_edge_list(edge_list)
                 # Add score into vector for any offsets passed (should usually just be one)
@@ -231,7 +231,11 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
             edge_list.append((i, j))
 
         # Add score for final offset(s) at end of loop
-        G.add_edge_list(edge_list)
+        if prev_idx == 0:
+            G = constructNetwork(sample_names, sample_names, edge_list, -1,
+                                 summarise=False, edge_list=True)
+        else:
+            G.add_edge_list(edge_list)
         for s in range(prev_idx, len(s_range)):
             scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
             pbar.update(1)
