@@ -14,7 +14,7 @@ import scipy.optimize
 import collections
 from tqdm import tqdm
 try:
-    from multiprocessing import Pool, shared_memory, current_process
+    from multiprocessing import Pool, shared_memory
     from multiprocessing.managers import SharedMemoryManager
     NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
 except ImportError as e:
@@ -117,9 +117,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                             distMat = distances_shared,
                                             x_range = x_max,
                                             y_range = y_max,
-                                            score_idx = score_idx,
-                                            thread_idx = current_process()),
-                                    range(y_max))
+                                            score_idx = score_idx),
+                                    range(global_grid_resolution))
 
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(num_processes)
@@ -213,7 +212,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
     # Grow a network
     with tqdm(total=(idx_vec[-1] + 1),
               bar_format="{bar}| {n_fmt}/{total_fmt}",
-              leave=None,
               ncols=40,
               position=thread_idx) as pbar:
         for i, j, idx in zip(i_vec, j_vec, idx_vec):
