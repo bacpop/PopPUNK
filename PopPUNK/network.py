@@ -382,10 +382,9 @@ def networkSummary(G, calc_betweenness=True):
     if calc_betweenness:
         betweenness = []
         sizes = []
-        for component in set(component_assignments):
-            vfilt = component_assignments.a == component
-            size = sum(vfilt)
+        for component, size in enumerate(component_frequencies):
             if size > 3:
+                vfilt = component_assignments.a == component
                 subgraph = gt.GraphView(G, vfilt=vfilt)
                 betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
                 sizes.append(size)
