@@ -116,7 +116,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                             sample_names = sample_names,
                                             distMat = distances_shared,
                                             x_range = x_max,
-                                            y_range = y_max
+                                            y_range = y_max,
                                             score_idx = score_idx,
                                             thread_idx = current_process()),
                                     range(y_max))
