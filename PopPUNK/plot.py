@@ -14,7 +14,6 @@ mpl.rcParams.update({'font.size': 18})
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import itertools
-from math import sqrt
 # for other outputs
 from shutil import copyfile
 import pandas as pd
@@ -405,27 +404,45 @@ def distHistogram(dists, rank, outPrefix):
                 "_rank_" + str(rank) + "_histogram.png")
     plt.close()
 
-def drawMST(mst, outPrefix):
+def drawMST(mst, outPrefix, isolate_clustering, overwrite):
     import graph_tool.all as gt
-    pos = gt.sfdp_layout(mst, eweight = mst.edge_properties["weight"])
-    deg = mst.degree_property_map("in")
-    deg.a = 4 * (sqrt(deg.a) * 0.5 + 0.4)
-    ebet = gt.betweenness(mst)[1]
-    ebet.a /= ebet.a.max() / 10.
-    eorder = ebet.copy()
-    eorder.a *= -1
-    graph_file_name = outPrefix + "/" + os.path.basename(outPrefix) + "_mst_plot.png"
-    gt.graph_draw(mst, pos=pos, vertex_size=deg, vertex_fill_color=deg, vorder=deg,
-              edge_color=ebet, eorder=eorder, edge_pen_width=ebet,
-              output=graph_file_name, output_szie=(1500, 1500))
+    graph1_file_name = outPrefix + "/" + os.path.basename(outPrefix) + "_mst_stress_plot.png"
+    graph2_file_name = outPrefix + "/" + os.path.basename(outPrefix) + "_mst_cluster_plot.png"
+    if overwrite or not os.path.isfile(graph1_file_name) or not os.path.isfile(graph2_file_name):
+        sys.stderr.write("Drawing MST\n")
+        pos = gt.sfdp_layout(mst)
+        if overwrite or not os.path.isfile(graph1_file_name):
+            deg = mst.degree_property_map("total")
+            deg.a = 4 * (np.sqrt(deg.a) * 0.5 + 0.4)
+            ebet = gt.betweenness(mst)[1]
+            ebet.a /= ebet.a.max() / 50.
+            eorder = ebet.copy()
+            eorder.a *= -1
+            gt.graph_draw(mst, pos=pos, vertex_size=gt.prop_to_size(deg, mi=20, ma=100),
+                            vertex_fill_color=deg, vorder=deg,
+                            edge_color=ebet, eorder=eorder, edge_pen_width=ebet,
+                            output=graph1_file_name, output_size=(3000, 3000))
+        if overwrite or not os.path.isfile(graph2_file_name):
+            cluster_fill = {}
+            for cluster in set(isolate_clustering['Cluster'].values()):
+                cluster_fill[cluster] = list(np.random.rand(3)) + [0.9]
+            plot_color = mst.new_vertex_property('vector<double>')
+            mst.vertex_properties['plot_color'] = plot_color
+            for v in mst.vertices():
+                plot_color[v] = cluster_fill[isolate_clustering['Cluster'][mst.vp.id[v]]]
 
-def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None,
+            gt.graph_draw(mst, pos=pos, vertex_fill_color=mst.vertex_properties['plot_color'],
+                    output=graph2_file_name, output_size=(3000, 3000))
+
+def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = None,
                         suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
         G (graph)
             The network to write from :func:`~PopPUNK.network.constructNetwork`
+        G_mst (graph)
+            The minimum spanning tree of G
         clustering (dict)
             Dictionary of cluster assignments (keys are nodeNames).
         outPrefix (str)
@@ -467,6 +484,16 @@ def outputsForCytoscape(G, clustering, outPrefix, epiCsv, queryList = None,
     else:
         graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
     G.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
+
+    if G_mst != None:
+        isolate_labels = isolateNameToLabel(G_mst.vp.id)
+        for n,v in enumerate(G_mst.vertices()):
+            G_mst.vp.id[v] = isolate_labels[n]
+        if suffix is None:
+            graph_file_name = os.path.basename(outPrefix) + "_cytoscape_mst.graphml"
+        else:
+            graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape_mst.graphml"
+        G_mst.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
 
     # Write CSV of metadata
     if writeCsv:
@@ -683,18 +710,16 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
                         combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
+    # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
+    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
+
     # write NJ tree
     if nj_tree is not None:
         write_tree(nj_tree, outPrefix, "_core_NJ.nwk", overwrite)
 
     # write MST
     if mst_tree is not None:
-        drawMST(mst_tree, outPrefix)
-        mst_as_tree = mst_to_phylogeny(mst_tree, seqLabels)
-        write_tree(mst_as_tree, outPrefix, "_core_MST.nwk", overwrite)
-
-    # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
+        write_tree(mst_tree, outPrefix, "_MST.nwk", overwrite)
 
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
                         queryList = None, overwrite = False):

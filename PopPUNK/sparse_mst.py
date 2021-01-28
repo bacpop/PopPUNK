@@ -34,6 +34,8 @@ def get_options():
     # output options
     oGroup = parser.add_argument_group('Output options')
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
+    oGroup.add_argument('--no-plot', default=False, action='store_true',
+                        help='Do not try and draw the MST')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -93,16 +95,18 @@ def main():
         edge_df = G_mst.view_edge_list()
         mst = constructNetwork(rlist, rlist,
                                (edge_df['src'], edge_df['dst']),
-                               0, edge_list=True, weights=edge_df['weight'])
+                               0, edge_list=True, weights=edge_df['weight'],
+                               summarise=False)
     else:
         G = constructNetwork(rlist, rlist, None, 0, sparse_input = sparse_mat)
 
     sys.stderr.write("Calculating MST (CPU)\n")
     mst = generate_minimum_spanning_tree(G, args.gpu_graph)
     sys.stderr.write("Generating output\n")
-    drawMST(mst, args.output)
     mst_as_tree = mst_to_phylogeny(mst, rlist)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
+    if not args.no_plot:
+        drawMST(mst, args.output, True)
 
     sys.exit(0)
 

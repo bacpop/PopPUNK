@@ -62,6 +62,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
 
     # read tree and return
     tree = dendropy.Tree.get(path=tree_filename, schema="newick")
+    os.remove(tree_filename)
     return tree
 
 def write_tree(tree, prefix, suffix, overwrite):
@@ -102,11 +103,11 @@ def load_tree(prefix, type, distances = 'core'):
     for suffix in ['_' + distances + '_' + type + ".tree",'_' + distances + '_' + type + ".nwk"]:
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
+                sys.stderr.write("Reading existing tree from " + tree_fn + "\n")
                 tree = dendropy.Tree.get(path=tree_fn, schema="newick")
                 tree_string = tree.as_string(schema="newick",
                 suppress_rooting=True,
                 unquoted_underscores=True)
-                sys.stderr.write("Reading existing tree from " + tree_fn + "\n")
                 break
 
     return tree_string
@@ -156,8 +157,8 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
 
     # return Newick string
     tree_string = tree.as_string(schema="newick",
-    suppress_rooting=True,
-    unquoted_underscores=True)
+                                 suppress_rooting=True,
+                                 unquoted_underscores=True)
     return tree_string
 
 def mst_to_phylogeny(mst_network, names):

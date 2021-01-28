@@ -22,6 +22,7 @@ from .network import fetchNetwork
 from .network import generate_minimum_spanning_tree
 from .network import accepted_weights_types
 
+from .plot import drawMST
 from .plot import outputsForMicroreact
 from .plot import outputsForCytoscape
 from .plot import outputsForPhandango
@@ -34,8 +35,9 @@ from .sketchlib import readDBParams
 from .sketchlib import getKmersFromReferenceDatabase
 from .sketchlib import addRandom
 
-from .trees import load_tree, generate_nj_tree
+from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
 
+from .utils import isolateNameToLabel
 from .utils import readPickle
 from .utils import setGtThreads
 from .utils import update_distance_matrices
@@ -327,6 +329,7 @@ def generate_visualisations(query_db,
 
     # Generate MST
     mst_tree = None
+    mst_graph = None
     if tree == 'mst' or tree == 'both':
         existing_tree = None
         if not overwrite:
@@ -342,8 +345,11 @@ def generate_visualisations(query_db,
                                  np.zeros(complete_distMat.shape[0]),
                                  0,
                                  weights=complete_distMat,
-                                 weights_type=mst_distances)
-            mst_tree = generate_minimum_spanning_tree(G)
+                                 weights_type=mst_distances,
+                                 summarise=False)
+            mst_graph = generate_minimum_spanning_tree(G)
+            drawMST(mst_graph, output, isolateClustering, overwrite)
+            mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
         else:
             mst_tree = existing_tree
 
@@ -401,7 +407,7 @@ def generate_visualisations(query_db,
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
-        outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, viz_subset = viz_subset)
+        outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
