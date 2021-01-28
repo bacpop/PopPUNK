@@ -100,7 +100,8 @@ def main():
                                0, edge_list=True, weights=edge_df['weight'],
                                summarise=False)
     else:
-        G = constructNetwork(rlist, rlist, None, 0, sparse_input = sparse_mat)
+        G = constructNetwork(rlist, rlist, None, 0,
+                             sparse_input=sparse_mat, summarise=False)
 
     sys.stderr.write("Calculating MST (CPU)\n")
     mst = generate_minimum_spanning_tree(G, args.gpu_graph)
