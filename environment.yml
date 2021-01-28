@@ -30,4 +30,4 @@ dependencies:
   - libgfortran-ng
   - boost-cpp
   - libgomp
-  - tdqm
+  - tqdm
