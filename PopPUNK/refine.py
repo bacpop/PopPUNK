@@ -207,25 +207,29 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx):
     edge_list = []
     prev_idx = 0
     # Grow a network
-    for i, j, idx in tqdm(zip(i_vec, j_vec, idx_vec)):
-        if idx > prev_idx:
-            # At first offset, make a new network, otherwise just add the new edges
-            if prev_idx == 0:
-                G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                    summarise=False, edge_list=True)
-            else:
-                G.add_edge_list(edge_list)
-            # Add score into vector for any offsets passed (should usually just be one)
-            for s in range(prev_idx, idx):
-                scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
-            prev_idx = idx
-            edge_list = []
-        edge_list.append((i, j))
+    with tdqm(total=idx_vec[-1], unit='boundary') as pbar:
+        for i, j, idx in zip(i_vec, j_vec, idx_vec):
+            if idx > prev_idx:
+                # At first offset, make a new network, otherwise just add the new edges
+                if prev_idx == 0:
+                    G = constructNetwork(sample_names, sample_names, edge_list, -1,
+                                        summarise=False, edge_list=True)
+                else:
+                    G.add_edge_list(edge_list)
+                # Add score into vector for any offsets passed (should usually just be one)
+                for s in range(prev_idx, idx):
+                    scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
+                    pbar.update(1)
+                prev_idx = idx
+                edge_list = []
+            edge_list.append((i, j))
 
-    # Add score for final offset(s) at end of loop
-    G.add_edge_list(edge_list)
-    for s in range(prev_idx, len(s_range)):
-        scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
+        # Add score for final offset(s) at end of loop
+        G.add_edge_list(edge_list)
+        for s in range(prev_idx, len(s_range)):
+            scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
+            pbar.update(1)
+
     return(scores)
 
 
