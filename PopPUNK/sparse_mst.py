@@ -95,8 +95,9 @@ def main():
         G_mst = cugraph.minimum_spanning_tree(G, weight='weights')
         edge_df = G_mst.view_edge_list()
         sys.stderr.write("Calculating MST (CPU part)\n")
+        edge_tuple = [tuple(x) for x in edge_df[['src', 'dst']].values]
         mst = constructNetwork(rlist, rlist,
-                               (edge_df['src'], edge_df['dst']),
+                               edge_tuple,
                                0, edge_list=True, weights=edge_df['weights'],
                                summarise=False)
     else:
