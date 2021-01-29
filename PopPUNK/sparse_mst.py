@@ -108,6 +108,7 @@ def main():
 
     mst = generate_minimum_spanning_tree(G, args.gpu_graph)
     sys.stderr.write("Generating output\n")
+    mst.save(args.output + "/" + os.path.basename(args.output) + ".graphml", fmt="graphml")
     mst_as_tree = mst_to_phylogeny(mst, rlist)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
 
