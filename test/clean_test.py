@@ -34,6 +34,8 @@ outputDirs = [
     "example_viz_query",
     "example_lineage_viz",
     "example_viz_query_lineages",
+    "example_mst",
+    "example_sparse_mst",
     "example_tsne",
     "example_prune",
     "example_refs"
