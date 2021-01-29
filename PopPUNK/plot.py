@@ -430,7 +430,7 @@ def drawMST(mst, outPrefix, isolate_clustering, overwrite):
             ebet.a /= ebet.a.max() / 50.
             eorder = ebet.copy()
             eorder.a *= -1
-            gt.graph_draw(mst, pos=pos, vertex_size=gt.prop_to_size(deg, mi=20, ma=100),
+            gt.graph_draw(mst, pos=pos, vertex_size=gt.prop_to_size(deg, mi=20, ma=50),
                             vertex_fill_color=deg, vorder=deg,
                             edge_color=ebet, eorder=eorder, edge_pen_width=ebet,
                             output=graph1_file_name, output_size=(3000, 3000))
