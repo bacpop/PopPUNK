@@ -94,7 +94,7 @@ def main():
         weights = pd.Series(M.data)
 
         G = cugraph.Graph()
-        G = cugraph.from_cudf_adjlist(offsets, indices, weights)
+        G.from_cudf_adjlist(offsets, indices, weights)
         sys.stderr.write("Calculating MST (GPU)\n")
         G_mst = cugraph.tree.minimum_spanning_tree(G, weight='weights')
         edge_df = G_mst.view_edge_list()
