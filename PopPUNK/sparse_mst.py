@@ -97,7 +97,7 @@ def main():
         sys.stderr.write("Calculating MST (CPU part)\n")
         mst = constructNetwork(rlist, rlist,
                                (edge_df['src'], edge_df['dst']),
-                               0, edge_list=True, weights=edge_df['weight'],
+                               0, edge_list=True, weights=edge_df['weights'],
                                summarise=False)
     else:
         G = constructNetwork(rlist, rlist, None, 0,
