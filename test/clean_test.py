@@ -23,6 +23,7 @@ outputDirs = [
     "example_qc",
     "example_dbscan",
     "example_refine",
+    "example_threshold",
     "example_lineages",
     "example_use",
     "example_query",

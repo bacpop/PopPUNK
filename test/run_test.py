@@ -63,8 +63,8 @@ subprocess.run("python ../poppunk_visualise-runner.py --distances example_query/
 
 # MST
 sys.stderr.write("Running MST\n")
-subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --mst", shell=True, check=True)
-subprocess.run("python ../poppunk_mst-runner.py --distances example_db/example_db.dists --rank-fit example_lineages/example_lineages_rank5_fit.npz --output example_sparse_mst --no-plot", shell=True, check=True)
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree mst", shell=True, check=True)
+subprocess.run("python ../poppunk_mst-runner.py --distances example_db/example_db.dists --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot", shell=True, check=True)
 
 # t-sne
 sys.stderr.write("Running tsne viz\n")

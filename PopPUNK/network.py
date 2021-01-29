@@ -773,9 +773,9 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
     if len(component_frequencies) > 1:
         # Extract distances
         connections = []
-        max_weight = np.max(G.edge_properties["weight"].a)
+        max_weight = float(np.max(G.edge_properties["weight"].a))
         for ref in seed_vertices:
-            seed_edges = G.get_all_edges(ref, ["weight"])
+            seed_edges = G.get_all_edges(ref, [G.ep['weight']])
             found = False  # Not all edges may be in graph
             for seed_edge in seed_edges:
                 if seed_edge[1] in seed_vertices:
