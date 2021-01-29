@@ -88,15 +88,15 @@ def main():
         G_df = cudf.DataFrame({'source': sparse_mat.row,
                                'destination': sparse_mat.col,
                                'weights': sparse_mat.data})
-        G = cugraph.Graph()
-        G.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+        G_cu = cugraph.Graph()
+        G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
 
         sys.stderr.write("Calculating MST (GPU part)\n")
-        G_mst = cugraph.minimum_spanning_tree(G, weight='weights')
+        G_mst = cugraph.minimum_spanning_tree(G_cu, weight='weights')
         edge_df = G_mst.view_edge_list()
         sys.stderr.write("Calculating MST (CPU part)\n")
-        edge_tuple = [tuple(x) for x in edge_df[['src', 'dst']].values_host]
-        mst = constructNetwork(rlist, rlist,
+        edge_tuple = edge_df[['src', 'dst']].values
+        G = constructNetwork(rlist, rlist,
                                edge_tuple,
                                0, edge_list=True,
                                weights=edge_df['weights'].values_host,
