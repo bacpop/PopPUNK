@@ -59,9 +59,10 @@ def main():
     import graph_tool.all as gt
     try:
         import cugraph
+        import cudf
     except ImportError as e:
         if args.gpu_graph:
-            sys.stderr.write("cugraph unavailable\n")
+            sys.stderr.write("cugraph and cudf unavailable\n")
             raise ImportError(e)
 
     # Check output path ok
@@ -84,20 +85,16 @@ def main():
     sys.stderr.write("Loading distances into graph\n")
     sparse_mat = sparse.load_npz(args.rank_fit)
     if args.gpu_graph:
-        # Alternative
-        #G_df = pd.DataFrame.from_dict({'source': sparse_mat.row,
-        #                               'destination': sparse_mat.col,
-        #                               'weights': sparse_mat.data})
-        M = sparse_mat.tocsr()
-        offsets = pd.Series(M.indptr)
-        indices = pd.Series(M.indices)
-        weights = pd.Series(M.data)
-
+        G_df = cudf.DataFrame({'source': sparse_mat.row,
+                               'destination': sparse_mat.col,
+                               'weights': sparse_mat.data})
         G = cugraph.Graph()
-        G.from_cudf_adjlist(offsets, indices, weights)
-        sys.stderr.write("Calculating MST (GPU)\n")
-        G_mst = cugraph.tree.minimum_spanning_tree(G, weight='weights')
+        G.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+
+        sys.stderr.write("Calculating MST (GPU part)\n")
+        G_mst = cugraph.minimum_spanning_tree(G, weight='weights')
         edge_df = G_mst.view_edge_list()
+        sys.stderr.write("Calculating MST (CPU part)\n")
         mst = constructNetwork(rlist, rlist,
                                (edge_df['src'], edge_df['dst']),
                                0, edge_list=True, weights=edge_df['weight'],
@@ -105,8 +102,8 @@ def main():
     else:
         G = constructNetwork(rlist, rlist, None, 0,
                              sparse_input=sparse_mat, summarise=False)
+        sys.stderr.write("Calculating MST (CPU)\n")
 
-    sys.stderr.write("Calculating MST (CPU)\n")
     mst = generate_minimum_spanning_tree(G, args.gpu_graph)
     sys.stderr.write("Generating output\n")
     mst_as_tree = mst_to_phylogeny(mst, rlist)
