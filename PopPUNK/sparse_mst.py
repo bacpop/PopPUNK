@@ -84,14 +84,17 @@ def main():
     sys.stderr.write("Loading distances into graph\n")
     sparse_mat = sparse.load_npz(args.rank_fit)
     if args.gpu_graph:
-        G_df = pd.DataFrame.from_dict({'source': sparse_mat.row,
-                                       'destination': sparse_mat.col,
-                                       'weights': sparse_mat.data})
+        # Alternative
+        #G_df = pd.DataFrame.from_dict({'source': sparse_mat.row,
+        #                               'destination': sparse_mat.col,
+        #                               'weights': sparse_mat.data})
         M = sparse_mat.tocsr()
         offsets = pd.Series(M.indptr)
         indices = pd.Series(M.indices)
         weights = pd.Series(M.data)
-        G = cugraph.from_adjlist(offsets, indices, weights)
+
+        G = cugraph.Graph()
+        G = cugraph.from_cudf_adjlist(offsets, indices, weights)
         sys.stderr.write("Calculating MST (GPU)\n")
         G_mst = cugraph.tree.minimum_spanning_tree(G, weight='weights')
         edge_df = G_mst.view_edge_list()
