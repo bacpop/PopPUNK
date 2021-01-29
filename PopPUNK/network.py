@@ -321,12 +321,12 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     # identify edges
     connections = []
     if edge_list:
-        if weights != None:
+        if weights is not None:
             for weight, (ref, query) in zip(weights, assignments):
                 connections.append((ref, query, weight))
         else:
             connections = assignments
-    elif sparse_input != None:
+    elif sparse_input is not None:
         for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
             connections.append((ref, query, weight))
     else:
@@ -350,7 +350,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     G = gt.Graph(directed = False)
     G.add_vertex(len(vertex_labels))
 
-    if weights is not None or sparse_input != None:
+    if weights is not None or sparse_input is not None:
         eweight = G.new_ep("float")
         G.add_edge_list(connections, eprops = [eweight])
         G.edge_properties["weight"] = eweight
