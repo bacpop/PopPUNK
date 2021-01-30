@@ -63,6 +63,12 @@ plot.py
 .. automodule:: PopPUNK.plot
    :members:
 
+sparse_mst.py
+-------------
+
+.. automodule:: PopPUNK.sparse_mst
+   :members:
+
 sketchlib.py
 ------------
 
