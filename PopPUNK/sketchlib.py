@@ -37,12 +37,17 @@ def checkSketchlibVersion():
         version (str)
             Version string
     """
-    p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
-    version = 0
-    for line in iter(p.stdout.readline, ''):
-        if line != '':
-            version = line.rstrip().decode().split(" ")[1]
-            break
+    try:
+        version = pp_sketchlib.version
+
+    # Older versions didn't export attributes
+    except AttributeError:
+        p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
+        version = 0
+        for line in iter(p.stdout.readline, ''):
+            if line != '':
+                version = line.rstrip().decode().split(" ")[1]
+                break
 
     sketchlib_version = [int(v) for v in version.split(".")]
     if sketchlib_version[0] < SKETCHLIB_MAJOR or \
@@ -52,7 +57,7 @@ def checkSketchlibVersion():
                             "v" + str(SKETCHLIB_MAJOR) + \
                             "." + str(SKETCHLIB_MINOR) + \
                             "." + str(SKETCHLIB_PATCH) + " or higher\n")
-        sys.exit(1)
+        sys.stderr.write("Continuing... but safety not guaranteed\n")
 
     return version
 

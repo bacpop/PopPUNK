@@ -11,7 +11,7 @@ dependencies:
   - python-dateutil
   - pandas
   - scikit-learn
-  - dendropy
+  - dendropy >=4.4.0
   - matplotlib
   - mash
   - hdbscan

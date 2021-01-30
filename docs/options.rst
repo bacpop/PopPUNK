@@ -242,12 +242,14 @@ Usage::
                           [--previous-clustering PREVIOUS_CLUSTERING]
                           [--previous-query-clustering PREVIOUS_QUERY_CLUSTERING]
                           --output OUTPUT [--overwrite] [--core-only]
-                          [--accessory-only] [--microreact] [--cytoscape]
-                          [--phandango] [--grapetree] [--rapidnj RAPIDNJ]
-                          [--perplexity PERPLEXITY] [--info-csv INFO_CSV]
-                          [--threads THREADS] [--gpu-dist]
-                          [--deviceid DEVICEID] [--strand-preserved]
-                          [--version]
+                          [--accessory-only] [--microreact]
+                          [--cytoscape] [--phandango] [--grapetree]
+                          [--tree {nj,mst,both}]
+                          [--mst-distances {core,accessory,euclidean}]
+                          [--rapidnj RAPIDNJ] [--perplexity PERPLEXITY]
+                          [--info-csv INFO_CSV] [--threads THREADS]
+                          [--gpu-dist] [--deviceid DEVICEID]
+                          [--strand-preserved] [--version]
 
 Command line options::
 
@@ -256,48 +258,55 @@ Command line options::
 
   Input files:
     --ref-db REF_DB       Location of built reference database
-    --query-db QUERY_DB   Location of query database, if distances are from
-                          ref-query
+    --query-db QUERY_DB   Location of query database, if distances are
+                          from ref-query
     --distances DISTANCES
-                          Prefix of input pickle of pre-calculated distances
+                          Prefix of input pickle of pre-calculated
+                          distances
     --include-files INCLUDE_FILES
                           File with list of sequences to include in
-                          visualisation. Default is to use all sequences in
-                          database.
+                          visualisation. Default is to use all sequences
+                          in database.
     --external-clustering EXTERNAL_CLUSTERING
                           File with cluster definitions or other labels
                           generated with any other method.
     --model-dir MODEL_DIR
-                          Directory containing model to use for assigning
-                          queries to clusters [default = reference database
-                          directory]
+                          Directory containing model to use for
+                          assigning queries to clusters [default =
+                          reference database directory]
     --previous-clustering PREVIOUS_CLUSTERING
-                          Directory containing previous cluster definitions
-                          and network [default = use that in the directory
-                          containing the model]
+                          Directory containing previous cluster
+                          definitions and network [default = use that in
+                          the directory containing the model]
     --previous-query-clustering PREVIOUS_QUERY_CLUSTERING
-                          Directory containing previous cluster definitions
-                          from poppunk_assign [default = use that in the
-                          directory containing the model]
+                          Directory containing previous cluster
+                          definitions from poppunk_assign [default = use
+                          that in the directory containing the model]
 
   Output options:
     --output OUTPUT       Prefix for output files (required)
     --overwrite           Overwrite any existing visualisation files
 
   Database querying options:
-    --core-only           (with a 'refine' model) Use a core-distance only
-                          model for assigning queries [default = False]
+    --core-only           (with a 'refine' model) Use a core-distance
+                          only model for assigning queries [default =
+                          False]
     --accessory-only      (with a 'refine' or 'lineage' model) Use an
                           accessory-distance only model for assigning
                           queries [default = False]
 
   Visualisation options:
-    --microreact          Generate output files for microreact visualisation
+    --microreact          Generate output files for microreact
+                          visualisation
     --cytoscape           Generate network output files for Cytoscape
     --phandango           Generate phylogeny and TSV for Phandango
                           visualisation
     --grapetree           Generate phylogeny and CSV for grapetree
                           visualisation
+    --tree {nj,mst,both}  Type of tree to calculate [default = nj]
+    --mst-distances {core,accessory,euclidean}
+                          Distances used to calculate a minimum spanning
+                          tree [default = core]
     --rapidnj RAPIDNJ     Path to rapidNJ binary to build NJ tree for
                           Microreact
     --perplexity PERPLEXITY
@@ -308,8 +317,8 @@ Command line options::
 
   Other options:
     --threads THREADS     Number of threads to use [default = 1]
-    --gpu-dist            Use a GPU when calculating distances [default =
-                          False]
+    --gpu-dist            Use a GPU when calculating distances [default
+                          = False]
     --deviceid DEVICEID   CUDA device ID, if using GPU [default = 0]
     --strand-preserved    If distances being calculated, treat strand as
                           known when calculating random match chances

@@ -196,7 +196,7 @@ def listDistInts(refSeqs, querySeqs, self=True):
             for j in range(num_ref):
                 yield(j, i)
 
-    return comparisons
+        return comparisons
 
 
 def qcDistMat(distMat, refList, queryList, a_max):

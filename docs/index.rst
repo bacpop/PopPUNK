@@ -40,6 +40,7 @@ by reading the :doc:`best_practises`.
    model_fitting.rst
    model_distribution.rst
    visualisation.rst
+   mst.rst
    subclustering.rst
    troubleshooting.rst
    options.rst

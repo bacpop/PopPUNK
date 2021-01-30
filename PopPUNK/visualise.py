@@ -7,34 +7,13 @@ import os
 import sys
 # additional
 import numpy as np
+import scipy.sparse
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
 
 # import poppunk package
 from .__init__ import __version__
-
-from .models import loadClusterFit
-
-from .network import fetchNetwork
-
-from .plot import outputsForMicroreact
-from .plot import outputsForCytoscape
-from .plot import outputsForPhandango
-from .plot import outputsForGrapetree
-from .plot import writeClusterCsv
-
-from .prune_db import prune_distance_matrix
-
-from .sketchlib import readDBParams
-from .sketchlib import getKmersFromReferenceDatabase
-from .sketchlib import addRandom
-
-from .utils import readPickle
-from .utils import setGtThreads
-from .utils import update_distance_matrices
-from .utils import readIsolateTypeFromCsv
-from .utils import joinClusterDicts
 
 #******************************#
 #*                            *#
@@ -44,6 +23,7 @@ from .utils import joinClusterDicts
 def get_options():
 
     import argparse
+    from .__main__ import accepted_weights_types
 
     parser = argparse.ArgumentParser(description='Create visualisations from PopPUNK results',
                                      prog='poppunk_visualise')
@@ -108,7 +88,12 @@ def get_options():
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
+    faGroup.add_argument('--tree', help='Type of tree to calculate [default = nj]', type=str, default='nj',
+        choices=['nj', 'mst', 'both'])
+    faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree [default = core]', type=str,
+        default='core', choices=accepted_weights_types)
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
+
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
                          help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
@@ -160,10 +145,41 @@ def generate_visualisations(query_db,
                             previous_query_clustering,
                             info_csv,
                             rapidnj,
+                            tree,
+                            mst_distances,
                             overwrite,
                             core_only,
                             accessory_only,
                             web):
+
+    from .models import loadClusterFit
+
+    from .network import constructNetwork
+    from .network import fetchNetwork
+    from .network import generate_minimum_spanning_tree
+
+    from .plot import drawMST
+    from .plot import outputsForMicroreact
+    from .plot import outputsForCytoscape
+    from .plot import outputsForPhandango
+    from .plot import outputsForGrapetree
+    from .plot import writeClusterCsv
+
+    from .prune_db import prune_distance_matrix
+
+    from .sketchlib import readDBParams
+    from .sketchlib import getKmersFromReferenceDatabase
+    from .sketchlib import addRandom
+
+    from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
+
+    from .utils import isolateNameToLabel
+    from .utils import readPickle
+    from .utils import setGtThreads
+    from .utils import update_distance_matrices
+    from .utils import readIsolateTypeFromCsv
+    from .utils import joinClusterDicts
+    from .utils import listDistInts
 
     # Check on parallelisation of graph-tools
     setGtThreads(threads)
@@ -181,7 +197,6 @@ def generate_visualisations(query_db,
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
-    # Load original distances
     if distances is None:
         if query_db is None:
             distances = os.path.basename(ref_db) + "/" + ref_db + ".dists"
@@ -256,6 +271,7 @@ def generate_visualisations(query_db,
         acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
     else:
         viz_subset = None
+
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}
     # Use external clustering if specified
@@ -297,6 +313,7 @@ def generate_visualisations(query_db,
     isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                mode = mode,
                                                return_dict = True)
+
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
@@ -310,23 +327,87 @@ def generate_visualisations(query_db,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
 
+    # Generate MST
+    mst_tree = None
+    mst_graph = None
+    if tree == 'mst' or tree == 'both':
+        existing_tree = None
+        if not overwrite:
+            existing_tree = load_tree(output, "MST", distances=mst_distances)
+        if existing_tree is None:
+            complete_distMat = \
+                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                           pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+            # Dense network may be slow
+            sys.stderr.write("Generating MST from dense distances (may be slow)\n")
+            G = constructNetwork(combined_seq,
+                                 combined_seq,
+                                 np.zeros(complete_distMat.shape[0]),
+                                 0,
+                                 weights=complete_distMat,
+                                 weights_type=mst_distances,
+                                 summarise=False)
+            mst_graph = generate_minimum_spanning_tree(G)
+            drawMST(mst_graph, output, isolateClustering, overwrite)
+            mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
+        else:
+            mst_tree = existing_tree
+
+    # Generate NJ tree
+    nj_tree = None
+    if tree == 'nj' or tree == 'both':
+        existing_tree = None
+        if not overwrite:
+            existing_tree = load_tree(output, "NJ")
+        if existing_tree is None:
+            nj_tree = generate_nj_tree(core_distMat,
+                                        combined_seq,
+                                        output,
+                                        rapidnj,
+                                        threads = threads)
+        else:
+            nj_tree = existing_tree
+
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
-        outputsForMicroreact(combined_seq, core_distMat, acc_distMat, isolateClustering, perplexity,
-                             output, info_csv, rapidnj, queryList = qlist, overwrite = overwrite, threads = threads)
+        outputsForMicroreact(combined_seq,
+                             isolateClustering,
+                             nj_tree,
+                             mst_tree,
+                             acc_distMat,
+                             perplexity,
+                             output,
+                             info_csv,
+                             queryList = qlist,
+                             overwrite = overwrite)
+
     if phandango:
         sys.stderr.write("Writing phandango output\n")
-        outputsForPhandango(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact, threads = threads)
+        outputsForPhandango(combined_seq,
+                            isolateClustering,
+                            nj_tree,
+                            mst_tree,
+                            output,
+                            info_csv,
+                            queryList = qlist,
+                            overwrite = overwrite)
+
     if grapetree:
         sys.stderr.write("Writing grapetree output\n")
-        outputsForGrapetree(combined_seq, core_distMat, isolateClustering, output, info_csv, rapidnj,
-                            queryList = qlist, overwrite = overwrite, microreact = microreact, threads = threads)
+        outputsForGrapetree(combined_seq,
+                            isolateClustering,
+                            nj_tree,
+                            mst_tree,
+                            output,
+                            info_csv,
+                            queryList = qlist,
+                            overwrite = overwrite)
+
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
         genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
-        outputsForCytoscape(genomeNetwork, isolateClustering, output, info_csv, viz_subset = viz_subset)
+        outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
@@ -357,6 +438,8 @@ def main():
                             args.previous_query_clustering,
                             args.info_csv,
                             args.rapidnj,
+                            args.tree,
+                            args.mst_distances,
                             args.overwrite,
                             args.core_only,
                             args.accessory_only,
