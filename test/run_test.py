@@ -61,6 +61,11 @@ subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --quer
 subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --previous-clustering example_lineages --model-dir example_lineages --output example_lineage_viz --microreact", shell=True, check=True)
 subprocess.run("python ../poppunk_visualise-runner.py --distances example_query/example_query.dists --ref-db example_db --model-dir example_lineages --query-db example_lineage_query --output example_viz_query_lineages --microreact", shell=True, check=True)
 
+# MST
+sys.stderr.write("Running MST\n")
+subprocess.run("python ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree mst", shell=True, check=True)
+subprocess.run("python ../poppunk_mst-runner.py --distances example_db/example_db.dists --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot", shell=True, check=True)
+
 # t-sne
 sys.stderr.write("Running tsne viz\n")
 subprocess.run("python ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1", shell=True, check=True)

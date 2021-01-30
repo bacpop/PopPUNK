@@ -57,6 +57,7 @@ setup(
             'poppunk = PopPUNK.__main__:main',
             'poppunk_assign = PopPUNK.assign:main',
             'poppunk_visualise = PopPUNK.visualise:main',
+            'poppunk_mst = PopPUNK.sparse_mst:main',
             'poppunk_prune = PopPUNK.prune_db:main',
             'poppunk_references = PopPUNK.reference_pick:main',
             'poppunk_tsne = PopPUNK.tsne:main'
