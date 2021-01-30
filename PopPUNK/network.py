@@ -22,6 +22,8 @@ from multiprocessing import Pool
 import graph_tool.all as gt
 import dendropy
 
+from .__main__ import accepted_weights_types
+
 from .sketchlib import addRandom
 
 from .utils import iterDistRows
@@ -30,8 +32,6 @@ from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
-
-accepted_weights_types = ["core", "accessory", "euclidean"]
 
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False):

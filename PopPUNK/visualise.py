@@ -15,36 +15,6 @@ import pp_sketchlib
 # import poppunk package
 from .__init__ import __version__
 
-from .models import loadClusterFit
-
-from .network import constructNetwork
-from .network import fetchNetwork
-from .network import generate_minimum_spanning_tree
-from .network import accepted_weights_types
-
-from .plot import drawMST
-from .plot import outputsForMicroreact
-from .plot import outputsForCytoscape
-from .plot import outputsForPhandango
-from .plot import outputsForGrapetree
-from .plot import writeClusterCsv
-
-from .prune_db import prune_distance_matrix
-
-from .sketchlib import readDBParams
-from .sketchlib import getKmersFromReferenceDatabase
-from .sketchlib import addRandom
-
-from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
-
-from .utils import isolateNameToLabel
-from .utils import readPickle
-from .utils import setGtThreads
-from .utils import update_distance_matrices
-from .utils import readIsolateTypeFromCsv
-from .utils import joinClusterDicts
-from .utils import listDistInts
-
 #******************************#
 #*                            *#
 #* Command line parsing       *#
@@ -53,6 +23,7 @@ from .utils import listDistInts
 def get_options():
 
     import argparse
+    from .__main__ import accepted_weights_types
 
     parser = argparse.ArgumentParser(description='Create visualisations from PopPUNK results',
                                      prog='poppunk_visualise')
@@ -180,6 +151,35 @@ def generate_visualisations(query_db,
                             core_only,
                             accessory_only,
                             web):
+
+    from .models import loadClusterFit
+
+    from .network import constructNetwork
+    from .network import fetchNetwork
+    from .network import generate_minimum_spanning_tree
+
+    from .plot import drawMST
+    from .plot import outputsForMicroreact
+    from .plot import outputsForCytoscape
+    from .plot import outputsForPhandango
+    from .plot import outputsForGrapetree
+    from .plot import writeClusterCsv
+
+    from .prune_db import prune_distance_matrix
+
+    from .sketchlib import readDBParams
+    from .sketchlib import getKmersFromReferenceDatabase
+    from .sketchlib import addRandom
+
+    from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
+
+    from .utils import isolateNameToLabel
+    from .utils import readPickle
+    from .utils import setGtThreads
+    from .utils import update_distance_matrices
+    from .utils import readIsolateTypeFromCsv
+    from .utils import joinClusterDicts
+    from .utils import listDistInts
 
     # Check on parallelisation of graph-tools
     setGtThreads(threads)

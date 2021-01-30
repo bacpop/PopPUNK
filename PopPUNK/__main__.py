@@ -16,6 +16,9 @@ import pp_sketchlib
 # import poppunk package
 from .__init__ import __version__
 
+# globals
+accepted_weights_types = ["core", "accessory", "euclidean"]
+
 #******************************#
 #*                            *#
 #* Command line parsing       *#
