@@ -20,6 +20,9 @@ from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
 import graph_tool.all as gt
+import dendropy
+
+from .__main__ import accepted_weights_types
 
 from .sketchlib import addRandom
 
@@ -46,7 +49,6 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
                 Names of references that should be in the network
             ref_graph (bool)
                 Use ref only graph, if available
-
                 [default = False]
             core_only (bool)
                 Return the network created using only core distances
@@ -125,6 +127,8 @@ def cliquePrune(component, graph, reference_indices, components_list):
     """Wrapper function around :func:`~getCliqueRefs` so it can be
        called by a multiprocessing pool
     """
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
     refs = reference_indices.copy()
     if subgraph.num_vertices() <= 2:
@@ -263,7 +267,8 @@ def writeReferences(refList, outPrefix):
     return refFileName
 
 def constructNetwork(rlist, qlist, assignments, within_label,
-                     summarise = True, edge_list = False, weights = None):
+                     summarise = True, edge_list = False, weights = None,
+                     weights_type = 'euclidean', sparse_input = None):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -281,13 +286,17 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             from :func:`~PopPUNK.bgmm.findWithinLabel`
         summarise (bool)
             Whether to calculate and print network summaries with :func:`~networkSummary`
-
             (default = True)
         edge_list (bool)
             Whether input is edges, tuples of (v1, v2). Used with lineage assignment
         weights (numpy.array)
             If passed, the core,accessory distances for each assignment, which will
             be annotated as an edge attribute
+        weights_type (str)
+            Specifies the type of weight to be annotated on the graph - options are core,
+            accessory or euclidean distance
+        sparse_input (numpy.array)
+            Sparse distance matrix from lineage fit
 
     Returns:
         G (graph)
@@ -303,21 +312,37 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         self_comparison = False
         vertex_labels.append(qlist)
 
+    # Check weights type is valid
+    if weights_type not in accepted_weights_types:
+        sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
+                         "accepted types are " + str(accepted_weights_types) + "\n")
+        sys.exit(1)
+    if edge_list and sparse_input:
+        raise RuntimeError("Cannot construct network from edge list and sparse matrix")
+
     # identify edges
+    connections = []
     if edge_list:
         if weights is not None:
-            connections = []
             for weight, (ref, query) in zip(weights, assignments):
                 connections.append((ref, query, weight))
         else:
             connections = assignments
+    elif sparse_input is not None:
+        for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
+            connections.append((ref, query, weight))
     else:
         for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
                                                                  listDistInts(rlist, qlist,
                                                                               self = self_comparison))):
             if assignment == within_label:
                 if weights is not None:
-                    dist = np.linalg.norm(weights[row_idx, :])
+                    if weights_type == 'euclidean':
+                        dist = np.linalg.norm(weights[row_idx, :])
+                    elif weights_type == 'core':
+                        dist = weights[row_idx, 0]
+                    elif weights_type == 'accessory':
+                        dist = weights[row_idx, 1]
                     edge_tuple = (ref, query, dist)
                 else:
                     edge_tuple = (ref, query)
@@ -327,7 +352,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     G = gt.Graph(directed = False)
     G.add_vertex(len(vertex_labels))
 
-    if weights is not None:
+    if weights is not None or sparse_input is not None:
         eweight = G.new_ep("float")
         G.add_edge_list(connections, eprops = [eweight])
         G.edge_properties["weight"] = eweight
@@ -341,39 +366,60 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # print some summaries
     if summarise:
-        (components, density, transitivity, score) = networkSummary(G)
-        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t" + str(components),
-                                                       "\tDensity\t" + "{:.4f}".format(density),
-                                                       "\tTransitivity\t" + "{:.4f}".format(transitivity),
-                                                       "\tScore\t" + "{:.4f}".format(score)])
+        (metrics, scores) = networkSummary(G)
+        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
+                                                       "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
+                                                       "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
+                                                       "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
+                                                       "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
+                                                       "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
+                                                       "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
+                                                       "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
                                                        + "\n")
 
     return G
 
-def networkSummary(G):
+def networkSummary(G, calc_betweenness=True):
     """Provides summary values about the network
 
     Args:
         G (graph)
             The network of strains from :func:`~constructNetwork`
+        calc_betweenness (bool)
+            Whether to calculate betweenness stats
 
     Returns:
-        components (int)
-            The number of connected components (and clusters)
-        density (float)
-            The proportion of possible edges used
-        transitivity (float)
-            Network transitivity (triads/triangles)
-        score (float)
-            A score of network fit, given by :math:`\mathrm{transitivity} * (1-\mathrm{density})`
+        metrics (list)
+            List with # components, density, transitivity, mean betweenness
+            and weighted mean betweenness
+        scores (list)
+            List of scores
     """
     component_assignments, component_frequencies = gt.label_components(G)
     components = len(component_frequencies)
     density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
     transitivity = gt.global_clustering(G)[0]
-    score = transitivity * (1-density)
 
-    return(components, density, transitivity, score)
+    mean_bt = 0
+    weighted_mean_bt = 0
+    if calc_betweenness:
+        betweenness = []
+        sizes = []
+        for component, size in enumerate(component_frequencies):
+            if size > 3:
+                vfilt = component_assignments.a == component
+                subgraph = gt.GraphView(G, vfilt=vfilt)
+                betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+                sizes.append(size)
+
+        if len(betweenness) > 1:
+            mean_bt = np.mean(betweenness)
+            weighted_mean_bt = np.average(betweenness, weights=sizes)
+
+    metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
+    base_score = transitivity * (1 - density)
+    scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
+    return(metrics, scores)
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,
@@ -704,3 +750,77 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
     pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
                                 columns = ["sample"] + list(extClusters.keys()),
                                 index = False)
+
+def generate_minimum_spanning_tree(G, from_cugraph = False):
+    """Generate a minimum spanning tree from a network
+
+    Args:
+       G (network)
+           Graph tool network
+       from_cugraph (bool)
+            If a pre-calculated MST from cugraph
+            [default = False]
+
+    Returns:
+       mst_network (str)
+           Minimum spanning tree (as graph-tool graph)
+    """
+    #
+    # Create MST
+    #
+    if not from_cugraph:
+        sys.stderr.write("Starting calculation of minimum-spanning tree\n")
+
+        # Test if weighted network and calculate minimum spanning tree
+        if "weight" in G.edge_properties:
+            mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
+            mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+        else:
+            sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
+            raise RuntimeError("MST passed unweighted graph")
+    else:
+        mst_network = G
+
+    # Find seed nodes as those with greatest outdegree in each component
+    seed_vertices = set()
+    component_assignments, component_frequencies = gt.label_components(mst_network)
+    for component_index in range(len(component_frequencies)):
+        component_members = component_assignments.a == component_index
+        component = gt.GraphView(mst_network, vfilt = component_members)
+        component_vertices = component.get_vertices()
+        out_degrees = component.get_out_degrees(component_vertices)
+        seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
+        seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+
+    # If multiple components, calculate distances between seed nodes
+    if len(component_frequencies) > 1:
+        # Extract distances
+        connections = []
+        max_weight = float(np.max(G.edge_properties["weight"].a))
+        for ref in seed_vertices:
+            seed_edges = G.get_all_edges(ref, [G.ep['weight']])
+            found = False  # Not all edges may be in graph
+            for seed_edge in seed_edges:
+                if seed_edge[1] in seed_vertices:
+                    found = True
+                    connections.append((seed_edge))
+            # TODO: alternative would be to requery the DB (likely quick)
+            if found == False:
+                for query in seed_vertices:
+                    if query != ref:
+                        connections.append((ref, query, max_weight))
+
+        # Construct graph
+        seed_G = gt.Graph(directed = False)
+        seed_G.add_vertex(len(seed_vertex))
+        eweight = seed_G.new_ep("float")
+        seed_G.add_edge_list(connections, eprops = [eweight])
+        seed_G.edge_properties["weight"] = eweight
+        seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
+        seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
+        # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
+        deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
+        mst_network.add_edge_list(deep_edges)
+
+    sys.stderr.write("Completed calculation of minimum-spanning tree\n")
+    return mst_network

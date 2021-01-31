@@ -20,13 +20,8 @@ from random import sample
 import numpy as np
 from scipy import optimize
 
-# Try to import sketchlib
-try:
-    import pp_sketchlib
-    import h5py
-except ImportError as e:
-    sys.stderr.write("Sketchlib backend not available")
-    sys.exit(1)
+import pp_sketchlib
+import h5py
 
 from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 from .utils import iterDistRows
@@ -42,12 +37,17 @@ def checkSketchlibVersion():
         version (str)
             Version string
     """
-    p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
-    version = 0
-    for line in iter(p.stdout.readline, ''):
-        if line != '':
-            version = line.rstrip().decode().split(" ")[1]
-            break
+    try:
+        version = pp_sketchlib.version
+
+    # Older versions didn't export attributes
+    except AttributeError:
+        p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
+        version = 0
+        for line in iter(p.stdout.readline, ''):
+            if line != '':
+                version = line.rstrip().decode().split(" ")[1]
+                break
 
     sketchlib_version = [int(v) for v in version.split(".")]
     if sketchlib_version[0] < SKETCHLIB_MAJOR or \
@@ -57,7 +57,7 @@ def checkSketchlibVersion():
                             "v" + str(SKETCHLIB_MAJOR) + \
                             "." + str(SKETCHLIB_MINOR) + \
                             "." + str(SKETCHLIB_PATCH) + " or higher\n")
-        sys.exit(1)
+        sys.stderr.write("Continuing... but safety not guaranteed\n")
 
     return version
 
@@ -605,6 +605,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
     hdf_in = h5py.File(db_name, 'r+')
 
     # try/except structure to prevent h5 corruption
+    failed_samples = False
     try:
         # process data structures
         read_grp = hdf_in['sketches']
@@ -638,7 +639,6 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
         # open file to report QC failures
         with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
             # iterate through and filter
-            failed_sample = False
             for dataset in seq_length.keys():
                 # determine if sequence passes filters
                 remove = False
@@ -657,6 +657,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
 
                 if remove:
                     sys.stderr.write(dataset + ' failed QC\n')
+                    failed_samples = True
                     failed.append(dataset)
                 else:
                     retained.append(dataset)
@@ -685,7 +686,7 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
         raise
 
     # stop if at least one sample fails QC and option is not continue/prune
-    if failed_sample and qc_dict['qc_filter'] == 'stop':
+    if failed_samples and qc_dict['qc_filter'] == 'stop':
         sys.stderr.write('Sequences failed QC filters - details in ' + \
                          prefix + '/' + os.path.basename(prefix) + \
                          '_qcreport.txt\n')

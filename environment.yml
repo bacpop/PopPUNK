@@ -11,12 +11,13 @@ dependencies:
   - python-dateutil
   - pandas
   - scikit-learn
-  - dendropy
   - matplotlib-base
+  - dendropy >=4.4.0
+  - matplotlib
   - hdbscan
   - rapidnj
   - h5py
-  - pp-sketchlib >=1.6.0
+  - pp-sketchlib >=1.6.2
   - graph-tool
   - requests
   - flask
@@ -32,3 +33,11 @@ dependencies:
   - xorg-libxpm
   - xorg-libxaw
   - xorg-libxfixes
+  - pybind11
+  - eigen
+  - openblas
+  - cmake >= 3.18
+  - libgfortran-ng
+  - boost-cpp
+  - libgomp
+  - tqdm

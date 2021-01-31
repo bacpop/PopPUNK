@@ -99,10 +99,14 @@ Interpreting the network summary
 All fits will output a network summary which looks similar to this::
 
     Network summary:
-        Components	31
-        Density	0.0897
-        Transitivity	1.0000
-        Score	0.9103
+        Components				59
+        Density					0.0531
+        Transitivity				0.9966
+        Mean betweenness			0.0331
+        Weighted-mean betweenness		0.0454
+        Score					0.9438
+        Score (w/ betweenness)			0.9126
+        Score (w/ weighted-betweenness)		0.9009
 
 - Components are the number of strains (clusters) found using this model.
 - Density is the proportion of distances assigned as 'within-strain'. Generally
@@ -113,6 +117,8 @@ All fits will output a network summary which looks similar to this::
 - Score synthesises the above as :math:`(1 - \mathrm{density}) * \mathrm{transitivity}`,
   which gives a single number between 0 (bad) and 1 (good) which in many cases is
   at a maximum when it accurately describes strains in the data.
+- Two further scores for larger networks. See :ref:`alt-scores` for more information
+  on these.
 
 .. _bgmm:
 
@@ -489,6 +495,101 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
 .. image:: images/refined_microreact.png
    :alt:  The refined fit, in microreact
    :align: center
+
+.. _alt-scores:
+
+Alternative network scores
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Two additional network scores are now available using node betweenness. We have observed
+that in some refined fits to large datasets, some clusters are merged with a single high-stress
+edge at a relatively large distance. These scores aim to create a more conservative boundary that splits
+these clusters.
+
+For these scores:
+
+- The network is split into :math:`S` connected components (the strains) each of size :math:`w_i`
+- For each component with at least four nodes, the betweenness of the nodes are calculated
+- Each component is summarised by the maximum betweenness of any member node :math:`b^{\mathrm{max}}_i`
+
+.. math::
+
+    \mathrm{score}_1 &= \mathrm{score}_0 \cdot (1 - \frac{1}{S} \sum_{i = 1}^S  b^{\mathrm{max}}_i) \\
+    \mathrm{score}_2 &= \mathrm{score}_0 \cdot (1 - \frac{1}{S \cdot \Sigma w_i} \sum_{i = 1}^S  \left[ b^{\mathrm{max}}_i \cdot w_i \right])
+
+Score 1 is printed as score (w/ betweenness) and score 2 as score (w/ weighted-betweenness). Use ``--score-idx``
+with 0 (default), 1 (betweenness) or 2 (weighted-betweenness) to choose which score to optimise in refine
+mode. The default is the original score 0. Note that scores 1 and 2 may take longer to compute due to
+the betweenness calculation, though this can take advantage of multiple ``--threads``.
+
+Unconstrained (two-dimensional) optimisation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In the default mode described above, the boundary gradient is set from the identified
+means in the input model, and the position of the intercept is optimised (one-dimensional optimisation).
+
+In cases where the gradient of the boundary is not well set by the two means in the
+plot, you can optimise both the intercept and the gradient by adding the ``--unconstrained`` option
+(which is incompatible with ``--indiv-refine``). This will perform a global search
+of 20 x 20 (400 total) x- and y-intercept positions, followed by a 1D local search
+to further optimise the intercept (unless ``--no-local`` is added).
+
+As this calculates the boundary at ten times as many positions, it is generally expected to
+take ten times longer. However, you can effectively parallelise this with up to 20 ``--threads``::
+
+    poppunk --fit-model refine --ref-db listeria --model-dir dbscan --unconstrained --threads 4
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+        (with backend: sketchlib v1.6.2
+        sketchlib: /Users/jlees/Documents/Imperial/pp-sketchlib/build/lib.macosx-10.9-x86_64-3.8/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 4 threads
+    Mode: Fitting refine model to reference database
+
+    Loading BGMM 2D Gaussian model
+    Loaded previous model of type: bgmm
+    Initial model-based network construction based on Gaussian fit
+    Initial boundary based network construction
+    Decision boundary starts at (0.52,0.43)
+    Trying to optimise score globally
+    Trying to optimise score locally
+
+    Optimization terminated successfully;
+    The returned value satisfies the termination criteria
+    (using xtol =  1e-05 )
+    Network summary:
+        Components				59
+        Density					0.0531
+        Transitivity				0.9966
+        Mean betweenness			0.0331
+        Weighted-mean betweenness		0.0454
+        Score					0.9438
+        Score (w/ betweenness)			0.9126
+        Score (w/ weighted-betweenness)		0.9009
+    Removing 545 sequences
+
+    Done
+
+Which gives a slightly higher network score, though overall similar clusters:
+
+.. image:: images/unconstrained_refine.png
+   :alt:  Refining fit with --unconstrained
+   :align: center
+
+This is because the gradient from the 1D optimisation was well set. Unconstrained optimisation
+can be useful with clusters which aren't parallel to the line that connects them. This is an
+example in *E.*\ |nbsp| \ *coli*:
+
+.. list-table::
+
+    * - .. figure:: images/ecoli_refine_constrained.png
+
+           1D refine fit between DBSCAN cluster centroids
+
+      - .. figure:: images/ecoli_refine_unconstrained.png
+
+           Unconstrained 2D fit over a greater range
+
+The search range will always be defined by a trapezium in light red -- bounded by
+the two axes, and two lines passing through the means which are normal to the line
+which connects the means.
 
 .. _manual-start:
 
