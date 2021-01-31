@@ -67,10 +67,10 @@ conda or pip for this purpose).
 
 Dependencies
 ------------
-We tested PopPUNK with the following packages:
+This documentation refers to a conda installation with the following packages:
 
 * python3 (3.8.2)
-* ``pp-sketchlib`` (1.5.1)
+* ``pp-sketchlib`` (1.6.2)
 * ``DendroPy`` (4.3.0)
 * ``hdbscan`` (0.8.13)
 * ``matplotlib`` (2.1.2)

@@ -17,9 +17,17 @@ dependencies:
   - hdbscan
   - rapidnj
   - h5py
-  - pp-sketchlib >=1.6.0
+  - pp-sketchlib >=1.6.2
   - graph-tool
   - requests
   - flask
   - flask-cors
   - networkx
+  - pybind11
+  - eigen
+  - openblas
+  - cmake >= 3.18
+  - libgfortran-ng
+  - boost-cpp
+  - libgomp
+  - tqdm

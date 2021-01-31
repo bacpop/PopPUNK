@@ -20,6 +20,7 @@ from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
 
 import pp_sketchlib
+import poppunk_refine
 
 # BGMM
 from .bgmm import fit2dMultiGaussian
@@ -526,9 +527,10 @@ class RefineFit(ClusterFit):
         self.within_label = -1
         self.slope = 2
         self.threshold = False
+        self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            no_local = False, threads = 1):
+            unconstrained = False, score_idx = 0, no_local = False, threads = 1):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -557,6 +559,11 @@ class RefineFit(ClusterFit):
                 Run refinement for core and accessory distances separately
 
                 (default = False).
+            unconstrained (bool)
+                If True, search in 2D and change the slope of the boundary
+            score_idx (int)
+                Index of score from :func:`~PopPUNK.network.networkSummary` to use
+                [default = 0]
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
@@ -572,9 +579,9 @@ class RefineFit(ClusterFit):
         self.scale = np.copy(model.scale)
         self.max_move = max_move
         self.min_move = min_move
+        self.unconstrained = unconstrained
 
         # Get starting point
-        assignment = model.assign(X)
         model.no_scale()
         if startFile:
             self.mean0, self.mean1, self.start_s = readManualStart(startFile)
@@ -607,9 +614,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
-        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = refineFit(X/self.scale,
-                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                slope = 2, no_local = no_local, num_processes = threads)
+        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = \
+          refineFit(X/self.scale,
+                    sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                    slope = 2, score_idx = score_idx, unconstrained = unconstrained,
+                    no_local = no_local, num_processes = threads)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -619,13 +628,15 @@ class RefineFit(ClusterFit):
             try:
                 sys.stderr.write("Refining core and accessory separately\n")
                 # optimise core distance boundary
-                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = refineFit(X/self.scale,
-                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                slope = 0, no_local = no_local,num_processes = threads)
+                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
+                  refineFit(X/self.scale,
+                            sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                            slope = 0, score_idx = score_idx, no_local = no_local,num_processes = threads)
                 # optimise accessory distance boundary
-                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = refineFit(X/self.scale,
-                sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move, slope = 1,
-                no_local = no_local, num_processes = threads)
+                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
+                  refineFit(X/self.scale,
+                            sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
+                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
@@ -670,6 +681,7 @@ class RefineFit(ClusterFit):
         self.fitted = True
         self.threshold = True
         self.indiv_fitted = False
+        self.unconstrained = False
 
         y = self.assign(X)
         return y
@@ -740,8 +752,8 @@ class RefineFit(ClusterFit):
 
         plot_refined_results(plot_X, self.assign(plot_X), self.optimal_x, self.optimal_y, self.core_boundary,
             self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
-            self.max_move, self.scale, self.threshold, self.indiv_fitted, "Refined fit boundary",
-            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
+            self.max_move, self.scale, self.threshold, self.indiv_fitted, self.unconstrained,
+            "Refined fit boundary", self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
     def assign(self, X, slope=None, cpus=1):
@@ -765,11 +777,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if slope == 2 or (slope == None and self.slope == 2):
-                y = pp_sketchlib.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = pp_sketchlib.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = pp_sketchlib.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
 
         return y
 

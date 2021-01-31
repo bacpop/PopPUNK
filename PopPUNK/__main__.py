@@ -10,8 +10,15 @@ import numpy as np
 import subprocess
 from collections import defaultdict
 
-# required from v2.1.1 onwards (no mash support)
-import pp_sketchlib
+# Try to import sketchlib
+try:
+    import pp_sketchlib
+except ImportError as e:
+    sys.stderr.write("Sketchlib backend not available\n")
+    sys.exit(1)
+
+import poppunk_refine
+import h5py
 
 # import poppunk package
 from .__init__ import __version__
@@ -114,13 +121,19 @@ def get_options():
             type=float, default = None)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
-    refinementGroup.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
-            choices=['both', 'core', 'accessory'], default = False)
     refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
             default=False, action='store_true')
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
-    refinementGroup.add_argument('--core-only', help='Save the core distance fit (with ')
+    refinementGroup.add_argument('--score-idx',
+            help='Index of score to use [default = 0]',
+            type=int, default = 0, choices=[0, 1, 2])
+    refineMode = refinementGroup.add_mutually_exclusive_group()
+    refineMode.add_argument('--unconstrained',
+            help='Optimise both boundary gradient and intercept',
+            default=False, action='store_true')
+    refineMode.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
+            choices=['both', 'core', 'accessory'], default=False)
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -334,7 +347,8 @@ def main():
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
                                    output)
             sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
-            if args.fit_model == "refine" and (model.type != 'bgmm' and model.type != 'dbscan'):
+            if args.fit_model == "refine" and args.manual_start == None \
+                and model.type != 'bgmm' and model.type != 'dbscan':
                 sys.stderr.write("Model needs to be from BGMM or DBSCAN to refine\n")
                 sys.exit(1)
 
@@ -368,6 +382,8 @@ def main():
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
                                             args.indiv_refine,
+                                            args.unconstrained,
+                                            args.score_idx,
                                             args.no_local,
                                             args.threads)
                 new_model.plot(distMat)

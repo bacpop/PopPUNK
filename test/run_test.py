@@ -31,6 +31,8 @@ subprocess.run("python ../poppunk-runner.py --fit-model dbscan --ref-db example_
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
 subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite", shell=True, check=True)
 subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --score-idx 1", shell=True, check=True)
+subprocess.run("python ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --score-idx 2", shell=True, check=True)
 subprocess.run("python ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
 
 # lineage clustering
@@ -42,6 +44,8 @@ sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run("python ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
 
 # tests of other command line programs
+sys.stderr.write("Testing C++ extension\n")
+subprocess.run("python test-refine.py", shell=True, check=True)
 
 #assign query
 sys.stderr.write("Running query assignment\n")
