@@ -99,10 +99,14 @@ Interpreting the network summary
 All fits will output a network summary which looks similar to this::
 
     Network summary:
-        Components	31
-        Density	0.0897
-        Transitivity	1.0000
-        Score	0.9103
+        Components				59
+        Density					0.0531
+        Transitivity				0.9966
+        Mean betweenness			0.0331
+        Weighted-mean betweenness		0.0454
+        Score					0.9438
+        Score (w/ betweenness)			0.9126
+        Score (w/ weighted-betweenness)		0.9009
 
 - Components are the number of strains (clusters) found using this model.
 - Density is the proportion of distances assigned as 'within-strain'. Generally
@@ -113,6 +117,8 @@ All fits will output a network summary which looks similar to this::
 - Score synthesises the above as :math:`(1 - \mathrm{density}) * \mathrm{transitivity}`,
   which gives a single number between 0 (bad) and 1 (good) which in many cases is
   at a maximum when it accurately describes strains in the data.
+- Two further scores for larger networks. See :ref:`alt-scores` for more information
+  on these.
 
 .. _bgmm:
 
@@ -490,6 +496,31 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
    :alt:  The refined fit, in microreact
    :align: center
 
+.. _alt-scores:
+
+Alternative network scores
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Two additional network scores are now available using node betweenness. We have observed
+that in some refined fits to large datasets, some clusters are merged with a single high-stress
+edge at a relatively large distance. These scores aim to create a more conservative boundary that splits
+these clusters.
+
+For these scores:
+
+- The network is split into :math:`S` connected components (the strains) each of size :math:`w_i`
+- For each component with at least four nodes, the betweenness of the nodes are calculated
+- Each component is summarised by the maximum betweenness of any member node :math:`b^{\mathrm{max}}_i`
+
+.. math::
+
+    \mathrm{score}_1 &= \mathrm{score}_0 \cdot (1 - \frac{1}{S} \sum_{i = 1}^S  b^{\mathrm{max}}_i) \\
+    \mathrm{score}_2 &= \mathrm{score}_0 \cdot (1 - \frac{1}{S \cdot \Sigma w_i} \sum_{i = 1}^S  \left[ b^{\mathrm{max}}_i \cdot w_i \right])
+
+Score 1 is printed as score (w/ betweenness) and score 2 as score (w/ weighted-betweenness). Use ``--score-idx``
+with 0 (default), 1 (betweenness) or 2 (weighted-betweenness) to choose which score to optimise in refine
+mode. The default is the original score 0. Note that scores 1 and 2 may take longer to compute due to
+the betweenness calculation, though this can take advantage of multiple ``--threads``.
+
 Unconstrained (two-dimensional) optimisation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In the default mode described above, the boundary gradient is set from the identified
@@ -541,6 +572,20 @@ Which gives a slightly higher network score, though overall similar clusters:
 .. image:: images/unconstrained_refine.png
    :alt:  Refining fit with --unconstrained
    :align: center
+
+This is because the gradient from the 1D optimisation was well set. Unconstrained optimisation
+can be useful with clusters which aren't parallel to the line that connects them. This is an
+example in *E.*\ |nbsp| \ *coli*:
+
+.. list-table::
+
+    * - .. figure:: images/ecoli_refine_constrained.png
+
+           1D refine fit between DBSCAN cluster centroids
+
+      - .. figure:: images/ecoli_refine_unconstrained.png
+
+           Unconstrained 2D fit over a greater range
 
 The search range will always be defined by a trapezium in light red -- bounded by
 the two axes, and two lines passing through the means which are normal to the line
