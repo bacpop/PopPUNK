@@ -138,10 +138,10 @@ def main():
             else:
                 clustering_name = args.display_cluster
         else:
-            args.display_cluster = list(isolateClustering.keys())[0]
+            clustering_name = list(isolateClustering.keys())[0]
 
         # Draw MST
-        drawMST(mst, args.output, isolateClustering, args.display_cluster, True)
+        drawMST(mst, args.output, isolateClustering, clustering_name, True)
 
     sys.exit(0)
 
