@@ -32,6 +32,7 @@ def get_options():
     iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances (required)')
     iGroup.add_argument('--rank-fit', required=True, help='Location of rank fit, a sparse matrix (*_rank*_fit.npz)')
     iGroup.add_argument('--previous-clustering', help='CSV file with cluster definitions')
+    iGroup.add_argument('--display-cluster', default=None, help='Column of clustering CSV to use for plotting')
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -116,7 +117,7 @@ def main():
     if not args.no_plot:
         if args.previous_clustering != None:
             mode = "clusters"
-            if re.match(r"_lineages\.csv$", args.previous_clustering):
+            if args.previous_clustering.endswith('_lineages.csv'):
                 mode = "lineages"
             isolateClustering = readIsolateTypeFromCsv(args.previous_clustering,
                                                        mode = mode,
@@ -127,7 +128,20 @@ def main():
             for v in mst.vertices:
                 isolateClustering['Cluster'][mst.vp.id[v]] = '0'
 
-        drawMST(mst, args.output, isolateClustering, True)
+        # Check selecting clustering type is in CSV
+        clustering_name = 'Cluster'
+        if args.display_cluster != None and args.previous_clustering != None:
+            if args.display_cluster not in isolateClustering.keys():
+                sys.stderr.write('Unable to find clustering column ' + args.display_cluster + ' in file ' +
+                                 args.previous_clustering + '\n')
+                sys.exit()
+            else:
+                clustering_name = args.display_cluster
+        else:
+            args.display_cluster = list(isolateClustering.keys())[0]
+
+        # Draw MST
+        drawMST(mst, args.output, isolateClustering, args.display_cluster, True)
 
     sys.exit(0)
 
