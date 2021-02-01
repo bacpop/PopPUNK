@@ -53,15 +53,18 @@ def get_options():
                              'to clusters [default = reference database directory]',
                         type = str)
     iGroup.add_argument('--previous-clustering',
-                        help='Directory containing previous cluster definitions '
+                        help='File containing previous cluster definitions '
                              'and network [default = use that in the directory '
                              'containing the model]',
                         type = str)
     iGroup.add_argument('--previous-query-clustering',
-                        help='Directory containing previous cluster definitions '
+                        help='File containing previous cluster definitions '
                              'from poppunk_assign [default = use that in the directory '
-                             'containing the model]',
+                             'of the query database]',
                         type = str)
+    iGroup.add_argument('--display-cluster',
+                        help='Column of clustering CSV to use for plotting',
+                        default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -295,34 +298,37 @@ def generate_visualisations(query_db,
         sys.exit(1)
 
     # Load previous clusters
-    mode = "clusters"
-    suffix = "_clusters.csv"
-    if model.type == "lineage":
-        mode = "lineages"
-        suffix = "_lineages.csv"
-    if model.indiv_fitted:
-        sys.stderr.write("Note: Individual (core/accessory) fits found, but "
-                         "visualisation only supports combined boundary fit\n")
-
-    # Set directories of previous fit
     if previous_clustering is not None:
         prev_clustering = previous_clustering
+        mode = "clusters"
+        suffix = "_clusters.csv"
+        if prev_clustering.endswith('_lineages.csv'):
+            mode = "lineages"
+            suffix = "_lineages.csv"
     else:
-        prev_clustering = os.path.dirname(model_file)
-    cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + suffix
-    isolateClustering = readIsolateTypeFromCsv(cluster_file,
+        # Identify type of clustering based on model
+        mode = "clusters"
+        suffix = "_clusters.csv"
+        if model.type == "lineage":
+            mode = "lineages"
+            suffix = "_lineages.csv"
+        if model.indiv_fitted:
+            sys.stderr.write("Note: Individual (core/accessory) fits found, but "
+                             "visualisation only supports combined boundary fit\n")
+        prev_clustering = os.path.dirname(model_file) + '/' + os.path.basename(model_file) + suffix
+    isolateClustering = readIsolateTypeFromCsv(prev_clustering,
                                                mode = mode,
                                                return_dict = True)
 
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
-            prev_query_clustering = previous_query_clustering + '/' + os.path.basename(previous_query_clustering)
+            prev_query_clustering = previous_query_clustering
         else:
-            prev_query_clustering = query_db
+            prev_query_clustering = os.path.dirname(query_db) + '/' + os.path.basename(query_db) + suffix
 
         queryIsolateClustering = readIsolateTypeFromCsv(
-                prev_query_clustering + suffix,
+                prev_query_clustering,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
@@ -348,7 +354,19 @@ def generate_visualisations(query_db,
                                  weights_type=mst_distances,
                                  summarise=False)
             mst_graph = generate_minimum_spanning_tree(G)
-            drawMST(mst_graph, output, isolateClustering, overwrite)
+            # Check selecting clustering type is in CSV
+            clustering_name = 'Cluster'
+            if args.display_cluster != None:
+                if args.display_cluster not in isolateClustering.keys():
+                    sys.stderr.write('Unable to find clustering column ' + args.display_cluster + ' in file ' +
+                                     prev_clustering + '\n')
+                    sys.exit()
+                else:
+                    clustering_name = args.display_cluster
+            else:
+                clustering_name = list(isolateClustering.keys())[0]
+            # Draw MST
+            drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
             mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
         else:
             mst_tree = existing_tree
