@@ -153,6 +153,7 @@ def generate_visualisations(query_db,
                             overwrite,
                             core_only,
                             accessory_only,
+                            display_cluster,
                             web):
 
     from .models import loadClusterFit
@@ -356,13 +357,13 @@ def generate_visualisations(query_db,
             mst_graph = generate_minimum_spanning_tree(G)
             # Check selecting clustering type is in CSV
             clustering_name = 'Cluster'
-            if args.display_cluster != None:
-                if args.display_cluster not in isolateClustering.keys():
-                    sys.stderr.write('Unable to find clustering column ' + args.display_cluster + ' in file ' +
+            if display_cluster != None:
+                if display_cluster not in isolateClustering.keys():
+                    sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
                                      prev_clustering + '\n')
                     sys.exit()
                 else:
-                    clustering_name = args.display_cluster
+                    clustering_name = display_cluster
             else:
                 clustering_name = list(isolateClustering.keys())[0]
             # Draw MST
@@ -461,6 +462,7 @@ def main():
                             args.overwrite,
                             args.core_only,
                             args.accessory_only,
+                            args.display_cluster,
                             web = False)
 
 if __name__ == '__main__':
