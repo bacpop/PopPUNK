@@ -34,6 +34,7 @@ app.config.update(
     SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
 )
 CORS(app, expose_headers='Authorization')
+scheduler = APScheduler()
 
 @app.route('/')
 def api_up():
@@ -336,7 +337,6 @@ def clean_tmp():
 
 def main():
     # data cleanup
-    scheduler = APScheduler()
     scheduler.init_app(app)
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
