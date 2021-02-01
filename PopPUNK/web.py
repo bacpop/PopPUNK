@@ -42,8 +42,9 @@ def api_up():
 
 @app.before_first_request
 def copy_dbs():
-    os.mkdir(db_location_ram)
-    shutil.copytree(db_location_cloud, db_location_ram)
+    if not os.path.isdir(db_location_ram):
+        os.mkdir(db_location_ram)
+        shutil.copytree(db_location_cloud, db_location_ram)
     print("Databases loaded")
 
 @app.route('/upload', methods=['POST'])

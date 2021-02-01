@@ -10,6 +10,8 @@ RUN apt-get update --fix-missing && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN mount /dev/shm -o remount,size=1.5G
+
 # Install ssh
 ENV SSH_PASSWD "root:Docker!"
 ENV ROOT_PASSWD "Docker!"
