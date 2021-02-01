@@ -26,7 +26,8 @@ from PopPUNK.visualise import generate_visualisations
 # data locations
 db_prefix = 'WebOutput'
 db_location_cloud = os.environ.get('POPPUNK_DBS_LOC')
-db_location_ram = '/dev/shm/pp_dbs'
+#db_location_ram = '/dev/shm/pp_dbs'
+db_location_local = '/home/poppunk-usr/pp_dbs'
 app = Flask(__name__, instance_relative_config=True)
 app.config.update(
     TESTING=True,
