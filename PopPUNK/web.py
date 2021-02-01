@@ -17,7 +17,7 @@ import atexit
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 import json
-from apscheduler.schedulers.background import BackgroundScheduler
+from flask_apscheduler import APScheduler
 
 from PopPUNK.assign import assign_query
 from PopPUNK.utils import setupDBFuncs
@@ -30,15 +30,10 @@ db_location_ram = '/dev/shm/pp_dbs'
 app = Flask(__name__, instance_relative_config=True)
 app.config.update(
     TESTING=True,
+    SCHEDULER_API_ENABLED=True,
     SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
 )
 CORS(app, expose_headers='Authorization')
-
-# data cleanup
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=clean_tmp, trigger="interval", hours=1)
-scheduler.start()
-atexit.register(lambda: scheduler.shutdown())
 
 @app.route('/')
 def api_up():
@@ -333,10 +328,16 @@ def summarise_clusters(output, species, species_db):
     alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
     return query, query_prevalence, clusters, prevalences, alias_dict
 
+@scheduler.task('interval', id='clean_tmp', hours=1, misfire_grace_time=900)
 def clean_tmp():
     print("Cleaning up unused databases")
     for name in glob.glob("/tmp/" + db_prefix + "_*"):
         shutil.rmtree(name)
 
 def main():
+    # data cleanup
+    scheduler = APScheduler()
+    scheduler.init_app(app)
+    scheduler.start()
+    atexit.register(lambda: scheduler.shutdown())
     app.run(debug=False,use_reloader=False)
