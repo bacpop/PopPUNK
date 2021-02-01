@@ -66,6 +66,30 @@ up the sketching and distance steps. Useful options include:
 .. warning::
    Some options have slightly different names. See the pp-sketchlib README for full details.
 
+Viewing information about a database
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Use ``poppunk_db_info`` on a HDF5 file::
+
+    PopPUNK database:		ecoli.h5
+    Sketch version:			9314bda28ed25a60dd40f9b9e896c0b269500fec
+    Contains random matches:	True
+    Number of samples:		10287
+    K-mer sizes:			15,18,21,24,27
+    Sketch size:			9984
+
+Sketch size is always rounded to the nearest 64.
+
+.. warning::
+    The sketch version should match between databases you are comparing, but the program
+    will still run with a warning if they don't. Check results carefully.
+
+Add ``--list-samples`` to get further information for every sample::
+
+    Name:	upec-240
+	Base frequencies:	A:0.243987,C:0.247509,G:0.262923,T:0.24558
+	Length:			5193782
+	Missing bases:		2401
+
 .. _kmer-length:
 
 Choosing the right k-mer lengths
