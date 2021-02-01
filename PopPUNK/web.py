@@ -10,16 +10,23 @@ import requests
 import networkx as nx
 from networkx.readwrite import json_graph
 
+import shutil
+import uuid
+import glob
+import atexit
 from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
-import os
 import json
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from PopPUNK.assign import assign_query
 from PopPUNK.utils import setupDBFuncs
 from PopPUNK.visualise import generate_visualisations
 
-db_location = os.environ.get('POPPUNK_DBS_LOC')
+# data locations
+db_prefix = 'WebOutput'
+db_location_cloud = os.environ.get('POPPUNK_DBS_LOC')
+db_location_ram = '/dev/shm/pp_dbs'
 app = Flask(__name__, instance_relative_config=True)
 app.config.update(
     TESTING=True,
@@ -27,9 +34,21 @@ app.config.update(
 )
 CORS(app, expose_headers='Authorization')
 
+# data cleanup
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=clean_tmp, trigger="interval", hours=1)
+scheduler.start()
+atexit.register(lambda: scheduler.shutdown())
+
 @app.route('/')
 def api_up():
     return 'PopPUNK.web running\n'
+
+@app.before_first_request
+def copy_dbs():
+    os.mkdir(db_location_ram)
+    shutil.copytree(db_location_cloud, db_location_ram)
+    print("Databases loaded")
 
 @app.route('/upload', methods=['POST'])
 @cross_origin()
@@ -42,19 +61,20 @@ def sketchAssign():
         # determine database to use
         if sketch_dict["species"] == "S.pneumoniae":
             species = 'Streptococcus pneumoniae'
-            species_db = db_location + "/GPS_v3_references"
+            species_db = db_location_ram + "/GPS_v3_references"
         args = default_options(species_db)
 
-        if not os.path.exists(args.assign.output):
-            os.mkdir(args.assign.output)
+        outdir = "/tmp/" + db_prefix + "_" + str(uuid.uuid4())
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
 
         qc_dict = {'run_qc': False }
         dbFuncs = setupDBFuncs(args.assign, args.assign.min_kmer_count, qc_dict)
 
-        ClusterResult =  assign_query(dbFuncs,
+        ClusterResult = assign_query(dbFuncs,
                                     args.assign.ref_db,
                                     args.assign.q_files,
-                                    args.assign.output,
+                                    outdir,
                                     args.assign.update_db,
                                     args.assign.write_references,
                                     args.assign.distances,
@@ -73,7 +93,7 @@ def sketchAssign():
                                     sketch_dict["sketch"])
 
         query, query_prevalence, clusters, prevalences, alias_dict = \
-            summarise_clusters(args.assign.output, species, species_db)
+            summarise_clusters(outdir, species, species_db)
         colours = get_colours(query, clusters)
         url = api(query, args.assign.ref_db)
 
@@ -84,7 +104,8 @@ def sketchAssign():
                     "prevalences":prevalences,
                     "colours":colours,
                     "microreactUrl":url,
-                    "aliases":alias_dict}
+                    "aliases":alias_dict,
+                    "container_dir":outdir}
         response = json.dumps(response)
 
         return jsonify(response)
@@ -99,17 +120,18 @@ def postNetwork():
         species_dict = request.json
         # determine database to use
         if species_dict["species"] == "S.pneumoniae":
-            species_db = "GPS_v3_references"
+            species_db = db_location_ram + "/GPS_v3_references"
         args = default_options(species_db)
+        outdir = species_dict["container_dir"]
         with open(args.visualise.include_files, "r") as i:
             to_include = (i.read()).split("\n")
         if len(to_include) < 3:
             args.visualise.microreact = False
         generate_visualisations(args.visualise.query_db,
-                                args.visualise.ref_db,
-                                args.visualise.distances,
+                                outdir,
+                                outdir + "/" + os.path.basename(outdir) + ".dists",
                                 args.visualise.threads,
-                                args.visualise.output,
+                                outdir,
                                 args.visualise.gpu_dist,
                                 args.visualise.deviceid,
                                 args.visualise.external_clustering,
@@ -121,10 +143,12 @@ def postNetwork():
                                 args.visualise.strand_preserved,
                                 args.visualise.include_files,
                                 args.visualise.model_dir,
-                                args.visualise.previous_clustering,
+                                outdir,
                                 args.visualise.previous_query_clustering,
                                 args.visualise.info_csv,
                                 args.visualise.rapidnj,
+                                args.visualise.tree,
+                                args.visualise.mst_distances,
                                 args.visualise.overwrite,
                                 args.visualise.core_only,
                                 args.visualise.accessory_only,
@@ -137,6 +161,7 @@ def postNetwork():
             phylogeny = "A tree cannot be built with fewer than 3 samples."
         visResponse = json.dumps({"network": networkJson,
                                   "phylogeny": phylogeny})
+        shutil.rmtree(outdir)
         return jsonify(visResponse)
 
 def default_options(species_db):
@@ -307,6 +332,11 @@ def summarise_clusters(output, species, species_db):
     aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
     alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
     return query, query_prevalence, clusters, prevalences, alias_dict
+
+def clean_tmp():
+    print("Cleaning up unused databases")
+    for name in glob.glob("/tmp/" + db_prefix + "_*"):
+        shutil.rmtree(name)
 
 def main():
     app.run(debug=False,use_reloader=False)

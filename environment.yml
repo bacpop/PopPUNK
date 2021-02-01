@@ -41,3 +41,4 @@ dependencies:
   - boost-cpp
   - libgomp
   - tqdm
+  - apscheduler
