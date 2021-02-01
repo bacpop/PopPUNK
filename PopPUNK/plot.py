@@ -446,12 +446,12 @@ def drawMST(mst, outPrefix, isolate_clustering, overwrite):
                             output=graph1_file_name, output_size=(3000, 3000))
         if overwrite or not os.path.isfile(graph2_file_name):
             cluster_fill = {}
-            for cluster in set(isolate_clustering['Cluster'].values()):
+            for cluster in set(isolate_clustering['Rank_50_Lineage'].values()):
                 cluster_fill[cluster] = list(np.random.rand(3)) + [0.9]
             plot_color = mst.new_vertex_property('vector<double>')
             mst.vertex_properties['plot_color'] = plot_color
             for v in mst.vertices():
-                plot_color[v] = cluster_fill[isolate_clustering['Cluster'][mst.vp.id[v]]]
+                plot_color[v] = cluster_fill[isolate_clustering['Rank_50_Lineage'][mst.vp.id[v]]]
 
             gt.graph_draw(mst, pos=pos, vertex_fill_color=mst.vertex_properties['plot_color'],
                     output=graph2_file_name, output_size=(3000, 3000))
