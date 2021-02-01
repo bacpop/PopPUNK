@@ -43,9 +43,9 @@ def api_up():
 
 @app.before_first_request
 def copy_dbs():
-    if not os.path.isdir(db_location_ram):
-        os.mkdir(db_location_ram)
-        shutil.copytree(db_location_cloud, db_location_ram)
+    if not os.path.isdir(db_location_local):
+        os.mkdir(db_location_local)
+        shutil.copytree(db_location_cloud, db_location_local)
     print("Databases loaded")
 
 @app.route('/upload', methods=['POST'])
@@ -59,7 +59,7 @@ def sketchAssign():
         # determine database to use
         if sketch_dict["species"] == "S.pneumoniae":
             species = 'Streptococcus pneumoniae'
-            species_db = db_location_ram + "/GPS_v3_references"
+            species_db = db_location_local + "/GPS_v3_references"
         args = default_options(species_db)
 
         outdir = "/tmp/" + db_prefix + "_" + str(uuid.uuid4())
@@ -118,7 +118,7 @@ def postNetwork():
         species_dict = request.json
         # determine database to use
         if species_dict["species"] == "S.pneumoniae":
-            species_db = db_location_ram + "/GPS_v3_references"
+            species_db = db_location_local + "/GPS_v3_references"
         args = default_options(species_db)
         outdir = species_dict["container_dir"]
         with open(args.visualise.include_files, "r") as i:
