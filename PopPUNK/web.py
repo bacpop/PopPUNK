@@ -44,8 +44,7 @@ def api_up():
 @app.before_first_request
 def copy_dbs():
     if not os.path.isdir(db_location_local):
-        os.mkdir(db_location_local)
-        shutil.copytree(db_location_cloud, db_location_local)
+        shutil.copytree(db_location_cloud, db_location_local, dirs_exist_ok=True)
     print("Databases loaded")
 
 @app.route('/upload', methods=['POST'])
@@ -139,7 +138,7 @@ def postNetwork():
                                 args.visualise.cytoscape,
                                 args.visualise.perplexity,
                                 args.visualise.strand_preserved,
-                                args.visualise.include_files,
+                                outdir + "/include.txt",
                                 args.visualise.model_dir,
                                 outdir,
                                 args.visualise.previous_query_clustering,
