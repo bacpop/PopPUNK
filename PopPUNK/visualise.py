@@ -215,16 +215,16 @@ def generate_visualisations(query_db,
         sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
                          "Note: Distance will be extended to full all-vs-all distances\n"
                          "Note: Re-run poppunk_assign with --update-db to avoid this\n")
-        ref_db = ref_db + "/" + os.path.basename(ref_db)
-        rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db + ".dists")
+        ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
+        rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db_loc + ".dists")
         if not self_ref:
             sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
             sys.exit(1)
         kmers, sketch_sizes, codon_phased = readDBParams(query_db)
         addRandom(query_db, qlist, kmers,
                   strand_preserved = strand_preserved, threads = threads)
-        query_db = query_db + "/" + os.path.basename(query_db)
-        qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
+        query_db_loc = query_db + "/" + os.path.basename(query_db)
+        qq_distMat = pp_sketchlib.queryDatabase(query_db_loc, query_db_loc,
                                                 qlist, qlist, kmers,
                                                 True, False,
                                                 threads,
@@ -234,7 +234,7 @@ def generate_visualisations(query_db,
         # If the assignment was run with references, qrDistMat will be incomplete
         if rlist != rlist_original:
             rlist = rlist_original
-            qr_distMat = pp_sketchlib.queryDatabase(ref_db, query_db,
+            qr_distMat = pp_sketchlib.queryDatabase(ref_db_loc, query_db_loc,
                                                     rlist, qlist, kmers,
                                                     True, False,
                                                     threads,
@@ -318,7 +318,7 @@ def generate_visualisations(query_db,
         if previous_query_clustering is not None:
             prev_query_clustering = previous_query_clustering + '/' + os.path.basename(previous_query_clustering)
         else:
-            prev_query_clustering = query_db
+            prev_query_clustering = query_db_loc
 
         queryIsolateClustering = readIsolateTypeFromCsv(
                 prev_query_clustering + suffix,
