@@ -148,8 +148,7 @@ def postNetwork():
                                 args.visualise.mst_distances,
                                 args.visualise.overwrite,
                                 args.visualise.core_only,
-                                args.visualise.accessory_only,
-                                args.visualise.web)
+                                args.visualise.accessory_only)
         networkJson = graphml_to_json(args.visualise.output)
         if len(to_include) >= 3:
             with open(os.path.join(args.visualise.output, os.path.basename(args.visualise.output) + "_core_NJ.nwk"), "r") as p:

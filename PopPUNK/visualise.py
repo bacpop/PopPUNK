@@ -149,8 +149,7 @@ def generate_visualisations(query_db,
                             mst_distances,
                             overwrite,
                             core_only,
-                            accessory_only,
-                            web):
+                            accessory_only):
 
     from .models import loadClusterFit
 
@@ -442,8 +441,7 @@ def main():
                             args.mst_distances,
                             args.overwrite,
                             args.core_only,
-                            args.accessory_only,
-                            web = False)
+                            args.accessory_only)
 
 if __name__ == '__main__':
     main()
