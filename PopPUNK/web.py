@@ -120,7 +120,7 @@ def postNetwork():
             species_db = db_location_local + "/GPS_v3_references"
         args = default_options(species_db)
         outdir = species_dict["container_dir"]
-        with open(args.visualise.include_files, "r") as i:
+        with open(outdir + "/include.txt", "r") as i:
             to_include = (i.read()).split("\n")
         if len(to_include) < 3:
             args.visualise.microreact = False
