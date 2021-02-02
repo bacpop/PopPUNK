@@ -92,6 +92,7 @@ def main():
         G_cu = cugraph.Graph()
         G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
 
+        # Generate minimum spanning tree
         sys.stderr.write("Calculating MST (GPU part)\n")
         G_mst = cugraph.minimum_spanning_tree(G_cu, weight='weights')
         edge_df = G_mst.view_edge_list()
@@ -106,8 +107,10 @@ def main():
         G = constructNetwork(rlist, rlist, None, 0,
                              sparse_input=sparse_mat, summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
-
-    mst = generate_minimum_spanning_tree(G, args.gpu_graph)
+        # Generate minimum spanning tree
+        mst = generate_minimum_spanning_tree(G, args.gpu_graph)
+    
+    # Save output
     sys.stderr.write("Generating output\n")
     mst.save(args.output + "/" + os.path.basename(args.output) + ".graphml", fmt="graphml")
     mst_as_tree = mst_to_phylogeny(mst, rlist)
