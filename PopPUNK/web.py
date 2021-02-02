@@ -25,9 +25,8 @@ from PopPUNK.visualise import generate_visualisations
 
 # data locations
 db_prefix = 'WebOutput'
-db_location_cloud = os.environ.get('POPPUNK_DBS_LOC')
-#db_location_ram = '/dev/shm/pp_dbs'
-db_location_local = '/home/poppunk-usr/pp_dbs'
+db_location = '/home/poppunk-usr/' + os.environ.get('POPPUNK_DBS_LOC')
+
 app = Flask(__name__, instance_relative_config=True)
 app.config.update(
     TESTING=True,
@@ -41,12 +40,6 @@ scheduler = APScheduler()
 def api_up():
     return 'PopPUNK.web running\n'
 
-@app.before_first_request
-def copy_dbs():
-    if not os.path.isdir(db_location_local):
-        shutil.copytree(db_location_cloud, db_location_local, dirs_exist_ok=True)
-    print("Databases loaded")
-
 @app.route('/upload', methods=['POST'])
 @cross_origin()
 def sketchAssign():
@@ -58,7 +51,7 @@ def sketchAssign():
         # determine database to use
         if sketch_dict["species"] == "S.pneumoniae":
             species = 'Streptococcus pneumoniae'
-            species_db = db_location_local + "/GPS_v3_references"
+            species_db = db_location + "/GPS_v3_references"
         args = default_options(species_db)
 
         outdir = "/tmp/" + db_prefix + "_" + str(uuid.uuid4())
@@ -117,7 +110,7 @@ def postNetwork():
         species_dict = request.json
         # determine database to use
         if species_dict["species"] == "S.pneumoniae":
-            species_db = db_location_local + "/GPS_v3_references"
+            species_db = db_location + "/GPS_v3_references"
         args = default_options(species_db)
         outdir = species_dict["container_dir"]
         with open(outdir + "/include.txt", "r") as i:
@@ -138,7 +131,7 @@ def postNetwork():
                                 args.visualise.cytoscape,
                                 args.visualise.perplexity,
                                 args.visualise.strand_preserved,
-                                outdir + "/include.txt",
+                                args.visualise.include_files,
                                 args.visualise.model_dir,
                                 outdir,
                                 args.visualise.previous_query_clustering,

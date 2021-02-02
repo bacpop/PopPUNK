@@ -198,9 +198,9 @@ def generate_visualisations(query_db,
 
     if distances is None:
         if query_db is None:
-            distances = os.path.basename(ref_db) + "/" + ref_db + ".dists"
+            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
         else:
-            distances = os.path.basename(query_db) + "/" + query_db + ".dists"
+            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
     else:
         distances = distances
 
@@ -215,7 +215,7 @@ def generate_visualisations(query_db,
         sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
                          "Note: Distance will be extended to full all-vs-all distances\n"
                          "Note: Re-run poppunk_assign with --update-db to avoid this\n")
-        ref_db = os.path.basename(ref_db) + "/" + ref_db
+        ref_db = ref_db + "/" + os.path.basename(ref_db)
         rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db + ".dists")
         if not self_ref:
             sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
@@ -223,7 +223,7 @@ def generate_visualisations(query_db,
         kmers, sketch_sizes, codon_phased = readDBParams(query_db)
         addRandom(query_db, qlist, kmers,
                   strand_preserved = strand_preserved, threads = threads)
-        query_db = os.path.basename(query_db) + "/" + query_db
+        query_db = query_db + "/" + os.path.basename(query_db)
         qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
                                                 qlist, qlist, kmers,
                                                 True, False,
@@ -286,7 +286,7 @@ def generate_visualisations(query_db,
     else:
         model_prefix = ref_db
     try:
-        model_file = os.path.basename(model_prefix) + "/" + os.path.basename(model_prefix)
+        model_file = model_prefix + "/" + os.path.basename(model_prefix)
         model = loadClusterFit(model_file + '_fit.pkl',
                                model_file + '_fit.npz')
     except FileNotFoundError:
