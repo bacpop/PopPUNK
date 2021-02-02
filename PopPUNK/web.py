@@ -117,9 +117,9 @@ def postNetwork():
             to_include = (i.read()).split("\n")
         if len(to_include) < 3:
             args.visualise.microreact = False
-        generate_visualisations(args.visualise.query_db,
-                                outdir,
-                                outdir + "/" + os.path.basename(outdir) + ".dists",
+        generate_visualisations(outdir,
+                                species_db,
+                                None,
                                 args.visualise.threads,
                                 outdir,
                                 args.visualise.gpu_dist,
