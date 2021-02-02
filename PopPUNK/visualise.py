@@ -425,7 +425,12 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
+        genomeNetwork, cluster_file = fetchNetwork(os.path.dirname(prev_clustering),
+                                                    model,
+                                                    rlist,
+                                                    False,
+                                                    core_only,
+                                                    accessory_only)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
