@@ -29,9 +29,9 @@ def get_options():
 
     # input options
     iGroup = parser.add_argument_group('Input files')
-    iGroup.add_argument('--distances', required=True, help='Prefix of input pickle of pre-calculated distances (required)')
     iGroup.add_argument('--rank-fit', required=True, help='Location of rank fit, a sparse matrix (*_rank*_fit.npz)')
     iGroup.add_argument('--previous-clustering', help='CSV file with cluster definitions')
+    iGroup.add_argument('--distance-pkl', help='Input pickle from distances, which contains sample names')
     iGroup.add_argument('--display-cluster', default=None, help='Column of clustering CSV to use for plotting')
 
     # output options
@@ -66,6 +66,18 @@ def main():
             sys.stderr.write("cugraph and cudf unavailable\n")
             raise ImportError(e)
 
+    # Read in sample names
+    if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):
+        sys.stderr.write("To label strains, both --distance-pkl and --previous-clustering"
+                         " must be provided\n")
+        sys.exit(1)
+    elif os.path.exists(args.distance_pkl):
+        with open(args.distances + ".pkl", 'rb') as pickle_file:
+            rlist, qlist, self = pickle.load(pickle_file)
+            if not self:
+                sys.stderr.write("This script must be run on a full all-v-all model\n")
+                sys.exit(1)
+
     # Check output path ok
     if not os.path.isdir(args.output):
         try:
@@ -74,13 +86,6 @@ def main():
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
     setGtThreads(args.threads)
-
-    # Read in sample names
-    with open(args.distances + ".pkl", 'rb') as pickle_file:
-        rlist, qlist, self = pickle.load(pickle_file)
-        if not self:
-            sys.stderr.write("This script must be run on a full all-v-all model\n")
-            sys.exit(1)
 
     # Create network with sparse dists
     sys.stderr.write("Loading distances into graph\n")
@@ -107,9 +112,9 @@ def main():
         G = constructNetwork(rlist, rlist, None, 0,
                              sparse_input=sparse_mat, summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
-        # Generate minimum spanning tree
-        mst = generate_minimum_spanning_tree(G, args.gpu_graph)
-    
+
+    mst = generate_minimum_spanning_tree(G, args.gpu_graph)
+
     # Save output
     sys.stderr.write("Generating output\n")
     mst.save(args.output + "/" + os.path.basename(args.output) + ".graphml", fmt="graphml")
