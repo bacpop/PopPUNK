@@ -10,7 +10,7 @@ import requests
 import networkx as nx
 from networkx.readwrite import json_graph
 
-import shutil
+import subprocess
 import uuid
 import glob
 import atexit
@@ -142,15 +142,15 @@ def postNetwork():
                                 args.visualise.overwrite,
                                 args.visualise.core_only,
                                 args.visualise.accessory_only)
-        networkJson = graphml_to_json(args.visualise.output)
+        networkJson = graphml_to_json(outdir)
         if len(to_include) >= 3:
-            with open(os.path.join(args.visualise.output, os.path.basename(args.visualise.output) + "_core_NJ.nwk"), "r") as p:
+            with open(os.path.join(outdir, os.path.basename(outdir) + "_core_NJ.nwk"), "r") as p:
                 phylogeny = p.read()
         else:
             phylogeny = "A tree cannot be built with fewer than 3 samples."
         visResponse = json.dumps({"network": networkJson,
                                   "phylogeny": phylogeny})
-        shutil.rmtree(outdir)
+        subprocess.run(["rm", "-rf", outdir]) # shutil issues on azure
         return jsonify(visResponse)
 
 def default_options(species_db):
