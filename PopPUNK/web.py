@@ -133,7 +133,7 @@ def postNetwork():
                                 args.visualise.strand_preserved,
                                 args.visualise.include_files,
                                 args.visualise.model_dir,
-                                outdir,
+                                args.visualise.previous_clustering,
                                 args.visualise.previous_query_clustering,
                                 args.visualise.info_csv,
                                 args.visualise.rapidnj,
