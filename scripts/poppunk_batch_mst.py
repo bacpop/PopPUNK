@@ -93,6 +93,9 @@ if __name__ == "__main__":
         sys.stderr.write("Provided --previous-clustering file cannot be found\n")
         sys.exit(1)
 
+    # If no batch file is provided, generate one
+    
+
     # Check input file and batching
     rlines = []
     batches = []
@@ -164,6 +167,11 @@ if __name__ == "__main__":
         if args.use_gpu:
             mst_command = mst_command + " --gpu-graph"
         runCmd(mst_command)
+        
+        # Retrieve lineages from previous round
+        os.rename(os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv"),
+                  os.path.join(args.output,os.path.basename(args.output) + "_lineages.csv"))
+        
     except:
         if args.keep_intermediates == False:
             for tmpdir in tmp_dirs:
