@@ -61,6 +61,7 @@ def sketchAssign():
         qc_dict = {'run_qc': False }
         dbFuncs = setupDBFuncs(args.assign, args.assign.min_kmer_count, qc_dict)
 
+        # assign query to strain
         ClusterResult = assign_query(dbFuncs,
                                     args.assign.ref_db,
                                     args.assign.q_files,
@@ -81,40 +82,12 @@ def sketchAssign():
                                     args.assign.accessory_only,
                                     args.assign.web,
                                     sketch_dict["sketch"])
-
-        query, query_prevalence, clusters, prevalences, alias_dict = \
+        query, query_prevalence, clusters, prevalences, alias_dict, to_include = \
             summarise_clusters(outdir, species, species_db)
         colours = get_colours(query, clusters)
         url = api(query, args.assign.ref_db)
 
-        response = {"species":species,
-                    "prev":str(query_prevalence) + '%',
-                    "query":query,
-                    "clusters":clusters,
-                    "prevalences":prevalences,
-                    "colours":colours,
-                    "microreactUrl":url,
-                    "aliases":alias_dict,
-                    "container_dir":outdir}
-        response = json.dumps(response)
-
-        return jsonify(response)
-
-@app.route('/network', methods=['GET', 'POST'])
-@cross_origin()
-def postNetwork():
-    """Recieve request to produce and post network information"""
-    if not request.json:
-        return "not a json post"
-    if request.json:
-        species_dict = request.json
-        # determine database to use
-        if species_dict["species"] == "S.pneumoniae":
-            species_db = db_location + "/GPS_v3_references"
-        args = default_options(species_db)
-        outdir = species_dict["container_dir"]
-        with open(outdir + "/include.txt", "r") as i:
-            to_include = (i.read()).split("\n")
+        # generate visualisations from assign output
         if len(to_include) < 3:
             args.visualise.microreact = False
         generate_visualisations(outdir,
@@ -133,7 +106,7 @@ def postNetwork():
                                 args.visualise.strand_preserved,
                                 outdir + "/include.txt",
                                 species_db,
-                                outdir,
+                                species_db,
                                 args.visualise.previous_query_clustering,
                                 args.visualise.info_csv,
                                 args.visualise.rapidnj,
@@ -148,10 +121,21 @@ def postNetwork():
                 phylogeny = p.read()
         else:
             phylogeny = "A tree cannot be built with fewer than 3 samples."
-        visResponse = json.dumps({"network": networkJson,
-                                  "phylogeny": phylogeny})
+
+        # Convert outputs to JSON for post to site
+        response = {"species":species,
+                    "prev":str(query_prevalence) + '%',
+                    "query":query,
+                    "clusters":clusters,
+                    "prevalences":prevalences,
+                    "colours":colours,
+                    "microreactUrl":url,
+                    "aliases":alias_dict,
+                    "network": networkJson,
+                    "phylogeny": phylogeny}
+        response = json.dumps(response)
         subprocess.run(["rm", "-rf", outdir]) # shutil issues on azure
-        return jsonify(visResponse)
+        return jsonify(response)
 
 def default_options(species_db):
     """Default options for WebAPI"""
@@ -315,15 +299,16 @@ def summarise_clusters(output, species, species_db):
     query_prevalence = prevalences[clusters.index(query)]
     # write list of all isolates in cluster
     clusterDF = totalDF.loc[totalDF['Cluster'] == query]
+    to_include = list(clusterDF['Taxon'])
     with open(os.path.join(output, "include.txt"), "w") as i:
-        i.write("\n".join(list(clusterDF['Taxon'])))
+        i.write("\n".join(to_include))
     # get aliases
     if os.path.isfile(os.path.join(species_db, "aliases.csv")):
         aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
         alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
     else: 
         alias_dict = {"Aliases": "NA"}
-    return query, query_prevalence, clusters, prevalences, alias_dict
+    return query, query_prevalence, clusters, prevalences, alias_dict, to_include
 
 @scheduler.task('interval', id='clean_tmp', hours=1, misfire_grace_time=900)
 def clean_tmp():

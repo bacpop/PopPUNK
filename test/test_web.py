@@ -2,6 +2,7 @@ import os
 import sys 
 import subprocess
 
+sys.path.insert(0, "..")
 from PopPUNK.assign import assign_query
 from PopPUNK.web import default_options, summarise_clusters, get_colours, api, graphml_to_json
 from PopPUNK.utils import setupDBFuncs
@@ -13,7 +14,7 @@ subprocess.run("cp example_viz/example_viz_core_NJ.nwk example_viz/example_viz.n
 subprocess.run("mv args.txt example_db", shell=True, check=True)
 
 # Test the output of the PopPUNk-web upload route for incorrect data types
-sys.stderr.write('\nTesting PopPUNK-web upload route\n')
+sys.stderr.write('\nTesting assign for PopPUNK-web\n')
 with open("json_sketch.txt", "r") as s:
     sketch = s.read()
 species = "Listeria monocytogenes"
@@ -44,34 +45,14 @@ ClusterResult = assign_query(dbFuncs,
                             args.assign.accessory_only,
                             args.assign.web,
                             sketch)
-query, query_prevalence, clusters, prevalences, alias_dict = \
+query, query_prevalence, clusters, prevalences, alias_dict, to_include = \
     summarise_clusters(outdir, species, species_db)
 colours = get_colours(query, clusters)
 url = api(query, "example_viz")
-if not isinstance(species, str):
-    raise TypeError('"Species" datatype is incorrect, should be string.\n')
-if not (isinstance(query_prevalence, float) or isinstance(query_prevalence, int)):
-    raise TypeError('"query_prevalence" datatype is incorrect, should be float/integer.\n')
-if not isinstance(query, str):
-    raise TypeError('"query" datatype is incorrect, should be string.\n')
-if not isinstance(clusters, list) and not isinstance(clusters[0], str):
-    raise TypeError('"clusters" datatype is incorrect, should be list of strings.\n')
-if not isinstance(prevalences, list) and not (isinstance(prevalences[0], float) or isinstance(prevalences[0], int)):
-    raise TypeError('"prevalences" datatype is incorrect, should be list of floats/integers.\n')
-if not isinstance(colours, list) and not isinstance(colours[0], str):
-    raise TypeError('"colours" datatype is incorrect, should be list of strings.\n')
-if not isinstance(url, str):
-    raise TypeError('"url" datatype is incorrect, should be string.\n')
-if not isinstance(alias_dict, dict):
-    raise TypeError('"alias_dict" datatype is incorrect, should be dictionary.\n')
-if not isinstance(outdir, str):
-    raise TypeError('"outdir" datatype is incorrect, should be string.\n')
-sys.stderr.write('PopPUNK-web upload route test successful\n')
+sys.stderr.write('PopPUNK-web assign test successful\n')
 
-# Test the output of the PopPUNk-web network route for incorrect data types
-sys.stderr.write('\nTesting PopPUNK-web network route\n')
-with open(outdir + "/include.txt", "r") as i:
-    to_include = (i.read()).split("\n")
+# Test generate_visualisations() for PopPUNK-web
+sys.stderr.write('\nTesting visualisations for PopPUNK-web\n')
 if len(to_include) < 3:
     args.visualise.microreact = False
 generate_visualisations(outdir,
@@ -90,7 +71,7 @@ generate_visualisations(outdir,
                         args.visualise.strand_preserved,
                         outdir + "/include.txt",
                         species_db,
-                        outdir,
+                        species_db,
                         args.visualise.previous_query_clustering,
                         args.visualise.info_csv,
                         args.visualise.rapidnj,
@@ -105,8 +86,29 @@ if len(to_include) >= 3:
         phylogeny = p.read()
 else:
     phylogeny = "A tree cannot be built with fewer than 3 samples."
+
+# ensure web api outputs are of the correct type
+if not isinstance(species, str):
+    raise TypeError('"Species" datatype is incorrect, should be string.\n')
+if not (isinstance(query_prevalence, float) or isinstance(query_prevalence, int)):
+    raise TypeError('"query_prevalence" datatype is incorrect, should be float/integer.\n')
+if not isinstance(query, str):
+    raise TypeError('"query" datatype is incorrect, should be string.\n')
+if not isinstance(clusters, list) and not isinstance(clusters[0], str):
+    raise TypeError('"clusters" datatype is incorrect, should be list of strings.\n')
+if not isinstance(prevalences, list) and not (isinstance(prevalences[0], float) or isinstance(prevalences[0], int)):
+    raise TypeError('"prevalences" datatype is incorrect, should be list of floats/integers.\n')
+if not isinstance(colours, list) and not isinstance(colours[0], str):
+    raise TypeError('"colours" datatype is incorrect, should be list of strings.\n')
+if not isinstance(url, str):
+    raise TypeError('"url" datatype is incorrect, should be string.\n')
+if not isinstance(alias_dict, dict):
+    raise TypeError('"alias_dict" datatype is incorrect, should be dictionary.\n')
+if not isinstance(outdir, str):
+    raise TypeError('"outdir" datatype is incorrect, should be string.\n')
 if not isinstance(networkJson, dict):
     raise TypeError('"networkJson" datatype is incorrect, should be dict.\n')
 if not isinstance(phylogeny, str):
     raise TypeError('"phylogeny" datatype is incorrect, should be str.\n')
+
 sys.stderr.write('\nAPI tests complete\n')

@@ -1,7 +1,7 @@
 {
     "assign":{
         "output":"WebOutput",
-        "update_db":true,
+        "update_db":false,
         "write_references":true,
         "threads":1,
         "overwrite":true,
