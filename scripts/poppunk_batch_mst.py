@@ -32,7 +32,9 @@ def get_options():
     ioGroup.add_argument('--keep-intermediates', help='Retain the outputs of each batch',
                                                         default=False,
                                                         action='store_true')
-
+    ioGroup.add_argument('--use-batch-names', help='Name the stored outputs of each batch',
+                                                        default=False,
+                                                        action='store_true')
     # analysis options
     aGroup = parser.add_argument_group('Analysis options')
     aGroup.add_argument('--rank', help='Rank used to fit lineage model (int)',
@@ -69,8 +71,13 @@ def get_options():
 
     return parser.parse_args()
 
-def writeBatch(rlines, batches, batch_selected):
-    tmpdir = tempfile.mkdtemp(prefix="pp_mst", dir="./")
+def writeBatch(rlines, batches, batch_selected, use_names = False):
+    tmpdir = ""
+    if use_names:
+        tmpdir = "./pp_mst_" + batch_selected
+        os.mkdir(tmpdir)
+    else:
+        tmpdir = tempfile.mkdtemp(prefix="pp_mst", dir="./")
     with open(tmpdir + "/" + rfile_names, 'w') as outfile:
         for rline, batch in zip(rlines, batches):
             if batch == batch_selected:
@@ -93,9 +100,6 @@ if __name__ == "__main__":
         sys.stderr.write("Provided --previous-clustering file cannot be found\n")
         sys.exit(1)
 
-    # If no batch file is provided, generate one
-    
-
     # Check input file and batching
     rlines = []
     batches = []
@@ -112,7 +116,7 @@ if __name__ == "__main__":
     first_batch = batch_names.pop(0)
 
     # try/except block to clean up tmp files
-    wd = writeBatch(rlines, batches, first_batch)
+    wd = writeBatch(rlines, batches, first_batch, args.use_batch_names)
     tmp_dirs = []
     try:
         # First batch is create DB + lineage
@@ -135,7 +139,7 @@ if __name__ == "__main__":
         runCmd(fit_model_cmd)
 
         for batch_idx, batch in enumerate(batch_names):
-            batch_wd = writeBatch(rlines, batches, batch)
+            batch_wd = writeBatch(rlines, batches, batch, args.use_batch_names)
             tmp_dirs.append(batch_wd)
 
             assign_cmd = args.assign_exe + " --db " + wd + \
