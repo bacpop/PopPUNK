@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # Check input file and batching
     rlines = []
     batches = []
-    with open(args.r_file,'rU') as r_file, open(args.batch_file, 'rU') as batch_file:
+    with open(args.r_files,'r') as r_file, open(args.batch_file, 'r') as batch_file:
         for r_line, batch_line in zip(r_file, batch_file):
             rlines.append(r_line)
             batch_fields = batch_line.rstrip()
@@ -119,7 +119,7 @@ if __name__ == "__main__":
                                 args.db_args + " --threads " + \
                                 str(args.threads) + " " + \
                                 args.db_args
-        if args.gpu:
+        if args.use_gpu:
             create_db_cmd += " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
         runCmd(create_db_cmd)
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
                         " --model-dir " + wd + " --output " + batch_wd + \
                         " --threads " + str(args.threads) + " --update-db " + \
                         args.assign_args
-            if args.gpu:
+            if args.use_gpu:
                 assign_cmd = assign_cmd + " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
             runCmd(assign_cmd)
 
@@ -157,7 +157,7 @@ if __name__ == "__main__":
                         "--previous-clustering " + args.previous_clustering + \
                         " --output " + args.output + \
                         " --threads " + str(args.threads)
-        if args.gpu:
+        if args.use_gpu:
             mst_command = mst_command + " --gpu-graph"
         runCmd(mst_command)
     except:
