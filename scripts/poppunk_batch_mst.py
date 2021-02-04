@@ -100,24 +100,26 @@ if __name__ == "__main__":
         sys.stderr.write("Provided --previous-clustering file cannot be found\n")
         sys.exit(1)
 
-    # Check ranks
+    # Extract ranks
     ranks = [int(rank) for rank in args.rank.split(',')]
     max_rank = max(ranks)
 
-    # Check input file and batching
+    # Check batching
     rlines = []
     batches = []
-    with open(args.r_files,'r') as r_file, open(args.batch_file, 'r') as batch_file:
-        for r_line, batch_line in zip(r_file, batch_file):
-            rlines.append(r_line)
-            batch_fields = batch_line.rstrip()
-            batches.append(batch_fields)
-
+    with open(args.batch_file,'r') as batch_file:
+        batches = [batch_line.rstrip() for batch_line in batch_file.readlines()]
     batch_names = sorted(set(batches))
     if len(batch_names) < 2:
         sys.stderr.write("You must supply multiple batches")
         sys.exit(1)
     first_batch = batch_names.pop(0)
+
+    # Check input file
+    with open(args.r_files,'r') as r_file:
+        for r_line in r_file:
+            rlines.append(r_line)
+
 
     # try/except block to clean up tmp files
     wd = writeBatch(rlines, batches, first_batch, args.use_batch_names)
