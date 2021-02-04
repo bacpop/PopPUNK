@@ -235,16 +235,11 @@ def assign_query(dbFuncs,
         joinDBs(ref_db, output, output)
         if model.type == 'lineage':
             genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+            # Save sparse distance matrices and updated model
+            model.outPrefix = os.path.basename(output)
+            model.save()
         else:
             genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
-
-        # Save sparse distance matrices
-        if model.type == 'lineage':
-            for rank in model.ranks:
-                scipy.sparse.save_npz(
-                    output + "/" + os.path.basename(output) + \
-                    rankFile(rank),
-                    self.nn_dists[rank])
 
         # Update distance matrices with all calculated distances
         if distances == None:

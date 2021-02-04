@@ -159,7 +159,8 @@ if __name__ == "__main__":
         if args.previous_clustering is not None:
             mst_command = mst_command + " --previous-clustering " + args.previous_clustering
         else:
-            mst_command = mst_command + " --previous-clustering " + os.path.join(args.output,os.path.basename(args.output) + "_lineages.csv")
+            mst_command = mst_command + " --previous-clustering " + \
+                            os.path.join(output_dir,output_dir + "_lineages.csv")
         if args.use_gpu:
             mst_command = mst_command + " --gpu-graph"
         runCmd(mst_command)
