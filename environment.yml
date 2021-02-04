@@ -18,7 +18,7 @@ dependencies:
   - rapidnj
   - h5py
   - pp-sketchlib >=1.6.2
-  - graph-tool
+  - graph-tool >=2.35
   - requests
   - flask
   - flask-cors
