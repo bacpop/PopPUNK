@@ -11,6 +11,7 @@ import shutil
 import glob
 import tempfile
 from collections import defaultdict
+import pandas as pd
 
 rfile_names = "rlist.txt"
 
@@ -28,6 +29,7 @@ def get_options():
     ioGroup.add_argument('--n-batches', help='Number of batches for process if --batch-file is not specified',
                                                 type=int,
                                                 default=10)
+    ioGroup.add_argument('--info-csv', help='CSV containing information about sequences', default=None)
     ioGroup.add_argument('--output', help='Prefix for output files',
                                                 required=True)
     ioGroup.add_argument('--previous-clustering', help='CSV file with previous clusters in MST drawing',
@@ -93,6 +95,83 @@ def runCmd(cmd_string):
     sys.stderr.write(cmd_string)
     subprocess.run(cmd_string, shell=True, check=True)
 
+def readLineages(clustCSV):
+    clusters = defaultdict(dict)
+    # read CSV
+    clustersCsv = pd.read_csv(clustCSV, index_col = 0, quotechar='"')
+    # select relevant columns
+    type_columns = [n for n,col in enumerate(clustersCsv.columns) if ('Rank_' in col or 'overall' in col)]
+    # read file
+    for row in clustersCsv.itertuples():
+        for cls_idx in type_columns:
+            cluster_name = clustersCsv.columns[cls_idx]
+            cluster_name = cluster_name.replace('__autocolour','')
+            clusters[cluster_name][row.Index] = str(row[cls_idx + 1])
+    # return data structure
+    return clusters
+
+def isolateNameToLabel(names):
+    labels = [name.split('/')[-1].split('.')[0] for name in names]
+    return labels
+
+def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
+                epiCsv = None, suffix = '_Lineage'):
+    # set order of column names
+    colnames = ['ID']
+    for cluster_type in clustering:
+        col_name = cluster_type + suffix
+        colnames.append(col_name)
+    # process epidemiological data
+    d = defaultdict(list)
+    # process epidemiological data without duplicating names
+    # used by PopPUNK
+    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
+    'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
+    'overall_Lineage']
+    if epiCsv is not None:
+        epiData = pd.read_csv(epiCsv, index_col = False, quotechar='"')
+        epiData.index = isolateNameToLabel(epiData.iloc[:,0])
+        for e in epiData.columns.values:
+            if e not in columns_to_be_omitted:
+                colnames.append(str(e))
+    # get example clustering name for validation
+    example_cluster_title = list(clustering.keys())[0]
+    for name, label in zip(nodeNames, isolateNameToLabel(nodeLabels)):
+        print('Example: ' + example_cluster_title + '\nClustering: ' + str(clustering[example_cluster_title]))
+        if name in clustering[example_cluster_title]:
+            d['ID'].append(label)
+            for cluster_type in clustering:
+                col_name = cluster_type + suffix
+                d[col_name].append(clustering[cluster_type][name])
+            if epiCsv is not None:
+                if label in epiData.index:
+                    for col, value in zip(epiData.columns.values, epiData.loc[label].values):
+                        if col not in columns_to_be_omitted:
+                            d[col].append(str(value))
+                else:
+                    for col in epiData.columns.values:
+                        if col not in columns_to_be_omitted:
+                            d[col].append('nan')
+        else:
+            sys.stderr.write("Cannot find " + name + " in clustering\n")
+            sys.exit(1)
+    # print CSV
+    sys.stderr.write("Parsed data, now writing to CSV\n")
+    try:
+        pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
+    except subprocess.CalledProcessError as e:
+        sys.stderr.write("Problem with epidemiological data CSV; returned code: " + str(e.returncode) + "\n")
+        # check CSV
+        prev_col_items = -1
+        prev_col_name = "unknown"
+        for col in d:
+            this_col_items = len(d[col])
+            if prev_col_items > -1 and prev_col_items != this_col_items:
+                sys.stderr.write("Discrepant length between " + prev_col_name + \
+                                 " (length of " + prev_col_items + ") and " + \
+                                 col + "(length of " + this_col_items + ")\n")
+        sys.exit(1)
+
 # main code
 if __name__ == "__main__":
 
@@ -109,9 +188,14 @@ if __name__ == "__main__":
 
     # Check input file
     rlines = []
+    nodeNames = []
+    nodeLabels = []
     with open(args.r_files,'r') as r_file:
         for r_line in r_file:
             rlines.append(r_line)
+            node_info = r_line.rstrip().split()
+            nodeNames.append(node_info[0])
+            nodeLabels.append(node_info[1])
 
     # Check batching
     batches = []
@@ -122,6 +206,7 @@ if __name__ == "__main__":
     else:
         # Generate arbitrary batches
         x = 0
+        n = 1
         while x < len(rlines):
             if n > args.n_batches:
                 n = 1
@@ -137,7 +222,7 @@ if __name__ == "__main__":
 
     # try/except block to clean up tmp files
     wd = writeBatch(rlines, batches, first_batch, args.use_batch_names)
-    tmp_dirs = []
+    tmp_dirs = [wd]
     try:
         # First batch is create DB + lineage
         create_db_cmd = args.poppunk_exe + " --create-db --r-files " + \
@@ -159,12 +244,13 @@ if __name__ == "__main__":
         runCmd(fit_model_cmd)
 
         for batch_idx, batch in enumerate(batch_names):
+            prev_wd = tmp_dirs[-1]
             batch_wd = writeBatch(rlines, batches, batch, args.use_batch_names)
             tmp_dirs.append(batch_wd)
 
-            assign_cmd = args.assign_exe + " --db " + wd + \
+            assign_cmd = args.assign_exe + " --db " + prev_wd + \
                         " --query " + batch_wd + "/" + rfile_names + \
-                        " --model-dir " + wd + " --output " + batch_wd + \
+                        " --model-dir " + prev_wd + " --output " + batch_wd + \
                         " --threads " + str(args.threads) + " --update-db " + \
                         args.assign_args
             if args.use_gpu:
@@ -187,19 +273,31 @@ if __name__ == "__main__":
             mst_command = mst_command + " --previous-clustering " + args.previous_clustering
         else:
             mst_command = mst_command + " --previous-clustering " + \
-                            os.path.join(output_dir,output_dir + "_lineages.csv")
+                            os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv")
         if args.use_gpu:
             mst_command = mst_command + " --gpu-graph"
         runCmd(mst_command)
         
-        # Retrieve lineages from previous round
+        # Retrieve isolate names and lineages from previous round
+        os.rename(os.path.join(output_dir,os.path.basename(output_dir) + ".dists.pkl"),
+                  os.path.join(args.output,os.path.basename(args.output) + ".dists.pkl"))
         os.rename(os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv"),
                   os.path.join(args.output,os.path.basename(args.output) + "_lineages.csv"))
-        
+
+        # Merge with epidemiological data if requested
+        if args.info_csv is not None:
+            lineage_clustering = readLineages(os.path.join(args.output,
+                                            os.path.basename(args.output) + "_lineages.csv"))
+            writeClusterCsv(os.path.join(args.output,
+                                            os.path.basename(args.output)  + "_info.csv"),
+                            nodeNames,
+                            nodeLabels,
+                            lineage_clustering,
+                            epiCsv = args.info_csv)
+
     except:
         if args.keep_intermediates == False:
             for tmpdir in tmp_dirs:
-                shutil.rmtree(wd)
                 shutil.rmtree(tmpdir)
         print("Unexpected error:", sys.exc_info()[0])
         raise
