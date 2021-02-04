@@ -9,12 +9,15 @@ import sys
 import numpy as np
 import subprocess
 from collections import defaultdict
+import scipy.optimize
+from scipy.sparse import coo_matrix, bmat, find
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
 
 # import poppunk package
 from .__init__ import __version__
+from .models import rankFile
 
 #*******************************#
 #*                             *#
@@ -234,6 +237,14 @@ def assign_query(dbFuncs,
             genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
         else:
             genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+
+        # Save sparse distance matrices
+        if model.type == 'lineage':
+            for rank in model.ranks:
+                scipy.sparse.save_npz(
+                    output + "/" + os.path.basename(output) + \
+                    rankFile(rank),
+                    self.nn_dists[rank])
 
         # Update distance matrices with all calculated distances
         if distances == None:
