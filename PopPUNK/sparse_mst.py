@@ -72,7 +72,7 @@ def main():
                          " must be provided\n")
         sys.exit(1)
     elif os.path.exists(args.distance_pkl):
-        with open(args.distances + ".pkl", 'rb') as pickle_file:
+        with open(args.distance_pkl, 'rb') as pickle_file:
             rlist, qlist, self = pickle.load(pickle_file)
             if not self:
                 sys.stderr.write("This script must be run on a full all-v-all model\n")
