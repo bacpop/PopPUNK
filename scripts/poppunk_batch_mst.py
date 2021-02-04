@@ -37,9 +37,9 @@ def get_options():
                                                         action='store_true')
     # analysis options
     aGroup = parser.add_argument_group('Analysis options')
-    aGroup.add_argument('--rank', help='Rank used to fit lineage model (int)',
-                                  type = int,
-                                  default = 10)
+    aGroup.add_argument('--rank', help='Comma separated ranks used to fit lineage model (list of ints)',
+                                      type = str,
+                                      default = "10")
     aGroup.add_argument('--threads', help='Number of threads for parallelisation (int)',
                                      type = int,
                                      default = 1)
@@ -100,6 +100,10 @@ if __name__ == "__main__":
         sys.stderr.write("Provided --previous-clustering file cannot be found\n")
         sys.exit(1)
 
+    # Check ranks
+    ranks = [int(rank) for rank in args.rank.split(',')]
+    max_rank = max(ranks)
+
     # Check input file and batching
     rlines = []
     batches = []
@@ -133,7 +137,7 @@ if __name__ == "__main__":
         # Fit lineage model
         fit_model_cmd = args.poppunk_exe + " --fit-model lineage --ref-db " + \
                                 wd + " --rank " + \
-                                str(args.rank) + " --threads " + \
+                                args.rank + " --threads " + \
                                 str(args.threads) + " " + \
                                 args.model_args
         runCmd(fit_model_cmd)
@@ -160,7 +164,7 @@ if __name__ == "__main__":
         mst_command = args.mst_exe + " --distance-pkl " + output_dir + \
                         "/" + os.path.basename(output_dir) + ".dists.pkl --rank-fit " + \
                         output_dir + "/" + os.path.basename(output_dir) + "_rank" + \
-                        str(args.rank) +  "_fit.npz " + \
+                        str(max_rank) +  "_fit.npz " + \
                         " --output " + args.output + \
                         " --threads " + str(args.threads)
         if args.previous_clustering is not None:
