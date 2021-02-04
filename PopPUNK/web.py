@@ -318,8 +318,11 @@ def summarise_clusters(output, species, species_db):
     with open(os.path.join(output, "include.txt"), "w") as i:
         i.write("\n".join(list(clusterDF['Taxon'])))
     # get aliases
-    aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
-    alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
+    if os.path.isfile(os.path.join(species_db, "aliases.csv")):
+        aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
+        alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
+    else: 
+        alias_dict = {"Aliases": "NA"}
     return query, query_prevalence, clusters, prevalences, alias_dict
 
 @scheduler.task('interval', id='clean_tmp', hours=1, misfire_grace_time=900)

@@ -39,7 +39,8 @@ outputDirs = [
     "example_sparse_mst",
     "example_tsne",
     "example_prune",
-    "example_refs"
+    "example_refs",
+    "example_api"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)
