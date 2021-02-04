@@ -2,7 +2,6 @@ import os
 import sys 
 import subprocess
 
-sys.path.insert(0, "..")
 from PopPUNK.assign import assign_query
 from PopPUNK.web import default_options, summarise_clusters, get_colours, api, graphml_to_json
 from PopPUNK.utils import setupDBFuncs
