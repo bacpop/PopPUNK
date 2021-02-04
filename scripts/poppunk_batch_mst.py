@@ -60,12 +60,12 @@ def get_options():
     eGroup.add_argument('--poppunk-exe', help="Location of poppunk executable. Use "
                                              "'python poppunk-runner.py' to run from source tree",
                                          default="poppunk")
-    eGroup.add_argument('--assign-exe', help="Location of poppunk executable. Use "
+    eGroup.add_argument('--assign-exe', help="Location of poppunk_assign executable. Use "
                                              "'python poppunk_assign-runner.py' to run from source tree",
                                         default="poppunk_assign")
     eGroup.add_argument('--mst-exe', help="Location of poppunk executable. Use "
                                            "'python poppunk_mst-runner.py' to run from source tree",
-                                     default="poppunk_visulaise")
+                                     default="poppunk_mst")
 
     return parser.parse_args()
 
@@ -150,13 +150,16 @@ if __name__ == "__main__":
 
         # Calculate MST
         output_dir = tmp_dirs[-1]
-        mst_command = args.mst_ext + " --distance-pkl " + output_dir + \
-                        "/" + output_dir + ".dists.pkl --rank-fit " + \
-                        output_dir + "/" + output_dir + "_rank" + \
+        mst_command = args.mst_exe + " --distance-pkl " + output_dir + \
+                        "/" + os.path.basename(output_dir) + ".dists.pkl --rank-fit " + \
+                        output_dir + "/" + os.path.basename(output_dir) + "_rank" + \
                         str(args.rank) +  "_fit.npz " + \
-                        "--previous-clustering " + args.previous_clustering + \
                         " --output " + args.output + \
                         " --threads " + str(args.threads)
+        if args.previous_clustering is not None:
+            mst_command = mst_command + " --previous-clustering " + args.previous_clustering
+        else:
+            mst_command = mst_command + " --previous-clustering " + os.path.join(args.output,os.path.basename(args.output) + "_lineages.csv")
         if args.use_gpu:
             mst_command = mst_command + " --gpu-graph"
         runCmd(mst_command)
