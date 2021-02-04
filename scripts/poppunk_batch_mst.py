@@ -22,52 +22,55 @@ def get_options():
 
     # input options
     ioGroup = parser.add_argument_group('Input and output file options')
-    ioGroup.add_argument('--r-files', help="Sample names and locations (as for poppunk --r-files)",
-                                      required=True)
-    ioGroup.add_argument('--batch-file', help="Batches to process samples in --r-files in",
-                                         required = True)
-    ioGroup.add_argument('--output', help='Prefix for output files', required=True)
+    ioGroup.add_argument('--r-files', help='Sample names and locations (as for poppunk --r-files)',
+                                                required=True)
+    ioGroup.add_argument('--batch-file', help='Single column list of batches to process samples in --r-files in')
+    ioGroup.add_argument('--n-batches', help='Number of batches for process if --batch-file is not specified',
+                                                type=int,
+                                                default=10)
+    ioGroup.add_argument('--output', help='Prefix for output files',
+                                                required=True)
     ioGroup.add_argument('--previous-clustering', help='CSV file with previous clusters in MST drawing',
-                                                  default=None)
+                                                default=None)
     ioGroup.add_argument('--keep-intermediates', help='Retain the outputs of each batch',
-                                                        default=False,
-                                                        action='store_true')
+                                                default=False,
+                                                action='store_true')
     ioGroup.add_argument('--use-batch-names', help='Name the stored outputs of each batch',
-                                                        default=False,
-                                                        action='store_true')
+                                                default=False,
+                                                action='store_true')
     # analysis options
     aGroup = parser.add_argument_group('Analysis options')
     aGroup.add_argument('--rank', help='Comma separated ranks used to fit lineage model (list of ints)',
-                                      type = str,
-                                      default = "10")
+                                                type = str,
+                                                default = "10")
     aGroup.add_argument('--threads', help='Number of threads for parallelisation (int)',
-                                     type = int,
-                                     default = 1)
+                                                type = int,
+                                                default = 1)
     aGroup.add_argument('--use-gpu', help='Use GPU for analysis',
-                                     default=False,
-                                     action='store_true')
+                                                default=False,
+                                                action='store_true')
     aGroup.add_argument('--deviceid', help='GPU device ID (int)',
-                                      type = int,
-                                      default = 0)
+                                                type = int,
+                                                default = 0)
     aGroup.add_argument('--db-args', help="Other arguments to pass to poppunk. e.g. "
                                              "'--min-k 13 --max-k 29'",
-                                     default = "")
+                                                default = "")
     aGroup.add_argument('--model-args', help="Other arguments to pass to lineage model fit",
-                                        default = "")
+                                                default = "")
     aGroup.add_argument('--assign-args', help="Other arguments to pass to poppunk_assign",
-                                         default = "")
+                                                default = "")
 
     # Executable options
     eGroup = parser.add_argument_group('Executable locations')
     eGroup.add_argument('--poppunk-exe', help="Location of poppunk executable. Use "
                                              "'python poppunk-runner.py' to run from source tree",
-                                         default="poppunk")
+                                                default="poppunk")
     eGroup.add_argument('--assign-exe', help="Location of poppunk_assign executable. Use "
                                              "'python poppunk_assign-runner.py' to run from source tree",
-                                        default="poppunk_assign")
+                                                default="poppunk_assign")
     eGroup.add_argument('--mst-exe', help="Location of poppunk executable. Use "
                                            "'python poppunk_mst-runner.py' to run from source tree",
-                                     default="poppunk_mst")
+                                                default="poppunk_mst")
 
     return parser.parse_args()
 
@@ -104,22 +107,33 @@ if __name__ == "__main__":
     ranks = [int(rank) for rank in args.rank.split(',')]
     max_rank = max(ranks)
 
-    # Check batching
+    # Check input file
     rlines = []
+    with open(args.r_files,'r') as r_file:
+        for r_line in r_file:
+            rlines.append(r_line)
+
+    # Check batching
     batches = []
-    with open(args.batch_file,'r') as batch_file:
-        batches = [batch_line.rstrip() for batch_line in batch_file.readlines()]
+    if args.batch_file:
+        # Read specified batches
+        with open(args.batch_file,'r') as batch_file:
+            batches = [batch_line.rstrip() for batch_line in batch_file.readlines()]
+    else:
+        # Generate arbitrary batches
+        x = 0
+        while x < len(rlines):
+            if n > args.n_batches:
+                n = 1
+            batches.append(n)
+            n = n + 1
+            x = x + 1
+    # Validate batches
     batch_names = sorted(set(batches))
     if len(batch_names) < 2:
         sys.stderr.write("You must supply multiple batches")
         sys.exit(1)
     first_batch = batch_names.pop(0)
-
-    # Check input file
-    with open(args.r_files,'r') as r_file:
-        for r_line in r_file:
-            rlines.append(r_line)
-
 
     # try/except block to clean up tmp files
     wd = writeBatch(rlines, batches, first_batch, args.use_batch_names)
