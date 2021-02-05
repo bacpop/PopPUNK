@@ -96,6 +96,7 @@ def main():
     if args.gpu_graph:
         # Load previous MST if specified
         if args.previous_mst is not None:
+            print("Previous: " + str(args.previous_mst))
             extra_sources, extra_targets, extra_weights = load_previous_network(args.previous_mst,
                                                                                   rlist,
                                                                                   weights = True)

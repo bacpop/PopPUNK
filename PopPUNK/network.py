@@ -266,12 +266,12 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
-def load_previous_network(prev_G, rlist, weights=False):
+def load_previous_network(prev_G_fn, rlist, weights=False):
     """Load previous network with graph-tool, extract the edges to match the
     vertex order specified in rlist, and also return weights if specified.
 
     Args:
-        prev_G (str)
+        prev_G_fn (str)
             Path of file containing existing network.
         rlist (list)
             List of reference sequence labels in new network
@@ -288,6 +288,7 @@ def load_previous_network(prev_G, rlist, weights=False):
             Weights for each new edge
     """
     # get list for translating node IDs to rlist
+    prev_G = gt.load_graph(prev_G_fn)
     old_ids = prev_G.vp["id"]
     old_id_indices = [rlist.index(x) for x in old_ids]
     # get the source and target nods
@@ -299,7 +300,7 @@ def load_previous_network(prev_G, rlist, weights=False):
     # convert to ndarray
     # get the weights
     if weights:
-        edge_weights = prev_G.ep['weight']
+        edge_weights = list(prev_G.ep['weight'])
         # return values
         return source_ids, target_ids, edge_weights
     else:
@@ -393,9 +394,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # read previous graph
     if previous_network is not None:
-        prev_G = gt.load_graph(previous_network)
         if weights is not None or sparse_input is not None:
-            extra_sources, extra_targets, extra_weights = load_previous_network(prev_G,rlist,
+            extra_sources, extra_targets, extra_weights = load_previous_network(previous_network,rlist,
                                                                                 weights = True)
             for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
                 edge_tuple = (ref, query, weight)
