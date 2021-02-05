@@ -34,6 +34,8 @@ def get_options():
                                                 required=True)
     ioGroup.add_argument('--previous-clustering', help='CSV file with previous clusters in MST drawing',
                                                 default=None)
+    ioGroup.add_argument('--previous-mst', help='MST calculated from a subset of the data in graph tool format',
+                                                default=None)
     ioGroup.add_argument('--keep-intermediates', help='Retain the outputs of each batch',
                                                 default=False,
                                                 action='store_true')
@@ -137,7 +139,6 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
     # get example clustering name for validation
     example_cluster_title = list(clustering.keys())[0]
     for name, label in zip(nodeNames, isolateNameToLabel(nodeLabels)):
-        print('Example: ' + example_cluster_title + '\nClustering: ' + str(clustering[example_cluster_title]))
         if name in clustering[example_cluster_title]:
             d['ID'].append(label)
             for cluster_type in clustering:
@@ -269,6 +270,8 @@ if __name__ == "__main__":
                         str(max_rank) +  "_fit.npz " + \
                         " --output " + args.output + \
                         " --threads " + str(args.threads)
+        if args.previous_mst is not None:
+            mst_command = mst_command + " --previous-mst " + args.previous_mst
         if args.previous_clustering is not None:
             mst_command = mst_command + " --previous-clustering " + args.previous_clustering
         else:

@@ -8,6 +8,7 @@ import sys
 
 import pickle
 import re
+import numpy as np
 import pandas as pd
 from scipy import sparse
 
@@ -31,6 +32,8 @@ def get_options():
     iGroup = parser.add_argument_group('Input files')
     iGroup.add_argument('--rank-fit', required=True, help='Location of rank fit, a sparse matrix (*_rank*_fit.npz)')
     iGroup.add_argument('--previous-clustering', help='CSV file with cluster definitions')
+    iGroup.add_argument('--previous-mst', help='Graph tool file from which previous MST can be loaded',
+                                            default=None)
     iGroup.add_argument('--distance-pkl', help='Input pickle from distances, which contains sample names')
     iGroup.add_argument('--display-cluster', default=None, help='Column of clustering CSV to use for plotting')
 
@@ -109,8 +112,13 @@ def main():
                                weights=edge_df['weights'].values_host,
                                summarise=False)
     else:
-        G = constructNetwork(rlist, rlist, None, 0,
-                             sparse_input=sparse_mat, summarise=False)
+        if args.previous_mst is not None:
+            G = constructNetwork(rlist, rlist, None, 0,
+                                 sparse_input=sparse_mat, summarise=False,
+                                 previous_network = args.previous_mst)
+        else:
+            G = constructNetwork(rlist, rlist, None, 0,
+                                 sparse_input=sparse_mat, summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
 
     mst = generate_minimum_spanning_tree(G, args.gpu_graph)
