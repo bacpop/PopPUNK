@@ -27,5 +27,5 @@ jobs:
             username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
             password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
         - run: |
-            docker build --file docker/Dockerfile . -t poppunk.azurecr.io/poppunk_api:${{ github.sha }}
-            docker push poppunk.azurecr.io/poppunk_api:${{ github.sha }}
+            docker build --file docker/Dockerfile . -t poppunk.azurecr.io/poppunk_api:latest
+            docker push poppunk.azurecr.io/poppunk_api:latest
