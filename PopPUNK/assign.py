@@ -40,7 +40,8 @@ def assign_query(dbFuncs,
                  core_only,
                  accessory_only,
                  web,
-                 json_sketch):
+                 json_sketch,
+                 save_partial_query_graph):
     """Code for assign query mode. Written as a separate function so it can be called
     by web APIs"""
 
@@ -284,6 +285,11 @@ def assign_query(dbFuncs,
                 assert postpruning_combined_seq == refList + newQueries
     else:
         storePickle(refList, queryList, False, qrDistMat, dists_out)
+        if save_partial_query_graph:
+            if model.type == 'lineage':
+                genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+            else:
+                genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
 
     return(isolateClustering)
 
@@ -425,8 +431,9 @@ def main():
                  args.external_clustering,
                  args.core_only,
                  args.accessory_only,
-                 web = False,
-                 json_sketch = None)
+                 web=False,
+                 json_sketch=None,
+                 save_partial_query_graph=False)
 
     sys.stderr.write("\nDone\n")
 

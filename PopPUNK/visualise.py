@@ -62,6 +62,9 @@ def get_options():
                              'from poppunk_assign [default = use that in the directory '
                              'containing the model]',
                         type = str)
+    iGroup.add_argument('--use-network',
+                        help='Specify a directory containing a .gt file to use for any graph visualisations',
+                        type = str)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -143,14 +146,14 @@ def generate_visualisations(query_db,
                             model_dir,
                             previous_clustering,
                             previous_query_clustering,
+                            use_network,
                             info_csv,
                             rapidnj,
                             tree,
                             mst_distances,
                             overwrite,
                             core_only,
-                            accessory_only,
-                            web):
+                            accessory_only):
 
     from .models import loadClusterFit
 
@@ -199,9 +202,9 @@ def generate_visualisations(query_db,
 
     if distances is None:
         if query_db is None:
-            distances = os.path.basename(ref_db) + "/" + ref_db + ".dists"
+            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
         else:
-            distances = os.path.basename(query_db) + "/" + query_db + ".dists"
+            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
     else:
         distances = distances
 
@@ -216,16 +219,16 @@ def generate_visualisations(query_db,
         sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
                          "Note: Distance will be extended to full all-vs-all distances\n"
                          "Note: Re-run poppunk_assign with --update-db to avoid this\n")
-        ref_db = os.path.basename(ref_db) + "/" + ref_db
-        rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db + ".dists")
+        ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
+        rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db_loc + ".dists")
         if not self_ref:
             sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
             sys.exit(1)
         kmers, sketch_sizes, codon_phased = readDBParams(query_db)
         addRandom(query_db, qlist, kmers,
                   strand_preserved = strand_preserved, threads = threads)
-        query_db = os.path.basename(query_db) + "/" + query_db
-        qq_distMat = pp_sketchlib.queryDatabase(query_db, query_db,
+        query_db_loc = query_db + "/" + os.path.basename(query_db)
+        qq_distMat = pp_sketchlib.queryDatabase(query_db_loc, query_db_loc,
                                                 qlist, qlist, kmers,
                                                 True, False,
                                                 threads,
@@ -235,7 +238,7 @@ def generate_visualisations(query_db,
         # If the assignment was run with references, qrDistMat will be incomplete
         if rlist != rlist_original:
             rlist = rlist_original
-            qr_distMat = pp_sketchlib.queryDatabase(ref_db, query_db,
+            qr_distMat = pp_sketchlib.queryDatabase(ref_db_loc, query_db_loc,
                                                     rlist, qlist, kmers,
                                                     True, False,
                                                     threads,
@@ -287,7 +290,7 @@ def generate_visualisations(query_db,
     else:
         model_prefix = ref_db
     try:
-        model_file = os.path.basename(model_prefix) + "/" + os.path.basename(model_prefix)
+        model_file = model_prefix + "/" + os.path.basename(model_prefix)
         model = loadClusterFit(model_file + '_fit.pkl',
                                model_file + '_fit.npz')
     except FileNotFoundError:
@@ -314,12 +317,21 @@ def generate_visualisations(query_db,
                                                mode = mode,
                                                return_dict = True)
 
+    # Set graph location
+    if use_network is not None:
+        graph_dir = use_network
+        if graph_dir != prev_clustering:
+            sys.stderr.write("WARNING: Loading graph from a different directory to clusters\n")
+            sys.stderr.write("WARNING: Ensure that they are consistent\n")
+    else:
+        graph_dir = prev_clustering
+
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
             prev_query_clustering = previous_query_clustering + '/' + os.path.basename(previous_query_clustering)
         else:
-            prev_query_clustering = query_db
+            prev_query_clustering = query_db_loc
 
         queryIsolateClustering = readIsolateTypeFromCsv(
                 prev_query_clustering + suffix,
@@ -406,7 +418,7 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
+        genomeNetwork, cluster_file = fetchNetwork(graph_dir, model, rlist, False, core_only, accessory_only)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
@@ -436,14 +448,14 @@ def main():
                             args.model_dir,
                             args.previous_clustering,
                             args.previous_query_clustering,
+                            args.use_network,
                             args.info_csv,
                             args.rapidnj,
                             args.tree,
                             args.mst_distances,
                             args.overwrite,
                             args.core_only,
-                            args.accessory_only,
-                            web = False)
+                            args.accessory_only)
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,31 @@
+name: Build and push Docker image (Azure Container Registry)
+
+on:
+  push:
+    branches:
+      - docker
+  create:
+    tags:
+      - v*
+
+jobs:
+    acr-upload:
+        runs-on: ubuntu-latest
+        steps:
+        # checkout the repo
+        - name: 'Checkout GitHub Action'
+          uses: actions/checkout@master
+
+        - name: 'Login via Azure CLI'
+          uses: azure/login@v1
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+        - uses: azure/docker-login@v1
+          with:
+            login-server: poppunk.azurecr.io
+            username: ${{ secrets.AZURE_REGISTRY_USERNAME }}
+            password: ${{ secrets.AZURE_REGISTRY_PASSWORD }}
+        - run: |
+            docker build --file docker/Dockerfile . -t poppunk.azurecr.io/poppunk_api:latest
+            docker push poppunk.azurecr.io/poppunk_api:latest
