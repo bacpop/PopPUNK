@@ -81,7 +81,8 @@ def sketchAssign():
                                     args.assign.core_only,
                                     args.assign.accessory_only,
                                     args.assign.web,
-                                    sketch_dict["sketch"])
+                                    sketch_dict["sketch"],
+                                    args.assign.save_partial_query_graph)
         query, query_prevalence, clusters, prevalences, alias_dict, to_include = \
             summarise_clusters(outdir, species, species_db)
         colours = get_colours(query, clusters)
@@ -108,6 +109,7 @@ def sketchAssign():
                                 species_db,
                                 species_db,
                                 args.visualise.previous_query_clustering,
+                                outdir,
                                 args.visualise.info_csv,
                                 args.visualise.rapidnj,
                                 args.visualise.tree,

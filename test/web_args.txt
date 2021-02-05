@@ -50,6 +50,7 @@
         "mst_distances":"core",
         "overwrite":true,
         "core_only":false,
-        "accessory_only":false
+        "accessory_only":false,
+        "save_partial_query_graph":true
     }
 }

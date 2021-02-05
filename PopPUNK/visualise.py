@@ -62,6 +62,9 @@ def get_options():
                              'from poppunk_assign [default = use that in the directory '
                              'containing the model]',
                         type = str)
+    iGroup.add_argument('--use-network',
+                        help='Specify a directory containing a .gt file to use for any graph visualisations',
+                        type = str)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -143,6 +146,7 @@ def generate_visualisations(query_db,
                             model_dir,
                             previous_clustering,
                             previous_query_clustering,
+                            use_network,
                             info_csv,
                             rapidnj,
                             tree,
@@ -313,6 +317,15 @@ def generate_visualisations(query_db,
                                                mode = mode,
                                                return_dict = True)
 
+    # Set graph location
+    if use_graph is not None:
+        graph_dir = os.path.dirname(use_graph)
+        if graph_dir != prev_clustering:
+            sys.stderr.write("WARNING: Loading graph from a different directory to clusters\n")
+            sys.stderr.write("WARNING: Ensure that they are consistent\n")
+    else:
+        graph_dir = prev_clustering
+
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
@@ -405,7 +418,7 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(prev_clustering, model, rlist, False, core_only, accessory_only)
+        genomeNetwork, cluster_file = fetchNetwork(graph_dir, model, rlist, False, core_only, accessory_only)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
@@ -435,6 +448,7 @@ def main():
                             args.model_dir,
                             args.previous_clustering,
                             args.previous_query_clustering,
+                            args.use_network,
                             args.info_csv,
                             args.rapidnj,
                             args.tree,
