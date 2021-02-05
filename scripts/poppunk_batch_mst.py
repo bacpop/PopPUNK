@@ -243,7 +243,7 @@ if __name__ == "__main__":
                                 str(args.threads) + " " + \
                                 args.db_args
         if args.use_gpu:
-            create_db_cmd += " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
+            create_db_cmd += " --gpu-dist --deviceid " + str(args.deviceid)
         runCmd(create_db_cmd)
 
         # Fit lineage model
@@ -284,7 +284,7 @@ if __name__ == "__main__":
                         " --threads " + str(args.threads) + " --update-db " + \
                         args.assign_args
             if args.use_gpu:
-                assign_cmd = assign_cmd + " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
+                assign_cmd = assign_cmd + " --gpu-dist --deviceid " + str(args.deviceid)
             runCmd(assign_cmd)
             
             # Calculate MST if operating iteratively
