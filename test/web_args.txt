@@ -30,7 +30,8 @@
         "rank_list":null,
         "sketch_sizes":10000,
         "no_stream":false,
-        "mash":null
+        "mash":null,
+        "save_partial_query_graph":true
     },
     "visualise":{
         "threads":1,
@@ -50,7 +51,6 @@
         "mst_distances":"core",
         "overwrite":true,
         "core_only":false,
-        "accessory_only":false,
-        "save_partial_query_graph":true
+        "accessory_only":false
     }
 }

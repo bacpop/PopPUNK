@@ -318,8 +318,8 @@ def generate_visualisations(query_db,
                                                return_dict = True)
 
     # Set graph location
-    if use_graph is not None:
-        graph_dir = os.path.dirname(use_graph)
+    if use_network is not None:
+        graph_dir = use_network
         if graph_dir != prev_clustering:
             sys.stderr.write("WARNING: Loading graph from a different directory to clusters\n")
             sys.stderr.write("WARNING: Ensure that they are consistent\n")

@@ -1,16 +1,18 @@
 import os
-import sys 
+import sys
 import subprocess
+from shutil import copyfile
 
+# testing without install
+#sys.path.insert(0, '..')
 from PopPUNK.assign import assign_query
 from PopPUNK.web import default_options, summarise_clusters, get_colours, api, graphml_to_json
 from PopPUNK.utils import setupDBFuncs
 from PopPUNK.visualise import generate_visualisations
 
 # Copy and move args and sketch files into example dirs
-subprocess.run("cp web_args.txt args.txt", shell=True, check=True)
-subprocess.run("cp example_viz/example_viz_core_NJ.nwk example_viz/example_viz.nwk", shell=True, check=True)
-subprocess.run("mv args.txt example_db", shell=True, check=True)
+copyfile("web_args.txt", "example_db/args.txt")
+copyfile("example_viz/example_viz_core_NJ.nwk", "example_viz/example_viz.nwk")
 
 # Test the output of the PopPUNk-web upload route for incorrect data types
 sys.stderr.write('\nTesting assign for PopPUNK-web\n')
@@ -43,7 +45,8 @@ ClusterResult = assign_query(dbFuncs,
                             args.assign.core_only,
                             args.assign.accessory_only,
                             args.assign.web,
-                            sketch)
+                            sketch,
+                            args.assign.save_partial_query_graph)
 query, query_prevalence, clusters, prevalences, alias_dict, to_include = \
     summarise_clusters(outdir, species, species_db)
 colours = get_colours(query, clusters)
@@ -72,6 +75,7 @@ generate_visualisations(outdir,
                         species_db,
                         species_db,
                         args.visualise.previous_query_clustering,
+                        outdir,
                         args.visualise.info_csv,
                         args.visualise.rapidnj,
                         args.visualise.tree,
