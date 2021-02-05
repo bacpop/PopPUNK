@@ -301,6 +301,7 @@ def load_previous_network(prev_G, rlist, weights=False):
     if weights:
         edge_weights = prev_G.ep['weight']
         # return values
+        print("Old weights: " + str(edge_weights))
         return source_ids, target_ids, edge_weights
     else:
         return source_ids, target_ids
@@ -394,11 +395,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     # read previous graph
     if previous_network is not None:
         prev_G = gt.load_graph(previous_network)
-        if weights is not None:
+        if weights is not None or sparse_input is not None:
             extra_sources, extra_targets, extra_weights = load_previous_network(prev_G,rlist,
                                                                                 weights = True)
             for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
-                edge_tuple = (ref, query, dist)
+                edge_tuple = (ref, query, weight)
                 connections.append(edge_tuple)
         else:
             extra_sources, extra_targets = load_previous_network(prev_G,rlist,

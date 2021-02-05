@@ -34,8 +34,9 @@ def get_options():
                                                 required=True)
     ioGroup.add_argument('--previous-clustering', help='CSV file with previous clusters in MST drawing',
                                                 default=None)
-    ioGroup.add_argument('--previous-mst', help='MST calculated from a subset of the data in graph tool format',
-                                                default=None)
+    ioGroup.add_argument('--iterative-mst', help='Re-calculate the MST for each batch',
+                                                default=False,
+                                                action='store_true')
     ioGroup.add_argument('--keep-intermediates', help='Retain the outputs of each batch',
                                                 default=False,
                                                 action='store_true')
@@ -94,7 +95,7 @@ def writeBatch(rlines, batches, batch_selected, use_names = False):
 
 def runCmd(cmd_string):
     sys.stderr.write("Running command:\n")
-    sys.stderr.write(cmd_string)
+    sys.stderr.write(cmd_string + '\n')
     subprocess.run(cmd_string, shell=True, check=True)
 
 def readLineages(clustCSV):
@@ -176,6 +177,10 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
 # main code
 if __name__ == "__main__":
 
+    ###########
+    # Prepare #
+    ###########
+
     # Check input ok
     args = get_options()
     if args.previous_clustering is not None and \
@@ -225,6 +230,11 @@ if __name__ == "__main__":
     wd = writeBatch(rlines, batches, first_batch, args.use_batch_names)
     tmp_dirs = [wd]
     try:
+    
+        ###############
+        # First batch #
+        ###############
+    
         # First batch is create DB + lineage
         create_db_cmd = args.poppunk_exe + " --create-db --r-files " + \
                                 wd + "/" + rfile_names + \
@@ -243,7 +253,26 @@ if __name__ == "__main__":
                                 str(args.threads) + " " + \
                                 args.model_args
         runCmd(fit_model_cmd)
-
+        
+        # Calculate MST if operating iteratively
+        if args.iterative_mst:
+        
+            mst_command = args.mst_exe + " --distance-pkl " + wd + \
+                            "/" + os.path.basename(wd) + ".dists.pkl --rank-fit " + \
+                            wd + "/" + os.path.basename(wd) + "_rank" + \
+                            str(max_rank) +  "_fit.npz " + \
+                            " --output " + wd + \
+                            " --threads " + str(args.threads) + \
+                            " --previous-clustering " + wd + \
+                            "/" + os.path.basename(wd) + "_lineages.csv"
+            if args.use_gpu:
+                mst_command = mst_command + " --gpu-graph"
+            runCmd(mst_command)
+            
+        ###########
+        # Iterate #
+        ###########
+        
         for batch_idx, batch in enumerate(batch_names):
             prev_wd = tmp_dirs[-1]
             batch_wd = writeBatch(rlines, batches, batch, args.use_batch_names)
@@ -257,29 +286,63 @@ if __name__ == "__main__":
             if args.use_gpu:
                 assign_cmd = assign_cmd + " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
             runCmd(assign_cmd)
+            
+            # Calculate MST if operating iteratively
+            if args.iterative_mst:
+            
+                mst_command = args.mst_exe + " --distance-pkl " + batch_wd + \
+                                "/" + os.path.basename(batch_wd) + ".dists.pkl --rank-fit " + \
+                                batch_wd + "/" + os.path.basename(batch_wd) + "_rank" + \
+                                str(max_rank) +  "_fit.npz " + \
+                                " --output " + batch_wd + \
+                                " --threads " + str(args.threads) + \
+                                " --previous-mst " + \
+                                prev_wd + "/" + os.path.basename(prev_wd) + ".graphml" + \
+                                " --previous-clustering " + batch_wd + \
+                                "/" + os.path.basename(batch_wd) + "_lineages.csv"
+                if args.use_gpu:
+                    mst_command = mst_command + " --gpu-graph"
+                runCmd(mst_command)
 
             # Remove the previous batch
             if batch_idx > 0 and args.keep_intermediates == False:
                 shutil.rmtree(tmp_dirs[batch_idx - 1])
 
+        ##########
+        # Finish #
+        ##########
+
         # Calculate MST
         output_dir = tmp_dirs[-1]
-        mst_command = args.mst_exe + " --distance-pkl " + output_dir + \
-                        "/" + os.path.basename(output_dir) + ".dists.pkl --rank-fit " + \
-                        output_dir + "/" + os.path.basename(output_dir) + "_rank" + \
-                        str(max_rank) +  "_fit.npz " + \
-                        " --output " + args.output + \
-                        " --threads " + str(args.threads)
-        if args.previous_mst is not None:
-            mst_command = mst_command + " --previous-mst " + args.previous_mst
-        if args.previous_clustering is not None:
-            mst_command = mst_command + " --previous-clustering " + args.previous_clustering
+        if args.iterative_mst:
+            # Create directory
+            if os.path.exists(args.output):
+                if os.path.isdir(args.output):
+                    shutil.rmtree(args.output)
+                else:
+                    os.remove(args.output)
+            os.mkdir(args.output)
+            # Copy over final MST
+            shutil.copy(os.path.join(output_dir,os.path.basename(output_dir) + ".graphml"),
+                        os.path.join(args.output,os.path.basename(args.output) + ".graphml"))
+            shutil.copy(os.path.join(output_dir,os.path.basename(output_dir) + "_MST.nwk"),
+            os.path.join(args.output,os.path.basename(args.output) + "_MST.nwk"))
         else:
-            mst_command = mst_command + " --previous-clustering " + \
-                            os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv")
-        if args.use_gpu:
-            mst_command = mst_command + " --gpu-graph"
-        runCmd(mst_command)
+            # Calculate MST
+            mst_command = args.mst_exe + " --distance-pkl " + output_dir + \
+                            "/" + os.path.basename(output_dir) + ".dists.pkl --rank-fit " + \
+                            output_dir + "/" + os.path.basename(output_dir) + "_rank" + \
+                            str(max_rank) +  "_fit.npz " + \
+                            " --output " + args.output + \
+                            " --threads " + str(args.threads)
+            if args.previous_clustering is not None:
+                mst_command = mst_command + " --previous-clustering " + args.previous_clustering
+            else:
+                mst_command = mst_command + " --previous-clustering " + \
+                                os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv")
+            if args.use_gpu:
+                mst_command = mst_command + " --gpu-graph"
+            runCmd(mst_command)
         
         # Retrieve isolate names and lineages from previous round
         os.rename(os.path.join(output_dir,os.path.basename(output_dir) + ".dists.pkl"),
