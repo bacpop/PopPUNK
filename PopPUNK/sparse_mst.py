@@ -15,7 +15,7 @@ from scipy import sparse
 # import poppunk package
 from .__init__ import __version__
 
-from .network import constructNetwork, generate_minimum_spanning_tree
+from .network import constructNetwork, generate_minimum_spanning_tree, load_previous_network
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
@@ -94,9 +94,21 @@ def main():
     sys.stderr.write("Loading distances into graph\n")
     sparse_mat = sparse.load_npz(args.rank_fit)
     if args.gpu_graph:
-        G_df = cudf.DataFrame({'source': sparse_mat.row,
-                               'destination': sparse_mat.col,
-                               'weights': sparse_mat.data})
+        # Load previous MST if specified
+        if args.previous_mst is not None:
+            extra_sources, extra_targets, extra_weights = load_previous_network(args.previous_mst,
+                                                                                  rlist,
+                                                                                  weights = True)
+            sources = np.append(sparse_mat.row, np.asarray(extra_sources))
+            targets = np.append(sparse_mat.col, np.asarray(extra_targets))
+            weights = np.append(sparse_mat.data, np.asarray(extra_weights))
+        else:
+            sources = sparse_mat.row
+            targets = sparse_mat.col
+            weights = sparse_mat.data
+        G_df = cudf.DataFrame({'source': sources,
+                               'destination': targets,
+                               'weights': weights})
         G_cu = cugraph.Graph()
         G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
 
@@ -112,6 +124,7 @@ def main():
                                weights=edge_df['weights'].values_host,
                                summarise=False)
     else:
+        # Load previous MST if specified
         if args.previous_mst is not None:
             G = constructNetwork(rlist, rlist, None, 0,
                                  sparse_input=sparse_mat, summarise=False,
