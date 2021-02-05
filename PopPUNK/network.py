@@ -301,7 +301,6 @@ def load_previous_network(prev_G, rlist, weights=False):
     if weights:
         edge_weights = prev_G.ep['weight']
         # return values
-        print("Old weights: " + str(edge_weights))
         return source_ids, target_ids, edge_weights
     else:
         return source_ids, target_ids
