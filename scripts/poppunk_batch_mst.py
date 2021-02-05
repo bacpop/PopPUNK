@@ -251,7 +251,8 @@ if __name__ == "__main__":
                                 wd + " --rank " + \
                                 args.rank + " --threads " + \
                                 str(args.threads) + " " + \
-                                args.model_args
+                                args.model_args + \
+                                " --output " + args.output
         runCmd(fit_model_cmd)
         
         # Calculate MST if operating iteratively
