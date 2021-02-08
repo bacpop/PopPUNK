@@ -51,7 +51,10 @@ def get_options():
     aGroup.add_argument('--threads', help='Number of threads for parallelisation (int)',
                                                 type = int,
                                                 default = 1)
-    aGroup.add_argument('--use-gpu', help='Use GPU for analysis',
+    aGroup.add_argument('--gpu-dist', help='Use GPU for distance calculations',
+                                                default=False,
+                                                action='store_true')
+    aGroup.add_argument('--gpu-graph', help='Use GPU for network analysis',
                                                 default=False,
                                                 action='store_true')
     aGroup.add_argument('--deviceid', help='GPU device ID (int)',
@@ -273,7 +276,7 @@ if __name__ == "__main__":
             create_db_cmd += " --prop-n " + str(args.prop_n)
         create_db_cmd += " --qc-filter " + args.qc_filter
         # GPU options
-        if args.use_gpu:
+        if args.gpu_dist:
             create_db_cmd += " --gpu-dist --deviceid " + str(args.deviceid)
         runCmd(create_db_cmd)
 
@@ -297,7 +300,7 @@ if __name__ == "__main__":
                             " --previous-clustering " + wd + \
                             "/" + os.path.basename(wd) + "_lineages.csv"
             # GPU options
-            if args.use_gpu:
+            if args.gpu_graph:
                 mst_command = mst_command + " --gpu-graph"
             runCmd(mst_command)
             
@@ -330,7 +333,7 @@ if __name__ == "__main__":
                 create_db_cmd += " --prop-n 0.1" # default from __main__
             create_db_cmd += " --qc-filter " + args.qc_filter
             # GPU options
-            if args.use_gpu:
+            if args.gpu_dist:
                 assign_cmd = assign_cmd + " --gpu-dist --deviceid " + str(args.deviceid)
             runCmd(assign_cmd)
             
@@ -347,7 +350,7 @@ if __name__ == "__main__":
                                 prev_wd + "/" + os.path.basename(prev_wd) + ".graphml" + \
                                 " --previous-clustering " + batch_wd + \
                                 "/" + os.path.basename(batch_wd) + "_lineages.csv"
-                if args.use_gpu:
+                if args.gpu_graph:
                     mst_command = mst_command + " --gpu-graph"
                 runCmd(mst_command)
 
@@ -387,7 +390,7 @@ if __name__ == "__main__":
             else:
                 mst_command = mst_command + " --previous-clustering " + \
                                 os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv")
-            if args.use_gpu:
+            if args.gpu_graph:
                 mst_command = mst_command + " --gpu-graph"
             runCmd(mst_command)
         
