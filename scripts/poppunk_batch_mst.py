@@ -317,7 +317,7 @@ if __name__ == "__main__":
                         args.assign_args
             # QC options
             if None not in args.length_range:
-                create_db_cmd += " --length-range " + str(length_range[0]) + " " + str(length_range[1])
+                create_db_cmd += " --length-range " + str(args.length_range[0]) + " " + str(args.length_range[1])
             elif args.length_sigma is not None:
                 create_db_cmd += " --length-sigma " + str(args.length_sigma)
             else:
