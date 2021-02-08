@@ -271,6 +271,7 @@ if __name__ == "__main__":
             create_db_cmd += " --upper-n " + str(args.upper_n)
         elif args.prop_n is not None:
             create_db_cmd += " --prop-n " + str(args.prop_n)
+        create_db_cmd += " --qc-filter " + args.qc_filter
         # GPU options
         if args.use_gpu:
             create_db_cmd += " --gpu-dist --deviceid " + str(args.deviceid)
@@ -327,6 +328,7 @@ if __name__ == "__main__":
                 create_db_cmd += " --prop-n " + str(args.prop_n)
             else:
                 create_db_cmd += " --prop-n 0.1" # default from __main__
+            create_db_cmd += " --qc-filter " + args.qc_filter
             # GPU options
             if args.use_gpu:
                 assign_cmd = assign_cmd + " --gpu-dist --deviceid " + str(args.deviceid)
