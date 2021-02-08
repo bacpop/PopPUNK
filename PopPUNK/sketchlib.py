@@ -215,7 +215,7 @@ def getSeqsInDb(dbname):
 
     return seqs
 
-def joinDBs(db1, db2, output):
+def joinDBs(db1, db2, output, update_random = None):
     """Join two sketch databases with the low-level HDF5 copy interface
 
     Args:
@@ -225,35 +225,62 @@ def joinDBs(db1, db2, output):
             Prefix for db2
         output (str)
             Prefix for joined output
+        update_random (dict)
+            Whether to re-calculate the random object. May contain
+            control arguments strand_preserved and threads (see :func:`addRandom`)
     """
-    join_name = output + "/" + os.path.basename(output) + ".h5"
+    join_prefix = output + "/" + os.path.basename(output)
     db1_name = db1 + "/" + os.path.basename(db1) + ".h5"
     db2_name = db2 + "/" + os.path.basename(db2) + ".h5"
 
     hdf1 = h5py.File(db1_name, 'r')
     hdf2 = h5py.File(db2_name, 'r')
-    hdf_join = h5py.File(join_name + ".tmp", 'w') # add .tmp in case join_name exists
+    hdf_join = h5py.File(join_prefix + ".tmp.h5", 'w') # add .tmp in case join_name exists
 
     # Can only copy into new group, so for second file these are appended one at a time
     try:
         hdf1.copy('sketches', hdf_join)
-        if 'random' in hdf1:
-            hdf1.copy('random', hdf_join)
+
         join_grp = hdf_join['sketches']
         read_grp = hdf2['sketches']
         for dataset in read_grp:
             join_grp.copy(read_grp[dataset], dataset)
+
+        # Clean up
+        hdf1.close()
+        hdf2.close()
+        hdf_join.close()
+
+        # Copy or update random matches
+        if 'random' in hdf1 and update_random is not None:
+            hdf1.copy('random', hdf_join)
+        elif update_random is not None:
+            threads = 1
+            strand_preserved = False
+            if isinstance(update_random, dict):
+                if "threads" in update_random:
+                    threads = update_random["threads"]
+                if "strand_preserved" in update_random:
+                    strand_preserved = update_random["strand_preserved"]
+
+            sequence_names = list(hdf_join['sketches'].keys())
+            kmer_size = hdf_join['sketches/' + sequence_names[0]].attrs['kmers']
+
+            if len(sequence_names) > 2:
+                sys.stderr.write("Updating random match chances")
+                pp_sketchlib.addRandom(join_prefix + ".tmp",
+                                       sequence_names,
+                                       kmer_size,
+                                       not strand_preserved,
+                                       threads)
 
     except RuntimeError as e:
         sys.stderr.write("ERROR: " + str(e) + "\n")
         sys.stderr.write("Joining sketches failed, try running without --update-db\n")
         sys.exit(1)
 
-    # Clean up
-    hdf1.close()
-    hdf2.close()
-    hdf_join.close()
-    os.rename(join_name + ".tmp", join_name)
+    # Rename results to correct location
+    os.rename(join_prefix + ".tmp.h5", join_prefix + ".h5")
 
 
 def removeFromDB(db_name, out_name, removeSeqs, full_names = False):
@@ -441,10 +468,10 @@ def addRandom(oPrefix, sequence_names, klist,
 
         hdf_in.close()
         pp_sketchlib.addRandom(dbname,
-                            sequence_names,
-                            klist,
-                            not strand_preserved,
-                            threads)
+                               sequence_names,
+                               klist,
+                               not strand_preserved,
+                               threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
