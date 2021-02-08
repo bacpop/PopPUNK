@@ -230,7 +230,8 @@ def assign_query(dbFuncs,
             sys.stderr.write("Updating reference database to " + output + "\n")
 
         # Update the network + ref list (everything)
-        joinDBs(ref_db, output, output)
+        joinDBs(ref_db, output, output,
+                {"threads": threads, "strand_preserved": strand_preserved})
         if model.type == 'lineage':
             genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
         else:
