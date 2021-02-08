@@ -65,6 +65,26 @@ def get_options():
     aGroup.add_argument('--assign-args', help="Other arguments to pass to poppunk_assign",
                                                 default = "")
 
+    # QC options
+    qcGroup = parser.add_argument_group('Quality control options for distances')
+    qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
+                                                ' (analyse data passing QC), or "continue" (analyse all data)',
+                                                default='stop', type = str, choices=['stop', 'prune', 'continue'])
+    qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
+                                                'separate database [default = False]', default=False, action='store_true')
+    qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
+                                                default = 0.5, type = float)
+    qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
+                                                'which sequences will be excluded [default = 5]', default = None, type = int)
+    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
+                                                '[two values needed - lower and upper bounds]', default=[None,None],
+                                                type = int, nargs = 2)
+    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
+                                                ' [default = 0.1]', default = None,
+                                                type = float)
+    qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
+                                                default=None, type = int)
+
     # Executable options
     eGroup = parser.add_argument_group('Executable locations')
     eGroup.add_argument('--poppunk-exe', help="Location of poppunk executable. Use "
@@ -242,6 +262,16 @@ if __name__ == "__main__":
                                 args.db_args + " --threads " + \
                                 str(args.threads) + " " + \
                                 args.db_args
+        # QC options
+        if None not in args.length_range:
+            create_db_cmd += " --length-range " + str(length_range[0]) + " " + str(length_range[1])
+        elif args.length_sigma is not None:
+            create_db_cmd += " --length-sigma " + str(args.length_sigma)
+        if args.upper_n is not None:
+            create_db_cmd += " --upper-n " + str(args.upper_n)
+        elif args.prop_n is not None:
+            create_db_cmd += " --prop-n " + str(args.prop_n)
+        # GPU options
         if args.use_gpu:
             create_db_cmd += " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
         runCmd(create_db_cmd)
@@ -265,6 +295,7 @@ if __name__ == "__main__":
                             " --threads " + str(args.threads) + \
                             " --previous-clustering " + wd + \
                             "/" + os.path.basename(wd) + "_lineages.csv"
+            # GPU options
             if args.use_gpu:
                 mst_command = mst_command + " --gpu-graph"
             runCmd(mst_command)
@@ -283,6 +314,20 @@ if __name__ == "__main__":
                         " --model-dir " + prev_wd + " --output " + batch_wd + \
                         " --threads " + str(args.threads) + " --update-db " + \
                         args.assign_args
+            # QC options
+            if None not in args.length_range:
+                create_db_cmd += " --length-range " + str(length_range[0]) + " " + str(length_range[1])
+            elif args.length_sigma is not None:
+                create_db_cmd += " --length-sigma " + str(args.length_sigma)
+            else:
+                create_db_cmd += " --length-sigma 5" # default from __main__
+            if args.upper_n is not None:
+                create_db_cmd += " --upper-n " + str(args.upper_n)
+            elif args.prop_n is not None:
+                create_db_cmd += " --prop-n " + str(args.prop_n)
+            else:
+                create_db_cmd += " --prop-n 0.1" # default from __main__
+            # GPU options
             if args.use_gpu:
                 assign_cmd = assign_cmd + " --gpu-sketch --gpu-dist --deviceid " + str(args.deviceid)
             runCmd(assign_cmd)

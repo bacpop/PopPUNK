@@ -335,9 +335,24 @@ def get_options():
                                 'k-mers [default = use canonical k-mers]')
 
     # qc options
-    qcGroup = parser.add_argument_group('Quality control options')
+    qcGroup = parser.add_argument_group('Quality control options for distances')
+    qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
+                                                ' (analyse data passing QC), or "continue" (analyse all data)',
+                                                default='stop', type = str, choices=['stop', 'prune', 'continue'])
+    qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
+                                                'separate database [default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
+    qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
+                                                'which sequences will be excluded [default = 5]', default = None, type = int)
+    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
+                                                '[two values needed - lower and upper bounds]', default=[None,None],
+                                                type = int, nargs = 2)
+    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
+                                                ' [default = 0.1]', default = None,
+                                                type = float)
+    qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
+                                                default=None, type = int)
 
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
@@ -389,7 +404,34 @@ def main():
     from .utils import setupDBFuncs
 
     # Dict of QC options for passing to database construction and querying functions
-    qc_dict = {'run_qc': False }
+    if args.length_sigma is None and None in args.length_range and args.prop_n is None \
+        and args.upper_n is None:
+        qc_dict = {'run_qc': False }
+    else:
+        # define defaults if one QC parameter given
+        # length_sigma
+        if args.length_sigma is not None:
+            length_sigma = args.length_sigma
+        elif None in args.length_range:
+            length_sigma = 5 # default used in __main__
+        else:
+            length_sigma = None
+        # prop_n
+        if args.prop_n is not None:
+            prop_n = args.prop_n
+        elif args.upper_n is None:
+            prop_n = 0.1 # default used in __main__
+        else:
+            prop_n = None
+        qc_dict = {
+            'run_qc': True,
+            'qc_filter': args.qc_filter,
+            'retain_failures': args.retain_failures,
+            'length_sigma': length_sigma,
+            'length_range': args.length_range,
+            'prop_n': prop_n,
+            'upper_n': args.upper_n
+        }
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = setupDBFuncs(args, args.min_kmer_count, qc_dict)
