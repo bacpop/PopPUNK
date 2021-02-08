@@ -246,15 +246,8 @@ def joinDBs(db1, db2, output, update_random = None):
         for dataset in read_grp:
             join_grp.copy(read_grp[dataset], dataset)
 
-        # Clean up
-        hdf1.close()
-        hdf2.close()
-        hdf_join.close()
-
         # Copy or update random matches
-        if 'random' in hdf1 and update_random is not None:
-            hdf1.copy('random', hdf_join)
-        elif update_random is not None:
+        if update_random is not None:
             threads = 1
             strand_preserved = False
             if isinstance(update_random, dict):
@@ -266,6 +259,8 @@ def joinDBs(db1, db2, output, update_random = None):
             sequence_names = list(hdf_join['sketches'].keys())
             kmer_size = hdf_join['sketches/' + sequence_names[0]].attrs['kmers']
 
+            # Need to close before adding random
+            hdf_join.close()
             if len(sequence_names) > 2:
                 sys.stderr.write("Updating random match chances")
                 pp_sketchlib.addRandom(join_prefix + ".tmp",
@@ -273,6 +268,14 @@ def joinDBs(db1, db2, output, update_random = None):
                                        kmer_size,
                                        not strand_preserved,
                                        threads)
+        elif 'random' in hdf1:
+            hdf1.copy('random', hdf_join)
+
+        # Clean up
+        hdf1.close()
+        hdf2.close()
+        if update_random is None:
+            hdf_join.close()
 
     except RuntimeError as e:
         sys.stderr.write("ERROR: " + str(e) + "\n")
