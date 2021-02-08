@@ -320,18 +320,18 @@ if __name__ == "__main__":
                         args.assign_args
             # QC options
             if None not in args.length_range:
-                create_db_cmd += " --length-range " + str(args.length_range[0]) + " " + str(args.length_range[1])
+                assign_cmd += " --length-range " + str(args.length_range[0]) + " " + str(args.length_range[1])
             elif args.length_sigma is not None:
-                create_db_cmd += " --length-sigma " + str(args.length_sigma)
+                assign_cmd += " --length-sigma " + str(args.length_sigma)
             else:
-                create_db_cmd += " --length-sigma 5" # default from __main__
+                assign_cmd += " --length-sigma 5" # default from __main__
             if args.upper_n is not None:
                 create_db_cmd += " --upper-n " + str(args.upper_n)
             elif args.prop_n is not None:
-                create_db_cmd += " --prop-n " + str(args.prop_n)
+                assign_cmd += " --prop-n " + str(args.prop_n)
             else:
-                create_db_cmd += " --prop-n 0.1" # default from __main__
-            create_db_cmd += " --qc-filter " + args.qc_filter
+                assign_cmd += " --prop-n 0.1" # default from __main__
+            assign_cmd += " --qc-filter " + args.qc_filter
             # GPU options
             if args.gpu_dist:
                 assign_cmd = assign_cmd + " --gpu-dist --deviceid " + str(args.deviceid)
