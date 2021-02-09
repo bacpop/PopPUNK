@@ -369,12 +369,16 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     if edge_list:
         if weights is not None:
             for weight, (ref, query) in zip(weights, assignments):
-                connections.append((ref, query, weight))
+                # sparse matrix is symmetrical, avoid redundant loops
+                if ref < query:
+                    connections.append((ref, query, weight))
         else:
             connections = assignments
     elif sparse_input is not None:
         for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
-            connections.append((ref, query, weight))
+            # sparse matrix is symmetrical, avoid redundant loops
+            if ref < query:
+                connections.append((ref, query, weight))
     else:
         for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
                                                                  listDistInts(rlist, qlist,
@@ -399,14 +403,16 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                                                                 weights = True)
             for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
                 edge_tuple = (ref, query, weight)
-                connections.append(edge_tuple)
+                if ref < query:
+                    connections.append(edge_tuple)
         else:
             extra_sources, extra_targets = load_previous_network(prev_G,rlist,
                                                                                 weights = False)
             for (ref, query) in zip(extra_sources, extra_targets):
                 edge_tuple = (ref, query)
-                connections.append(edge_tuple)
-
+                if ref < query:
+                    connections.append(edge_tuple)
+                    
     # build the graph
     G = gt.Graph(directed = False)
     G.add_vertex(len(vertex_labels))
@@ -834,6 +840,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
         if "weight" in G.edge_properties:
             mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
             mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+            mst_network = gt.Graph(mst_network, prune = True)
         else:
             sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
             raise RuntimeError("MST passed unweighted graph")
