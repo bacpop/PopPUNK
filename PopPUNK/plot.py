@@ -522,7 +522,7 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
     # Write CSV of metadata
     if writeCsv:
         seqLabels = isolateNameToLabel(isolate_names)
-        writeClusterCsv(outPrefix + "/" + outPrefix + "_cytoscape.csv",
+        writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_cytoscape.csv",
                         isolate_names,
                         seqLabels,
                         clustering,
