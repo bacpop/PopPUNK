@@ -320,7 +320,7 @@ def generate_visualisations(query_db,
         if model.indiv_fitted:
             sys.stderr.write("Note: Individual (core/accessory) fits found, but "
                              "visualisation only supports combined boundary fit\n")
-        prev_clustering = os.path.dirname(model_file) + '/' + os.path.basename(model_file) + suffix
+        prev_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + suffix
     isolateClustering = readIsolateTypeFromCsv(prev_clustering,
                                                mode = mode,
                                                return_dict = True)
@@ -339,7 +339,7 @@ def generate_visualisations(query_db,
         if previous_query_clustering is not None:
             prev_query_clustering = previous_query_clustering
         else:
-            prev_query_clustering = os.path.dirname(query_db) + '/' + os.path.basename(query_db) + suffix
+            prev_query_clustering = os.path.basename(query_db) + '/' + os.path.basename(query_db) + suffix
 
         queryIsolateClustering = readIsolateTypeFromCsv(
                 prev_query_clustering,
