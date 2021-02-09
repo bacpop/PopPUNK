@@ -13,7 +13,7 @@ def get_options():
                                      prog='easy_run')
 
     # input options
-    parser.add_argument('--r-files', help='List of sequence names and files (as for --r-files')
+    parser.add_argument('--r-files', help='List of sequence names and files (as for --r-files)')
     parser.add_argument('--output', help='Prefix for output files')
 
     parser.add_argument('--analysis-args', help="Other arguments to pass to poppunk. e.g. "

@@ -53,18 +53,21 @@ def get_options():
                              'to clusters [default = reference database directory]',
                         type = str)
     iGroup.add_argument('--previous-clustering',
-                        help='Directory containing previous cluster definitions '
+                        help='File containing previous cluster definitions '
                              'and network [default = use that in the directory '
                              'containing the model]',
                         type = str)
     iGroup.add_argument('--previous-query-clustering',
-                        help='Directory containing previous cluster definitions '
+                        help='File containing previous cluster definitions '
                              'from poppunk_assign [default = use that in the directory '
-                             'containing the model]',
+                             'of the query database]',
                         type = str)
     iGroup.add_argument('--use-network',
                         help='Specify a directory containing a .gt file to use for any graph visualisations',
                         type = str)
+    iGroup.add_argument('--display-cluster',
+                        help='Column of clustering CSV to use for plotting',
+                        default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -153,7 +156,9 @@ def generate_visualisations(query_db,
                             mst_distances,
                             overwrite,
                             core_only,
-                            accessory_only):
+                            accessory_only,
+                            display_cluster,
+                            web):
 
     from .models import loadClusterFit
 
@@ -298,22 +303,25 @@ def generate_visualisations(query_db,
         sys.exit(1)
 
     # Load previous clusters
-    mode = "clusters"
-    suffix = "_clusters.csv"
-    if model.type == "lineage":
-        mode = "lineages"
-        suffix = "_lineages.csv"
-    if model.indiv_fitted:
-        sys.stderr.write("Note: Individual (core/accessory) fits found, but "
-                         "visualisation only supports combined boundary fit\n")
-
-    # Set directories of previous fit
     if previous_clustering is not None:
         prev_clustering = previous_clustering
+        mode = "clusters"
+        suffix = "_clusters.csv"
+        if prev_clustering.endswith('_lineages.csv'):
+            mode = "lineages"
+            suffix = "_lineages.csv"
     else:
-        prev_clustering = os.path.dirname(model_file)
-    cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + suffix
-    isolateClustering = readIsolateTypeFromCsv(cluster_file,
+        # Identify type of clustering based on model
+        mode = "clusters"
+        suffix = "_clusters.csv"
+        if model.type == "lineage":
+            mode = "lineages"
+            suffix = "_lineages.csv"
+        if model.indiv_fitted:
+            sys.stderr.write("Note: Individual (core/accessory) fits found, but "
+                             "visualisation only supports combined boundary fit\n")
+        prev_clustering = os.path.dirname(model_file) + '/' + os.path.basename(model_file) + suffix
+    isolateClustering = readIsolateTypeFromCsv(prev_clustering,
                                                mode = mode,
                                                return_dict = True)
 
@@ -329,12 +337,12 @@ def generate_visualisations(query_db,
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
-            prev_query_clustering = previous_query_clustering + '/' + os.path.basename(previous_query_clustering)
+            prev_query_clustering = previous_query_clustering
         else:
-            prev_query_clustering = query_db_loc
+            prev_query_clustering = os.path.dirname(query_db) + '/' + os.path.basename(query_db) + suffix
 
         queryIsolateClustering = readIsolateTypeFromCsv(
-                prev_query_clustering + suffix,
+                prev_query_clustering,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
@@ -360,7 +368,19 @@ def generate_visualisations(query_db,
                                  weights_type=mst_distances,
                                  summarise=False)
             mst_graph = generate_minimum_spanning_tree(G)
-            drawMST(mst_graph, output, isolateClustering, overwrite)
+            # Check selecting clustering type is in CSV
+            clustering_name = 'Cluster'
+            if display_cluster != None:
+                if display_cluster not in isolateClustering.keys():
+                    clustering_name = list(isolateClustering.keys())[0]
+                    sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
+                                     prev_clustering + '; instead using ' + clustering_name + '\n')
+                else:
+                    clustering_name = display_cluster
+            else:
+                clustering_name = list(isolateClustering.keys())[0]
+            # Draw MST
+            drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
             mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
         else:
             mst_tree = existing_tree
@@ -418,7 +438,12 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(graph_dir, model, rlist, False, core_only, accessory_only)
+        genomeNetwork, cluster_file = fetchNetwork(os.path.dirname(prev_clustering),
+                                                    model,
+                                                    rlist,
+                                                    False,
+                                                    core_only,
+                                                    accessory_only)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
@@ -455,7 +480,9 @@ def main():
                             args.mst_distances,
                             args.overwrite,
                             args.core_only,
-                            args.accessory_only)
+                            args.accessory_only,
+                            args.display_cluster,
+                            web = False)
 
 if __name__ == '__main__':
     main()

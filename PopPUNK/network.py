@@ -266,9 +266,50 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
+def load_previous_network(prev_G_fn, rlist, weights=False):
+    """Load previous network with graph-tool, extract the edges to match the
+    vertex order specified in rlist, and also return weights if specified.
+
+    Args:
+        prev_G_fn (str)
+            Path of file containing existing network.
+        rlist (list)
+            List of reference sequence labels in new network
+        weights (bool)
+            Whether to return edge weights
+            (default = False)
+
+    Returns:
+        source_ids (list)
+            Source nodes for each edge
+        target_ids (list)
+            Target nodes for each edge
+        edge_weights (list)
+            Weights for each new edge
+    """
+    # get list for translating node IDs to rlist
+    prev_G = gt.load_graph(prev_G_fn)
+    old_ids = prev_G.vp["id"]
+    old_id_indices = [rlist.index(x) for x in old_ids]
+    # get the source and target nods
+    source_old_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "source")
+    target_old_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "target")
+    # translate to indices
+    source_ids = [old_id_indices[x] for x in source_old_ids]
+    target_ids = [old_id_indices[x] for x in target_old_ids]
+    # convert to ndarray
+    # get the weights
+    if weights:
+        edge_weights = list(prev_G.ep['weight'])
+        # return values
+        return source_ids, target_ids, edge_weights
+    else:
+        return source_ids, target_ids
+
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
-                     weights_type = 'euclidean', sparse_input = None):
+                     weights_type = 'euclidean', sparse_input = None,
+                     previous_network = None):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -297,6 +338,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             accessory or euclidean distance
         sparse_input (numpy.array)
             Sparse distance matrix from lineage fit
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
 
     Returns:
         G (graph)
@@ -346,6 +390,21 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                     edge_tuple = (ref, query, dist)
                 else:
                     edge_tuple = (ref, query)
+                connections.append(edge_tuple)
+
+    # read previous graph
+    if previous_network is not None:
+        if weights is not None or sparse_input is not None:
+            extra_sources, extra_targets, extra_weights = load_previous_network(previous_network,rlist,
+                                                                                weights = True)
+            for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
+                edge_tuple = (ref, query, weight)
+                connections.append(edge_tuple)
+        else:
+            extra_sources, extra_targets = load_previous_network(prev_G,rlist,
+                                                                                weights = False)
+            for (ref, query) in zip(extra_sources, extra_targets):
+                edge_tuple = (ref, query)
                 connections.append(edge_tuple)
 
     # build the graph
