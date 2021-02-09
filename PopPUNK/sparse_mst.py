@@ -80,6 +80,9 @@ def main():
             if not self:
                 sys.stderr.write("This script must be run on a full all-v-all model\n")
                 sys.exit(1)
+    else:
+        sys.stderr.write("Cannot find file " + args.distance_pkl + "\n")
+        sys.exit(1)
 
     # Check output path ok
     if not os.path.isdir(args.output):
