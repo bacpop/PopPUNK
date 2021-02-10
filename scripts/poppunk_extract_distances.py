@@ -7,6 +7,7 @@ import sys, os
 import numpy as np
 import argparse
 import dendropy
+from scipy import sparse
 
 # command line parsing
 def get_options():
@@ -14,9 +15,17 @@ def get_options():
     parser = argparse.ArgumentParser(description='Extract tab-separated file of distances from pkl and npy files', prog='extract_distances')
 
     # input options
-    parser.add_argument('--distances', required=True, help='Prefix of input pickle and numpy file of pre-calculated distances (required)')
-    parser.add_argument('--tree', required=False, help='Newick file containing phylogeny of isolates', default = None)
-    parser.add_argument('--output', required=True, help='Name of output file')
+    parser.add_argument('--distances', help='Prefix of input pickle (and optionally,'
+    '  numpy file) of pre-calculated distances (required)',
+                                    required=True)
+    parser.add_argument('--sparse', help='Sparse distance matrix file name',
+                                    default = None,
+                                    required = False)
+    parser.add_argument('--tree', help='Newick file containing phylogeny of isolates',
+                                    required = False,
+                                    default = None)
+    parser.add_argument('--output', help='Name of output file',
+                                    required = True)
 
     return parser.parse_args()
 
@@ -71,7 +80,6 @@ if __name__ == "__main__":
     # open stored distances
     with open(args.distances + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
-    X = np.load(args.distances + ".npy")
 
     # get names order
     r_names = isolateNameToLabel(rlist)
@@ -91,14 +99,32 @@ if __name__ == "__main__":
             taxon_name = t.label.replace(' ','_')
             tip_index[r_names.index(taxon_name)] = t
 
+    # Load sparse matrix
+    if args.sparse is not None:
+        sparse_mat = sparse.load_npz(args.sparse)
+    else:
+        X = np.load(args.distances + ".npy")
+
     # open output file
     with open(args.output, 'w') as oFile:
-        oFile.write("\t".join(['Query', 'Reference', 'Core', 'Accessory']))
+        # Write header of output file
+        if args.sparse is not None:
+            oFile.write("\t".join(['Query', 'Reference', 'Core']))
+        else:
+            oFile.write("\t".join(['Query', 'Reference', 'Core', 'Accessory']))
         if args.tree is not None:
             oFile.write("\t" + 'Patristic')
         oFile.write("\n")
-        for i, (r_index, q_index) in enumerate(iterDistRows(r_names, q_names, r_names == q_names)):
-            oFile.write("\t".join([q_names[q_index], r_names[r_index], str(X[i,0]), str(X[i,1])]))
-            if args.tree is not None:
-                oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
-            oFile.write("\n")
+        # Write distances
+        if args.sparse is not None:
+            for (r_index, q_index, dist) in zip(sparse_mat.col, sparse_mat.row, sparse_mat.data):
+                oFile.write("\t".join([q_names[q_index], r_names[r_index], str(dist)]))
+                if args.tree is not None:
+                    oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
+                oFile.write("\n")
+        else:
+            for i, (r_name, q_name) in enumerate(iterDistRows(r_names, q_names, r_names == q_names)):
+                oFile.write("\t".join([q_name, r_name, str(X[i,0]), str(X[i,1])]))
+                if args.tree is not None:
+                    oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
+                oFile.write("\n")
