@@ -105,7 +105,9 @@ def get_options():
 def writeBatch(rlines, batches, batch_selected, use_names = False):
     tmpdir = ""
     if use_names:
-        tmpdir = "./pp_mst_" + batch_selected
+        tmpdir = "./pp_mst_" + str(batch_selected)
+        if os.path.exists(tmpdir):
+            shutil.rmtree(tmpdir)
         os.mkdir(tmpdir)
     else:
         tmpdir = tempfile.mkdtemp(prefix="pp_mst", dir="./")
@@ -399,6 +401,9 @@ if __name__ == "__main__":
                   os.path.join(args.output,os.path.basename(args.output) + ".dists.pkl"))
         os.rename(os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv"),
                   os.path.join(args.output,os.path.basename(args.output) + "_lineages.csv"))
+        for rank in ranks:
+            os.rename(os.path.join(output_dir,os.path.basename(output_dir) + "_rank" + str(rank) + "_fit.npz"),
+                      os.path.join(args.output,os.path.basename(args.output) + "_rank" + str(rank) + "_fit.npz"))
 
         # Merge with epidemiological data if requested
         if args.info_csv is not None:
@@ -414,10 +419,12 @@ if __name__ == "__main__":
     except:
         if args.keep_intermediates == False:
             for tmpdir in tmp_dirs:
-                shutil.rmtree(tmpdir)
+                try:
+                    shutil.rmtree(tmpdir)
+                except:
+                    sys.stderr.write("Unable to remove " + tmpdir + "\n")
         print("Unexpected error:", sys.exc_info()[0])
         raise
 
     if args.keep_intermediates == False:
-        shutil.rmtree(wd)
         shutil.rmtree(output_dir)
