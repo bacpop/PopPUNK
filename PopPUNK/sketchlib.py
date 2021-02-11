@@ -262,7 +262,7 @@ def joinDBs(db1, db2, output, update_random = None):
             # Need to close before adding random
             hdf_join.close()
             if len(sequence_names) > 2:
-                sys.stderr.write("Updating random match chances")
+                sys.stderr.write("Updating random match chances\n")
                 pp_sketchlib.addRandom(join_prefix + ".tmp",
                                        sequence_names,
                                        kmer_size,

@@ -342,43 +342,47 @@ def generate_visualisations(query_db,
     # Generate MST
     mst_tree = None
     mst_graph = None
-    if tree == 'mst' or tree == 'both':
-        existing_tree = None
-        if not overwrite:
-            existing_tree = load_tree(output, "MST", distances=mst_distances)
-        if existing_tree is None:
-            complete_distMat = \
-                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                           pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
-            # Dense network may be slow
-            sys.stderr.write("Generating MST from dense distances (may be slow)\n")
-            G = constructNetwork(combined_seq,
-                                 combined_seq,
-                                 np.zeros(complete_distMat.shape[0]),
-                                 0,
-                                 weights=complete_distMat,
-                                 weights_type=mst_distances,
-                                 summarise=False)
-            mst_graph = generate_minimum_spanning_tree(G)
-            drawMST(mst_graph, output, isolateClustering, overwrite)
-            mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
-        else:
-            mst_tree = existing_tree
-
-    # Generate NJ tree
     nj_tree = None
-    if tree == 'nj' or tree == 'both':
-        existing_tree = None
-        if not overwrite:
-            existing_tree = load_tree(output, "NJ")
-        if existing_tree is None:
-            nj_tree = generate_nj_tree(core_distMat,
-                                        combined_seq,
-                                        output,
-                                        rapidnj,
-                                        threads = threads)
-        else:
-            nj_tree = existing_tree
+    if len(combined_seq >= 3):
+        # MST tree
+        if tree == 'mst' or tree == 'both':
+            existing_tree = None
+            if not overwrite:
+                existing_tree = load_tree(output, "MST", distances=mst_distances)
+            if existing_tree is None:
+                complete_distMat = \
+                    np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                            pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+                # Dense network may be slow
+                sys.stderr.write("Generating MST from dense distances (may be slow)\n")
+                G = constructNetwork(combined_seq,
+                                    combined_seq,
+                                    np.zeros(complete_distMat.shape[0]),
+                                    0,
+                                    weights=complete_distMat,
+                                    weights_type=mst_distances,
+                                    summarise=False)
+                mst_graph = generate_minimum_spanning_tree(G)
+                drawMST(mst_graph, output, isolateClustering, overwrite)
+                mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
+            else:
+                mst_tree = existing_tree
+
+        # Generate NJ tree
+        if tree == 'nj' or tree == 'both':
+            existing_tree = None
+            if not overwrite:
+                existing_tree = load_tree(output, "NJ")
+            if existing_tree is None:
+                nj_tree = generate_nj_tree(core_distMat,
+                                            combined_seq,
+                                            output,
+                                            rapidnj,
+                                            threads = threads)
+            else:
+                nj_tree = existing_tree
+    else:
+        sys.stderr.write("Fewer than three sequences, not drawing trees\n")
 
     # Now have all the objects needed to generate selected visualisations
     if microreact:
