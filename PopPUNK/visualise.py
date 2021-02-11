@@ -343,7 +343,7 @@ def generate_visualisations(query_db,
     mst_tree = None
     mst_graph = None
     nj_tree = None
-    if len(combined_seq >= 3):
+    if len(combined_seq) >= 3:
         # MST tree
         if tree == 'mst' or tree == 'both':
             existing_tree = None
