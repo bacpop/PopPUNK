@@ -60,7 +60,6 @@ def assign_query(dbFuncs,
 
     from .prune_db import prune_distance_matrix
 
-    from .sketchlib import calculateQueryQueryDistances
     from .sketchlib import addRandom
 
     from .utils import storePickle
@@ -285,7 +284,7 @@ def assign_query(dbFuncs,
                 # ensure sketch and distMat order match
                 assert postpruning_combined_seq == refList + newQueries
     else:
-        storePickle(refList, qNames, False, qrDistMat, dists_out)
+        storePickle(rNames, qNames, False, qrDistMat, dists_out)
         if save_partial_query_graph:
             if model.type == 'lineage':
                 genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
