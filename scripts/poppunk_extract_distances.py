@@ -20,9 +20,11 @@ def get_options():
 
     return parser.parse_args()
 
-def iterDistRows(refSeqs, querySeqs, self=True):
+def listDistInts(refSeqs, querySeqs, self=True):
     """Gets the ref and query ID for each row of the distance matrix
+
     Returns an iterable with ref and query ID pairs by row.
+
     Args:
         refSeqs (list)
             List of reference sequence names.
@@ -36,15 +38,21 @@ def iterDistRows(refSeqs, querySeqs, self=True):
         ref, query (str, str)
             Iterable of tuples with ref and query names for each distMat row.
     """
+    num_ref = len(refSeqs)
+    num_query = len(querySeqs)
     if self:
-        assert refSeqs == querySeqs
-        for i, ref in enumerate(refSeqs):
-            for j in range(i + 1, len(refSeqs)):
-                yield(refSeqs[j], ref)
+        if refSeqs != querySeqs:
+            raise RuntimeError('refSeqs must equal querySeqs for db building (self = true)')
+        for i in range(num_ref):
+            for j in range(i + 1, num_ref):
+                yield(j, i)
     else:
-        for query in querySeqs:
-            for ref in refSeqs:
-                yield(ref, query)
+        comparisons = [(0,0)] * (len(refSeqs) * len(querySeqs))
+        for i in range(num_query):
+            for j in range(num_ref):
+                yield(j, i)
+
+        return comparisons
 
 def isolateNameToLabel(names):
     """Function to process isolate names to labels
@@ -97,7 +105,7 @@ if __name__ == "__main__":
         if args.tree is not None:
             oFile.write("\t" + 'Patristic')
         oFile.write("\n")
-        for i, (r_index, q_index) in enumerate(iterDistRows(r_names, q_names, r_names == q_names)):
+        for i, (r_index, q_index) in enumerate(listDistInts(r_names, q_names, r_names == q_names)):
             oFile.write("\t".join([q_names[q_index], r_names[r_index], str(X[i,0]), str(X[i,1])]))
             if args.tree is not None:
                 oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
