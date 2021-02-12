@@ -257,6 +257,11 @@ def assign_query(dbFuncs,
                        pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
         storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
+        # Copy model if needed
+        if output != model.outPrefix:
+            model.outPrefix = output
+            model.save()
+
         # Clique pruning
         if model.type != 'lineage':
             dbOrder = refList + qNames
