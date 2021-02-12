@@ -131,22 +131,22 @@ def assign_query(dbFuncs,
                                     codon_phased = codon_phased,
                                     calc_random = False)
     # run query
-    refList, queryList, qrDistMat = queryDatabase(rNames = rNames,
-                                                  qNames = qNames,
-                                                  dbPrefix = ref_db,
-                                                  queryPrefix = output,
-                                                  klist = kmers,
-                                                  self = False,
-                                                  number_plot_fits = plot_fit,
-                                                  threads = threads)
+    qrDistMat = queryDatabase(rNames = rNames,
+                              qNames = qNames,
+                              dbPrefix = ref_db,
+                              queryPrefix = output,
+                              klist = kmers,
+                              self = False,
+                              number_plot_fits = plot_fit,
+                              threads = threads)
     # QC distance matrix
-    qcPass = qcDistMat(qrDistMat, refList, queryList, max_a_dist)
+    qcPass = qcDistMat(qrDistMat, rNames, qNames, max_a_dist)
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
         fetchNetwork(prev_clustering,
                      model,
-                     refList,
+                     rNames,
                      ref_graph = use_ref_graph,
                      core_only = core_only,
                      accessory_only = accessory_only)
@@ -154,14 +154,14 @@ def assign_query(dbFuncs,
     if model.type == 'lineage':
         # Assign lineages by calculating query-query information
         addRandom(output, qNames, kmers, strand_preserved, overwrite, threads)
-        qlist1, qlist2, qqDistMat = queryDatabase(rNames = qNames,
-                                                  qNames = qNames,
-                                                  dbPrefix = output,
-                                                  queryPrefix = output,
-                                                  klist = kmers,
-                                                  self = True,
-                                                  number_plot_fits = 0,
-                                                  threads = threads)
+        qqDistMat = queryDatabase(rNames = qNames,
+                                  qNames = qNames,
+                                  dbPrefix = output,
+                                  queryPrefix = output,
+                                  klist = kmers,
+                                  self = True,
+                                  number_plot_fits = 0,
+                                  threads = threads)
         model.extend(qqDistMat, qrDistMat)
 
         genomeNetwork = {}
@@ -182,18 +182,18 @@ def assign_query(dbFuncs,
 
             isolateClustering[rank] = \
                 printClusters(genomeNetwork[rank],
-                              refList + queryList,
+                              rNames + qNames,
                               printCSV = False)
 
         overall_lineage = createOverallLineage(model.ranks, isolateClustering)
         writeClusterCsv(
             output + "/" + os.path.basename(output) + '_lineages.csv',
-            refList + queryList,
-            refList + queryList,
+            rNames + qNames,
+            rNames + qNames,
             overall_lineage,
             output_format = 'phandango',
             epiCsv = None,
-            queryNames = queryList,
+            queryNames = qNames,
             suffix = '_Lineage')
 
     else:
@@ -206,14 +206,14 @@ def assign_query(dbFuncs,
         else:
             weights = None
         qqDistMat = \
-            addQueryToNetwork(dbFuncs, refList, queryList,
+            addQueryToNetwork(dbFuncs, rNames, qNames,
                                 genomeNetwork, kmers,
                                 queryAssignments, model, output, update_db,
                                 strand_preserved,
                                 weights = weights, threads = threads)
 
         isolateClustering = \
-            {'combined': printClusters(genomeNetwork, refList + queryList,
+            {'combined': printClusters(genomeNetwork, rNames + qNames,
                                         output + "/" + os.path.basename(output),
                                         old_cluster_file,
                                         external_clustering,
@@ -248,9 +248,9 @@ def assign_query(dbFuncs,
 
         combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(refList, rrDistMat,
-                                    queryList, qrDistMat,
-                                    qqDistMat, threads = threads)
-        assert combined_seq == refList + queryList
+                                     qNames, qrDistMat,
+                                     qqDistMat, threads = threads)
+        assert combined_seq == refList + qNames
 
         # Get full distance matrix and save
         complete_distMat = \
@@ -260,12 +260,12 @@ def assign_query(dbFuncs,
 
         # Clique pruning
         if model.type != 'lineage':
-            dbOrder = refList + queryList
+            dbOrder = refList + qNames
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
                     extractReferences(genomeNetwork, dbOrder, output, refList, threads = threads)
             # intersection that maintains order
-            newQueries = [x for x in queryList if x in frozenset(newRepresentativesNames)]
+            newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
 
             # could also have newRepresentativesNames in this diff (should be the same) - but want
             # to ensure consistency with the network in case of bad input/bugs
@@ -280,12 +280,12 @@ def assign_query(dbFuncs,
                 genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
                 removeFromDB(output, output, names_to_remove)
                 os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                            output + "/" + os.path.basename(output) + ".refs.h5")
+                          output + "/" + os.path.basename(output) + ".refs.h5")
 
                 # ensure sketch and distMat order match
                 assert postpruning_combined_seq == refList + newQueries
     else:
-        storePickle(refList, queryList, False, qrDistMat, dists_out)
+        storePickle(refList, qNames, False, qrDistMat, dists_out)
         if save_partial_query_graph:
             if model.type == 'lineage':
                 genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')

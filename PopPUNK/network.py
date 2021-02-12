@@ -489,14 +489,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     if queryQuery:
         sys.stderr.write("Calculating all query-query distances\n")
         addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-        qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                                  qNames = qList,
-                                                  dbPrefix = queryDB,
-                                                  queryPrefix = queryDB,
-                                                  klist = kmers,
-                                                  self = True,
-                                                  number_plot_fits = 0,
-                                                  threads = threads)
+        qqDistMat = queryDatabase(rNames = qList,
+                                  qNames = qList,
+                                  dbPrefix = queryDB,
+                                  queryPrefix = queryDB,
+                                  klist = kmers,
+                                  self = True,
+                                  number_plot_fits = 0,
+                                  threads = threads)
 
         queryAssignation = model.assign(qqDistMat)
         for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
@@ -519,14 +519,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
             # use database construction methods to find links between unassigned queries
             addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-            qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
-                                                    qNames = list(unassigned),
-                                                    dbPrefix = queryDB,
-                                                    queryPrefix = queryDB,
-                                                    klist = kmers,
-                                                    self = True,
-                                                    number_plot_fits = 0,
-                                                    threads = threads)
+            qqDistMat = queryDatabase(rNames = list(unassigned),
+                                      qNames = list(unassigned),
+                                      dbPrefix = queryDB,
+                                      queryPrefix = queryDB,
+                                      klist = kmers,
+                                      self = True,
+                                      number_plot_fits = 0,
+                                      threads = threads)
 
             queryAssignation = model.assign(qqDistMat)
 
