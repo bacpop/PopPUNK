@@ -44,7 +44,7 @@ Visualisation after query assignment::
 
 Visualisation when sketches and models are in different folders::
 
-   poppunk_visualise --ref-db example_db --previous-clustering example_lineages \
+   poppunk_visualise --ref-db example_db --previous-clustering example_lineages/example_lineages_lineages.csv \
     --model-dir example_lineages --output example_viz --microreact
 
 Visualisation with a lineage model, which has been queried (query-query distances must be provided)::

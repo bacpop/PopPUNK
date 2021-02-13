@@ -119,6 +119,7 @@ setup(
     scripts=['scripts/poppunk_calculate_rand_indices.py',
              'scripts/poppunk_extract_components.py',
              'scripts/poppunk_calculate_silhouette.py',
+             'scripts/poppunk_batch_mst.py',
              'scripts/poppunk_extract_distances.py',
              'scripts/poppunk_add_weights.py',
              'scripts/poppunk_db_info.py',
