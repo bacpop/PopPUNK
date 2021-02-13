@@ -389,6 +389,9 @@ def readRfile(rFile, oneSeq=False):
                                  "Must contain sample name and file, tab separated\n")
                 sys.exit(1)
 
+            if "/" in rFields[0]:
+                sys.stderr.write("Sample names may not contain slashes\n")
+                sys.exit(1)
             names.append(rFields[0])
             sample_files = []
             for sequence in rFields[1:]:

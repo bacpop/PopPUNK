@@ -292,19 +292,19 @@ def main():
 
         rNames = seq_names
         qNames = seq_names
-        refList, queryList, distMat = queryDatabase(rNames = rNames,
-                                                    qNames = qNames,
-                                                    dbPrefix = args.output,
-                                                    queryPrefix = args.output,
-                                                    klist = kmers,
-                                                    self = True,
-                                                    number_plot_fits = args.plot_fit,
-                                                    threads = args.threads)
-        qcDistMat(distMat, refList, queryList, args.max_a_dist)
+        distMat = queryDatabase(rNames = rNames,
+                                qNames = qNames,
+                                dbPrefix = args.output,
+                                queryPrefix = args.output,
+                                klist = kmers,
+                                self = True,
+                                number_plot_fits = args.plot_fit,
+                                threads = args.threads)
+        qcDistMat(distMat, rNames, qNames, args.max_a_dist)
 
         # Save results
         dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-        storePickle(refList, queryList, True, distMat, dists_out)
+        storePickle(rNames, qNames, True, distMat, dists_out)
 
         # Plot results
         plot_scatter(distMat,
