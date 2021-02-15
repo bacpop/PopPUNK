@@ -61,8 +61,6 @@ def listDistInts(refSeqs, querySeqs, self=True):
             for j in range(num_ref):
                 yield(j, i)
 
-        return comparisons
-
 def isolateNameToLabel(names):
     """Function to process isolate names to labels
     appropriate for visualisation.
