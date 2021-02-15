@@ -330,7 +330,7 @@ def main():
             sys.stderr.write("Need to provide --ref-db where .h5 and .dists from "
                              "--create-db mode were output")
         if args.distances is None:
-            distances = os.path.basename(args.ref_db) + "/" + args.ref_db + ".dists"
+            distances = args.ref_db + "/" + os.path.basename(args.ref_db) + ".dists"
         else:
             distances = args.distances
         if args.output is None:

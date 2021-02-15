@@ -456,7 +456,7 @@ def main():
     setGtThreads(args.threads)
 
     if args.distances is None:
-        distances = os.path.basename(args.db) + "/" + args.db + ".dists"
+        distances = args.db + "/" + os.path.basename(args.db) + ".dists"
     else:
         distances = args.distances
 
