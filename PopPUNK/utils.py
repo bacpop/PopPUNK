@@ -413,6 +413,14 @@ def readRfile(rFile, oneSeq=False):
         sys.stderr.write("Non-unique names are " + ",".join(dupes) + "\n")
         sys.exit(1)
 
+    # Names are sorted on return
+    # We have had issues (though they should be fixed) with unordered input
+    # not matching the database. This should help simplify things
+    list_iterable = zip(names, sequences)
+    sorted_names = sorted(list_iterable)
+    tuples = zip(*sorted_names)
+    names, sequences = [list(tuple) for tuple in tuples]
+
     return (names, sequences)
 
 def isolateNameToLabel(names):
