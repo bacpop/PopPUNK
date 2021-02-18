@@ -358,6 +358,10 @@ def generate_visualisations(query_db,
             if not overwrite:
                 existing_tree = load_tree(output, "MST", distances=mst_distances)
             if existing_tree is None:
+                # Get a default clustering if none provided
+                if display_cluster is None:
+                    display_cluster = list(isolateClustering.keys())[0]
+                # Get distance matrix
                 complete_distMat = \
                     np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                             pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
@@ -371,7 +375,7 @@ def generate_visualisations(query_db,
                                     weights_type=mst_distances,
                                     summarise=False)
                 mst_graph = generate_minimum_spanning_tree(G)
-                drawMST(mst_graph, output, isolateClustering, overwrite)
+                drawMST(mst_graph, output, isolateClustering, display_cluster, overwrite)
                 mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
             else:
                 mst_tree = existing_tree
