@@ -13,7 +13,6 @@ import numpy as np
 from scipy import stats
 import h5py
 
-sys.path.insert(0, '/Users/jlees/Documents/Imperial/pp-sketchlib/build/lib.macosx-10.9-x86_64-3.8')
 import pp_sketchlib
 
 if os.environ.get("POPPUNK_PYTHON"):
