@@ -51,4 +51,24 @@ X1 = pp_sketchlib.queryDatabase(ref_db, ref_db, rlist2, rlist2, db_kmers,
 run_regression(X1[:, 0], X2[:, 0])
 run_regression(X1[:, 1], X2[:, 1])
 
+# Check that order is the same after doing 1 + 2 + 3 with --update-db, as doing all of 1 + 2 + 3 together
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile123.txt --output batch123 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite", shell=True, check=True)
 
+# Load updated distances
+X2 = np.load("batch3/batch3.dists.npy")
+with open("batch3/batch3.dists.pkl", 'rb') as pickle_file:
+    rlist3, qlist, self = pickle.load(pickle_file)
+
+# Get same distances from the full database
+ref_db = "batch123/batch123"
+ref_h5 = h5py.File(ref_db + ".h5", 'r')
+db_kmers = sorted(ref_h5['sketches/' + rlist3[0]].attrs['kmers'])
+ref_h5.close()
+X1 = pp_sketchlib.queryDatabase(ref_db, ref_db, rlist3, rlist3, db_kmers,
+                                True, False, 1, False, 0)
+
+# Check distances match
+run_regression(X1[:, 0], X2[:, 0])
+run_regression(X1[:, 1], X2[:, 1])

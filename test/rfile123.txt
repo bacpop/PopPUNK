@@ -1,0 +1,9 @@
+7	12673_8#24.contigs_velvet.fa
+1	12673_8#34.contigs_velvet.fa
+2	12673_8#43.contigs_velvet.fa
+6	12754_4#79.contigs_velvet.fa
+4	12754_4#85.contigs_velvet.fa
+5	12754_4#89.contigs_velvet.fa
+8	12754_5#73.contigs_velvet.fa
+3	12754_5#78.contigs_velvet.fa
+9	12754_5#71.contigs_velvet.fa
