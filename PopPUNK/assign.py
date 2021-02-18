@@ -248,14 +248,28 @@ def assign_query(dbFuncs,
         else:
             distanceFiles = distances
 
-        refList, refList_copy, self, rrDistMat = readPickle(distanceFiles,
-                                                            enforce_self = True)
+        # Load the previous distances
+        refList_loaded, refList_copy, self, rrDistMat = \
+            readPickle(distanceFiles,
+                       enforce_self = True)
+        # qrDistMat: order of ref labels is the same as in the database (usually
+        # ordered). Order in original rrDistMat is arbitrary, leading to an
+        # awkwardness here. We prefer to reorder the qrDistMat to match, as it is
+        # usually smaller and has a simpler layout in long form
+        # At the end, rNames is updated to match what has been loaded
+        if refList_loaded != rNames:
+            match_order = [rNames.index(i) for i in refList_loaded] * len(qNames)
+            for q_offset in range(len(qNames)):
+                for r_offset in range(len(rNames)):
+                    match_order[q_offset * len(rNames) + r_offset] += q_offset * len(rNames)
+            qrDistMat = qrDistMat[match_order, :]
+            rNames = refList_loaded
 
         combined_seq, core_distMat, acc_distMat = \
-            update_distance_matrices(refList, rrDistMat,
+            update_distance_matrices(rNames, rrDistMat,
                                      qNames, qrDistMat,
                                      qqDistMat, threads = threads)
-        assert combined_seq == refList + qNames
+        assert combined_seq == rNames + qNames
 
         # Get full distance matrix and save
         complete_distMat = \
@@ -270,10 +284,10 @@ def assign_query(dbFuncs,
 
         # Clique pruning
         if model.type != 'lineage':
-            dbOrder = refList + qNames
+            dbOrder = rNames + qNames
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
-                    extractReferences(genomeNetwork, dbOrder, output, refList, threads = threads)
+                    extractReferences(genomeNetwork, dbOrder, output, rNames, threads = threads)
             # intersection that maintains order
             newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
 
@@ -293,7 +307,7 @@ def assign_query(dbFuncs,
                           output + "/" + os.path.basename(output) + ".refs.h5")
 
                 # ensure sketch and distMat order match
-                assert postpruning_combined_seq == refList + newQueries
+                assert postpruning_combined_seq == rNames + newQueries
     else:
         storePickle(rNames, qNames, False, qrDistMat, dists_out)
         if save_partial_query_graph:

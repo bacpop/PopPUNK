@@ -280,31 +280,30 @@ def main():
 
         # generate sketches and QC sequences
         createDatabaseDir(args.output, kmers)
-        seq_names = constructDatabase(
-                        args.r_files,
-                        kmers,
-                        sketch_sizes,
-                        args.output,
-                        args.threads,
-                        args.overwrite,
-                        codon_phased = args.codon_phased,
-                        calc_random = True)
+        seq_names_passing = \
+            constructDatabase(
+                args.r_files,
+                kmers,
+                sketch_sizes,
+                args.output,
+                args.threads,
+                args.overwrite,
+                codon_phased = args.codon_phased,
+                calc_random = True)
 
-        rNames = seq_names
-        qNames = seq_names
-        distMat = queryDatabase(rNames = rNames,
-                                qNames = qNames,
+        distMat = queryDatabase(rNames = seq_names_passing,
+                                qNames = seq_names_passing,
                                 dbPrefix = args.output,
                                 queryPrefix = args.output,
                                 klist = kmers,
                                 self = True,
                                 number_plot_fits = args.plot_fit,
                                 threads = args.threads)
-        qcDistMat(distMat, rNames, qNames, args.max_a_dist)
+        qcDistMat(distMat, seq_names_passing, seq_names_passing, args.max_a_dist)
 
         # Save results
         dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-        storePickle(rNames, qNames, True, distMat, dists_out)
+        storePickle(seq_names_passing, seq_names_passing, True, distMat, dists_out)
 
         # Plot results
         plot_scatter(distMat,

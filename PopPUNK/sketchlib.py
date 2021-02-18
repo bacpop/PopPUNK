@@ -388,6 +388,10 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         deviceid (int)
             GPU device id
             (default = 0)
+    Returns:
+        names (list)
+            List of names included in the database (some may be pruned due
+            to QC)
     """
     # read file names
     names, sequences = readRfile(assemblyList)
@@ -417,6 +421,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     # QC sequences
     if qc_dict['run_qc']:
         filtered_names = sketchlibAssemblyQC(oPrefix,
+                                             names,
                                              klist,
                                              qc_dict,
                                              strand_preserved,
@@ -567,13 +572,15 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     return distMat
 
 
-def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
+def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
     Args:
         prefix (str)
             Prefix of output files
+        names (list)
+            Names of samples to QC
         klist (list)
             List of k-mer sizes to sketch
         qc_dict (dict)
@@ -605,10 +612,11 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
 
         # iterate through sketches
         for dataset in read_grp:
-            # test thresholds
-            remove = False
-            seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-            seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+            if dataset in names:
+                # test thresholds
+                remove = False
+                seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
+                seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
 
         # calculate thresholds
         # get mean length
@@ -692,6 +700,8 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
         del hdf_in['random']
     hdf_in.close()
 
+    # This gives back retained in the same order as names
+    retained = [x for x in names if x in frozenset(retained)]
     return retained
 
 def fitKmerCurve(pairwise, klist, jacobian):
