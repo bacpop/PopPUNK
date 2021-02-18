@@ -40,7 +40,10 @@ outputDirs = [
     "example_tsne",
     "example_prune",
     "example_refs",
-    "example_api"
+    "example_api",
+    "batch1",
+    "batch2",
+    "batch12"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)
