@@ -18,6 +18,7 @@ import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
+from tqdm import tqdm
 
 import pp_sketchlib
 import poppunk_refine
@@ -194,7 +195,7 @@ class BGMMFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 100000):
+    def __init__(self, outPrefix, max_samples = 10000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
@@ -316,7 +317,11 @@ class BGMMFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            y = assign_samples(X, self.weights, self.means, self.covariances, self.scale, values)
+            y = np.zeros(X.shape[0])
+            for chunk in tqdm(range(X.shape[0] // self.max_samples + 1)):
+                start = chunk * self.max_samples
+                end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
+                y[start:end] = assign_samples(X[start:end, :], self.weights, self.means, self.covariances, self.scale, values)
 
         return y
 
@@ -504,7 +509,11 @@ class DBSCANFit(ClusterFit):
                 scale = np.array([1, 1], dtype = X.dtype)
             else:
                 scale = self.scale
-            y = assign_samples_dbscan(X, self.hdb, scale)
+            y = np.zeros(X.shape[0])
+            for chunk in tqdm(range(X.shape[0] // self.max_samples + 1)):
+                start = chunk * self.max_samples
+                end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
+                y[start:end] = assign_samples_dbscan(X[start:end, :], self.hdb, scale)
 
         return y
 
