@@ -199,7 +199,7 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, a_max):
+def qcDistMat(distMat, refList, queryList, c_max, a_max):
     """Checks distance matrix for outliers. At the moment
     just a threshold for accessory distance
 
@@ -210,6 +210,8 @@ def qcDistMat(distMat, refList, queryList, a_max):
             Reference labels
         queryList (list)
             Query labels (or refList if self)
+        c_max (float)
+            Maximum core distance to allow
         a_max (float)
             Maximum accessory distance to allow
 
@@ -224,7 +226,7 @@ def qcDistMat(distMat, refList, queryList, a_max):
         passed = False
         names = iterDistRows(refList, queryList, refList == queryList)
         for i, (ref, query) in enumerate(names):
-            if distMat[i,1] > a_max:
+            if distMat[i,0] > c_max or distMat[i,1] > a_max:
                 sys.stderr.write("WARNING: Accessory outlier at a=" + str(distMat[i,1]) +
                                  " 1:" + ref + " 2:" + query + "\n")
 

@@ -94,6 +94,8 @@ def get_options():
                                                 'separate database [default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
+    qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
+                                                default = 0.5, type = float)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -299,7 +301,7 @@ def main():
                                 self = True,
                                 number_plot_fits = args.plot_fit,
                                 threads = args.threads)
-        qcDistMat(distMat, seq_names_passing, seq_names_passing, args.max_a_dist)
+        qcDistMat(distMat, seq_names_passing, seq_names_passing, args.max_pi_dist, args.max_a_dist)
 
         # Save results
         dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
@@ -353,7 +355,7 @@ def main():
 
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
-        if qcDistMat(distMat, refList, queryList, args.max_a_dist) == False \
+        if qcDistMat(distMat, refList, queryList, args.max_pi_dist, args.max_a_dist) == False \
                 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
