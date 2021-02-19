@@ -323,7 +323,7 @@ class BGMMFit(ClusterFit):
         else:
             if progress:
                 sys.stderr.write("Assigning distances with BGMM model\n")
-            y = np.zeros(X.shape[0])
+            y = np.zeros(X.shape[0], dtype=int)
             for chunk in tqdm(range((X.shape[0] - 1) // self.max_samples + 1), disable=(progress == False)):
                 start = chunk * self.max_samples
                 end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
@@ -521,7 +521,7 @@ class DBSCANFit(ClusterFit):
                 scale = self.scale
             if progress:
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
-            y = np.zeros(X.shape[0])
+            y = np.zeros(X.shape[0], dtype=int)
             for chunk in tqdm(range((X.shape[0] - 1) // self.max_samples + 1), disable=(progress == False)):
                 start = chunk * self.max_samples
                 end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
