@@ -222,12 +222,12 @@ def qcDistMat(distMat, refList, queryList, c_max, a_max):
     passed = True
 
     # First check with numpy, which is quicker than iterating over everything
-    if np.any(distMat[:,1] > a_max):
+    if np.any(distMat[:,1] > a_max) or np.any(distMat[:,0] > c_max):
         passed = False
         names = iterDistRows(refList, queryList, refList == queryList)
         for i, (ref, query) in enumerate(names):
             if distMat[i,0] > c_max or distMat[i,1] > a_max:
-                sys.stderr.write("WARNING: Accessory outlier at a=" + str(distMat[i,1]) +
+                sys.stderr.write("WARNING: Accessory outlier at c = " + str(distMat[i,0]) + " a = " + str(distMat[i,1]) +
                                  " 1:" + ref + " 2:" + query + "\n")
 
     return passed
