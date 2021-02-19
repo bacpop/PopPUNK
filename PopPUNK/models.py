@@ -302,7 +302,7 @@ class BGMMFit(ClusterFit):
         plot_contours(y, self.weights, self.means, self.covariances, title + " assignment boundary", outfile + "_contours")
 
 
-    def assign(self, X, values = False):
+    def assign(self, X, values = False, progress=True):
         '''Assign the clustering of new samples using :func:`~PopPUNK.bgmm.assign_samples`
 
         Args:
@@ -310,6 +310,10 @@ class BGMMFit(ClusterFit):
                 Core and accessory distances
             values (bool)
                 Return the responsibilities of assignment rather than most likely cluster
+            progress (bool)
+                Show progress bar
+
+                [default = True]
         Returns:
             y (numpy.array)
                 Cluster assignments or values by samples
@@ -317,8 +321,10 @@ class BGMMFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
+            if progress:
+                sys.stderr.write("Assigning distances with BGMM model\n")
             y = np.zeros(X.shape[0])
-            for chunk in tqdm(range(X.shape[0] // self.max_samples + 1)):
+            for chunk in tqdm(range((X.shape[0] - 1) // self.max_samples + 1), disable=(progress == False)):
                 start = chunk * self.max_samples
                 end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
                 y[start:end] = assign_samples(X[start:end, :], self.weights, self.means, self.covariances, self.scale, values)
@@ -394,7 +400,7 @@ class DBSCANFit(ClusterFit):
                     self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
                     self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
-                y = self.assign(self.subsampled_X, no_scale=True)
+                y = self.assign(self.subsampled_X, no_scale=True, progress=False)
                 self.within_label = findWithinLabel(self.cluster_means, y)
                 self.between_label = findBetweenLabel(y, self.within_label)
 
@@ -488,7 +494,7 @@ class DBSCANFit(ClusterFit):
                             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
-    def assign(self, X, no_scale = False):
+    def assign(self, X, no_scale = False, progress = True):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
@@ -498,6 +504,10 @@ class DBSCANFit(ClusterFit):
                 Do not scale X
 
                 [default = False]
+            progress (bool)
+                Show progress bar
+
+                [default = True]
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -509,8 +519,10 @@ class DBSCANFit(ClusterFit):
                 scale = np.array([1, 1], dtype = X.dtype)
             else:
                 scale = self.scale
+            if progress:
+                sys.stderr.write("Assigning distances with DBSCAN model\n")
             y = np.zeros(X.shape[0])
-            for chunk in tqdm(range(X.shape[0] // self.max_samples + 1)):
+            for chunk in tqdm(range((X.shape[0] - 1) // self.max_samples + 1), disable=(progress == False)):
                 start = chunk * self.max_samples
                 end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
                 y[start:end] = assign_samples_dbscan(X[start:end, :], self.hdb, scale)
