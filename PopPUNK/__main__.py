@@ -311,7 +311,7 @@ def main():
                                 args.reference_isolate)
         
         # prune based on distance from reference if provided
-        if args.reference_isolate is not None and args.qc_filter == "prune":
+        if args.reference_isolate is not None and len(names_to_remove) > 0 and args.qc_filter == "prune":
             # Remove sketches
             db_name = args.output + '/' + os.path.basename(args.output) + '.h5'
             filtered_db_name = args.output + '/' + 'filtered.' + os.path.basename(args.output) + '.h5'
