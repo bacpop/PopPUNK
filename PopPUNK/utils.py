@@ -199,7 +199,7 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate):
+def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate = None):
     """Checks distance matrix for outliers. At the moment
     just a threshold for accessory distance
 
