@@ -199,7 +199,7 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, c_max, a_max):
+def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate):
     """Checks distance matrix for outliers. At the moment
     just a threshold for accessory distance
 
@@ -214,12 +214,15 @@ def qcDistMat(distMat, refList, queryList, c_max, a_max):
             Maximum core distance to allow
         a_max (float)
             Maximum accessory distance to allow
+        ref_isolate (str)
+            Name of reference from which pruning can occur
 
     Returns:
         passed (bool)
             False if any samples failed
     """
     passed = True
+    to_prune = []
 
     # First check with numpy, which is quicker than iterating over everything
     if np.any(distMat[:,1] > a_max) or np.any(distMat[:,0] > c_max):
@@ -227,10 +230,18 @@ def qcDistMat(distMat, refList, queryList, c_max, a_max):
         names = iterDistRows(refList, queryList, refList == queryList)
         for i, (ref, query) in enumerate(names):
             if distMat[i,0] > c_max or distMat[i,1] > a_max:
-                sys.stderr.write("WARNING: Accessory outlier at c = " + str(distMat[i,0]) + " a = " + str(distMat[i,1]) +
+                sys.stderr.write("WARNING: Outlier at c = " + str(distMat[i,0]) + " a = " + str(distMat[i,1]) +
                                  " 1:" + ref + " 2:" + query + "\n")
+                if ref_isolate is not None:
+                    if ref == ref_isolate:
+                        to_prune.append(query)
+                    elif query == ref_isolate:
+                        to_prune.append(ref)
 
-    return passed
+    if ref_isolate is None:
+        return passed
+    else:
+        return to_prune
 
 
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):

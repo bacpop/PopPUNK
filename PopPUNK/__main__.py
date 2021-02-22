@@ -96,6 +96,8 @@ def get_options():
                                                 default = 0.5, type = float)
     qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
+    qcGroup.add_argument('--reference-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
+                                                default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -301,11 +303,35 @@ def main():
                                 self = True,
                                 number_plot_fits = args.plot_fit,
                                 threads = args.threads)
-        qcDistMat(distMat, seq_names_passing, seq_names_passing, args.max_pi_dist, args.max_a_dist)
-
-        # Save results
-        dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-        storePickle(seq_names_passing, seq_names_passing, True, distMat, dists_out)
+        names_to_remove = qcDistMat(distMat,
+                                seq_names_passing,
+                                seq_names_passing,
+                                args.max_pi_dist,
+                                args.max_a_dist,
+                                args.reference_isolate)
+        
+        # prune based on distance from reference if provided
+        if args.reference_isolate is not None and args.qc_filter == "prune":
+            # Remove sketches
+            db_name = args.output + '/' + os.path.basename(args.output) + '.h5'
+            filtered_db_name = args.output + '/' + 'filtered.' + os.path.basename(args.output) + '.h5'
+            removeFromDB(db_name,
+                         filtered_db_name,
+                         names_to_remove,
+                         full_names = True)
+            os.rename(filtered_db_name, db_name)
+            # Remove from distance matrix
+            prune_distance_matrix(seq_names_passing,
+                                    names_to_remove,
+                                    distMat,
+                                    args.output + "/" + os.path.basename(args.output) + ".dists")
+            # Remove from reflist
+            seq_names_passing = [seq_names_passing.remove(x) for x in names_to_remove]
+            sys.stderr.write("Successfully removed from the database: " + str(names_to_remove))
+        else:
+            # Save results
+            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
+            storePickle(seq_names_passing, seq_names_passing, True, distMat, dists_out)
 
         # Plot results
         plot_scatter(distMat,
