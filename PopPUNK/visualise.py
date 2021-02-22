@@ -95,7 +95,7 @@ def get_options():
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
     faGroup.add_argument('--tree', help='Type of tree to calculate [default = nj]', type=str, default='nj',
-        choices=['nj', 'mst', 'both'])
+        choices=['nj', 'mst', 'both', 'none'])
     faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree [default = core]', type=str,
         default='core', choices=accepted_weights_types)
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
