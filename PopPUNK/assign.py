@@ -144,7 +144,7 @@ def assign_query(dbFuncs,
                               number_plot_fits = plot_fit,
                               threads = threads)
     # QC distance matrix
-    qcPass = qcDistMat(qrDistMat, rNames, qNames, max_c_dist, max_a_dist, reference_isolate)
+    qcPass = qcDistMat(qrDistMat, rNames, qNames, max_pi_dist, max_a_dist, reference_isolate)
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
