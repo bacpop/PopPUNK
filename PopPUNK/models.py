@@ -324,10 +324,12 @@ class BGMMFit(ClusterFit):
             if progress:
                 sys.stderr.write("Assigning distances with BGMM model\n")
             y = np.zeros(X.shape[0], dtype=int)
-            for chunk in tqdm(range((X.shape[0] - 1) // self.max_samples + 1), disable=(progress == False)):
-                start = chunk * self.max_samples
-                end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
-                y[start:end] = assign_samples(X[start:end, :], self.weights, self.means, self.covariances, self.scale, values)
+            with tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False)) as pbar:
+                for chunk in range((X.shape[0] - 1) // self.max_samples + 1):
+                    start = chunk * self.max_samples
+                    end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
+                    y[start:end] = assign_samples(X[start:end, :], self.weights, self.means, self.covariances, self.scale, values)
+                    pbar.update(self.max_samples)
 
         return y
 
