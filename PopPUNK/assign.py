@@ -36,6 +36,8 @@ def assign_query(dbFuncs,
                  plot_fit,
                  graph_weights,
                  max_a_dist,
+                 max_pi_dist,
+                 reference_isolate,
                  model_dir,
                  strand_preserved,
                  previous_clustering,
@@ -142,7 +144,7 @@ def assign_query(dbFuncs,
                               number_plot_fits = plot_fit,
                               threads = threads)
     # QC distance matrix
-    qcPass = qcDistMat(qrDistMat, rNames, qNames, max_a_dist)
+    qcPass = qcDistMat(qrDistMat, rNames, qNames, max_c_dist, max_a_dist, reference_isolate)
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
@@ -368,6 +370,10 @@ def get_options():
                                                 'separate database [default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
+    qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
+                                                default = 0.5, type = float)
+    qcGroup.add_argument('--reference-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
+                                                default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = None, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -492,6 +498,8 @@ def main():
                  args.plot_fit,
                  args.graph_weights,
                  args.max_a_dist,
+                 args.max_pi_dist,
+                 args.reference_isolate,
                  args.model_dir,
                  args.strand_preserved,
                  args.previous_clustering,
