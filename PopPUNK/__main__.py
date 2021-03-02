@@ -346,6 +346,7 @@ def main():
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
                                    output)
+            model.set_threads(args.threads)
             sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
             if args.fit_model == "refine" and args.manual_start == None \
                 and model.type != 'bgmm' and model.type != 'dbscan':
@@ -369,27 +370,30 @@ def main():
             # Run DBSCAN model
             if args.fit_model == "dbscan":
                 model = DBSCANFit(output)
+                model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
                 model.plot()
             # Run Gaussian model
             elif args.fit_model == "bgmm":
                 model = BGMMFit(output)
+                model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.K)
                 model.plot(distMat, assignments)
             elif args.fit_model == "refine":
                 new_model = RefineFit(output)
+                model.set_threads(args.threads)
                 assignments = new_model.fit(distMat, refList, model,
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
                                             args.indiv_refine,
                                             args.unconstrained,
                                             args.score_idx,
-                                            args.no_local,
-                                            args.threads)
+                                            args.no_local)
                 new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "threshold":
                 new_model = RefineFit(output)
+                model.set_threads(args.threads)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
                 new_model.plot(distMat)
@@ -398,7 +402,8 @@ def main():
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
                 model = LineageFit(output, rank_list)
-                model.fit(distMat, args.use_accessory, args.threads)
+                model.set_threads(args.threads)
+                model.fit(distMat, args.use_accessory)
                 model.plot(distMat)
 
                 assignments = {}

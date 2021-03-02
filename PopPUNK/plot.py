@@ -344,7 +344,8 @@ def plot_contours(assignments, weights, means, covariances, title, out_prefix):
     xx, yy, xy = get_grid(0, 1, 100)
 
     # for likelihood boundary
-    z = assign_samples(xy, weights, means, covariances, np.array([1,1]), True)
+    z = np.zeros(xy.shape[0], dtype=int)
+    assign_samples(1, xy, z, weights, means, covariances, np.array([1,1]), xy.shape[0], True)
     z_diff = z[:,findWithinLabel(means, assignments, 0)] - z[:,findWithinLabel(means, assignments, 1)]
     z = z_diff.reshape(xx.shape).T
 

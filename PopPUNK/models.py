@@ -18,7 +18,18 @@ import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
+
+# Parallel support
 from tqdm import tqdm
+import collections
+from functools import partial
+try:
+    from multiprocessing import Pool, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 
 import pp_sketchlib
 import poppunk_refine
@@ -121,7 +132,10 @@ class ClusterFit:
         self.fitted = False
         self.indiv_fitted = False
         self.default_dtype = default_dtype
+        self.threads = 1
 
+    def set_threads(self, threads):
+      self.threads = threads
 
     def fit(self, X = None):
         '''Initial steps for all fit functions.
@@ -310,6 +324,8 @@ class BGMMFit(ClusterFit):
                 Core and accessory distances
             values (bool)
                 Return the responsibilities of assignment rather than most likely cluster
+            num_processes (int)
+                Number of threads to use
             progress (bool)
                 Show progress bar
 
@@ -324,12 +340,30 @@ class BGMMFit(ClusterFit):
             if progress:
                 sys.stderr.write("Assigning distances with BGMM model\n")
             y = np.zeros(X.shape[0], dtype=int)
-            with tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False)) as pbar:
-                for chunk in range((X.shape[0] - 1) // self.max_samples + 1):
-                    start = chunk * self.max_samples
-                    end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
-                    y[start:end] = assign_samples(X[start:end, :], self.weights, self.means, self.covariances, self.scale, values)
-                    pbar.update(self.max_samples)
+            with SharedMemoryManager() as smm:
+                shm_X = smm.SharedMemory(size = X.nbytes)
+                X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
+                X_shared_array[:] = X[:]
+                X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
+
+                shm_y = smm.SharedMemory(size = y.nbytes)
+                y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
+                y_shared_array[:] = y[:]
+                y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
+
+                with Pool(processes = self.threads) as pool, \
+                     tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False)) as pbar:
+                    pool.map_async(partial(assign_samples,
+                                            X_shared,
+                                            y_shared,
+                                            self.weights,
+                                            self.means,
+                                            self.covariances,
+                                            self.scale,
+                                            self.max_samples,
+                                            values),
+                                    range((X.shape[0] - 1) // self.max_samples + 1),
+                                    callback=pbar.update)
 
         return y
 
@@ -553,7 +587,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False, threads = 1):
+            unconstrained = False, score_idx = 0, no_local = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -590,10 +624,6 @@ class RefineFit(ClusterFit):
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
-            num_processes (int)
-                Number of threads to use in the global optimisation step.
-
-                (default = 1)
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -641,7 +671,7 @@ class RefineFit(ClusterFit):
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                     slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = threads)
+                    no_local = no_local, num_processes = self.threads)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -654,12 +684,12 @@ class RefineFit(ClusterFit):
                 start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 0, score_idx = score_idx, no_local = no_local,num_processes = threads)
+                            slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
                 # optimise accessory distance boundary
                 start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = threads)
+                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
@@ -779,7 +809,7 @@ class RefineFit(ClusterFit):
             "Refined fit boundary", self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
-    def assign(self, X, slope=None, cpus=1):
+    def assign(self, X, slope=None):
         '''Assign the clustering of new samples
 
         Args:
@@ -800,11 +830,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if slope == 2 or (slope == None and self.slope == 2):
-                y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, self.threads)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, self.threads)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, self.threads)
 
         return y
 
@@ -835,7 +865,7 @@ class LineageFit(ClusterFit):
                 self.ranks.append(int(rank))
 
 
-    def fit(self, X, accessory, threads):
+    def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
 
         Gets assignments by using nearest neigbours.
@@ -846,8 +876,6 @@ class LineageFit(ClusterFit):
                 preprocess is set.
             accessory (bool)
                 Use accessory rather than core distances
-            threads (int)
-                Number of threads to use
 
         Returns:
             y (numpy.array)
@@ -868,10 +896,10 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             row, col, data = \
                 pp_sketchlib.sparsifyDists(
-                    pp_sketchlib.longToSquare(X[:, [self.dist_col]], threads),
+                    pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
                     0,
                     rank,
-                    threads
+                    self.threads
                 )
             data = [epsilon if d < epsilon else d for d in data]
             self.nn_dists[rank] = coo_matrix((data, (row, col)),
@@ -964,7 +992,7 @@ class LineageFit(ClusterFit):
 
     def extend(self, qqDists, qrDists):
         # Reshape qq and qr dist matrices
-        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], 1)
+        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]
