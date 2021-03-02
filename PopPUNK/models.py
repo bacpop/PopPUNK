@@ -351,6 +351,7 @@ class BGMMFit(ClusterFit):
                 y_shared_array[:] = y[:]
                 y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
+                block_size = 100000
                 with Pool(processes = self.threads) as pool, \
                      tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False)) as pbar:
                     pool.map_async(partial(assign_samples,
@@ -360,9 +361,9 @@ class BGMMFit(ClusterFit):
                                             self.means,
                                             self.covariances,
                                             self.scale,
-                                            self.max_samples,
+                                            block_size,
                                             values),
-                                    range((X.shape[0] - 1) // self.max_samples + 1),
+                                    range((X.shape[0] - 1) // block_size + 1),
                                     callback=pbar.update)
 
         return y
