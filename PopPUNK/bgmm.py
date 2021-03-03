@@ -86,14 +86,17 @@ def assign_samples(chunk, X, y, weights, means, covars, scale, chunk_size, value
             An n-vector with the most likely cluster memberships
             or an n by k matrix with the component responsibilities for each sample.
     """
-    start = chunk * chunk_size
-    end = min((chunk + 1) * chunk_size, X.shape[0]) - 1
     if isinstance(X, NumpyShared):
         X_shm = shared_memory.SharedMemory(name = X.name)
         X = np.ndarray(X.shape, dtype = X.dtype, buffer = X_shm.buf)
     if isinstance(y, NumpyShared):
-        y_shm = shared_memory.SharedMemory(name = X.name)
+        y_shm = shared_memory.SharedMemory(name = y.name)
         y = np.ndarray(y.shape, dtype = y.dtype, buffer = y_shm.buf)
+
+    start = chunk * chunk_size
+    end = min((chunk + 1) * chunk_size, X.shape[0])
+    if start >= end:
+        raise RuntimeError("start >= end in BGMM assign")
 
     logprob, lpr = log_likelihood(X[start:end, :], weights, means, covars, scale)
     responsibilities = np.exp(lpr - logprob[:, np.newaxis])
@@ -105,7 +108,7 @@ def assign_samples(chunk, X, y, weights, means, covars, scale, chunk_size, value
     else:
         y[start:end, :] = responsibilities
 
-    return (end - start + 1)
+    return (end - start)
 
 
 def findWithinLabel(means, assignments, rank = 0):

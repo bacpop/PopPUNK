@@ -21,12 +21,11 @@ from scipy.sparse import coo_matrix, bmat, find
 
 # Parallel support
 from tqdm import tqdm
-import collections
 from functools import partial
 try:
     from multiprocessing import Pool, shared_memory
     from multiprocessing.managers import SharedMemoryManager
-    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+    from .bgmm import NumpyShared
 except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
@@ -61,6 +60,9 @@ epsilon = 1e-10
 # Format for rank fits
 def rankFile(rank):
     return('_rank' + str(rank) + '_fit.npz')
+
+def tqdm_callback(n, pbar):
+    pbar.update(sum(n))
 
 def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
     '''Call this to load a fitted model
@@ -300,7 +302,9 @@ class BGMMFit(ClusterFit):
         if not hasattr(self, 'subsampled_X'):
             self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
-        avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
+        y_subsample = self.assign(self.subsampled_X, values=True, progress=False)
+        avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
+                                                  y_subsample))
         used_components = np.unique(y).size
         sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                         "\tNumber of components used\t" + str(used_components)]) + "\n\n")
@@ -313,7 +317,7 @@ class BGMMFit(ClusterFit):
         outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
 
         plot_results(X, y, self.means, self.covariances, self.scale, title, outfile)
-        plot_contours(y, self.weights, self.means, self.covariances, title + " assignment boundary", outfile + "_contours")
+        plot_contours(self, y, title + " assignment boundary", outfile + "_contours")
 
 
     def assign(self, X, values = False, progress=True):
@@ -339,7 +343,12 @@ class BGMMFit(ClusterFit):
         else:
             if progress:
                 sys.stderr.write("Assigning distances with BGMM model\n")
-            y = np.zeros(X.shape[0], dtype=int)
+            if values:
+                y = np.zeros((X.shape[0], len(self.weights)), dtype=X.dtype)
+            else:
+                y = np.zeros(X.shape[0], dtype=int)
+
+            block_size = 100000
             with SharedMemoryManager() as smm:
                 shm_X = smm.SharedMemory(size = X.nbytes)
                 X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
@@ -351,22 +360,27 @@ class BGMMFit(ClusterFit):
                 y_shared_array[:] = y[:]
                 y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
-                block_size = 100000
-                with Pool(processes = self.threads) as pool, \
-                     tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False)) as pbar:
+                block_size = 1000
+                pbar = tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False))
+                tdqm_cb = partial(tqdm_callback, pbar = pbar)
+                with Pool(processes = self.threads) as pool:
                     pool.map_async(partial(assign_samples,
-                                            X_shared,
-                                            y_shared,
-                                            self.weights,
-                                            self.means,
-                                            self.covariances,
-                                            self.scale,
-                                            block_size,
-                                            values),
+                                           X = X_shared,
+                                           y = y_shared,
+                                           weights = self.weights,
+                                           means = self.means,
+                                           covars = self.covariances,
+                                           scale = self.scale,
+                                           chunk_size = block_size,
+                                           values = values),
                                     range((X.shape[0] - 1) // block_size + 1),
-                                    callback=pbar.update)
+                                    callback=tdqm_cb).wait()
+                y[:] = y_shared_array[:]
+                pbar.close()
 
         return y
+
+
 
 
 class DBSCANFit(ClusterFit):
