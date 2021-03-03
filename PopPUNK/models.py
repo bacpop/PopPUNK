@@ -18,14 +18,16 @@ import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
+import hdbscan
 
 # Parallel support
 from tqdm import tqdm
 from functools import partial
+import collections
 try:
     from multiprocessing import Pool, shared_memory
     from multiprocessing.managers import SharedMemoryManager
-    from .bgmm import NumpyShared
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
 except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
@@ -35,14 +37,13 @@ import poppunk_refine
 
 # BGMM
 from .bgmm import fit2dMultiGaussian
-from .bgmm import assign_samples
 from .bgmm import findWithinLabel
+from .bgmm import log_likelihood
 from .plot import plot_results
 from .plot import plot_contours
 
 # DBSCAN
 from .dbscan import fitDbScan
-from .dbscan import assign_samples_dbscan
 from .dbscan import findBetweenLabel
 from .dbscan import evaluate_dbscan_clusters
 from .plot import plot_dbscan_results
@@ -113,6 +114,65 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
     load_obj.load(fit_data, fit_object)
     sys.stderr.write("Completed model loading\n")
     return load_obj
+
+def assign_samples(chunk, X, y, model, scale, chunk_size, values = False):
+    """Runs a models assignment on a chunk of input
+
+    Args:
+        chunk (int)
+            Index of chunk to process
+        X (NumpyShared)
+            n x 2 array of core and accessory distances for n samples
+        y (NumpyShared)
+            An n-vector to store results, with the most likely cluster memberships
+            or an n by k matrix with the component responsibilities for each sample.
+        weights (numpy.array)
+            Component weights from :class:`~PopPUNK.models.BGMMFit`
+        means (numpy.array)
+            Component means from :class:`~PopPUNK.models.BGMMFit`
+        covars (numpy.array)
+            Component covariances from :class:`~PopPUNK.models.BGMMFit`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :class:`~PopPUNK.models.BGMMFit`
+        chunk_size (int)
+            Size of each chunk in X
+        values (bool)
+            Whether to return the responsibilities, rather than the most
+            likely assignment (used for entropy calculation).
+
+            Default is False
+    Returns:
+        processed (int)
+            An n-vector with the most likely cluster memberships
+            or an n by k matrix with the component responsibilities for each sample.
+    """
+    if isinstance(X, NumpyShared):
+        X_shm = shared_memory.SharedMemory(name = X.name)
+        X = np.ndarray(X.shape, dtype = X.dtype, buffer = X_shm.buf)
+    if isinstance(y, NumpyShared):
+        y_shm = shared_memory.SharedMemory(name = y.name)
+        y = np.ndarray(y.shape, dtype = y.dtype, buffer = y_shm.buf)
+
+    start = chunk * chunk_size
+    end = min((chunk + 1) * chunk_size, X.shape[0])
+    if start >= end:
+        raise RuntimeError("start >= end in BGMM assign")
+
+    if isinstance(model, BGMMFit):
+        logprob, lpr = log_likelihood(X[start:end, :], model.weights,
+                                      model.means, model.covariances, scale)
+        responsibilities = np.exp(lpr - logprob[:, np.newaxis])
+        # Default to return the most likely cluster
+        if values == False:
+            y[start:end] = responsibilities.argmax(axis=1)
+        # Can return the actual responsibilities
+        else:
+            y[start:end, :] = responsibilities
+    elif isinstance(model, DBSCANFit):
+        y[start:end] = hdbscan.approximate_predict(model.hdb, X[start:end, :]/scale)[0]
+
+    return (end - start)
+
 
 class ClusterFit:
     '''Parent class for all models used to cluster distances
@@ -343,11 +403,11 @@ class BGMMFit(ClusterFit):
         else:
             if progress:
                 sys.stderr.write("Assigning distances with BGMM model\n")
+
             if values:
                 y = np.zeros((X.shape[0], len(self.weights)), dtype=X.dtype)
             else:
                 y = np.zeros(X.shape[0], dtype=int)
-
             block_size = 100000
             with SharedMemoryManager() as smm:
                 shm_X = smm.SharedMemory(size = X.nbytes)
@@ -360,21 +420,19 @@ class BGMMFit(ClusterFit):
                 y_shared_array[:] = y[:]
                 y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
-                block_size = 1000
                 pbar = tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False))
                 tdqm_cb = partial(tqdm_callback, pbar = pbar)
                 with Pool(processes = self.threads) as pool:
                     pool.map_async(partial(assign_samples,
                                            X = X_shared,
                                            y = y_shared,
-                                           weights = self.weights,
-                                           means = self.means,
-                                           covars = self.covariances,
+                                           model = self,
                                            scale = self.scale,
                                            chunk_size = block_size,
                                            values = values),
                                     range((X.shape[0] - 1) // block_size + 1),
-                                    callback=tdqm_cb).wait()
+                                    callback=tdqm_cb,
+                                    error_callback=tdqm_cb).wait()
                 y[:] = y_shared_array[:]
                 pbar.close()
 
@@ -540,7 +598,7 @@ class DBSCANFit(ClusterFit):
         sys.stderr.write("\n")
 
         plot_dbscan_results(self.subsampled_X * self.scale,
-                            self.assign(self.subsampled_X, no_scale=True),
+                            self.assign(self.subsampled_X, no_scale=True, progress=False),
                             self.n_clusters,
                             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
@@ -572,11 +630,34 @@ class DBSCANFit(ClusterFit):
                 scale = self.scale
             if progress:
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
+
             y = np.zeros(X.shape[0], dtype=int)
-            for chunk in tqdm(range((X.shape[0] - 1) // self.max_samples + 1), disable=(progress == False)):
-                start = chunk * self.max_samples
-                end = min((chunk + 1) * self.max_samples, X.shape[0]) - 1
-                y[start:end] = assign_samples_dbscan(X[start:end, :], self.hdb, scale)
+            block_size = 100000
+            with SharedMemoryManager() as smm:
+                shm_X = smm.SharedMemory(size = X.nbytes)
+                X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
+                X_shared_array[:] = X[:]
+                X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
+
+                shm_y = smm.SharedMemory(size = y.nbytes)
+                y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
+                y_shared_array[:] = y[:]
+                y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
+
+                pbar = tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False))
+                tdqm_cb = partial(tqdm_callback, pbar = pbar)
+                with Pool(processes = self.threads) as pool:
+                    pool.map_async(partial(assign_samples,
+                                           X = X_shared,
+                                           y = y_shared,
+                                           model = self,
+                                           scale = scale,
+                                           chunk_size = block_size),
+                                    range((X.shape[0] - 1) // block_size + 1),
+                                    callback=tdqm_cb,
+                                    error_callback=tdqm_cb).wait()
+                y[:] = y_shared_array[:]
+                pbar.close()
 
         return y
 

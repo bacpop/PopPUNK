@@ -17,15 +17,6 @@ except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
 from sklearn import mixture
 
-import collections
-try:
-    from multiprocessing import shared_memory
-    from multiprocessing.managers import SharedMemoryManager
-    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
-except ImportError as e:
-    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
-    sys.exit(0)
-
 def fit2dMultiGaussian(X, dpgmm_max_K = 2):
     """Main function to fit BGMM model, called from :func:`~PopPUNK.models.BGMMFit.fit`
 
@@ -52,63 +43,6 @@ def fit2dMultiGaussian(X, dpgmm_max_K = 2):
                                                 mean_prior = np.array([0,0])).fit(X)
 
     return dpgmm
-
-
-def assign_samples(chunk, X, y, weights, means, covars, scale, chunk_size, values = False):
-    """Given distances and a fit will calculate responsibilities and return most
-    likely cluster assignment
-
-    Args:
-        chunk (int)
-            Index of chunk to process
-        X (NumpyShared)
-            n x 2 array of core and accessory distances for n samples
-        y (NumpyShared)
-            An n-vector to store results, with the most likely cluster memberships
-            or an n by k matrix with the component responsibilities for each sample.
-        weights (numpy.array)
-            Component weights from :class:`~PopPUNK.models.BGMMFit`
-        means (numpy.array)
-            Component means from :class:`~PopPUNK.models.BGMMFit`
-        covars (numpy.array)
-            Component covariances from :class:`~PopPUNK.models.BGMMFit`
-        scale (numpy.array)
-            Scaling of core and accessory distances from :class:`~PopPUNK.models.BGMMFit`
-        chunk_size (int)
-            Size of each chunk in X
-        values (bool)
-            Whether to return the responsibilities, rather than the most
-            likely assignment (used for entropy calculation).
-
-            Default is False
-    Returns:
-        processed (int)
-            An n-vector with the most likely cluster memberships
-            or an n by k matrix with the component responsibilities for each sample.
-    """
-    if isinstance(X, NumpyShared):
-        X_shm = shared_memory.SharedMemory(name = X.name)
-        X = np.ndarray(X.shape, dtype = X.dtype, buffer = X_shm.buf)
-    if isinstance(y, NumpyShared):
-        y_shm = shared_memory.SharedMemory(name = y.name)
-        y = np.ndarray(y.shape, dtype = y.dtype, buffer = y_shm.buf)
-
-    start = chunk * chunk_size
-    end = min((chunk + 1) * chunk_size, X.shape[0])
-    if start >= end:
-        raise RuntimeError("start >= end in BGMM assign")
-
-    logprob, lpr = log_likelihood(X[start:end, :], weights, means, covars, scale)
-    responsibilities = np.exp(lpr - logprob[:, np.newaxis])
-
-    # Default to return the most likely cluster
-    if values == False:
-        y[start:end] = responsibilities.argmax(axis=1)
-    # Can return the actual responsibilities
-    else:
-        y[start:end, :] = responsibilities
-
-    return (end - start)
 
 
 def findWithinLabel(means, assignments, rank = 0):

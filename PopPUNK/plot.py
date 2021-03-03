@@ -333,7 +333,6 @@ def plot_contours(model, assignments, title, out_prefix):
             Prefix for output plot file (.pdf will be appended)
     """
     # avoid recursive import
-    from .bgmm import assign_samples
     from .bgmm import log_likelihood
     from .bgmm import findWithinLabel
 

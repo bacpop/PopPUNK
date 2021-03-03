@@ -77,25 +77,6 @@ def evaluate_dbscan_clusters(model):
     # return distinctiveness
     return indistinct
 
-def assign_samples_dbscan(X, hdb, scale):
-    """Use a fitted dbscan model to assign new samples to a cluster
-
-    Args:
-        X (numpy.array)
-            N x 2 array of core and accessory distances
-        hdb (hdbscan.HDBSCAN)
-            Fitted DBSCAN from hdbscan package
-        scale (numpy.array)
-            Scale factor of model object
-
-    Returns:
-        y (numpy.array)
-            Cluster assignments by sample
-    """
-    y = hdbscan.approximate_predict(hdb, X/scale)[0]
-    return y
-
-
 def findBetweenLabel(assignments, within_cluster):
     """Identify between-strain links from a DBSCAN model
 
