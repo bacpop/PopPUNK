@@ -293,6 +293,7 @@ def generate_visualisations(query_db,
         model_file = model_prefix + "/" + os.path.basename(model_prefix)
         model = loadClusterFit(model_file + '_fit.pkl',
                                model_file + '_fit.npz')
+        model.set_threads(threads)
     except FileNotFoundError:
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
