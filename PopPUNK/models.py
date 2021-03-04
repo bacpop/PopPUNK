@@ -270,7 +270,7 @@ class BGMMFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 10000):
+    def __init__(self, outPrefix, max_samples = 50000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
@@ -644,7 +644,7 @@ class DBSCANFit(ClusterFit):
                             model = self,
                             scale = scale,
                             chunk_size = block_size,
-                            values = values),
+                            values = False),
                     range((X.shape[0] - 1) // block_size + 1),
                     max_workers=self.threads,
                     disable=(progress == False))
