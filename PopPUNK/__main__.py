@@ -393,7 +393,7 @@ def main():
                 model = new_model
             elif args.fit_model == "threshold":
                 new_model = RefineFit(output)
-                model.set_threads(args.threads)
+                new_model.set_threads(args.threads)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
                 new_model.plot(distMat)
