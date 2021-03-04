@@ -19,9 +19,11 @@ from scipy.spatial.distance import euclidean
 from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
 import hdbscan
+from time import sleep
 
 # Parallel support
 from tqdm import tqdm
+from tqdm.contrib.concurrent import thread_map
 from functools import partial
 import collections
 try:
@@ -61,9 +63,6 @@ epsilon = 1e-10
 # Format for rank fits
 def rankFile(rank):
     return('_rank' + str(rank) + '_fit.npz')
-
-def tqdm_callback(n, pbar):
-    pbar.update(sum(n))
 
 def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
     '''Call this to load a fitted model
@@ -141,10 +140,6 @@ def assign_samples(chunk, X, y, model, scale, chunk_size, values = False):
             likely assignment (used for entropy calculation).
 
             Default is False
-    Returns:
-        processed (int)
-            An n-vector with the most likely cluster memberships
-            or an n by k matrix with the component responsibilities for each sample.
     """
     if isinstance(X, NumpyShared):
         X_shm = shared_memory.SharedMemory(name = X.name)
@@ -170,8 +165,6 @@ def assign_samples(chunk, X, y, model, scale, chunk_size, values = False):
             y[start:end, :] = responsibilities
     elif isinstance(model, DBSCANFit):
         y[start:end] = hdbscan.approximate_predict(model.hdb, X[start:end, :]/scale)[0]
-
-    return (end - start)
 
 
 class ClusterFit:
@@ -420,10 +413,7 @@ class BGMMFit(ClusterFit):
                 y_shared_array[:] = y[:]
                 y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
-                pbar = tqdm(total=X.shape[0], unit="dists", unit_scale=True, disable=(progress == False))
-                tdqm_cb = partial(tqdm_callback, pbar = pbar)
-                with Pool(processes = self.threads) as pool:
-                    pool.map_async(partial(assign_samples,
+                thread_map(partial(assign_samples,
                                            X = X_shared,
                                            y = y_shared,
                                            model = self,
@@ -431,10 +421,10 @@ class BGMMFit(ClusterFit):
                                            chunk_size = block_size,
                                            values = values),
                                     range((X.shape[0] - 1) // block_size + 1),
-                                    callback=tdqm_cb,
-                                    error_callback=tdqm_cb).wait()
+                                    max_workers=self.threads,
+                                    disable=(progress == False))
+
                 y[:] = y_shared_array[:]
-                pbar.close()
 
         return y
 
