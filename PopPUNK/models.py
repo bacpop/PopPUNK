@@ -19,15 +19,14 @@ from scipy.spatial.distance import euclidean
 from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
 import hdbscan
-from time import sleep
 
 # Parallel support
 from tqdm import tqdm
-from tqdm.contrib.concurrent import thread_map
+from tqdm.contrib.concurrent import thread_map, process_map
 from functools import partial
 import collections
 try:
-    from multiprocessing import Pool, shared_memory
+    from multiprocessing import Pool, RLock, shared_memory
     from multiprocessing.managers import SharedMemoryManager
     NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
 except ImportError as e:
@@ -626,7 +625,8 @@ class DBSCANFit(ClusterFit):
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
 
             y = np.zeros(X.shape[0], dtype=int)
-            block_size = 100000
+            block_size = 5000
+            n_blocks = (X.shape[0] - 1) // block_size + 1
             with SharedMemoryManager() as smm:
                 shm_X = smm.SharedMemory(size = X.nbytes)
                 X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
@@ -638,15 +638,17 @@ class DBSCANFit(ClusterFit):
                 y_shared_array[:] = y[:]
                 y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
-                thread_map(partial(assign_samples,
+                tqdm.set_lock(RLock())
+                process_map(partial(assign_samples,
                             X = X_shared,
                             y = y_shared,
                             model = self,
                             scale = scale,
                             chunk_size = block_size,
                             values = False),
-                    range((X.shape[0] - 1) // block_size + 1),
+                    range(n_blocks),
                     max_workers=self.threads,
+                    chunksize=min(10, max(1, n_blocks // self.threads)),
                     disable=(progress == False))
 
                 y[:] = y_shared_array[:]
