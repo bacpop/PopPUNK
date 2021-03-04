@@ -37,6 +37,8 @@ except ImportError as e:
 import pp_sketchlib
 import poppunk_refine
 
+from .utils import set_env
+
 # BGMM
 from .bgmm import fit2dMultiGaussian
 from .bgmm import findWithinLabel
@@ -141,30 +143,34 @@ def assign_samples(chunk, X, y, model, scale, chunk_size, values = False):
 
             Default is False
     """
-    if isinstance(X, NumpyShared):
-        X_shm = shared_memory.SharedMemory(name = X.name)
-        X = np.ndarray(X.shape, dtype = X.dtype, buffer = X_shm.buf)
-    if isinstance(y, NumpyShared):
-        y_shm = shared_memory.SharedMemory(name = y.name)
-        y = np.ndarray(y.shape, dtype = y.dtype, buffer = y_shm.buf)
+    # Make sure this is run single threaded
+    with set_env(MKL_NUM_THREADS='1',
+                 NUMEXPR_NUM_THREADS='1',
+                 OMP_NUM_THREADS='1'):
+        if isinstance(X, NumpyShared):
+            X_shm = shared_memory.SharedMemory(name = X.name)
+            X = np.ndarray(X.shape, dtype = X.dtype, buffer = X_shm.buf)
+        if isinstance(y, NumpyShared):
+            y_shm = shared_memory.SharedMemory(name = y.name)
+            y = np.ndarray(y.shape, dtype = y.dtype, buffer = y_shm.buf)
 
-    start = chunk * chunk_size
-    end = min((chunk + 1) * chunk_size, X.shape[0])
-    if start >= end:
-        raise RuntimeError("start >= end in BGMM assign")
+        start = chunk * chunk_size
+        end = min((chunk + 1) * chunk_size, X.shape[0])
+        if start >= end:
+            raise RuntimeError("start >= end in BGMM assign")
 
-    if isinstance(model, BGMMFit):
-        logprob, lpr = log_likelihood(X[start:end, :], model.weights,
-                                      model.means, model.covariances, scale)
-        responsibilities = np.exp(lpr - logprob[:, np.newaxis])
-        # Default to return the most likely cluster
-        if values == False:
-            y[start:end] = responsibilities.argmax(axis=1)
-        # Can return the actual responsibilities
-        else:
-            y[start:end, :] = responsibilities
-    elif isinstance(model, DBSCANFit):
-        y[start:end] = hdbscan.approximate_predict(model.hdb, X[start:end, :]/scale)[0]
+        if isinstance(model, BGMMFit):
+            logprob, lpr = log_likelihood(X[start:end, :], model.weights,
+                                          model.means, model.covariances, scale)
+            responsibilities = np.exp(lpr - logprob[:, np.newaxis])
+            # Default to return the most likely cluster
+            if values == False:
+                y[start:end] = responsibilities.argmax(axis=1)
+            # Can return the actual responsibilities
+            else:
+                y[start:end, :] = responsibilities
+        elif isinstance(model, DBSCANFit):
+            y[start:end] = hdbscan.approximate_predict(model.hdb, X[start:end, :]/scale)[0]
 
 
 class ClusterFit:
@@ -427,8 +433,6 @@ class BGMMFit(ClusterFit):
                 y[:] = y_shared_array[:]
 
         return y
-
-
 
 
 class DBSCANFit(ClusterFit):

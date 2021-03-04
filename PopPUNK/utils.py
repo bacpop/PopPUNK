@@ -13,6 +13,7 @@ from collections import defaultdict
 from itertools import chain
 from tempfile import mkstemp
 from functools import partial
+import contextlib
 
 import numpy as np
 import pandas as pd
@@ -27,6 +28,25 @@ def setGtThreads(threads):
         gt.openmp_set_num_threads(threads)
         sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
         sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
+
+# thanks to Laurent LAPORTE on SO
+@contextlib.contextmanager
+def set_env(**environ):
+    """
+    Temporarily set the process environment variables.
+    >>> with set_env(PLUGINS_DIR=u'test/plugins'):
+    ...   "PLUGINS_DIR" in os.environ
+    True
+    >>> "PLUGINS_DIR" in os.environ
+    False
+    """
+    old_environ = dict(os.environ)
+    os.environ.update(environ)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(old_environ)
 
 # Use partials to set up slightly different function calls between
 # both possible backends
