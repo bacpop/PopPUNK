@@ -17,7 +17,6 @@ except ImportError:
     from scipy.misc import logsumexp as sp_logsumexp # noqa
 from sklearn import mixture
 
-
 def fit2dMultiGaussian(X, dpgmm_max_K = 2):
     """Main function to fit BGMM model, called from :func:`~PopPUNK.models.BGMMFit.fit`
 
@@ -44,44 +43,6 @@ def fit2dMultiGaussian(X, dpgmm_max_K = 2):
                                                 mean_prior = np.array([0,0])).fit(X)
 
     return dpgmm
-
-
-def assign_samples(X, weights, means, covars, scale, values = False):
-    """Given distances and a fit will calculate responsibilities and return most
-    likely cluster assignment
-
-    Args:
-        X (numpy.array)
-            n x 2 array of core and accessory distances for n samples
-        weights (numpy.array)
-            Component weights from :class:`~PopPUNK.models.BGMMFit`
-        means (numpy.array)
-            Component means from :class:`~PopPUNK.models.BGMMFit`
-        covars (numpy.array)
-            Component covariances from :class:`~PopPUNK.models.BGMMFit`
-        scale (numpy.array)
-            Scaling of core and accessory distances from :class:`~PopPUNK.models.BGMMFit`
-        values (bool)
-            Whether to return the responsibilities, rather than the most
-            likely assignment (used for entropy calculation).
-
-            Default is False
-    Returns:
-        ret_vec (numpy.array)
-            An n-vector with the most likely cluster memberships
-            or an n by k matrix with the component responsibilities for each sample.
-    """
-    logprob, lpr = log_likelihood(X, weights, means, covars, scale)
-    responsibilities = np.exp(lpr - logprob[:, np.newaxis])
-
-    # Default to return the most likely cluster
-    if values == False:
-        ret_vec = responsibilities.argmax(axis=1)
-    # Can return the actual responsibilities
-    else:
-        ret_vec = responsibilities
-
-    return ret_vec
 
 
 def findWithinLabel(means, assignments, rank = 0):

@@ -95,6 +95,7 @@ def assign_query(dbFuncs,
 
     model = loadClusterFit(model_file + '.pkl',
                            model_file + '.npz')
+    model.set_threads(threads)
 
     # Set directories of previous fit
     if previous_clustering is not None:

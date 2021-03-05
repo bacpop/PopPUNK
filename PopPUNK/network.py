@@ -487,26 +487,29 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
-        sys.stderr.write("Calculating all query-query distances\n")
-        addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-        qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                                  qNames = qList,
-                                                  dbPrefix = queryDB,
-                                                  queryPrefix = queryDB,
-                                                  klist = kmers,
-                                                  self = True,
-                                                  number_plot_fits = 0,
-                                                  threads = threads)
+        if len(qList) == 1:
+            qqDistMat = np.zeros((0, 2), dtype=np.float32)
+        else:
+            sys.stderr.write("Calculating all query-query distances\n")
+            addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
+            qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
+                                                      qNames = qList,
+                                                      dbPrefix = queryDB,
+                                                      queryPrefix = queryDB,
+                                                      klist = kmers,
+                                                      self = True,
+                                                      number_plot_fits = 0,
+                                                      threads = threads)
 
-        queryAssignation = model.assign(qqDistMat)
-        for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
-            if assignment == model.within_label:
-                if weights is not None:
-                    dist = np.linalg.norm(qqDistMat[row_idx, :])
-                    edge_tuple = (ref + ref_count, query + ref_count, dist)
-                else:
-                    edge_tuple = (ref + ref_count, query + ref_count)
-                new_edges.append(edge_tuple)
+            queryAssignation = model.assign(qqDistMat)
+            for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
+                if assignment == model.within_label:
+                    if weights is not None:
+                        dist = np.linalg.norm(qqDistMat[row_idx, :])
+                        edge_tuple = (ref + ref_count, query + ref_count, dist)
+                    else:
+                        edge_tuple = (ref + ref_count, query + ref_count)
+                    new_edges.append(edge_tuple)
 
     # Otherwise only calculate query-query distances for new clusters
     else:
