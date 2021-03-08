@@ -289,7 +289,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
             cluster_name = clustersCsv.columns[cls_idx]
             cluster_name = cluster_name.replace('__autocolour','')
             if return_dict:
-                clusters[cluster_name][row.Index] = str(row[cls_idx + 1])
+                clusters[cluster_name][str(row.Index)] = str(row[cls_idx + 1])
             else:
                 if cluster_name not in clusters.keys():
                     clusters[cluster_name] = defaultdict(set)
