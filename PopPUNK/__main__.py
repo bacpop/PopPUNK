@@ -155,6 +155,7 @@ def get_options():
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating networks [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
 
     other.add_argument('--version', action='version',
@@ -455,7 +456,7 @@ def main():
                                  queryList,
                                  assignments,
                                  model.within_label,
-                                 weights=weights)
+                                 weights = weights)
         else:
             # Lineage fit requires some iteration
             indivNetworks = {}
@@ -471,13 +472,15 @@ def main():
                                         refList,
                                         assignments[rank],
                                         0,
-                                        edge_list=True,
-                                        weights=weights
+                                        edge_list = True,
+                                        weights = weights,
+                                        use_gpu = args.gpu_graph
                                        )
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
                                   refList,
-                                  printCSV = False)
+                                  printCSV = False,
+                                  use_gpu = args.gpu_graph)
 
             # print output of each rank as CSV
             overall_lineage = createOverallLineage(rank_list, lineage_clusters)

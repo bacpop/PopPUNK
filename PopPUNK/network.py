@@ -309,7 +309,7 @@ def load_previous_network(prev_G_fn, rlist, weights=False):
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
-                     previous_network = None):
+                     previous_network = None, use_gpu = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -341,6 +341,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
+        use_gpu (bool)
+            Whether to use GPUs for network construction
 
     Returns:
         G (graph)
@@ -408,37 +410,66 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                 edge_tuple = (ref, query)
                 if ref < query:
                     connections.append(edge_tuple)
-                    
-    # build the graph
-    G = gt.Graph(directed = False)
-    G.add_vertex(len(vertex_labels))
 
-    if weights is not None or sparse_input is not None:
-        eweight = G.new_ep("float")
-        G.add_edge_list(connections, eprops = [eweight])
-        G.edge_properties["weight"] = eweight
+    # load GPU libraries if necessary
+    if use_gpu:
+        
+        # load CUDA libraries
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
+            
+        # create DataFrame using edge tuples
+        if weights is not None or sparse_input is not None:
+            connections_df = pd.DataFrame(connections, columns =['source', 'destination', 'weights'])
+        else:
+            connections_df = pd.DataFrame(connections, columns =['source', 'destination'])
+        G_df = cudf.DataFrame.from_pandas(connections_df)
+        
+        # construct graph
+        G_cu = cugraph.Graph()
+        if weights is not None or sparse_input is not None:
+            G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+        else:
+            G_cu.from_cudf_edgelist(G_df, renumber=False)
+        quit()
+        return G_cu
+
     else:
-        G.add_edge_list(connections)
 
-    # add isolate ID to network
-    vid = G.new_vertex_property('string',
-                                vals = vertex_labels)
-    G.vp.id = vid
+        # build the graph
+        G = gt.Graph(directed = False)
+        G.add_vertex(len(vertex_labels))
 
-    # print some summaries
-    if summarise:
-        (metrics, scores) = networkSummary(G)
-        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
-                                                       "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
-                                                       "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
-                                                       "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
-                                                       "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
-                                                       "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
-                                                       "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
-                                                       "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
-                                                       + "\n")
+        if weights is not None or sparse_input is not None:
+            eweight = G.new_ep("float")
+            G.add_edge_list(connections, eprops = [eweight])
+            G.edge_properties["weight"] = eweight
+        else:
+            G.add_edge_list(connections)
 
-    return G
+        # add isolate ID to network
+        vid = G.new_vertex_property('string',
+                                    vals = vertex_labels)
+        G.vp.id = vid
+
+        # print some summaries
+        if summarise:
+            (metrics, scores) = networkSummary(G)
+            sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
+                                                           "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
+                                                           "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
+                                                           "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
+                                                           "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
+                                                           "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
+                                                           "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
+                                                           "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
+                                                           + "\n")
+        quit()
+        return G
 
 def networkSummary(G, calc_betweenness=True):
     """Provides summary values about the network
@@ -621,7 +652,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                   externalClusterCSV = None, printRef = True, printCSV = True,
-                  clustering_type = 'combined'):
+                  clustering_type = 'combined', use_gpu = False):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -650,6 +681,8 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         clustering_type (str)
             Type of clustering network, used for comparison with old clusters
             Default = 'combined'
+        use_gpu (bool)
+            Whether to use cugraph for network analysis
 
     Returns:
         clustering (dict)
@@ -660,13 +693,23 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         raise RuntimeError("Trying to print query clusters with no query sequences")
 
     # get a sorted list of component assignments
-    component_assignments, component_frequencies = gt.label_components(G)
-    component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
-    newClusters = [set() for rank in range(len(component_frequency_ranks))]
-    for isolate_index, isolate_name in enumerate(rlist):
-        component = component_assignments.a[isolate_index]
-        component_rank = component_frequency_ranks[component]
-        newClusters[component_rank].add(isolate_name)
+    if use_gpu:
+        component_assignments = cugraph.components.connectivity.connected_components(G, directed = False)
+        component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
+        newClusters = [set() for rank in range(component_frequencies.size)]
+        for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
+            component = component_assignments[isolate_index]
+            component_rank = component_frequencies.index[component]
+            newClusters[component_rank].add(isolate_name)
+    else:
+        component_assignments, component_frequencies = gt.label_components(G)
+        component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
+        # use components to determine new clusters
+        newClusters = [set() for rank in range(len(component_frequency_ranks))]
+        for isolate_index, isolate_name in enumerate(rlist):
+            component = component_assignments.a[isolate_index]
+            component_rank = component_frequency_ranks[component]
+            newClusters[component_rank].add(isolate_name)
 
     oldNames = set()
 
