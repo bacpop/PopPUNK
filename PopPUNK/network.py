@@ -435,7 +435,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
             G_cu.from_cudf_edgelist(G_df, renumber=False)
-        quit()
+
         return G_cu
 
     else:
@@ -468,7 +468,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                                            "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
                                                            "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
                                                            + "\n")
-        quit()
+
         return G
 
 def networkSummary(G, calc_betweenness=True):
