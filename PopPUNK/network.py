@@ -703,7 +703,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             sys.stderr.write("cugraph and cudf unavailable\n")
             raise ImportError(e)
     
-        component_assignments = cugraph.components.connectivity.connected_components(G, directed = False)
+        component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
         for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
