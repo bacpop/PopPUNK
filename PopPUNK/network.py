@@ -374,9 +374,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             connections = assignments
     elif sparse_input is not None:
         for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
-            # sparse matrix is symmetrical, avoid redundant loops
-            if ref < query:
-                connections.append((ref, query, weight))
+            connections.append((ref, query, weight))
     else:
         for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
                                                                  listDistInts(rlist, qlist,
