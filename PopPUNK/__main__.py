@@ -506,7 +506,8 @@ def main():
         isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                      refList,
                                                      output + "/" + os.path.basename(output),
-                                                     externalClusterCSV = args.external_clustering)}
+                                                     externalClusterCSV = args.external_clustering,
+                                                     use_gpu = args.gpu_graph)}
 
         # Write core and accessory based clusters, if they worked
         if model.indiv_fitted:
