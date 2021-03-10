@@ -939,3 +939,25 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
 
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     return mst_network
+
+def get_vertex_list(G, use_gpu = False):
+    """Generate a list of node indices
+
+    Args:
+       G (network)
+           Graph tool network
+       use_gpu (bool)
+            Whether graph is a cugraph or not
+            [default = False]
+
+    Returns:
+       vlist (list)
+           List of integers corresponding to nodes
+    """
+    
+    if use_gpu:
+        vlist = G.nodes().tolist()
+    else:
+        vlist = list(G.vertices())
+    
+    return vlist
