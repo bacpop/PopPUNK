@@ -196,6 +196,7 @@ def main():
     from .network import extractReferences
     from .network import printClusters
     from .network import get_vertex_list
+    from .network import save_network
 
     from .plot import writeClusterCsv
     from .plot import plot_scatter
