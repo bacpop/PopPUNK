@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 from sklearn.metrics import adjusted_rand_score
-from sklearn.metrics.cluster.supervised import check_clusterings
-from sklearn.metrics.cluster.supervised import contingency_matrix
+from sklearn.metrics.cluster._supervised import check_clusterings
+from sklearn.metrics.cluster import contingency_matrix
 from scipy.special import comb
 
 #############
