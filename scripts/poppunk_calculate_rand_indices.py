@@ -124,12 +124,12 @@ if __name__ == "__main__":
                         for i,name in enumerate(names_list[input_y]):
                             if name in x_set:
                                 indices_y.append(i)
-                                indices_x.append(np.asscalar(np.where(names_list[input_x].values == name)[0]))
+                                indices_x.append(np.where(names_list[input_x].values == name)[0].item())
                     else:
                         for name in subset_seq:
                             if name in x_set:
-                                indices_y.append(np.asscalar(np.where(names_list[input_y].values == name)[0]))
-                                indices_x.append(np.asscalar(np.where(names_list[input_x].values == name)[0]))
+                                indices_y.append(np.where(names_list[input_y].values == name)[0].item())
+                                indices_x.append(np.where(names_list[input_x].values == name)[0].item())
                             else:
                                 sys.stderr.write("Cannot find " + name + " in both datasets")
 
