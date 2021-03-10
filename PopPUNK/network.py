@@ -707,7 +707,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
         for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
-            component = component_assignments[isolate_index]
+            component = component_assignments['labels'][isolate_index]
             component_rank = component_frequencies.index[component]
             newClusters[component_rank].add(isolate_name)
     else:
