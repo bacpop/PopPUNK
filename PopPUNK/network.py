@@ -961,3 +961,25 @@ def get_vertex_list(G, use_gpu = False):
         vlist = list(G.vertices())
     
     return vlist
+
+def save_network(G, prefix = None, suffix = None, use_gpu = False):
+    """Save a network to disc
+
+    Args:
+       G (network)
+           Graph tool network
+       prefix (str)
+           Prefix for output file
+       use_gpu (bool)
+           Whether graph is a cugraph or not
+           [default = False]
+
+    """
+    file_name = prefix + "/" + os.path.basename(prefix) + '_' + suffix
+    os.path.basename(prefix) + '_graph.csv.bz2'
+    if use_gpu:
+        G.to_pandas_edgelist().to_csv(file_name + '.csv.bz2',
+                compression='bz2')
+    else:
+        G.save(file_name + '.gt',
+                fmt = 'gt')

@@ -535,9 +535,7 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        genomeNetwork.save(output + "/" + \
-                           os.path.basename(output) + '_graph.gt',
-                           fmt = 'gt')
+        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
 
         #******************************#
         #*                            *#
@@ -557,9 +555,8 @@ def main():
                 prune_distance_matrix(refList, names_to_remove, distMat,
                                       output + "/" + os.path.basename(output) + ".refs.dists")
                 # Save reference network
-                genomeNetwork.save(output + "/" + \
-                                   os.path.basename(output) + '.refs_graph.gt',
-                                   fmt = 'gt')
+                save_network(genomeNetwork, prefix = output, suffix = ".refs_graph",
+                            use_gpu = args.gpu_graph)
                 removeFromDB(args.ref_db, output, names_to_remove)
                 os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
                           output + "/" + os.path.basename(output) + ".refs.h5")
