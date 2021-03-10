@@ -709,7 +709,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
             component = component_assignments['labels'][isolate_index]
             component_rank = component_frequencies.index[component]
-            newClusters[component_rank].add(isolate_name)
+            newClusters[component_rank.astype(int)].add(isolate_name)
     else:
         component_assignments, component_frequencies = gt.label_components(G)
         component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
