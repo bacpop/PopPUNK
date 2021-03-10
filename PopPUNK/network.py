@@ -956,7 +956,7 @@ def get_vertex_list(G, use_gpu = False):
     """
     
     if use_gpu:
-        vlist = G.nodes().to_arrow().to_pylist()
+        vlist = G.nodes().to_array().tolist()
     else:
         vlist = list(G.vertices())
     
