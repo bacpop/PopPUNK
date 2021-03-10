@@ -458,7 +458,8 @@ def main():
                                  queryList,
                                  assignments,
                                  model.within_label,
-                                 weights = weights)
+                                 weights = weights,
+                                 use_gpu = args.gpu_graph)
         else:
             # Lineage fit requires some iteration
             indivNetworks = {}
