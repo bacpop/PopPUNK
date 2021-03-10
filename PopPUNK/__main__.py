@@ -497,7 +497,7 @@ def main():
             genomeNetwork = indivNetworks[min(rank_list)]
 
         # Ensure all in dists are in final network
-        vertex_list = get_vertex_list(genomeNetwork, use_gpu = args.gpu_graph)
+        vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = args.gpu_graph))
         networkMissing = set(map(str,set(range(len(refList))).difference(vertex_list)))
         if len(networkMissing) > 0:
             missing_isolates = [refList[m] for m in networkMissing]
