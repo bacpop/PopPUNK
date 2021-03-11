@@ -430,8 +430,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         
         # ensure the highest-integer node is included in the edge list
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
-        max_in_df = G_df.max()
-        max_in_vertex_labels = len(vertex_labels)
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = len(vertex_labels)-1
         print("Max in DF is " + str(max_in_df))
         print("Max type is " + str(type(max_in_df)))
         print("Max in labels is " + str(max_in_vertex_labels))
