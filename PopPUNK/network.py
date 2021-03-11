@@ -184,7 +184,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         print("G type: " + str(type(G)))
         print("G nodes: " + str(G.number_of_nodes()))
         print("G edges: " + str(G.number_of_edges()))
-        G_truss = cugraph.ktruss_subgraph(G, 5)
+        G_truss = cugraph.louvain(G)
         print("Gtruss type: " + str(type(G_truss)))
         print("Gtruss nodes: " + str(G_truss.number_of_nodes()))
         print("Gtruss edges: " + str(G_truss.number_of_edges()))
