@@ -854,8 +854,8 @@ class RefineFit(ClusterFit):
         '''
         self.optimal_x = fit_npz['intercept'].item(0)
         self.optimal_y = fit_npz['intercept'].item(1)
-        self.core_boundary = fit_npz['core_acc_intercepts']item(0)
-        self.accessory_boundary = fit_npz['core_acc_intercepts']item(1)
+        self.core_boundary = fit_npz['core_acc_intercepts'].item(0)
+        self.accessory_boundary = fit_npz['core_acc_intercepts'].item(1)
         self.scale = fit_npz['scale']
         self.fitted = True
         if 'indiv_fitted' in fit_npz:
