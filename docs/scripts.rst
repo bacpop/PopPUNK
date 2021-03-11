@@ -38,14 +38,14 @@ contains :math:`\frac{1}{2}n*(n-1)` rows, which gives a multi Gb file for large 
 
 However, if needed, there is a script available to extract these distances as a text file::
 
-  python scripts/extract_distances.py --distances strain_db.dists --output strain_db.dists.out
+  poppunk_extract_distances.py --distances strain_db.dists --output strain_db.dists.out
 
 Writing network components to an output file
 --------------------------------------------
 Visualisation of large networks with cytoscape may become challenging. It is possible to extract
 individual components/clusters for visualisation as follows::
 
-  python scripts/extract_components.py strain_db_graph.gpickle strain_db
+  poppunk_extract_components.py strain_db_graph.gpickle strain_db
 
 Calculating Rand indices
 ------------------------
@@ -54,7 +54,7 @@ other. 0 indicates the clusterings are totally discordant, and 1 indicates they 
 
 Run::
 
-  python scripts/calculate_rand_indices.py --input poppunk_gmm_clusters.csv,poppunk_dbscan_cluster.csv
+  poppunk_calculate_rand_indices.py --input poppunk_gmm_clusters.csv,poppunk_dbscan_cluster.csv
 
 The script will calculate the `Rand index <https://en.wikipedia.org/wiki/Rand_index#Rand_index>`__
 and the `adjusted Rand index <https://en.wikipedia.org/wiki/Rand_index#Adjusted_Rand_index>`__
@@ -75,7 +75,7 @@ distances between the (normalised) core and accessory divergences calculated by 
 
 To run::
 
-  python scripts/calculate_silhouette.py --distances strain_db.dists --cluster-csv strain_db_clusters.csv
+  poppunk_calculate_silhouette.py --distances strain_db.dists --cluster-csv strain_db_clusters.csv
 
 The following additonal options are available for use with external clusterings (e.g. from hierBAPS):
 

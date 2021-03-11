@@ -338,8 +338,8 @@ class BGMMFit(ClusterFit):
         self.means = fit_npz['means']
         self.covariances = fit_npz['covariances']
         self.scale = fit_npz['scale']
-        self.within_label = np.asscalar(fit_npz['within'])
-        self.between_label = np.asscalar(fit_npz['between'])
+        self.within_label = fit_npz['within'].item()
+        self.between_label = fit_npz['between'].item()
         self.fitted = True
 
 
@@ -555,8 +555,8 @@ class DBSCANFit(ClusterFit):
         self.labels = self.hdb.labels_
         self.n_clusters = fit_npz['n_clusters']
         self.scale = fit_npz['scale']
-        self.within_label = np.asscalar(fit_npz['within'])
-        self.between_label = np.asscalar(fit_npz['between'])
+        self.within_label = fit_npz['within'].item()
+        self.between_label = fit_npz['between'].item()
         self.cluster_means = fit_npz['means']
         self.cluster_maxs = fit_npz['maxs']
         self.cluster_mins = fit_npz['mins']
@@ -852,10 +852,10 @@ class RefineFit(ClusterFit):
             fit_obj (None)
                 The saved fit object (not used)
         '''
-        self.optimal_x = np.asscalar(fit_npz['intercept'][0])
-        self.optimal_y = np.asscalar(fit_npz['intercept'][1])
-        self.core_boundary = np.asscalar(fit_npz['core_acc_intercepts'][0])
-        self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
+        self.optimal_x = fit_npz['intercept'].item(0)
+        self.optimal_y = fit_npz['intercept'].item(1)
+        self.core_boundary = fit_npz['core_acc_intercepts'].item(0)
+        self.accessory_boundary = fit_npz['core_acc_intercepts'].item(1)
         self.scale = fit_npz['scale']
         self.fitted = True
         if 'indiv_fitted' in fit_npz:
