@@ -428,13 +428,28 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         else:
             G_df = cudf.DataFrame(connections, columns =['source', 'destination'])
         
+        # ensure the highest-integer node is included in the edge list
+        # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
+        max_in_df = G_df.max()
+        max_in_vertex_labels = len(vertex_labels)
+        print("Max in DF is " + str(max_in_df))
+        print("Max in labels is " + str(max_in_vertex_labels))
+        if max_in_df.astype(int).item() != max_in_vertex_labels:
+            if weights is not None or sparse_input is not None:
+                self_loop_connection = (max_in_vertex_labels, max_in_vertex_labels, 0)
+                G_self_loop = cudf.DataFrame(self_loop_connection, columns =['source', 'destination', 'weights'])
+            else:
+                self_loop_connection = (max_in_vertex_labels, max_in_vertex_labels)
+                G_self_loop = cudf.DataFrame(self_loop_connection, columns =['source', 'destination'])
+            G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+        
         # construct graph
         G_cu = cugraph.Graph()
         if weights is not None or sparse_input is not None:
             G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
             G_cu.from_cudf_edgelist(G_df, renumber=False)
-        G_cu.add_nodes_from(range(len(vertex_labels))) # add any missing unconnected nodes
+
         return G_cu
 
     else:
