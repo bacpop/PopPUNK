@@ -183,7 +183,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         reference = {}
         G_truss = cugraph.ktruss_subgraph(G, 3)
         component_assignments = cugraph.components.connectivity.connected_components(G_truss)
-        raw_reference_indices = component_assignments.groupby('').nth(0).iloc[:0]
+        print("Assignments: " + str(component_assignments))
+        raw_reference_indices = component_assignments.groupby('labels').nth(0).iloc[:0]
         print("Raw type: " + str(type(raw_reference_indices)))
         print("Raw refs: " + str(raw_reference_indices))
         quit()
