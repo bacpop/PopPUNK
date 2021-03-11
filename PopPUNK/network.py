@@ -443,6 +443,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                 self_loop_connection = (max_in_vertex_labels, max_in_vertex_labels)
                 G_self_loop = cudf.DataFrame(self_loop_connection, columns =['source', 'destination'])
             G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+            new_max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+            print("New max in DF is " + str(new_max_in_df))
         
         # construct graph
         G_cu = cugraph.Graph()
