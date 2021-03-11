@@ -436,12 +436,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         print("Max type is " + str(type(max_in_df)))
         print("Max in labels is " + str(max_in_vertex_labels))
         if max_in_df.item() != max_in_vertex_labels:
+            G_self_loop = cudf.DataFrame()
+            G_self_loop['source'] = [max_in_vertex_labels]
+            G_self_loop['destination'] = [max_in_vertex_labels]
             if weights is not None or sparse_input is not None:
-                self_loop_connection = (max_in_vertex_labels, max_in_vertex_labels, 0.0)
-                G_self_loop = cudf.DataFrame(self_loop_connection, columns =['source', 'destination', 'weights'])
-            else:
-                self_loop_connection = (max_in_vertex_labels, max_in_vertex_labels)
-                G_self_loop = cudf.DataFrame(self_loop_connection, columns =['source', 'destination'])
+                G_self_loop['weights'] = [0.0]
             G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
             new_max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
             print("New max in DF is " + str(new_max_in_df))
