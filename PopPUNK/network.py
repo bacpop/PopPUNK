@@ -184,7 +184,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         print("G type: " + str(type(G)))
         print("G nodes: " + str(G.number_of_nodes()))
         print("G edges: " + str(G.number_of_edges()))
-        component_assignments = cugraph.leiden(G)
+        component_assignments, score = cugraph.leiden(G)
         print("Assignments: " + str(component_assignments))
         raw_reference_indices = component_assignments.groupby('labels').nth(0).iloc[:0]
         print("Raw type: " + str(type(raw_reference_indices)))
