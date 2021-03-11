@@ -138,7 +138,7 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
-def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
+def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, use_gpu = False):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -152,6 +152,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
                Prefix for output file (.refs will be appended)
            existingRefs (list)
                References that should be used for each clique
+           use_gpu (bool)
+               Use cugraph for graph analysis (default = False)
 
        Returns:
            refFileName (str)
@@ -167,83 +169,104 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
-    # Each component is independent, so can be multithreaded
-    components = gt.label_components(G)[0].a
+    if use_gpu:
 
-    # Turn gt threading off and on again either side of the parallel loop
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(1)
+        # load CUDA libraries
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
+    
+        # For large network, use more approximate method for extracting references
+        reference = {}
+        G_truss = cugraph.community.ktruss_subgraph.k_truss(G, 3)
+        component_assignments = cugraph.components.connectivity.connected_components(G_truss)
+        raw_reference_indices = component_assignments.groupby('').nth(0).iloc[:0]
+        print("Raw type: " + str(type(raw_reference_indices)))
+        print("Raw refs: " + str(raw_reference_indices))
+        quit()
+    
+    else:
 
-    # Cliques are pruned, taking one reference from each, until none remain
-    with Pool(processes=threads) as pool:
-        ref_lists = pool.map(partial(cliquePrune,
-                                        graph=G,
-                                        reference_indices=reference_indices,
-                                        components_list=components),
-                             set(components))
-    # Returns nested lists, which need to be flattened
-    reference_indices = set([entry for sublist in ref_lists for entry in sublist])
+        # Each component is independent, so can be multithreaded
+        components = gt.label_components(G)[0].a
 
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(threads)
+        # Turn gt threading off and on again either side of the parallel loop
+        if gt.openmp_enabled():
+            gt.openmp_set_num_threads(1)
 
-    # Use a vertex filter to extract the subgraph of refences
-    # as a graphview
-    reference_vertex = G.new_vertex_property('bool')
-    for n, vertex in enumerate(G.vertices()):
-        if n in reference_indices:
-            reference_vertex[vertex] = True
-        else:
-            reference_vertex[vertex] = False
-    G_ref = gt.GraphView(G, vfilt = reference_vertex)
-    G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
+        # Cliques are pruned, taking one reference from each, until none remain
+        with Pool(processes=threads) as pool:
+            ref_lists = pool.map(partial(cliquePrune,
+                                            graph=G,
+                                            reference_indices=reference_indices,
+                                            components_list=components),
+                                 set(components))
+        # Returns nested lists, which need to be flattened
+        reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
-    # Find any clusters which are represented by >1 references
-    # This creates a dictionary: cluster_id: set(ref_idx in cluster)
-    clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
-    reference_clusters_in_full_graph = defaultdict(set)
-    for reference_index in reference_indices:
-        reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
+        if gt.openmp_enabled():
+            gt.openmp_set_num_threads(threads)
 
-    # Calculate the component membership within the reference graph
-    ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
-    clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
-    # Record the components/clusters the references are in the reference graph
-    # dict: name: ref_cluster
-    reference_clusters_in_reference_graph = {}
-    for reference_name in ref_order:
-        reference_clusters_in_reference_graph[reference_name] = clusters_in_reference_graph[reference_name]
-
-    # Check if multi-reference components have been split as a validation test
-    # First iterate through clusters
-    network_update_required = False
-    for cluster_id, ref_idxs in reference_clusters_in_full_graph.items():
-        # Identify multi-reference clusters by this length
-        if len(ref_idxs) > 1:
-            check = list(ref_idxs)
-            # check if these are still in the same component in the reference graph
-            for i in range(len(check)):
-                component_i = reference_clusters_in_reference_graph[dbOrder[check[i]]]
-                for j in range(i + 1, len(check)):
-                    # Add intermediate nodes
-                    component_j = reference_clusters_in_reference_graph[dbOrder[check[j]]]
-                    if component_i != component_j:
-                        network_update_required = True
-                        vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
-                        # update reference list
-                        for vertex in vertex_list:
-                            reference_vertex[vertex] = True
-                            reference_indices.add(int(vertex))
-
-    # update reference graph if vertices have been added
-    if network_update_required:
+        # Use a vertex filter to extract the subgraph of refences
+        # as a graphview
+        reference_vertex = G.new_vertex_property('bool')
+        for n, vertex in enumerate(G.vertices()):
+            if n in reference_indices:
+                reference_vertex[vertex] = True
+            else:
+                reference_vertex[vertex] = False
         G_ref = gt.GraphView(G, vfilt = reference_vertex)
         G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
 
-    # Order found references as in mash sketch files
-    reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
-    refFileName = writeReferences(reference_names, outPrefix)
-    return reference_indices, reference_names, refFileName, G_ref
+        # Find any clusters which are represented by >1 references
+        # This creates a dictionary: cluster_id: set(ref_idx in cluster)
+        clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
+        reference_clusters_in_full_graph = defaultdict(set)
+        for reference_index in reference_indices:
+            reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
+
+        # Calculate the component membership within the reference graph
+        ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
+        clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
+        # Record the components/clusters the references are in the reference graph
+        # dict: name: ref_cluster
+        reference_clusters_in_reference_graph = {}
+        for reference_name in ref_order:
+            reference_clusters_in_reference_graph[reference_name] = clusters_in_reference_graph[reference_name]
+
+        # Check if multi-reference components have been split as a validation test
+        # First iterate through clusters
+        network_update_required = False
+        for cluster_id, ref_idxs in reference_clusters_in_full_graph.items():
+            # Identify multi-reference clusters by this length
+            if len(ref_idxs) > 1:
+                check = list(ref_idxs)
+                # check if these are still in the same component in the reference graph
+                for i in range(len(check)):
+                    component_i = reference_clusters_in_reference_graph[dbOrder[check[i]]]
+                    for j in range(i + 1, len(check)):
+                        # Add intermediate nodes
+                        component_j = reference_clusters_in_reference_graph[dbOrder[check[j]]]
+                        if component_i != component_j:
+                            network_update_required = True
+                            vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
+                            # update reference list
+                            for vertex in vertex_list:
+                                reference_vertex[vertex] = True
+                                reference_indices.add(int(vertex))
+
+        # update reference graph if vertices have been added
+        if network_update_required:
+            G_ref = gt.GraphView(G, vfilt = reference_vertex)
+            G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
+
+        # Order found references as in mash sketch files
+        reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
+        refFileName = writeReferences(reference_names, outPrefix)
+        return reference_indices, reference_names, refFileName, G_ref
 
 def writeReferences(refList, outPrefix):
     """Writes chosen references to file

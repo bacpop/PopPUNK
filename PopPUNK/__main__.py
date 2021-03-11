@@ -549,7 +549,11 @@ def main():
         # (this no longer loses information and should generally be kept on)
         if model.type != "lineage":
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork, refList, output, threads = args.threads)
+                extractReferences(genomeNetwork,
+                                    refList,
+                                    output,
+                                    threads = args.threads,
+                                    use_gpu = args.gpu_graph)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
 
