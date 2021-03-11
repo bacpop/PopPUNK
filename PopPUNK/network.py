@@ -182,12 +182,12 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # For large network, use more approximate method for extracting references
         reference = {}
         print("G type: " + str(type(G)))
-        print("G nodes: " + str(G.number_of_nodes())
-        print("G edges: " + str(G.number_of_edges())
+        print("G nodes: " + str(G.number_of_nodes()))
+        print("G edges: " + str(G.number_of_edges()))
         G_truss = cugraph.ktruss_subgraph(G, 5)
         print("Gtruss type: " + str(type(G_truss)))
-        print("Gtruss nodes: " + str(G_truss.number_of_nodes())
-        print("Gtruss edges: " + str(G_truss.number_of_edges())
+        print("Gtruss nodes: " + str(G_truss.number_of_nodes()))
+        print("Gtruss edges: " + str(G_truss.number_of_edges()))
         component_assignments = cugraph.components.connectivity.connected_components(G)
         print("Assignments: " + str(component_assignments))
         raw_reference_indices = component_assignments.groupby('labels').nth(0).iloc[:0]
