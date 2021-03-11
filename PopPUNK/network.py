@@ -424,10 +424,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             
         # create DataFrame using edge tuples
         if weights is not None or sparse_input is not None:
-            connections_df = pd.DataFrame(connections, columns =['source', 'destination', 'weights'])
+            connections_df = cudf.DataFrame(connections, columns =['source', 'destination', 'weights'])
         else:
-            connections_df = pd.DataFrame(connections, columns =['source', 'destination'])
-        G_df = cudf.DataFrame.from_pandas(connections_df)
+            connections_df = cudf.DataFrame(connections, columns =['source', 'destination'])
         
         # construct graph
         G_cu = cugraph.Graph()
