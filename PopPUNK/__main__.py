@@ -503,6 +503,7 @@ def main():
         if len(networkMissing) > 0:
             missing_isolates = [refList[m] for m in networkMissing]
             sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
+            sys.stderr.write("These correspond to indices " + ", ".join(networkMissing) + "\n")
 
         fit_type = model.type
         isolateClustering = {fit_type: printClusters(genomeNetwork,
