@@ -435,7 +435,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
             G_cu.from_cudf_edgelist(G_df, renumber=False)
-        G_cu.add_nodes_from(len(vertex_labels)) # add any missing unconnected nodes
+        G_cu.add_nodes_from(range(vertex_labels)) # add any missing unconnected nodes
         return G_cu
 
     else:
