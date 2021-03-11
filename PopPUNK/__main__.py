@@ -499,7 +499,7 @@ def main():
 
         # Ensure all in dists are in final network
         vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = args.gpu_graph))
-        networkMissing = set(map(str,set(range(len(refList))).difference(vertex_list)))
+        networkMissing = set(set(range(len(refList))).difference(vertex_list))
         if len(networkMissing) > 0:
             missing_isolates = [refList[m] for m in networkMissing]
             sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")

@@ -431,6 +431,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         
         # construct graph
         G_cu = cugraph.Graph()
+        G_cu.add_nodes_from(len(vertex_labels))
         if weights is not None or sparse_input is not None:
             G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
