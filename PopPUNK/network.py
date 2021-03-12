@@ -577,7 +577,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         components = len(component_frequencies)
         density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
         transitivity = gt.global_clustering(G)[0]
-        print("Triangle count CPU: " + str(gt.global_clustering(G)))
+        print("Triangle count CPU: " + str(gt.global_clustering(G, ret_counts = True)))
 
     mean_bt = 0
     weighted_mean_bt = 0
