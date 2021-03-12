@@ -847,8 +847,7 @@ class LineageFit(ClusterFit):
                 pp_sketchlib.sparsifyDists(
                     pp_sketchlib.longToSquare(X[:, [self.dist_col]], threads),
                     0,
-                    rank,
-                    threads
+                    rank
                 )
             data = [epsilon if d < epsilon else d for d in data]
             self.nn_dists[rank] = coo_matrix((data, (row, col)),

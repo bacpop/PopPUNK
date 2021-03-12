@@ -538,7 +538,7 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
+        save_network(genomeNetwork, prefix = output, suffix = "graph", use_gpu = args.gpu_graph)
 
         #******************************#
         #*                            *#

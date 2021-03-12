@@ -119,7 +119,12 @@ def assign_query(dbFuncs,
             for reference in refFile:
                 rNames.append(reference.rstrip())
     else:
-        rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
+        if os.path.isfile(distances + ",pkl"):
+            rNames = readPickle(distances, enforce_self = True, distances=False)[0]
+        elif update_db:
+            sys.stderr.write("Reference distances missing, cannot use --update-db\n")
+        else:
+            rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
     # construct database
     if (web and json_sketch):
         qNames = sketch_to_hdf5(json_sketch, output)
@@ -244,28 +249,13 @@ def assign_query(dbFuncs,
         else:
             genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
 
-        # Update distance matrices with all calculated distances
-        if distances == None:
-            distanceFiles = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-        else:
-            distanceFiles = distances
-
         # Load the previous distances
         refList_loaded, refList_copy, self, rrDistMat = \
-            readPickle(distanceFiles,
+            readPickle(distances,
                        enforce_self = True)
-        # qrDistMat: order of ref labels is the same as in the database (usually
-        # ordered). Order in original rrDistMat is arbitrary, leading to an
-        # awkwardness here. We prefer to reorder the qrDistMat to match, as it is
-        # usually smaller and has a simpler layout in long form
-        # At the end, rNames is updated to match what has been loaded
-        if refList_loaded != rNames:
-            match_order = [rNames.index(i) for i in refList_loaded] * len(qNames)
-            for q_offset in range(len(qNames)):
-                for r_offset in range(len(rNames)):
-                    match_order[q_offset * len(rNames) + r_offset] += q_offset * len(rNames)
-            qrDistMat = qrDistMat[match_order, :]
-            rNames = refList_loaded
+        # This should now always be true, otherwise both qrDistMat and sparse matrix
+        # may need reordering
+        assert(refList_loaded == rNames)
 
         combined_seq, core_distMat, acc_distMat = \
             update_distance_matrices(rNames, rrDistMat,

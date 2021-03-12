@@ -103,7 +103,7 @@ def storePickle(rlist, qlist, self, X, pklName):
     np.save(pklName + ".npy", X)
 
 
-def readPickle(pklName, enforce_self = False):
+def readPickle(pklName, enforce_self=False, distances=True):
     """Loads core and accessory distances saved by :func:`~storePickle`
 
     Called during ``--fit-model``
@@ -115,6 +115,10 @@ def readPickle(pklName, enforce_self = False):
             Error if self == False
 
             [default = True]
+        distances (bool)
+            Read the distance matrix
+
+            [default = Trie]
 
     Returns:
         rlist (list)
@@ -131,7 +135,10 @@ def readPickle(pklName, enforce_self = False):
         if enforce_self and not self:
             sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
             sys.stderr.exit(1)
-    X = np.load(pklName + ".npy")
+    if distances:
+        X = np.load(pklName + ".npy")
+    else:
+        X = None
     return rlist, qlist, self, X
 
 
@@ -432,7 +439,7 @@ def readRfile(rFile, oneSeq=False):
     list_iterable = zip(names, sequences)
     sorted_names = sorted(list_iterable)
     tuples = zip(*sorted_names)
-    names, sequences = [list(tuple) for tuple in tuples]
+    names, sequences = [list(r_tuple) for r_tuple in tuples]
 
     return (names, sequences)
 
