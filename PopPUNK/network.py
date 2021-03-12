@@ -33,6 +33,8 @@ from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
+from .unwords import gen_unword
+
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False):
     """Load the network based on input options
@@ -561,9 +563,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
     return qqDistMat
 
-def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True,
-                  clustering_type = 'combined'):
+def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
+                  externalClusterCSV=None, printRef=True, printCSV=True,
+                  clustering_type='combined', write_unwords=True):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -573,7 +575,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             Network used to define clusters (from :func:`~constructNetwork` or
             :func:`~addQueryToNetwork`)
         outPrefix (str)
-            Prefix for output CSV
+            Suffix for output CSV
             Default = "_clusters.csv"
         oldClusterFile (str)
             CSV with previous cluster assignments.
@@ -592,7 +594,9 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         clustering_type (str)
             Type of clustering network, used for comparison with old clusters
             Default = 'combined'
-
+        write_unwords (bool)
+            Write clusters with a pronouncable name rather than numbered name
+            Default = True
     Returns:
         clustering (dict)
             Dictionary of cluster assignments (keys are sequence names)
@@ -600,6 +604,8 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
     """
     if oldClusterFile == None and printRef == False:
         raise RuntimeError("Trying to print query clusters with no query sequences")
+    if write_unwords and not printCSV:
+        write_unwords = False
 
     # get a sorted list of component assignments
     component_assignments, component_frequencies = gt.label_components(G)
@@ -627,6 +633,9 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
     # Assign each cluster a name
     clustering = {}
     foundOldClusters = []
+    if write_unwords:
+        cluster_unword = {}
+        unword_generator = gen_unword()
 
     for newClsIdx, newCluster in enumerate(newClusters):
 
@@ -642,6 +651,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             if len(ref_only) == 0:
                 cls_id = str(new_id)    # harmonise data types; string flexibility helpful
                 new_id += 1
+                needs_unword = True
             else:
                 # Search through old cluster IDs to find a match
                 for oldClusterName, oldClusterMembers in oldClusters.items():
@@ -657,6 +667,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                         # Query has merged clusters
                         if len(join) < len(ref_only):
                             merge = True
+                            needs_unword = True
                             if cls_id == None:
                                 cls_id = oldClusterName
                             else:
@@ -675,15 +686,24 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         # Otherwise just number sequentially starting from 1
         else:
             cls_id = newClsIdx + 1
+            needs_unword = True
 
+        if write_unwords and needs_unword:
+            unword = next(unword_generator)
+        else:
+            unword = None
         for cluster_member in newCluster:
             clustering[cluster_member] = cls_id
+            cluster_unword[cluster_member] = unword
 
     # print clustering to file
     if printCSV:
         outFileName = outPrefix + "_clusters.csv"
         with open(outFileName, 'w') as cluster_file:
             cluster_file.write("Taxon,Cluster\n")
+            if write_unwords:
+                unword_file = open(outPrefix + "_unword_clusters.csv", 'w')
+                unword_file.write("Taxon,Cluster_name\n")
 
             # sort the clusters by frequency - define a list with a custom sort order
             # first line gives tuples e.g. (1, 28), (2, 17) - cluster 1 has 28 members, cluster 2 has 17 members
@@ -695,6 +715,11 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             for cluster_member, cluster_name in sorted(clustering.items(), key=lambda i:freq_order.index(i[1])):
                 if printRef or cluster_member not in oldNames:
                     cluster_file.write(",".join((cluster_member, str(cluster_name))) + "\n")
+                if write_unwords and cluster_member in cluster_unword:
+                    unword_file.write(",".join((cluster_member, cluster_unword[cluster_member])) + "\n")
+
+            if write_unwords:
+                unword_file.close()
 
         if externalClusterCSV is not None:
             printExternalClusters(newClusters, externalClusterCSV, outPrefix, oldNames, printRef)

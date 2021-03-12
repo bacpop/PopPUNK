@@ -1,1 +1,2 @@
 recursive-include scripts *.py
+recursive-include PopPUNK/data *.json *.txt
