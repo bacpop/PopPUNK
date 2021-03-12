@@ -189,7 +189,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = component_assignments.groupby('partition').nth(0)
         print("Raw type: " + str(type(reference_index_df)))
-        reference_indices = reference_index_df['vertex'].tolist()
+        reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
         print("Raw refs: " + str(reference_indices))
         quit()
     
