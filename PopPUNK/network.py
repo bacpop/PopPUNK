@@ -191,7 +191,18 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         print("Raw type: " + str(type(reference_index_df)))
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
         print("Raw refs: " + str(reference_indices))
-        quit()
+        
+        # Order found references as in mash sketch files
+        reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
+        print("Reference names: " + str(reference_names))
+        refFileName = writeReferences(reference_names, outPrefix)
+        
+        # Construct reference graph
+        G_df = G.view_edge_list()
+        G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
+        G_ref = cugraph.Graph()
+        G_ref.from_cudf_edgelist(G_ref_df, edge_attr='weights', renumber=False
+        return reference_indices, reference_names, refFileName, G_ref
     
     else:
 
