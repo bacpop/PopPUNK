@@ -494,14 +494,12 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                 G_self_loop['weights'] = [0.0]
             G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
             new_max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
-            print("New max in DF is " + str(new_max_in_df))
         
         # construct graph
         G_cu = cugraph.Graph()
         if weights is not None or sparse_input is not None:
             G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
-            print("Data frame is " + str(G_df))
             G_cu.from_cudf_edgelist(G_df, renumber=False)
 
         return G_cu
@@ -1043,8 +1041,7 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
            [default = False]
 
     """
-    file_name = prefix + "/" + os.path.basename(prefix) + '_' + suffix
-    os.path.basename(prefix) + '_graph.csv.bz2'
+    file_name = prefix + "/" + os.path.basename(prefix)
     if use_gpu:
         G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
                 compression='gzip')
