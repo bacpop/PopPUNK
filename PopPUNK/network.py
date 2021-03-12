@@ -181,28 +181,20 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
     
         # For large network, use more approximate method for extracting references
         reference = {}
-        print("G type: " + str(type(G)))
-        print("G nodes: " + str(G.number_of_nodes()))
-        print("G edges: " + str(G.number_of_edges()))
-        component_assignments, score = cugraph.leiden(G)
-        print("Assignments: " + str(component_assignments))
+        # Leiden method has resolution parameter - higher values give greater precision
+        component_assignments, score = cugraph.leiden(G, resolution = 1.0)
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = component_assignments.groupby('partition').nth(0)
-        print("Raw type: " + str(type(reference_index_df)))
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
-        print("Raw refs: " + str(reference_indices))
         
         # Order found references as in mash sketch files
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
-        print("Reference names: " + str(reference_names))
         refFileName = writeReferences(reference_names, outPrefix)
         
         # Extract reference edges
         G_df = G.view_edge_list()
-        print("Edge list: " + str(G_df))
         G_df.columns = ['source','destination']
         G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
-        print("Ref graph: " + str(G_ref_df))
         # Add self-loop if needing
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(reference_names)-1
@@ -211,11 +203,9 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             G_self_loop['source'] = [max_in_vertex_labels]
             G_self_loop['destination'] = [max_in_vertex_labels]
             G_ref_df = cudf.concat([G_ref_df,G_self_loop], ignore_index = True)
-        print("Ref df: " + str(G_ref_df))
         # Construct graph
         G_ref = cugraph.Graph()
         G_ref.from_cudf_edgelist(G_ref_df)
-        print("Ref graph: " + str(G_ref))
         return reference_indices, reference_names, refFileName, G_ref
     
     else:
