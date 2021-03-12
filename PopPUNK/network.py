@@ -211,9 +211,11 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             G_self_loop['source'] = [max_in_vertex_labels]
             G_self_loop['destination'] = [max_in_vertex_labels]
             G_ref_df = cudf.concat([G_ref_df,G_self_loop], ignore_index = True)
+        print("Ref df: " + str(G_ref_df))
         # Construct graph
         G_ref = cugraph.Graph()
         G_ref.from_cudf_edgelist(G_ref_df)
+        print("Ref graph: " + str(G_ref))
         return reference_indices, reference_names, refFileName, G_ref
     
     else:
