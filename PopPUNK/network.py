@@ -564,7 +564,8 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
             raise ImportError(e)
     
         component_assignments = cugraph.components.connectivity.connected_components(G)
-        components = component_assignments['labels'].unique().astype(int)
+        component_nums = component_assignments['labels'].unique().astype(int)
+        components = len(component_nums)
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.degree()
@@ -585,7 +586,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         
         if use_gpu:
             component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
-            for component in components.to_pandas():
+            for component in component_nums.to_pandas():
                 size = component_frequencies[component_frequencies.index == component].iloc[0].astype(int)
                 print("Component: " + str(component) + " size: " + str(size) + " freqs: " + str(component_frequencies))
                 if size > 3:
@@ -607,6 +608,9 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         if len(betweenness) > 1:
             mean_bt = np.mean(betweenness)
             weighted_mean_bt = np.average(betweenness, weights=sizes)
+        else:
+            mean_bt = betweenness[0]
+            weighted_mean_bt = betweenness[0]
 
     # Calculate scores
     metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
