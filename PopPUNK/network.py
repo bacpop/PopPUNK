@@ -197,12 +197,22 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         print("Reference names: " + str(reference_names))
         refFileName = writeReferences(reference_names, outPrefix)
         
-        # Construct reference graph
+        # Extract reference edges
         G_df = G.view_edge_list()
         print("Edge list: " + str(G_df))
-        G_ref_df = G_df[G_df['src'].isin(reference_names) & G_df['dst'].isin(reference_names)]
+        G_df.columns[0:1] = ['source','destination']
+        G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
+        print("Ref graph: " + str(G_ref_df))
+        # Add self-loop if needing
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = len(reference_names)-1
+        if max_in_df.item() != max_in_vertex_labels:
+            G_self_loop = cudf.DataFrame()
+            G_self_loop['source'] = [max_in_vertex_labels]
+            G_self_loop['destination'] = [max_in_vertex_labels]
+        # Construct graph
         G_ref = cugraph.Graph()
-        G_ref.from_cudf_edgelist(G_ref_df, renumber=False)
+        G_ref.from_cudf_edgelist(G_ref_df)
         return reference_indices, reference_names, refFileName, G_ref
     
     else:
