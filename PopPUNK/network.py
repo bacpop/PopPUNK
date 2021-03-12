@@ -556,7 +556,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
     if use_gpu:
         component_assignments = cugraph.components.connectivity.connected_components(G)
         components = component_assignments['labels'].unique()
-        density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1))
+        density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree = G.degree()
         triad_count = sum([d * (d - 1) for d in degree)
