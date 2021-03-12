@@ -564,7 +564,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
             raise ImportError(e)
     
         component_assignments = cugraph.components.connectivity.connected_components(G)
-        components = component_assignments['labels'].unique()
+        components = component_assignments['labels'].unique().astype(int)
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.degree()
@@ -594,6 +594,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                     component_betweenness = cugraph.betweenness_centrality(G)
                     print("Component betweenness: " + str(component_betweenness))
                     betweenness.append(component_betweenness['betweenness_centrality'].max())
+                    print("Betweenness: " + str(betweenness))
                     sizes.append(size)
         else:
             for component, size in enumerate(component_frequencies):
