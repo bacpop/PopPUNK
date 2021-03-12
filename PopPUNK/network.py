@@ -200,7 +200,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Extract reference edges
         G_df = G.view_edge_list()
         print("Edge list: " + str(G_df))
-        G_df.columns[0:1] = ['source','destination']
+        G_df.columns = ['source','destination']
         G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
         print("Ref graph: " + str(G_ref_df))
         # Add self-loop if needing
