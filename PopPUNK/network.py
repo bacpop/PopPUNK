@@ -590,7 +590,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                 print("Component: " + str(component) + " size: " + str(size) + " freqs: " + str(component_frequencies))
                 if size > 3:
                     print("Component count df: " + str(component_assignments))
-                    component_vertices = component_assignments['vertices'][component_assignments['labels']==component]
+                    component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
                     subgraph = cugraph.subgraph(G, component_vertices)
                     component_betweenness = cugraph.betweenness_centrality(G)
                     betweenness.append(np.amax(component_betweenness))
