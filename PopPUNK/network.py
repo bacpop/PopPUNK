@@ -34,7 +34,7 @@ from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
-                  core_only = False, accessory_only = False):
+                  core_only = False, accessory_only = False, use_gpu = False):
     """Load the network based on input options
 
        Returns the network as a graph-tool format graph, and sets
@@ -52,12 +52,12 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
                 [default = False]
             core_only (bool)
                 Return the network created using only core distances
-
                 [default = False]
             accessory_only (bool)
                 Return the network created using only accessory distances
-
                 [default = False]
+            use_gpu (bool)
+                Use cugraph library to load graph
 
        Returns:
             genomeNetwork (graph)
@@ -67,25 +67,36 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     """
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
+    if use_gpu:
+        graph_suffix = '.csv.bz2'
+    else:
+        graph_suffix = '.gt'
     if core_only and model.type == 'refine':
         model.slope = 0
-        network_file = dir_prefix + '_core_graph.gt'
+        network_file = dir_prefix + '_core_graph' + graph_suffix
         cluster_file = dir_prefix + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
         model.slope = 1
-        network_file = dir_prefix + '_accessory_graph.gt'
+        network_file = dir_prefix + '_accessory_graph' + graph_suffix
         cluster_file = dir_prefix + '_accessory_clusters.csv'
     else:
-        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph.gt'):
-            network_file = dir_prefix + '.refs_graph.gt'
+        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph' + graph_suffix):
+            network_file = dir_prefix + '.refs_graph' + graph_suffix
         else:
-            network_file = dir_prefix + '_graph.gt'
+            network_file = dir_prefix + '_graph' + graph_suffix
         cluster_file = dir_prefix + '_clusters.csv'
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
 
-    genomeNetwork = gt.load_graph(network_file)
+    if use_gpu:
+        G_df = cudf.read_csv(network_file, compression = 'gzip')
+        if weights in G_df.columns:
+            genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+        else:
+            genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
+    else:
+        genomeNetwork = gt.load_graph(network_file)
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # Ensure all in dists are in final network
@@ -475,9 +486,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(vertex_labels)-1
-        print("Max in DF is " + str(max_in_df))
-        print("Max type is " + str(type(max_in_df)))
-        print("Max in labels is " + str(max_in_vertex_labels))
         if max_in_df.item() != max_in_vertex_labels:
             G_self_loop = cudf.DataFrame()
             G_self_loop['source'] = [max_in_vertex_labels]
@@ -1038,8 +1046,8 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
     file_name = prefix + "/" + os.path.basename(prefix) + '_' + suffix
     os.path.basename(prefix) + '_graph.csv.bz2'
     if use_gpu:
-        G.to_pandas_edgelist().to_csv(file_name + '.csv.bz2',
-                compression='bz2')
+        G.to_csv(file_name + '.csv.gz',
+                compression='gzip')
     else:
         G.save(file_name + '.gt',
                 fmt = 'gt')
