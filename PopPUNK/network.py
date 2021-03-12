@@ -593,7 +593,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                     subgraph = cugraph.subgraph(G, component_vertices)
                     component_betweenness = cugraph.betweenness_centrality(G)
                     print("Component betweenness: " + str(component_betweenness))
-                    betweenness.append(component_betweenness['component_betweenness'].max())
+                    betweenness.append(component_betweenness['betweenness_centrality'].max())
                     sizes.append(size)
         else:
             for component, size in enumerate(component_frequencies):
