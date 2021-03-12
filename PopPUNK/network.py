@@ -554,6 +554,15 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
             List of scores
     """
     if use_gpu:
+    
+        # load CUDA libraries
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
+    
         component_assignments = cugraph.components.connectivity.connected_components(G)
         components = component_assignments['labels'].unique()
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
