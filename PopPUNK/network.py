@@ -570,7 +570,6 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.degree()
         triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
-        print("triad_count is " + str(triad_count))
         transitivity = triangle_count/triad_count
     else:
         component_assignments, component_frequencies = gt.label_components(G)
@@ -588,14 +587,11 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
             component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
             for component in component_nums.to_pandas():
                 size = component_frequencies[component_frequencies.index == component].iloc[0].astype(int)
-                print("Component: " + str(component) + " size: " + str(size) + " freqs: " + str(component_frequencies))
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
                     subgraph = cugraph.subgraph(G, component_vertices)
                     component_betweenness = cugraph.betweenness_centrality(G)
-                    print("Component betweenness: " + str(component_betweenness))
                     betweenness.append(component_betweenness['betweenness_centrality'].max())
-                    print("Betweenness: " + str(betweenness))
                     sizes.append(size)
         else:
             for component, size in enumerate(component_frequencies):
