@@ -571,11 +571,13 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         degree_df = G.degree()
         triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
         transitivity = triangle_count/triad_count
+        print("Triangle count CPU: " + str(triangle_count) + " Triad count CPU: " + str(triad_count))
     else:
         component_assignments, component_frequencies = gt.label_components(G)
         components = len(component_frequencies)
         density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
         transitivity = gt.global_clustering(G)[0]
+        print("Triangle count CPU: " + str(gt.global_clustering(G)[1]) + " Triad count CPU: " + str(gt.global_clustering(G)[2]))
 
     mean_bt = 0
     weighted_mean_bt = 0
