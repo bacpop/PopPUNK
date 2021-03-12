@@ -118,7 +118,7 @@ def readPickle(pklName, enforce_self=False, distances=True):
         distances (bool)
             Read the distance matrix
 
-            [default = Trie]
+            [default = True]
 
     Returns:
         rlist (list)
