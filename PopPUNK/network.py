@@ -1042,6 +1042,8 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
 
     """
     file_name = prefix + "/" + os.path.basename(prefix)
+    if suffix is not None:
+        file_name = file_name + '_' + suffix
     if use_gpu:
         G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
                 compression='gzip')
