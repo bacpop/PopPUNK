@@ -633,8 +633,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     # Assign each cluster a name
     clustering = {}
     foundOldClusters = []
+    cluster_unword = {}
     if write_unwords:
-        cluster_unword = {}
         unword_generator = gen_unword()
 
     for newClsIdx, newCluster in enumerate(newClusters):
