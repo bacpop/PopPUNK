@@ -186,7 +186,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         print("G edges: " + str(G.number_of_edges()))
         component_assignments, score = cugraph.leiden(G)
         print("Assignments: " + str(component_assignments))
-        raw_reference_indices = component_assignments.groupby('partition').nth(0)#.iloc[:0]
+        # group by partition, which becomes the first column, so retrieve second column
+        raw_reference_indices = component_assignments.groupby('partition').nth(0).iloc[:1]
         print("Raw type: " + str(type(raw_reference_indices)))
         print("Raw refs: " + str(raw_reference_indices))
         quit()
