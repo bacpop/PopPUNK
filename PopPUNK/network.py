@@ -200,7 +200,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Construct reference graph
         G_df = G.view_edge_list()
         print("Edge list: " + str(G_df))
-        G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
+        G_ref_df = G_df[G_df['src'].isin(reference_names) & G_df['dst'].isin(reference_names)]
         G_ref = cugraph.Graph()
         G_ref.from_cudf_edgelist(G_ref_df, edge_attr='weights', renumber=False)
         return reference_indices, reference_names, refFileName, G_ref
