@@ -568,8 +568,8 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.degree()
-        print("Degree is " + str(degree_df['degree']))
         triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
+        print("triad_count is " + str(triad_count))
         transitivity = triangle_count/triad_count
     else:
         component_assignments, component_frequencies = gt.label_components(G)
@@ -585,7 +585,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         
         if use_gpu:
             component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
-            for component in components:
+            for component in components.to_pandas():
                 size = component_frequencies[component_frequencies.index == component]
                 if size > 3:
                     print("Component count df: " + str(component_assignments))
