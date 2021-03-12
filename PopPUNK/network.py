@@ -496,13 +496,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             new_max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         
         # construct graph
-        G_cu = cugraph.Graph()
+        G = cugraph.Graph()
         if weights is not None or sparse_input is not None:
-            G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+            G.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
-            G_cu.from_cudf_edgelist(G_df, renumber=False)
-
-        return G_cu
+            G.from_cudf_edgelist(G_df, renumber=False)
 
     else:
 
@@ -522,22 +520,22 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                     vals = vertex_labels)
         G.vp.id = vid
 
-        # print some summaries
-        if summarise:
-            (metrics, scores) = networkSummary(G)
-            sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
-                                                           "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
-                                                           "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
-                                                           "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
-                                                           "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
-                                                           "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
-                                                           "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
-                                                           "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
-                                                           + "\n")
+    # print some summaries
+    if summarise:
+        (metrics, scores) = networkSummary(G, use_gpu = use_gpu)
+        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
+                                                       "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
+                                                       "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
+                                                       "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
+                                                       "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
+                                                       "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
+                                                       "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
+                                                       "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
+                                                       + "\n")
 
-        return G
+    return G
 
-def networkSummary(G, calc_betweenness=True):
+def networkSummary(G, calc_betweenness=True, use_gpu = False):
     """Provides summary values about the network
 
     Args:
@@ -545,6 +543,8 @@ def networkSummary(G, calc_betweenness=True):
             The network of strains from :func:`~constructNetwork`
         calc_betweenness (bool)
             Whether to calculate betweenness stats
+        use_gpu (bool)
+            Whether to use cugraph for graph analysis
 
     Returns:
         metrics (list)
@@ -553,27 +553,50 @@ def networkSummary(G, calc_betweenness=True):
         scores (list)
             List of scores
     """
-    component_assignments, component_frequencies = gt.label_components(G)
-    components = len(component_frequencies)
-    density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
-    transitivity = gt.global_clustering(G)[0]
+    if use_gpu:
+        component_assignments = cugraph.components.connectivity.connected_components(G)
+        components = component_assignments['labels'].unique()
+        density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1))
+        triangle_count = cugraph.community.triangle_count.triangles(G)
+        degree = G.degree()
+        triad_count = sum([d * (d - 1) for d in degree)
+        transitivity = triangle_count/triad_count
+    else:
+        component_assignments, component_frequencies = gt.label_components(G)
+        components = len(component_frequencies)
+        density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
+        transitivity = gt.global_clustering(G)[0]
 
     mean_bt = 0
     weighted_mean_bt = 0
     if calc_betweenness:
         betweenness = []
         sizes = []
-        for component, size in enumerate(component_frequencies):
-            if size > 3:
-                vfilt = component_assignments.a == component
-                subgraph = gt.GraphView(G, vfilt=vfilt)
-                betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
-                sizes.append(size)
+        
+        if use_gpu:
+            component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
+            for component in components:
+                size = component_frequencies[component_frequencies.index == component]
+                if size > 3:
+                    print("Component count df: " + str(component_assignments))
+                    component_vertices = component_assignments['vertices'][component_assignments['labels']==component]
+                    subgraph = cugraph.subgraph(G, component_vertices)
+                    component_betweenness = cugraph.betweenness_centrality(G)
+                    betweenness.append(np.amax(component_betweenness))
+                    sizes.append(size)
+        else:
+            for component, size in enumerate(component_frequencies):
+                if size > 3:
+                    vfilt = component_assignments.a == component
+                    subgraph = gt.GraphView(G, vfilt=vfilt)
+                    betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+                    sizes.append(size)
 
         if len(betweenness) > 1:
             mean_bt = np.mean(betweenness)
             weighted_mean_bt = np.average(betweenness, weights=sizes)
 
+    # Calculate scores
     metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
     base_score = transitivity * (1 - density)
     scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
