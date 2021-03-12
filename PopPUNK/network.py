@@ -586,7 +586,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         if use_gpu:
             component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
             for component in components.to_pandas():
-                size = component_frequencies[component_frequencies.index == component]
+                size = component_frequencies[component_frequencies.index == component].astype(int)
                 print("Component: " + str(component) + " size: " + str(size) + " freqs: " + str(component_frequencies))
                 if size > 3:
                     print("Component count df: " + str(component_assignments))
