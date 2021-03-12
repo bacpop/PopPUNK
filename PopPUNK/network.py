@@ -1046,7 +1046,8 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
     file_name = prefix + "/" + os.path.basename(prefix) + '_' + suffix
     os.path.basename(prefix) + '_graph.csv.bz2'
     if use_gpu:
-        G.edges().to_csv(file_name + '.csv.gz', compression='gzip')
+        G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
+                compression='gzip')
     else:
         G.save(file_name + '.gt',
                 fmt = 'gt')
