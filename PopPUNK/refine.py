@@ -214,6 +214,15 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
             -1 * network score for each of x_range.
             Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
+    
+    # load CUDA libraries
+    try:
+        import cugraph
+        import cudf
+    except ImportError as e:
+        sys.stderr.write("cugraph and cudf unavailable\n")
+        raise ImportError(e)
+    
     scores = []
     edge_list = []
     prev_idx = 0
