@@ -46,7 +46,11 @@ def assign_query(dbFuncs,
                  accessory_only,
                  web,
                  json_sketch,
-                 save_partial_query_graph):
+                 save_partial_query_graph,
+                 gpu_sketch,
+                 gpu_dist,
+                 gpu_graph,
+                 deviceid):
     """Code for assign query mode. Written as a separate function so it can be called
     by web APIs"""
 
@@ -60,6 +64,7 @@ def assign_query(dbFuncs,
     from .network import extractReferences
     from .network import addQueryToNetwork
     from .network import printClusters
+    from .network import save_network
 
     from .plot import writeClusterCsv
 
@@ -133,7 +138,9 @@ def assign_query(dbFuncs,
                                     threads,
                                     overwrite,
                                     codon_phased = codon_phased,
-                                    calc_random = False)
+                                    calc_random = False,
+                                    use_gpu = gpu_sketch,
+                                    deviceid = deviceid)
     # run query
     qrDistMat = queryDatabase(rNames = rNames,
                               qNames = qNames,
@@ -142,7 +149,8 @@ def assign_query(dbFuncs,
                               klist = kmers,
                               self = False,
                               number_plot_fits = plot_fit,
-                              threads = threads)
+                              threads = threads,
+                              use_gpu = gpu_dist)
     # QC distance matrix
     qcPass = qcDistMat(qrDistMat, rNames, qNames, max_pi_dist, max_a_dist, reference_isolate)
 
@@ -153,7 +161,8 @@ def assign_query(dbFuncs,
                      rNames,
                      ref_graph = use_ref_graph,
                      core_only = core_only,
-                     accessory_only = accessory_only)
+                     accessory_only = accessory_only,
+                     use_gpu = gpu_graph)
 
     if model.type == 'lineage':
         # Assign lineages by calculating query-query information
@@ -165,7 +174,8 @@ def assign_query(dbFuncs,
                                   klist = kmers,
                                   self = True,
                                   number_plot_fits = 0,
-                                  threads = threads)
+                                  threads = threads,
+                                  use_gpu = gpu_dist)
         model.extend(qqDistMat, qrDistMat)
 
         genomeNetwork = {}
@@ -182,7 +192,8 @@ def assign_query(dbFuncs,
                                                    assignment,
                                                    0,
                                                    edge_list = True,
-                                                   weights=weights)
+                                                   weights=weights,
+                                                   use_gpu = gpu_graph)
 
             isolateClustering[rank] = \
                 printClusters(genomeNetwork[rank],
@@ -214,7 +225,7 @@ def assign_query(dbFuncs,
                                 genomeNetwork, kmers,
                                 queryAssignments, model, output, update_db,
                                 strand_preserved,
-                                weights = weights, threads = threads)
+                                weights = weights, threads = threads, use_gpu = gpu_graph)
 
         isolateClustering = \
             {'combined': printClusters(genomeNetwork, rNames + qNames,
@@ -237,12 +248,12 @@ def assign_query(dbFuncs,
         joinDBs(ref_db, output, output,
                 {"threads": threads, "strand_preserved": strand_preserved})
         if model.type == 'lineage':
-            genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+            save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
             # Save sparse distance matrices and updated model
             model.outPrefix = os.path.basename(output)
             model.save()
         else:
-            genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+            save_network(genomeNetwork, prefix = output, suffix = '_graph', use_gpu = gpu_graph)
 
         # Update distance matrices with all calculated distances
         if distances == None:
@@ -289,7 +300,7 @@ def assign_query(dbFuncs,
             dbOrder = rNames + qNames
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
-                    extractReferences(genomeNetwork, dbOrder, output, rNames, threads = threads)
+                    extractReferences(genomeNetwork, dbOrder, output, rNames, threads = threads, use_gpu = gpu_graph)
             # intersection that maintains order
             newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
 
@@ -303,7 +314,7 @@ def assign_query(dbFuncs,
                 postpruning_combined_seq, newDistMat = \
                     prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                           output + "/" + os.path.basename(output) + ".refs.dists")
-                genomeNetwork.save(output + "/" + os.path.basename(output) + '.refs_graph.gt', fmt = 'gt')
+                save_network(genomeNetwork, prefix = output, suffix = 'refs_graph', use_gpu = gpu_graph)
                 removeFromDB(output, output, names_to_remove)
                 os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
                           output + "/" + os.path.basename(output) + ".refs.h5")
@@ -314,9 +325,9 @@ def assign_query(dbFuncs,
         storePickle(rNames, qNames, False, qrDistMat, dists_out)
         if save_partial_query_graph:
             if model.type == 'lineage':
-                genomeNetwork[min(model.ranks)].save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+                save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
             else:
-                genomeNetwork.save(output + "/" + os.path.basename(output) + '_graph.gt', fmt = 'gt')
+                save_network(genomeNetwork, prefix = output, suffix = '_graph', use_gpu = gpu_graph)
 
     return(isolateClustering)
 
@@ -404,6 +415,7 @@ def get_options():
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when constructing networks [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -508,7 +520,11 @@ def main():
                  args.accessory_only,
                  web=False,
                  json_sketch=None,
-                 save_partial_query_graph=False)
+                 save_partial_query_graph=False,
+                 args.gpu_sketch,
+                 args.gpu_dist,
+                 arg.gpu_graph,
+                 args.deviceid)
 
     sys.stderr.write("\nDone\n")
 

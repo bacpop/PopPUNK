@@ -618,7 +618,8 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,
-                      strand_preserved = False, weights = None, threads = 1):
+                      strand_preserved = False, weights = None, threads = 1,
+                      use_gpu = False):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
