@@ -230,8 +230,10 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                                          summarise=False, edge_list=True, use_gpu = use_gpu)
                 else:
                     if use_gpu:
-                        G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                                summarise=False, edge_list=True, use_gpu = use_gpu)
+                        G_extra_df = cudf.DataFrame(edge_list, columns =['source', 'destination'])
+                        G_df = cudf.concat([G.view_edge_list(),G_extra_df], ignore_index = True)
+                        G = cugraph.Graph()
+                        G.from_cudf_edgelist(G_df)
                     else:
                         # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
                         G.add_edge_list(edge_list)
