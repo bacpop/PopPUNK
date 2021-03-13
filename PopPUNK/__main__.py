@@ -415,7 +415,8 @@ def main():
                                             args.unconstrained,
                                             args.score_idx,
                                             args.no_local,
-                                            args.threads)
+                                            args.threads,
+                                            use_gpu = args.gpu_graph)
                 new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "threshold":
