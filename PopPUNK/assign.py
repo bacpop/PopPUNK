@@ -520,7 +520,7 @@ def main():
                  args.accessory_only,
                  args.gpu_sketch,
                  args.gpu_dist,
-                 arg.gpu_graph,
+                 args.gpu_graph,
                  args.deviceid,
                  web=False,
                  json_sketch=None,
