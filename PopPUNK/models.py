@@ -530,7 +530,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False, threads = 1):
+            unconstrained = False, score_idx = 0, no_local = False, threads = 1, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -553,11 +553,9 @@ class RefineFit(ClusterFit):
             startFile (str)
                 A file defining an initial fit, rather than one from ``--fit-model``.
                 See documentation for format.
-
                 (default = None).
             indiv_refine (bool)
                 Run refinement for core and accessory distances separately
-
                 (default = False).
             unconstrained (bool)
                 If True, search in 2D and change the slope of the boundary
@@ -569,8 +567,10 @@ class RefineFit(ClusterFit):
                 Quicker, but may be less well refined.
             num_processes (int)
                 Number of threads to use in the global optimisation step.
-
                 (default = 1)
+            use_gpu (bool)
+                Whether to use cugraph for graph analyses
+                
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -580,6 +580,14 @@ class RefineFit(ClusterFit):
         self.max_move = max_move
         self.min_move = min_move
         self.unconstrained = unconstrained
+
+        # load CUDA libraries
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
 
         # Get starting point
         model.no_scale()
@@ -618,7 +626,7 @@ class RefineFit(ClusterFit):
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                     slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = threads)
+                    no_local = no_local, num_processes = threads, use_gpu = use_gpu)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -631,12 +639,14 @@ class RefineFit(ClusterFit):
                 start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 0, score_idx = score_idx, no_local = no_local,num_processes = threads)
+                            slope = 0, score_idx = score_idx, no_local = no_local,num_processes = threads,
+                            use_gpu = use_gpu)
                 # optimise accessory distance boundary
                 start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = threads)
+                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = threads,
+                            use_gpu = use_gpu)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
