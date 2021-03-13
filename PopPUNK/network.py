@@ -606,7 +606,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         if len(betweenness) > 1:
             mean_bt = np.mean(betweenness)
             weighted_mean_bt = np.average(betweenness, weights=sizes)
-        else:
+        elif len(betweenness) == 1:
             mean_bt = betweenness[0]
             weighted_mean_bt = betweenness[0]
 
