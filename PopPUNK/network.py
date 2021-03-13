@@ -206,7 +206,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         G_df = G.view_edge_list()
         G_df.columns = ['source','destination']
         G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
-        # Add self-loop if needing
+        # Add self-loop if needed
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(reference_names)-1
         if max_in_df.item() != max_in_vertex_labels:
@@ -651,6 +651,8 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             be annotated as an edge attribute
         threads (int)
             Number of threads to use if new db created
+        use_gpu (bool)
+            Whether to use cugraph for analysis
 
             (default = 1)
     Returns:
@@ -738,18 +740,54 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                     new_edges.append(edge_tuple)
 
     # finish by updating the network
-    G.add_vertex(len(qList))
-
-    if weights is not None:
-        eweight = G.new_ep("float")
-        G.add_edge_list(new_edges, eprops = [eweight])
-        G.edge_properties["weight"] = eweight
+    if use_gpu:
+    
+        # load CUDA libraries
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
+        
+        # construct updated graph
+        G_current_df = G.view_edge_list()
+        if weights is not None:
+            G_current_df.columns = ['source','destination','weights']
+            G_extra_df = cudf.DataFrame(edge_list, columns =['source','destination','weights'])
+            G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
+        else:
+            G_current_df.columns = ['source','destination']
+            G_extra_df = cudf.DataFrame(edge_list, columns =['source','destination'])
+            G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
+        G = cugraph.Graph()
+        G.from_cudf_edgelist(G_df)
+        
+        # use self-loop to ensure all nodes are present
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = ref_count + len(qList) - 1
+        if max_in_df.item() != max_in_vertex_labels:
+            G_self_loop = cudf.DataFrame()
+            G_self_loop['source'] = [max_in_vertex_labels]
+            G_self_loop['destination'] = [max_in_vertex_labels]
+            G = cudf.concat([G,G_self_loop], ignore_index = True)
+        # Construct graph
+        G = cugraph.Graph()
+        G.from_cudf_edgelist(G_df)
+        
     else:
-        G.add_edge_list(new_edges)
+        G.add_vertex(len(qList))
 
-    # including the vertex ID property map
-    for i, q in enumerate(qList):
-        G.vp.id[i + len(rList)] = q
+        if weights is not None:
+            eweight = G.new_ep("float")
+            G.add_edge_list(new_edges, eprops = [eweight])
+            G.edge_properties["weight"] = eweight
+        else:
+            G.add_edge_list(new_edges)
+
+        # including the vertex ID property map
+        for i, q in enumerate(qList):
+            G.vp.id[i + len(rList)] = q
 
     return qqDistMat
 
