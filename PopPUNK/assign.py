@@ -44,13 +44,13 @@ def assign_query(dbFuncs,
                  external_clustering,
                  core_only,
                  accessory_only,
-                 web,
-                 json_sketch,
-                 save_partial_query_graph,
                  gpu_sketch,
                  gpu_dist,
                  gpu_graph,
-                 deviceid):
+                 deviceid,
+                 web,
+                 json_sketch,
+                 save_partial_query_graph):
     """Code for assign query mode. Written as a separate function so it can be called
     by web APIs"""
 
@@ -518,13 +518,13 @@ def main():
                  args.external_clustering,
                  args.core_only,
                  args.accessory_only,
-                 web=False,
-                 json_sketch=None,
-                 save_partial_query_graph=False,
                  args.gpu_sketch,
                  args.gpu_dist,
                  arg.gpu_graph,
-                 args.deviceid)
+                 args.deviceid,
+                 web=False,
+                 json_sketch=None,
+                 save_partial_query_graph=False)
 
     sys.stderr.write("\nDone\n")
 
