@@ -32,7 +32,7 @@ from .utils import decisionBoundary
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
-              unconstrained = False, no_local = False, num_processes = 1, use_gpu = use_gpu):
+              unconstrained = False, no_local = False, num_processes = 1, use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -321,7 +321,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
     return(-score)
 
-def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, use_gpu = use_gpu):
+def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
