@@ -239,9 +239,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                                          summarise=False, edge_list=True, use_gpu = use_gpu)
                 else:
                     if use_gpu:
-                        G_extra_df = cudf.DataFrame(edge_list, columns =['source', 'destination'])
+                        G_extra_df = cudf.DataFrame(edge_list, columns =['src', 'dst'])
                         G_df = cudf.concat([G.view_edge_list(),G_extra_df], ignore_index = True)
-                        print("DF is " + str(G_df))
                         G = cugraph.Graph()
                         G.from_cudf_edgelist(G_df)
                     else:
