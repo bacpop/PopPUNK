@@ -105,15 +105,16 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
             G_df.columns = ['source','destination','weights']
             genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
-            print("DF is " + str(G_df))
             G_df.columns = ['source','destination']
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
+        sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.number_of_vertices()))) + " samples\n")
     else:
         genomeNetwork = gt.load_graph(network_file)
-    sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
+        sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # Ensure all in dists are in final network
-    networkMissing = set(map(str,set(range(len(refList))).difference(list(genomeNetwork.vertices()))))
+    vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = args.gpu_graph))
+    networkMissing = set(set(range(len(refList))).difference(vertex_list))
     if len(networkMissing) > 0:
         sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
 
