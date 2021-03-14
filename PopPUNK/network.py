@@ -77,7 +77,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
             sys.stderr.write("cugraph and cudf unavailable\n")
             raise ImportError(e)
 
-        graph_suffix = '.csv.bz2'
+        graph_suffix = '.csv.gz'
     else:
         graph_suffix = '.gt'
     if core_only and model.type == 'refine':
