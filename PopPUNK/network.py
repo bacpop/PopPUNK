@@ -105,6 +105,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
             G_df.columns = ['source','destination','weights']
             genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
+            print("DF is " + str(G_df))
             G_df.columns = ['source','destination']
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
     else:
