@@ -198,7 +198,8 @@ def assign_query(dbFuncs,
             isolateClustering[rank] = \
                 printClusters(genomeNetwork[rank],
                               rNames + qNames,
-                              printCSV = False)
+                              printCSV = False,
+                              use_gpu = gpu_graph)
 
         overall_lineage = createOverallLineage(model.ranks, isolateClustering)
         writeClusterCsv(
@@ -232,7 +233,8 @@ def assign_query(dbFuncs,
                                         output + "/" + os.path.basename(output),
                                         old_cluster_file,
                                         external_clustering,
-                                        write_references or update_db)}
+                                        write_references or update_db,
+                                        use_gpu = gpu_graph)}
 
     # Update DB as requested
     dists_out = output + "/" + os.path.basename(output) + ".dists"
