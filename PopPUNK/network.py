@@ -804,7 +804,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         for i, q in enumerate(qList):
             G.vp.id[i + len(rList)] = q
 
-    return qqDistMat
+    return G, qqDistMat
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                   externalClusterCSV = None, printRef = True, printCSV = True,
