@@ -221,7 +221,8 @@ def assign_query(dbFuncs,
             weights = qrDistMat
         else:
             weights = None
-        qqDistMat = \
+
+        genomeNetwork, qqDistMat = \
             addQueryToNetwork(dbFuncs, rNames, qNames,
                                 genomeNetwork, kmers,
                                 queryAssignments, model, output, update_db,
