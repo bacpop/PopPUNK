@@ -1135,7 +1135,7 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
         file_name = file_name + suffix
     if use_gpu:
         G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
-                compression='gzip')
+                compression='gzip', index = False)
     else:
         G.save(file_name + '.gt',
                 fmt = 'gt')
