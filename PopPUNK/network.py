@@ -68,6 +68,15 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
     if use_gpu:
+
+        # load CUDA libraries
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
+
         graph_suffix = '.csv.bz2'
     else:
         graph_suffix = '.gt'
