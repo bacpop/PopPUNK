@@ -107,7 +107,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
         else:
             G_df.columns = ['source','destination']
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
-        sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.number_of_vertices()))) + " samples\n")
+        sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_vertices()) + " samples\n")
     else:
         genomeNetwork = gt.load_graph(network_file)
         sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
