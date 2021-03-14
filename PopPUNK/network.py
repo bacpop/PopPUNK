@@ -100,7 +100,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
 
     if use_gpu:
         G_df = cudf.read_csv(network_file, compression = 'gzip')
-        if weights in G_df.columns:
+        if 'weights' in G_df.columns:
             genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
