@@ -862,7 +862,9 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
+        print("Assignments: " + str(component_assignments))
         for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
+            print("Index: " + str(isolate_index))
             component = component_assignments['labels'].iloc[isolate_index].item()
             component_rank_bool = component_frequencies.index == component
             component_rank = np.argmax(component_rank_bool.to_array())
