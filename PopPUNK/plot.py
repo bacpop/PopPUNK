@@ -317,39 +317,34 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_contours(assignments, weights, means, covariances, title, out_prefix):
+def plot_contours(model, assignments, title, out_prefix):
     """Draw contours of mixture model assignments
 
     Will draw the decision boundary for between/within in red
 
     Args:
+        model (BGMMFit)
+            Model we are plotting from
         assignments (numpy.array)
-             n-vectors of cluster assignments for model
-        weights (numpy.array)
-            Component weights from :class:`~PopPUNK.models.BGMMFit`
-        means (numpy.array)
-            Component means from :class:`~PopPUNK.models.BGMMFit`
-        covars (numpy.array)
-            Component covariances from :class:`~PopPUNK.models.BGMMFit`
+            n-vectors of cluster assignments for model
         title (str)
             The title to display above the plot
         out_prefix (str)
             Prefix for output plot file (.pdf will be appended)
     """
     # avoid recursive import
-    from .bgmm import assign_samples
     from .bgmm import log_likelihood
     from .bgmm import findWithinLabel
 
     xx, yy, xy = get_grid(0, 1, 100)
 
     # for likelihood boundary
-    z = assign_samples(xy, weights, means, covariances, np.array([1,1]), True)
-    z_diff = z[:,findWithinLabel(means, assignments, 0)] - z[:,findWithinLabel(means, assignments, 1)]
+    z = model.assign(xy, values=True, progress=False)
+    z_diff = z[:,findWithinLabel(model.means, assignments, 0)] - z[:,findWithinLabel(model.means, assignments, 1)]
     z = z_diff.reshape(xx.shape).T
 
     # For full likelihood surface
-    z_ll, lpr = log_likelihood(xy, weights, means, covariances, np.array([1,1]))
+    z_ll, lpr = log_likelihood(xy, model.weights, model.means, model.covariances, np.array([1,1]))
     z_ll = z_ll.reshape(xx.shape).T
 
     plt.figure(figsize=(11, 8), dpi= 160, facecolor='w', edgecolor='k')
