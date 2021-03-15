@@ -748,7 +748,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             # have to use names and link to query list in order to match to node indices
-            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qListp, self = True))):
+            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qList, self = True))):
                 if assignment == model.within_label:
                     if weights is not None:
                         dist = np.linalg.norm(qqDistMat[row_idx, :])
