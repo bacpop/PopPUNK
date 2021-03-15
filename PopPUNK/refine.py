@@ -247,7 +247,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                         G = cugraph.Graph()
                         G.from_cudf_edgelist(G_df)
                     else:
-                        # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
+                        # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
+                        # We add to the cuDF, and then reconstruct the network instead
                         G.add_edge_list(edge_list)
                 # Add score into vector for any offsets passed (should usually just be one)
                 for s in range(prev_idx, idx):
@@ -453,4 +454,3 @@ def likelihoodBoundary(s, model, start, end, within, between):
     X = transformLine(s, start, end).reshape(1, -1)
     responsibilities = model.assign(X, progress = False, values = True)
     return(responsibilities[0, within] - responsibilities[0, between])
-
