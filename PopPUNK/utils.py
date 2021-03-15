@@ -252,7 +252,7 @@ def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate = None):
     to_prune = []
 
     # First check with numpy, which is quicker than iterating over everything
-    if np.any(distMat[:,1] > a_max) or np.any(distMat[:,0] > c_max):
+    if np.any(distMat[:, 0] > c_max) or np.any(distMat[:, 1] > a_max):
         passed = False
         names = iterDistRows(refList, queryList, refList == queryList)
         for i, (ref, query) in enumerate(names):
