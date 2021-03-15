@@ -692,9 +692,11 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
             unword = next(unword_generator)
         else:
             unword = None
+
         for cluster_member in newCluster:
             clustering[cluster_member] = cls_id
-            cluster_unword[cluster_member] = unword
+            if unword is not None:
+                cluster_unword[cluster_member] = unword
 
     # print clustering to file
     if printCSV:
