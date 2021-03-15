@@ -90,9 +90,7 @@ subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_
 
 # citations
 sys.stderr.write("Printing citations\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --citation", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation --query some_queries.txt --db example_db --output example_query", shell=True, check=True)
 
 # web API

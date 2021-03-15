@@ -157,8 +157,8 @@ def get_options():
     other.add_argument('--citation',
                        action='store_true',
                        default=False,
-                       help='Give a citation, and possible methods paragraph'
-                            ' based on the command line')
+                       help='Give a citation, and possible methods paragraph '
+                            'based on the command line')
 
 
     # combine

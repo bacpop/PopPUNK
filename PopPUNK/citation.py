@@ -10,8 +10,8 @@ import pp_sketchlib
 from .sketchlib import readDBParams, getSeqsInDb
 
 
-citation = """
-1. Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ.
+citation = \
+"""1. Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ.
 Fast and flexible bacterial genomic epidemiology with PopPUNK.
 Genome Research 29:304-316 (2019).
 doi:10.1101/gr.241455.118
@@ -25,11 +25,10 @@ Array programming with NumPy.
 Nature 585, 357–362 (2020)
 5. Peixoto, T. P.
 The graph-tool python library. (2017)
-doi:10.6084/m9.figshare.1164194
-"""
+doi:10.6084/m9.figshare.1164194"""
 
-sketchlib_citation = """
-6. Lees JA & Croucher NJ.
+sketchlib_citation = \
+"""6. Lees JA & Croucher NJ.
 pp-sketchlib (2020).
 doi:10.5281/zenodo.4531418
 7. Zhao, X.
@@ -39,34 +38,34 @@ doi:10.1093/bioinformatics/bty651
 8. Mohamadi, H., Chu, J., Vandervalk, B. P. & Birol, I.
 ntHash: recursive nucleotide hashing.
 Bioinformatics 32:3492–3494 (2016).
-doi:10.1093/bioinformatics/btw397
-"""
+doi:10.1093/bioinformatics/btw397"""
 
-poppunk_methods = """
-We built a database of %(number_samples)d isolates using pp-sketchlib version %(sketchlib_version)s
-(doi:%(sketchlib_doi)s) with sketch version %(sketchlib_hash)s, k-mer lengths %(kmin)d-%(kmax)d,
-a sketch size of %(sketch_size)d and %(seed_type)s seeds [6-8]. We assigned variable-length-k-mer clusters (VLKCs) using PopPUNK
-version %(poppunk_version)s (doi:%(poppunk_doi)s) by fitting a %(model_mode)s with %(model_options)s [1-5].
-"""
+poppunk_methods = "We built a database of %(number_samples)s isolates using " + \
+"pp-sketchlib version %(sketchlib_version)s (doi:%(sketchlib_doi)s) with " + \
+"sketch version %(sketchlib_hash)s, k-mer lengths %(kmin)s-%(kmax)s, a " + \
+"sketch size of %(sketch_size)s and %(seed_type)s seeds [6-8]. We assigned " + \
+"variable-length-k-mer clusters (VLKCs) using PopPUNK version %(poppunk_version)s " + \
+"(doi:%(poppunk_doi)s) by fitting a %(model_mode)s with %(model_options)s [1-5].\n"
 
 assign_methods = """
-We queried a database of %(number_samples)d isolates and their pre-assigned variable-length-k-mer clusters (VLKCs)
+We queried a database of %(number_samples)s isolates and their pre-assigned variable-length-k-mer clusters (VLKCs)
 using pp-sketchlib version %(sketchlib_version)s (doi:%(sketchlib_doi)s) with sketch version %(sketchlib_hash)s,
-k-mer lengths %(kmin)d-%(kmax)d, a sketch size of %(sketch_size)d and %(seed_type)s seeds [6-8]. We assigned the VLKCs using PopPUNK
+k-mer lengths %(kmin)s-%(kmax)s, a sketch size of %(sketch_size)s and %(seed_type)s seeds [6-8]. We assigned the VLKCs using PopPUNK
 version %(poppunk_version)s (doi:%(poppunk_doi)s) [1-5].
 """
 
 def print_citation(args, assign=False):
+    # Read values from DB
     try:
         if assign:
             db_prefix = args.db
         else:
             db_prefix = args.ref_db
-        n_samples = len(getSeqsInDb(db_prefix + "/" + os.path.basename(db_prefix) + ".h5"))
-        kmers, sketch_sizes, codon_phased = readDBParams(db_prefix)
-        kmin = min(kmers)
-        kmax = max(kmers)
-        sketch_size = sketch_sizes[0]
+        n_samples = str(len(getSeqsInDb(db_prefix + "/" + os.path.basename(db_prefix) + ".h5")))
+        kmers, sketch_size, codon_phased = readDBParams(db_prefix)
+        kmin = str(min(kmers))
+        kmax = str(max(kmers))
+        sketch_size = str(sketch_size)
         seed_phasing = "codon-phased" if codon_phased else "dense"
     except:
         n_samples = "X"
@@ -75,11 +74,18 @@ def print_citation(args, assign=False):
         sketch_size = "X"
         seed_phasing = "X"
 
+    try:
+        pp_sketchlib_version = pp_sketchlib.version
+        sketch_version = pp_sketchlib.version
+    except AttributeError:
+        pp_sketchlib_version = "X"
+        sketch_version = "X"
+
     if assign:
         print(assign_methods % {"number_samples" : n_samples,
-                                 "sketchlib_version" : pp_sketchlib.version,
+                                 "sketchlib_version" : pp_sketchlib_version,
                                  "sketchlib_doi" : "10.5281/zenodo.4531418",
-                                 "sketchlib_hash" : pp_sketchlib.sketchVersion,
+                                 "sketchlib_hash" : sketch_version,
                                  "kmin" : kmin,
                                  "kmax" : kmax,
                                  "sketch_size" : sketch_size,
@@ -109,9 +115,9 @@ def print_citation(args, assign=False):
             model_options = "UNKNOWN"
 
         print(poppunk_methods % {"number_samples" : n_samples,
-                                 "sketchlib_version" : pp_sketchlib.version,
+                                 "sketchlib_version" : pp_sketchlib_version,
                                  "sketchlib_doi" : "10.5281/zenodo.4531418",
-                                 "sketchlib_hash" : pp_sketchlib.sketchVersion,
+                                 "sketchlib_hash" : sketch_version,
                                  "kmin" : kmin,
                                  "kmax" : kmax,
                                  "sketch_size" : sketch_size,
