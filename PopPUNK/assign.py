@@ -129,6 +129,7 @@ def assign_query(dbFuncs,
             rNames = readPickle(distances, enforce_self = True, distances=False)[0]
         elif update_db:
             sys.stderr.write("Reference distances missing, cannot use --update-db\n")
+            sys.exit(1)
         else:
             rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
     # construct database
