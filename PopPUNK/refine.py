@@ -216,12 +216,13 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
     """
     
     # load CUDA libraries
-    try:
-        import cugraph
-        import cudf
-    except ImportError as e:
-        sys.stderr.write("cugraph and cudf unavailable\n")
-        raise ImportError(e)
+    if use_gpu:
+        try:
+            import cugraph
+            import cudf
+        except ImportError as e:
+            sys.stderr.write("cugraph and cudf unavailable\n")
+            raise ImportError(e)
     
     scores = []
     edge_list = []

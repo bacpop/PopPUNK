@@ -419,7 +419,6 @@ def main():
                                             args.unconstrained,
                                             args.score_idx,
                                             args.no_local,
-                                            args.threads,
                                             args.gpu_graph)
                 new_model.plot(distMat)
                 model = new_model
@@ -545,7 +544,7 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        save_network(genomeNetwork, prefix = output, suffix = "graph", use_gpu = args.gpu_graph)
+        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
 
         #******************************#
         #*                            *#

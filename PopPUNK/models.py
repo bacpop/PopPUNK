@@ -726,12 +726,13 @@ class RefineFit(ClusterFit):
         self.unconstrained = unconstrained
 
         # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+        if use_gpu:
+            try:
+                import cugraph
+                import cudf
+            except ImportError as e:
+                sys.stderr.write("cugraph and cudf unavailable\n")
+                raise ImportError(e)
 
         # Get starting point
         model.no_scale()

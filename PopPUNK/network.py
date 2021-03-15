@@ -585,13 +585,13 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         degree_df = G.degree()
         triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
         transitivity = triangle_count/triad_count
-        print("Triangle count GPU: " + str(triangle_count) + " Triad count GPU: " + str(triad_count))
+#        print("Triangle count GPU: " + str(triangle_count) + " Triad count GPU: " + str(triad_count))
     else:
         component_assignments, component_frequencies = gt.label_components(G)
         components = len(component_frequencies)
         density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
         transitivity = gt.global_clustering(G)[0]
-        print("Triangle/triad count CPU: " + str(gt.global_clustering(G, ret_counts = True)))
+#        print("Triangle/triad count CPU: " + str(gt.global_clustering(G, ret_counts = True)))
 
     mean_bt = 0
     weighted_mean_bt = 0
@@ -704,14 +704,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         else:
             sys.stderr.write("Calculating all query-query distances\n")
             addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-            qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                                      qNames = qList,
-                                                      dbPrefix = queryDB,
-                                                      queryPrefix = queryDB,
-                                                      klist = kmers,
-                                                      self = True,
-                                                      number_plot_fits = 0,
-                                                      threads = threads)
+            qqDistMat = queryDatabase(rNames = qList,
+                                      qNames = qList,
+                                      dbPrefix = queryDB,
+                                      queryPrefix = queryDB,
+                                      klist = kmers,
+                                      self = True,
+                                      number_plot_fits = 0,
+                                      threads = threads)
 
             queryAssignation = model.assign(qqDistMat)
             for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
@@ -748,7 +748,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             # have to use names and link to query list in order to match to node indices
-            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qlist1, qlist2, self = True))):
+            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qListp, self = True))):
                 if assignment == model.within_label:
                     if weights is not None:
                         dist = np.linalg.norm(qqDistMat[row_idx, :])

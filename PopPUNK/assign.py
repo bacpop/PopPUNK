@@ -125,7 +125,7 @@ def assign_query(dbFuncs,
             for reference in refFile:
                 rNames.append(reference.rstrip())
     else:
-        if os.path.isfile(distances + ",pkl"):
+        if os.path.isfile(distances + ".pkl"):
             rNames = readPickle(distances, enforce_self = True, distances=False)[0]
         elif update_db:
             sys.stderr.write("Reference distances missing, cannot use --update-db\n")
