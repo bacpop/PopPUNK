@@ -402,7 +402,7 @@ if __name__ == "__main__":
         os.rename(os.path.join(output_dir,os.path.basename(output_dir) + "_lineages.csv"),
                   os.path.join(args.output,os.path.basename(args.output) + "_lineages.csv"))
         for rank in ranks:
-            os.rename(os.path.join(output_dir,os.path.basename(output_dir) + "_rank" + str(rank) + "_fit.npz"),
+            os.rename(os.path.join(output_dir, os.path.basename(output_dir) + "_rank" + str(rank) + "_fit.npz"),
                       os.path.join(args.output,os.path.basename(args.output) + "_rank" + str(rank) + "_fit.npz"))
 
         # Merge with epidemiological data if requested
