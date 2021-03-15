@@ -1,4 +1,5 @@
 import json
+import gzip
 import random
 import string
 import pkg_resources
@@ -6,9 +7,9 @@ import pkg_resources
 # Based on a simple interpretation of https://simple.wikipedia.org/wiki/Syllable
 def gen_unword(unique=True):
     # Download from https://github.com/dwyl/english-words/raw/master/words_dictionary.json
-    word_list = pkg_resources.resource_stream(__name__, 'data/words_dictionary.json')
-    #with open('data/words_dictionary.json', 'r') as word_list:
-    real_words = json.load(word_list)
+    word_list = pkg_resources.resource_stream(__name__, 'data/words_dictionary.json.gz')
+    with gzip.open(word_list, 'rb') as word_list:
+        real_words = json.load(word_list)
 
     vowels = ["a", "e", "i", "o", "u"]
     trouble = ["q", "x", "y"]

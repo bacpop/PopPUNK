@@ -129,5 +129,5 @@ setup(
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     include_package_data=True,
-    package_data={'': ['PopPUNK/data/*.json']}
+    package_data={'': ['PopPUNK/data/*.json.gz']}
 )
