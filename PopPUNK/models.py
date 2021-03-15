@@ -33,6 +33,15 @@ except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
 
+# GPU support
+try:
+    import cugraph
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    sys.stderr.write("cugraph and cudf unavailable\n")
+    gpu_lib = False
+
 import pp_sketchlib
 import poppunk_refine
 
@@ -726,13 +735,9 @@ class RefineFit(ClusterFit):
         self.unconstrained = unconstrained
 
         # load CUDA libraries
-        if use_gpu:
-            try:
-                import cugraph
-                import cudf
-            except ImportError as e:
-                sys.stderr.write("cugraph and cudf unavailable\n")
-                raise ImportError(e)
+        if use_gpu and not gpu_lib:
+            sys.stderr.write('Unable to load GPU libraries; exiting\n')
+            sys.exit(1)
 
         # Get starting point
         model.no_scale()

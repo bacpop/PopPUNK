@@ -22,6 +22,15 @@ from multiprocessing import Pool
 import graph_tool.all as gt
 import dendropy
 
+# GPU support
+try:
+    import cugraph
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    sys.stderr.write("cugraph and cudf unavailable\n")
+    gpu_lib = False
+
 from .__main__ import accepted_weights_types
 
 from .sketchlib import addRandom
@@ -67,19 +76,17 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     """
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
+
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; exiting\n')
+        sys.exit(1)
+
     if use_gpu:
-
-        # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
-
         graph_suffix = '.csv.gz'
     else:
         graph_suffix = '.gt'
+
     if core_only and model.type == 'refine':
         model.slope = 0
         network_file = dir_prefix + '_core_graph' + graph_suffix

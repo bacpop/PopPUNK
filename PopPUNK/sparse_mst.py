@@ -12,6 +12,15 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
+# GPU support
+try:
+    import cugraph
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    sys.stderr.write("cugraph and cudf unavailable\n")
+    gpu_lib = False
+
 # import poppunk package
 from .__init__ import __version__
 
@@ -61,13 +70,10 @@ def main():
     args = get_options()
 
     import graph_tool.all as gt
-    try:
-        import cugraph
-        import cudf
-    except ImportError as e:
-        if args.gpu_graph:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; exiting\n')
+        sys.exit(1)
 
     # Read in sample names
     if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):
