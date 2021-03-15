@@ -21,6 +21,12 @@ with ``pp-sketchlib <v1.5.1``. There are three ways to fix this:
 - Create the database with ``poppunk_sketch --sketch`` and
   ``poppunk_sketch --query`` directly, rather than ``PopPUNK --create-db``.
 
+I have updated PopPUNK, and my clusters still seemed scrambled
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This is possible using query assignment with ``--update-db``, or in some cases
+with ``--gpu-dists``. Please update to ``PopPUNK >=v2.4.0``
+with ``pp-sketchlib >=v1.7.0``
+
 Calculating distances using 0 thread(s)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This will lead to an error later on in execution. This is due to a version

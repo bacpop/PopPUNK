@@ -146,7 +146,6 @@ def get_options():
                                 action = 'store_true',
                                 default = False)
 
-    # processing
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
@@ -155,6 +154,11 @@ def get_options():
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
+    other.add_argument('--citation',
+                       action='store_true',
+                       default=False,
+                       help='Give a citation, and possible methods paragraph'
+                            ' based on the command line')
 
 
     # combine
@@ -181,6 +185,12 @@ def main():
         sys.exit(1)
 
     args = get_options()
+
+    # May just want to print the citation
+    if args.citation:
+        from .citation import print_citation
+        print_citation(args)
+        sys.exit(0)
 
     # Imports are here because graph tool is very slow to load
     from .models import loadClusterFit, ClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit

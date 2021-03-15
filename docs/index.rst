@@ -45,6 +45,7 @@ by reading the :doc:`best_practises`.
    troubleshooting.rst
    options.rst
    scripts.rst
+   citing.rst
    api.rst
    miscellaneous.rst
 

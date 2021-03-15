@@ -88,6 +88,13 @@ subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/
 sys.stderr.write("Running poppunk_references\n")
 subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db", shell=True, check=True)
 
+# citations
+sys.stderr.write("Printing citations\n")
+subprocess.run(python_cmd + " ../poppunk-runner.py --citation", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation --query some_queries.txt --db example_db --output example_query", shell=True, check=True)
+
 # web API
 sys.stderr.write("Running API tests\n")
 subprocess.run(python_cmd + " test_web.py", shell=True, check=True)
