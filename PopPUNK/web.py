@@ -75,6 +75,7 @@ def sketchAssign():
                                     args.assign.graph_weights,
                                     args.assign.max_a_dist,
                                     args.assign.max_pi_dist,
+                                    args.assign.reference_isolate,
                                     args.assign.model_dir,
                                     args.assign.strand_preserved,
                                     args.assign.previous_clustering,
