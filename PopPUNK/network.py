@@ -585,7 +585,6 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         degree_df = G.degree()
         triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
         transitivity = triangle_count/triad_count
-#        print("Triangle count GPU: " + str(triangle_count) + " Triad count GPU: " + str(triad_count))
     else:
         component_assignments, component_frequencies = gt.label_components(G)
         components = len(component_frequencies)
