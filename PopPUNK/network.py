@@ -638,7 +638,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         unword_generator = gen_unword()
 
     for newClsIdx, newCluster in enumerate(newClusters):
-
+        needs_unword = False
         # Ensure consistency with previous labelling
         if oldClusterFile != None:
             merge = False
