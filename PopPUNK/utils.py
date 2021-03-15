@@ -256,7 +256,7 @@ def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate = None):
         passed = False
         names = iterDistRows(refList, queryList, refList == queryList)
         for i, (ref, query) in enumerate(names):
-            if distMat[i,0] > c_max or distMat[i,1] > a_max:
+            if distMat[i, 0] > c_max or distMat[i, 1] > a_max:
                 sys.stderr.write("WARNING: Outlier at c = " + str(distMat[i,0]) + " a = " + str(distMat[i,1]) +
                                  " 1:" + ref + " 2:" + query + "\n")
                 if ref_isolate is not None:
