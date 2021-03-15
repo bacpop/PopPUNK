@@ -221,7 +221,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         G_df.columns = ['source','destination']
         G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
         # Add self-loop if needed
-        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_df = np.amax([G_df['source'].max(), G_df['destination'].max()])
         max_in_vertex_labels = len(reference_names) - 1
         if max_in_df.item() != max_in_vertex_labels:
             G_self_loop = cudf.DataFrame()
