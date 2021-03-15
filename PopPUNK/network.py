@@ -203,13 +203,9 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
 
     if use_gpu:
 
-        # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+        if not gpu_lib:
+            sys.stderr.write('Unable to load GPU libraries; exiting\n')
+            sys.exit(1)
     
         # For large network, use more approximate method for extracting references
         reference = {}
@@ -489,13 +485,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     # load GPU libraries if necessary
     if use_gpu:
         
-        # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
             
         # create DataFrame using edge tuples
         if weights is not None or sparse_input is not None:
@@ -576,13 +568,9 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
     """
     if use_gpu:
     
-        # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
     
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
@@ -765,13 +753,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # finish by updating the network
     if use_gpu:
     
-        # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
         
         # construct updated graph
         G_current_df = G.view_edge_list()
@@ -859,13 +843,9 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
     # get a sorted list of component assignments
     if use_gpu:
     
-        # load CUDA libraries
-        try:
-            import cugraph
-            import cudf
-        except ImportError as e:
-            sys.stderr.write("cugraph and cudf unavailable\n")
-            raise ImportError(e)
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
     
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
