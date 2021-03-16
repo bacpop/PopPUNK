@@ -3,6 +3,7 @@
 
 '''Print suggested citations and methods'''
 
+import os
 
 from .__init__ import __version__
 import pp_sketchlib
@@ -47,12 +48,10 @@ poppunk_methods = "We built a database of %(number_samples)s isolates using " + 
 "variable-length-k-mer clusters (VLKCs) using PopPUNK version %(poppunk_version)s " + \
 "(doi:%(poppunk_doi)s) by fitting a %(model_mode)s with %(model_options)s [1-5].\n"
 
-assign_methods = """
-We queried a database of %(number_samples)s isolates and their pre-assigned variable-length-k-mer clusters (VLKCs)
-using pp-sketchlib version %(sketchlib_version)s (doi:%(sketchlib_doi)s) with sketch version %(sketchlib_hash)s,
-k-mer lengths %(kmin)s-%(kmax)s, a sketch size of %(sketch_size)s and %(seed_type)s seeds [6-8]. We assigned the VLKCs using PopPUNK
-version %(poppunk_version)s (doi:%(poppunk_doi)s) [1-5].
-"""
+assign_methods = "We queried a database of %(number_samples)s isolates and their pre-assigned variable-length-k-mer clusters (VLKCs) " + \
+"using pp-sketchlib version %(sketchlib_version)s (doi:%(sketchlib_doi)s) with sketch version %(sketchlib_hash)s, " + \
+"k-mer lengths %(kmin)s-%(kmax)s, a sketch size of %(sketch_size)s and %(seed_type)s seeds [6-8]. We assigned the VLKCs using PopPUNK " + \
+"version %(poppunk_version)s (doi:%(poppunk_doi)s) [1-5].\n"
 
 def print_citation(args, assign=False):
     # Read values from DB
@@ -65,7 +64,7 @@ def print_citation(args, assign=False):
         kmers, sketch_size, codon_phased = readDBParams(db_prefix)
         kmin = str(min(kmers))
         kmax = str(max(kmers))
-        sketch_size = str(sketch_size)
+        sketch_size = str(sketch_size * 64)
         seed_phasing = "codon-phased" if codon_phased else "dense"
     except:
         n_samples = "X"

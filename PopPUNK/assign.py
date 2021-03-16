@@ -394,7 +394,7 @@ def main():
     # May just want to print the citation
     if args.citation:
         from .citation import print_citation
-        print_citation(args)
+        print_citation(args, assign=True)
         sys.exit(0)
 
     from .sketchlib import checkSketchlibLibrary
