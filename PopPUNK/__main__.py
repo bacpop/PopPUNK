@@ -96,7 +96,7 @@ def get_options():
                                                 default = 0.5, type = float)
     qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
-    qcGroup.add_argument('--reference-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
+    qcGroup.add_argument('--reference-isolate', help='Isolate from which distances will be calculated for pruning [default = None]',
                                                 default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
