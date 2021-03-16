@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - docker
-  create:
-    tags:
-      - v*
 
 jobs:
     acr-upload:
