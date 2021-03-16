@@ -4,6 +4,9 @@
 
 """Convenience wrapper for running poppunk_assign directly from source tree."""
 
+# pdb may need:
+# __spec__ = None
+
 from PopPUNK.assign import main
 
 if __name__ == '__main__':

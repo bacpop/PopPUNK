@@ -412,6 +412,6 @@ def likelihoodBoundary(s, model, start, end, within, between):
             and the between assignment
     """
     X = transformLine(s, start, end).reshape(1, -1)
-    responsibilities = model.assign(X, values = True)
+    responsibilities = model.assign(X, progress = False, values = True)
     return(responsibilities[0, within] - responsibilities[0, between])
 

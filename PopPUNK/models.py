@@ -18,20 +18,35 @@ import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
 from scipy.sparse import coo_matrix, bmat, find
+import hdbscan
+
+# Parallel support
+from tqdm import tqdm
+from tqdm.contrib.concurrent import thread_map, process_map
+from functools import partial
+import collections
+try:
+    from multiprocessing import Pool, RLock, shared_memory
+    from multiprocessing.managers import SharedMemoryManager
+    NumpyShared = collections.namedtuple('NumpyShared', ('name', 'shape', 'dtype'))
+except ImportError as e:
+    sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
+    sys.exit(0)
 
 import pp_sketchlib
 import poppunk_refine
 
+from .utils import set_env
+
 # BGMM
 from .bgmm import fit2dMultiGaussian
-from .bgmm import assign_samples
 from .bgmm import findWithinLabel
+from .bgmm import log_likelihood
 from .plot import plot_results
 from .plot import plot_contours
 
 # DBSCAN
 from .dbscan import fitDbScan
-from .dbscan import assign_samples_dbscan
 from .dbscan import findBetweenLabel
 from .dbscan import evaluate_dbscan_clusters
 from .plot import plot_dbscan_results
@@ -100,6 +115,63 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
     sys.stderr.write("Completed model loading\n")
     return load_obj
 
+def assign_samples(chunk, X, y, model, scale, chunk_size, values = False):
+    """Runs a models assignment on a chunk of input
+
+    Args:
+        chunk (int)
+            Index of chunk to process
+        X (NumpyShared)
+            n x 2 array of core and accessory distances for n samples
+        y (NumpyShared)
+            An n-vector to store results, with the most likely cluster memberships
+            or an n by k matrix with the component responsibilities for each sample.
+        weights (numpy.array)
+            Component weights from :class:`~PopPUNK.models.BGMMFit`
+        means (numpy.array)
+            Component means from :class:`~PopPUNK.models.BGMMFit`
+        covars (numpy.array)
+            Component covariances from :class:`~PopPUNK.models.BGMMFit`
+        scale (numpy.array)
+            Scaling of core and accessory distances from :class:`~PopPUNK.models.BGMMFit`
+        chunk_size (int)
+            Size of each chunk in X
+        values (bool)
+            Whether to return the responsibilities, rather than the most
+            likely assignment (used for entropy calculation).
+
+            Default is False
+    """
+    # Make sure this is run single threaded
+    with set_env(MKL_NUM_THREADS='1',
+                 NUMEXPR_NUM_THREADS='1',
+                 OMP_NUM_THREADS='1'):
+        if isinstance(X, NumpyShared):
+            X_shm = shared_memory.SharedMemory(name = X.name)
+            X = np.ndarray(X.shape, dtype = X.dtype, buffer = X_shm.buf)
+        if isinstance(y, NumpyShared):
+            y_shm = shared_memory.SharedMemory(name = y.name)
+            y = np.ndarray(y.shape, dtype = y.dtype, buffer = y_shm.buf)
+
+        start = chunk * chunk_size
+        end = min((chunk + 1) * chunk_size, X.shape[0])
+        if start >= end:
+            raise RuntimeError("start >= end in BGMM assign")
+
+        if isinstance(model, BGMMFit):
+            logprob, lpr = log_likelihood(X[start:end, :], model.weights,
+                                          model.means, model.covariances, scale)
+            responsibilities = np.exp(lpr - logprob[:, np.newaxis])
+            # Default to return the most likely cluster
+            if values == False:
+                y[start:end] = responsibilities.argmax(axis=1)
+            # Can return the actual responsibilities
+            else:
+                y[start:end, :] = responsibilities
+        elif isinstance(model, DBSCANFit):
+            y[start:end] = hdbscan.approximate_predict(model.hdb, X[start:end, :]/scale)[0]
+
+
 class ClusterFit:
     '''Parent class for all models used to cluster distances
 
@@ -120,7 +192,10 @@ class ClusterFit:
         self.fitted = False
         self.indiv_fitted = False
         self.default_dtype = default_dtype
+        self.threads = 1
 
+    def set_threads(self, threads):
+      self.threads = threads
 
     def fit(self, X = None):
         '''Initial steps for all fit functions.
@@ -194,7 +269,7 @@ class BGMMFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 100000):
+    def __init__(self, outPrefix, max_samples = 50000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
@@ -263,8 +338,8 @@ class BGMMFit(ClusterFit):
         self.means = fit_npz['means']
         self.covariances = fit_npz['covariances']
         self.scale = fit_npz['scale']
-        self.within_label = np.asscalar(fit_npz['within'])
-        self.between_label = np.asscalar(fit_npz['between'])
+        self.within_label = fit_npz['within'].item()
+        self.between_label = fit_npz['between'].item()
         self.fitted = True
 
 
@@ -285,7 +360,9 @@ class BGMMFit(ClusterFit):
         if not hasattr(self, 'subsampled_X'):
             self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
-        avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1, self.assign(self.subsampled_X, values = True)))
+        y_subsample = self.assign(self.subsampled_X, values=True, progress=False)
+        avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
+                                                  y_subsample))
         used_components = np.unique(y).size
         sys.stderr.write("Fit summary:\n" + "\n".join(["\tAvg. entropy of assignment\t" +  "{:.4f}".format(avg_entropy),
                                                         "\tNumber of components used\t" + str(used_components)]) + "\n\n")
@@ -298,10 +375,10 @@ class BGMMFit(ClusterFit):
         outfile = self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_DPGMM_fit"
 
         plot_results(X, y, self.means, self.covariances, self.scale, title, outfile)
-        plot_contours(y, self.weights, self.means, self.covariances, title + " assignment boundary", outfile + "_contours")
+        plot_contours(self, y, title + " assignment boundary", outfile + "_contours")
 
 
-    def assign(self, X, values = False):
+    def assign(self, X, values = False, progress=True):
         '''Assign the clustering of new samples using :func:`~PopPUNK.bgmm.assign_samples`
 
         Args:
@@ -309,6 +386,12 @@ class BGMMFit(ClusterFit):
                 Core and accessory distances
             values (bool)
                 Return the responsibilities of assignment rather than most likely cluster
+            num_processes (int)
+                Number of threads to use
+            progress (bool)
+                Show progress bar
+
+                [default = True]
         Returns:
             y (numpy.array)
                 Cluster assignments or values by samples
@@ -316,7 +399,37 @@ class BGMMFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            y = assign_samples(X, self.weights, self.means, self.covariances, self.scale, values)
+            if progress:
+                sys.stderr.write("Assigning distances with BGMM model\n")
+
+            if values:
+                y = np.zeros((X.shape[0], len(self.weights)), dtype=X.dtype)
+            else:
+                y = np.zeros(X.shape[0], dtype=int)
+            block_size = 100000
+            with SharedMemoryManager() as smm:
+                shm_X = smm.SharedMemory(size = X.nbytes)
+                X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
+                X_shared_array[:] = X[:]
+                X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
+
+                shm_y = smm.SharedMemory(size = y.nbytes)
+                y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
+                y_shared_array[:] = y[:]
+                y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
+
+                thread_map(partial(assign_samples,
+                                           X = X_shared,
+                                           y = y_shared,
+                                           model = self,
+                                           scale = self.scale,
+                                           chunk_size = block_size,
+                                           values = values),
+                                    range((X.shape[0] - 1) // block_size + 1),
+                                    max_workers=self.threads,
+                                    disable=(progress == False))
+
+                y[:] = y_shared_array[:]
 
         return y
 
@@ -389,7 +502,7 @@ class DBSCANFit(ClusterFit):
                     self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
                     self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
-                y = self.assign(self.subsampled_X, no_scale=True)
+                y = self.assign(self.subsampled_X, no_scale=True, progress=False)
                 self.within_label = findWithinLabel(self.cluster_means, y)
                 self.between_label = findBetweenLabel(y, self.within_label)
 
@@ -442,8 +555,8 @@ class DBSCANFit(ClusterFit):
         self.labels = self.hdb.labels_
         self.n_clusters = fit_npz['n_clusters']
         self.scale = fit_npz['scale']
-        self.within_label = np.asscalar(fit_npz['within'])
-        self.between_label = np.asscalar(fit_npz['between'])
+        self.within_label = fit_npz['within'].item()
+        self.between_label = fit_npz['between'].item()
         self.cluster_means = fit_npz['means']
         self.cluster_maxs = fit_npz['maxs']
         self.cluster_mins = fit_npz['mins']
@@ -478,12 +591,12 @@ class DBSCANFit(ClusterFit):
         sys.stderr.write("\n")
 
         plot_dbscan_results(self.subsampled_X * self.scale,
-                            self.assign(self.subsampled_X, no_scale=True),
+                            self.assign(self.subsampled_X, no_scale=True, progress=False),
                             self.n_clusters,
                             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
-    def assign(self, X, no_scale = False):
+    def assign(self, X, no_scale = False, progress = True):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
@@ -493,6 +606,10 @@ class DBSCANFit(ClusterFit):
                 Do not scale X
 
                 [default = False]
+            progress (bool)
+                Show progress bar
+
+                [default = True]
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -504,7 +621,37 @@ class DBSCANFit(ClusterFit):
                 scale = np.array([1, 1], dtype = X.dtype)
             else:
                 scale = self.scale
-            y = assign_samples_dbscan(X, self.hdb, scale)
+            if progress:
+                sys.stderr.write("Assigning distances with DBSCAN model\n")
+
+            y = np.zeros(X.shape[0], dtype=int)
+            block_size = 5000
+            n_blocks = (X.shape[0] - 1) // block_size + 1
+            with SharedMemoryManager() as smm:
+                shm_X = smm.SharedMemory(size = X.nbytes)
+                X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
+                X_shared_array[:] = X[:]
+                X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
+
+                shm_y = smm.SharedMemory(size = y.nbytes)
+                y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
+                y_shared_array[:] = y[:]
+                y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
+
+                tqdm.set_lock(RLock())
+                process_map(partial(assign_samples,
+                            X = X_shared,
+                            y = y_shared,
+                            model = self,
+                            scale = scale,
+                            chunk_size = block_size,
+                            values = False),
+                    range(n_blocks),
+                    max_workers=self.threads,
+                    chunksize=min(10, max(1, n_blocks // self.threads)),
+                    disable=(progress == False))
+
+                y[:] = y_shared_array[:]
 
         return y
 
@@ -530,7 +677,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False, threads = 1):
+            unconstrained = False, score_idx = 0, no_local = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -567,10 +714,6 @@ class RefineFit(ClusterFit):
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
-            num_processes (int)
-                Number of threads to use in the global optimisation step.
-
-                (default = 1)
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -618,7 +761,7 @@ class RefineFit(ClusterFit):
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                     slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = threads)
+                    no_local = no_local, num_processes = self.threads)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -631,12 +774,12 @@ class RefineFit(ClusterFit):
                 start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 0, score_idx = score_idx, no_local = no_local,num_processes = threads)
+                            slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
                 # optimise accessory distance boundary
                 start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = threads)
+                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
@@ -709,10 +852,10 @@ class RefineFit(ClusterFit):
             fit_obj (None)
                 The saved fit object (not used)
         '''
-        self.optimal_x = np.asscalar(fit_npz['intercept'][0])
-        self.optimal_y = np.asscalar(fit_npz['intercept'][1])
-        self.core_boundary = np.asscalar(fit_npz['core_acc_intercepts'][0])
-        self.accessory_boundary = np.asscalar(fit_npz['core_acc_intercepts'][1])
+        self.optimal_x = fit_npz['intercept'].item(0)
+        self.optimal_y = fit_npz['intercept'].item(1)
+        self.core_boundary = fit_npz['core_acc_intercepts'].item(0)
+        self.accessory_boundary = fit_npz['core_acc_intercepts'].item(1)
         self.scale = fit_npz['scale']
         self.fitted = True
         if 'indiv_fitted' in fit_npz:
@@ -756,7 +899,7 @@ class RefineFit(ClusterFit):
             "Refined fit boundary", self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
 
-    def assign(self, X, slope=None, cpus=1):
+    def assign(self, X, slope=None):
         '''Assign the clustering of new samples
 
         Args:
@@ -777,11 +920,11 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             if slope == 2 or (slope == None and self.slope == 2):
-                y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, self.threads)
             elif slope == 0 or (slope == None and self.slope == 0):
-                y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, self.threads)
             elif slope == 1 or (slope == None and self.slope == 1):
-                y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, cpus)
+                y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, self.threads)
 
         return y
 
@@ -812,7 +955,7 @@ class LineageFit(ClusterFit):
                 self.ranks.append(int(rank))
 
 
-    def fit(self, X, accessory, threads):
+    def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
 
         Gets assignments by using nearest neigbours.
@@ -823,8 +966,6 @@ class LineageFit(ClusterFit):
                 preprocess is set.
             accessory (bool)
                 Use accessory rather than core distances
-            threads (int)
-                Number of threads to use
 
         Returns:
             y (numpy.array)
@@ -845,10 +986,10 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             row, col, data = \
                 pp_sketchlib.sparsifyDists(
-                    pp_sketchlib.longToSquare(X[:, [self.dist_col]], threads),
+                    pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
                     0,
                     rank,
-                    threads
+                    self.threads
                 )
             data = [epsilon if d < epsilon else d for d in data]
             self.nn_dists[rank] = coo_matrix((data, (row, col)),
@@ -941,7 +1082,7 @@ class LineageFit(ClusterFit):
 
     def extend(self, qqDists, qrDists):
         # Reshape qq and qr dist matrices
-        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], 1)
+        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]
