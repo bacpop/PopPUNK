@@ -62,8 +62,8 @@ def get_options():
                              'from poppunk_assign [default = use that in the directory '
                              'of the query database]',
                         type = str)
-    iGroup.add_argument('--use-network',
-                        help='Specify a directory containing a .gt file to use for any graph visualisations',
+    iGroup.add_argument('--network-file',
+                        help='Specify a file to use for any graph visualisations',
                         type = str)
     iGroup.add_argument('--display-cluster',
                         help='Column of clustering CSV to use for plotting',
@@ -109,6 +109,7 @@ def get_options():
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating graphs [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--strand-preserved', default=False, action='store_true',
                        help='If distances being calculated, treat strand as known when calculating random '
@@ -149,7 +150,8 @@ def generate_visualisations(query_db,
                             model_dir,
                             previous_clustering,
                             previous_query_clustering,
-                            use_network,
+                            network_file,
+                            gpu_graph,
                             info_csv,
                             rapidnj,
                             tree,
@@ -165,6 +167,7 @@ def generate_visualisations(query_db,
     from .network import constructNetwork
     from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
+    from .network import load_network_file
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -326,15 +329,6 @@ def generate_visualisations(query_db,
                                                mode = mode,
                                                return_dict = True)
 
-    # Set graph location
-    if use_network is not None:
-        graph_dir = use_network
-        if graph_dir != prev_clustering:
-            sys.stderr.write("WARNING: Loading graph from a different directory to clusters\n")
-            sys.stderr.write("WARNING: Ensure that they are consistent\n")
-    else:
-        graph_dir = prev_clustering
-
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
@@ -443,12 +437,7 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(os.path.dirname(graph_dir),
-                                                    model,
-                                                    rlist,
-                                                    False,
-                                                    core_only,
-                                                    accessory_only)
+        genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
@@ -478,7 +467,8 @@ def main():
                             args.model_dir,
                             args.previous_clustering,
                             args.previous_query_clustering,
-                            args.use_network,
+                            args.network_file,
+                            args.gpu_graph,
                             args.info_csv,
                             args.rapidnj,
                             args.tree,

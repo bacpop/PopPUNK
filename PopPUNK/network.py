@@ -104,9 +104,34 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
+    
+    # Load network file
+    genomeNetwork = load_network_file(network_file, use_gpu = use_gpu)
 
+    # Ensure all in dists are in final network
+    checkNetworkVertexCount(refList, genomeNetwork, use_gpu)
+
+    return genomeNetwork, cluster_file
+
+def load_network_file(fn, use_gpu = False):
+    """Load the network based on input options
+
+       Returns the network as a graph-tool format graph, and sets
+       the slope parameter of the passed model object.
+
+       Args:
+            fn (str)
+                Network file name
+            use_gpu (bool)
+                Use cugraph library to load graph
+
+       Returns:
+            genomeNetwork (graph)
+                The loaded network
+    """
+    # Load the network from the specified file
     if use_gpu:
-        G_df = cudf.read_csv(network_file, compression = 'gzip')
+        G_df = cudf.read_csv(fn, compression = 'gzip')
         genomeNetwork = cugraph.Graph()
         if 'weights' in G_df.columns:
             G_df.columns = ['source','destination','weights']
@@ -116,13 +141,10 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
         sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_vertices()) + " samples\n")
     else:
-        genomeNetwork = gt.load_graph(network_file)
+        genomeNetwork = gt.load_graph(fn)
         sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
-
-    # Ensure all in dists are in final network
-    checkNetworkVertexCount(refList, genomeNetwork, use_gpu)
-
-    return genomeNetwork, cluster_file
+    
+    return genomeNetwork
 
 def checkNetworkVertexCount(seq_list, G, use_gpu):
     """Checks the number of network vertices matches the number
