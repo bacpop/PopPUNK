@@ -478,15 +478,13 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                                                                 weights = True)
             for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
                 edge_tuple = (ref, query, weight)
-                if ref < query:
-                    connections.append(edge_tuple)
+                connections.append(edge_tuple)
         else:
             extra_sources, extra_targets = load_previous_network(prev_G,rlist,
                                                                                 weights = False)
             for (ref, query) in zip(extra_sources, extra_targets):
                 edge_tuple = (ref, query)
-                if ref < query:
-                    connections.append(edge_tuple)
+                connections.append(edge_tuple)
 
     # load GPU libraries if necessary
     if use_gpu:
