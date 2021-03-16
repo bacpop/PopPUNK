@@ -288,8 +288,7 @@ def assign_query(dbFuncs,
 
         # Copy model if needed
         if output != model.outPrefix:
-            model.outPrefix = output
-            model.save()
+            model.copy(output)
 
         # Clique pruning
         if model.type != 'lineage':

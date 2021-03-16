@@ -261,6 +261,12 @@ class ClusterFit:
         is done in the scaled space).
         '''
         self.scale = np.array([1, 1], dtype = self.default_dtype)
+        
+    def copy(self, prefix):
+        """Copy the model to a new directory
+        """
+        self.outPrefix = prefix
+        save()
 
 
 class BGMMFit(ClusterFit):

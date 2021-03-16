@@ -303,7 +303,7 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
                                                                 distMat,
                                                                 prefix + "/" + os.path.basename(prefix) + ".dists")
             # Remove from reflist
-            sys.stderr.write('Pruned from the database after failing distance QC: ' + ';'.join(to_prune))
+            sys.stderr.write('Pruned from the database after failing distance QC: ' + ';'.join(to_prune) + '\n')
 
     return seq_names_passing, distMat
 
