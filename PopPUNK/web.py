@@ -66,6 +66,7 @@ def sketchAssign():
                                     args.assign.ref_db,
                                     args.assign.q_files,
                                     outdir,
+                                    qc_dict,
                                     args.assign.update_db,
                                     args.assign.write_references,
                                     args.assign.distances,

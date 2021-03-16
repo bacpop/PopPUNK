@@ -28,6 +28,7 @@ def assign_query(dbFuncs,
                  ref_db,
                  q_files,
                  output,
+                 qc_dict,
                  update_db,
                  write_references,
                  distances,
@@ -159,7 +160,7 @@ def assign_query(dbFuncs,
                               threads = threads,
                               use_gpu = gpu_dist)
     # QC distance matrix
-    qcPass = qcDistMat(qrDistMat, rNames, qNames, max_pi_dist, max_a_dist, reference_isolate)
+    seq_names_passing, distMat = qcDistMat(qrDistMat, rNames, qNames, output, qc_dict)
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
@@ -443,7 +444,7 @@ def main():
 
     # Dict of QC options for passing to database construction and querying functions
     if args.length_sigma is None and None in args.length_range and args.prop_n is None \
-        and args.upper_n is None:
+        and args.upper_n is None and args.max_a_dist is None and args.max_pi_dist is None:
         qc_dict = {'run_qc': False }
     else:
         # define defaults if one QC parameter given
@@ -468,7 +469,10 @@ def main():
             'length_sigma': length_sigma,
             'length_range': args.length_range,
             'prop_n': prop_n,
-            'upper_n': args.upper_n
+            'upper_n': args.upper_n,
+            'max_pi_dist': args.max_pi_dist,
+            'max_a_dist': args.max_a_dist,
+            'reference_isolate': args.reference_isolate
         }
 
     # Dict of DB access functions for assign_query (which is out of scope)
@@ -497,6 +501,7 @@ def main():
                  args.db,
                  args.query,
                  args.output,
+                 qc_dict,
                  args.update_db,
                  args.write_references,
                  distances,

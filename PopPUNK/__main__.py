@@ -318,29 +318,6 @@ def main():
                                 args.output,
                                 qc_dict)
 
-#        # prune based on distance from reference if provided
-#        if args.reference_isolate is not None and len(names_to_remove) > 0 and args.qc_filter == "prune":
-#            # Remove sketches
-#            db_name = args.output + '/' + os.path.basename(args.output) + '.h5'
-#            filtered_db_name = args.output + '/' + 'filtered.' + os.path.basename(args.output) + '.h5'
-#            removeFromDB(db_name,
-#                         filtered_db_name,
-#                         names_to_remove,
-#                         full_names = True)
-#            os.rename(filtered_db_name, db_name)
-#            # Remove from distance matrix
-#            prune_distance_matrix(seq_names_passing,
-#                                    names_to_remove,
-#                                    distMat,
-#                                    args.output + "/" + os.path.basename(args.output) + ".dists")
-#            # Remove from reflist
-#            seq_names_passing = [seq_names_passing.remove(x) for x in names_to_remove]
-#            sys.stderr.write("Successfully removed from the database: " + str(names_to_remove))
-#        else:
-#            # Save results
-#            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-#            storePickle(seq_names_passing, seq_names_passing, True, distMat, dists_out)
-
         # Plot results
         plot_scatter(distMat,
                      args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
@@ -390,8 +367,9 @@ def main():
 
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
-        if qcDistMat(distMat, refList, queryList, args.max_pi_dist, args.max_a_dist) == False \
-                and args.qc_filter == "stop":
+        seq_names = set(set(refList) | set(queryList))
+        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.output, qc_dict)
+        if length(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
 
