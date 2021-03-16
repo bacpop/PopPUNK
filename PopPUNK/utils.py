@@ -226,9 +226,8 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate = None):
-    """Checks distance matrix for outliers. At the moment
-    just a threshold for accessory distance
+def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
+    """Checks distance matrix for outliers.
 
     Args:
         distMat (np.array)
@@ -237,38 +236,76 @@ def qcDistMat(distMat, refList, queryList, c_max, a_max, ref_isolate = None):
             Reference labels
         queryList (list)
             Query labels (or refList if self)
-        c_max (float)
-            Maximum core distance to allow
-        a_max (float)
-            Maximum accessory distance to allow
-        ref_isolate (str)
-            Name of reference from which pruning can occur
-
+        prefix (list)
+            Prefix for output files
+        qc_dict (dict)
+            Dict of QC options
+            
     Returns:
-        passed (bool)
-            False if any samples failed
+        seq_names_passing (list)
+            List of isolates passing QC distance filters
+        distMat ([n,2] numpy ndarray)
+            Filtered long form distance matrix
     """
-    passed = True
+    
+    # avoid circular import
+    from .prune_db import prune_distance_matrix
+    from .sketchlib import removeFromDB
+    
     to_prune = []
 
     # First check with numpy, which is quicker than iterating over everything
-    if np.any(distMat[:, 0] > c_max) or np.any(distMat[:, 1] > a_max):
-        passed = False
-        names = iterDistRows(refList, queryList, refList == queryList)
-        for i, (ref, query) in enumerate(names):
-            if distMat[i, 0] > c_max or distMat[i, 1] > a_max:
-                sys.stderr.write("WARNING: Outlier at c = " + str(distMat[i, 0]) + " a = " + str(distMat[i, 1]) +
-                                 " 1:" + ref + " 2:" + query + "\n")
-                if ref_isolate is not None:
-                    if ref == ref_isolate:
-                        to_prune.append(query)
-                    elif query == ref_isolate:
-                        to_prune.append(ref)
+    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
+    if len(long_distance_rows) > 0:
+        names = list(iterDistRows(refList, queryList, refList == queryList))
+        # Prune sequences based on reference sequence
+        if qc_dict['reference_isolate'] is not None:
+            for i in long_distance_rows:
+                if names[i][0] == qc_dict['reference_isolate']:
+                    to_prune.append(names[i][1])
+                elif names[i][1] == qc_dict['reference_isolate']:
+                    to_prune.append(names[i][0])
+        else:
+            anomalous_isolates = set()
+            for i in long_distance_rows:
+                anomalous_isolates.add(names[i][0])
+                anomalous_isolates.add(names[i][1])
+            to_prune = list(anomalous_isolates)
 
-    if ref_isolate is None:
-        return passed
+    # Create overall list of sequences
+    if refList == refList:
+        seq_names_passing = refList
     else:
-        return to_prune
+        seq_names_passing = refList + queryList
+    
+    # prune based on distance from reference if provided
+    if qc_dict['qc_filter'] == 'stop':
+        if len(to_prune) > 0:
+            sys.stderr.write('Outlier distances exceed QC thresholds; prune sequences or raise thresholds\n')
+            sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
+            sys.exit(1)
+    elif qc_dict['qc_filter'] == 'prune' and len(to_prune) > 0:
+        if qc_dict['reference_isolate'] is None:
+            sys.stderr.write('Distances exceeded QC thresholds but no reference isolate supplied\n')
+            sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
+        else:
+            # Remove sketches
+            db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+            filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
+            removeFromDB(db_name,
+                         filtered_db_name,
+                         to_prune,
+                         full_names = True)
+            os.rename(filtered_db_name, db_name)
+            # Remove from distance matrix
+            seq_names_passing, distMat = prune_distance_matrix(seq_names_passing,
+                                                                to_prune,
+                                                                distMat,
+                                                                prefix + "/" + os.path.basename(prefix) + ".dists")
+            # Remove from reflist
+            sys.stderr.write('Successfully pruned from the database: ' + ';'.join(to_prune))
+
+    return seq_names_passing, distMat
 
 
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):

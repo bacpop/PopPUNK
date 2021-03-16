@@ -230,7 +230,10 @@ def main():
         'length_sigma': args.length_sigma,
         'length_range': args.length_range,
         'prop_n': args.prop_n,
-        'upper_n': args.upper_n
+        'upper_n': args.upper_n,
+        'max_pi_dist': args.max_pi_dist,
+        'max_a_dist': args.max_a_dist,
+        'reference_isolate': args.reference_isolate
     }
 
     # Dict of DB access functions
@@ -285,7 +288,7 @@ def main():
             sys.stderr.write("--create-db requires --r-files and --output")
             sys.exit(1)
 
-        # generate sketches and QC sequences
+        # generate sketches and QC sequences to identify sequences not matching specified criteria
         createDatabaseDir(args.output, kmers)
         seq_names_passing = \
             constructDatabase(
@@ -298,6 +301,7 @@ def main():
                 codon_phased = args.codon_phased,
                 calc_random = True)
 
+        # calculate distances between sequences
         distMat = queryDatabase(rNames = seq_names_passing,
                                 qNames = seq_names_passing,
                                 dbPrefix = args.output,
@@ -306,35 +310,36 @@ def main():
                                 self = True,
                                 number_plot_fits = args.plot_fit,
                                 threads = args.threads)
-        names_to_remove = qcDistMat(distMat,
+
+        # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
+        seq_names_passing, distMat = qcDistMat(distMat,
                                 seq_names_passing,
                                 seq_names_passing,
-                                args.max_pi_dist,
-                                args.max_a_dist,
-                                args.reference_isolate)
-        
-        # prune based on distance from reference if provided
-        if args.reference_isolate is not None and len(names_to_remove) > 0 and args.qc_filter == "prune":
-            # Remove sketches
-            db_name = args.output + '/' + os.path.basename(args.output) + '.h5'
-            filtered_db_name = args.output + '/' + 'filtered.' + os.path.basename(args.output) + '.h5'
-            removeFromDB(db_name,
-                         filtered_db_name,
-                         names_to_remove,
-                         full_names = True)
-            os.rename(filtered_db_name, db_name)
-            # Remove from distance matrix
-            prune_distance_matrix(seq_names_passing,
-                                    names_to_remove,
-                                    distMat,
-                                    args.output + "/" + os.path.basename(args.output) + ".dists")
-            # Remove from reflist
-            seq_names_passing = [seq_names_passing.remove(x) for x in names_to_remove]
-            sys.stderr.write("Successfully removed from the database: " + str(names_to_remove))
-        else:
-            # Save results
-            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-            storePickle(seq_names_passing, seq_names_passing, True, distMat, dists_out)
+                                args.output,
+                                qc_dict)
+
+#        # prune based on distance from reference if provided
+#        if args.reference_isolate is not None and len(names_to_remove) > 0 and args.qc_filter == "prune":
+#            # Remove sketches
+#            db_name = args.output + '/' + os.path.basename(args.output) + '.h5'
+#            filtered_db_name = args.output + '/' + 'filtered.' + os.path.basename(args.output) + '.h5'
+#            removeFromDB(db_name,
+#                         filtered_db_name,
+#                         names_to_remove,
+#                         full_names = True)
+#            os.rename(filtered_db_name, db_name)
+#            # Remove from distance matrix
+#            prune_distance_matrix(seq_names_passing,
+#                                    names_to_remove,
+#                                    distMat,
+#                                    args.output + "/" + os.path.basename(args.output) + ".dists")
+#            # Remove from reflist
+#            seq_names_passing = [seq_names_passing.remove(x) for x in names_to_remove]
+#            sys.stderr.write("Successfully removed from the database: " + str(names_to_remove))
+#        else:
+#            # Save results
+#            dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
+#            storePickle(seq_names_passing, seq_names_passing, True, distMat, dists_out)
 
         # Plot results
         plot_scatter(distMat,
