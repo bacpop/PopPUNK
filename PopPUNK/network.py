@@ -120,12 +120,27 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
         sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # Ensure all in dists are in final network
-    vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = use_gpu))
-    networkMissing = set(set(range(len(refList))).difference(vertex_list))
-    if len(networkMissing) > 0:
-        sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+    checkNetworkVertexCount(refList, genomeNetwork, use_gpu)
 
-    return (genomeNetwork, cluster_file)
+    return genomeNetwork, cluster_file
+
+def checkNetworkVertexCount(seq_list, G, use_gpu):
+    """Checks the number of network vertices matches the number
+    of sequence names.
+
+    Args:
+        seq_list (list)
+            The list of sequence names
+        G (graph)
+            The network of sequences
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
+    """
+    vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = use_gpu))
+    networkMissing = set(set(range(len(seq_list))).difference(vertex_list))
+    if len(networkMissing) > 0:
+        sys.stderr.write("ERROR: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+        sys.exit(1)
 
 def getCliqueRefs(G, reference_indices = set()):
     """Recursively prune a network of its cliques. Returns one vertex from

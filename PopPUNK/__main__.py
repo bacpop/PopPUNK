@@ -197,6 +197,7 @@ def main():
     from .network import printClusters
     from .network import get_vertex_list
     from .network import save_network
+    from .network import checkNetworkVertexCount
 
     from .plot import writeClusterCsv
     from .plot import plot_scatter
@@ -487,13 +488,7 @@ def main():
             genomeNetwork = indivNetworks[min(rank_list)]
 
         # Ensure all in dists are in final network
-        vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = args.gpu_graph))
-        networkMissing = set(set(range(len(refList))).difference(vertex_list))
-        if len(networkMissing) > 0:
-            missing_isolates = [refList[m] for m in networkMissing]
-            sys.stderr.write("ERROR: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
-            sys.stderr.write("These correspond to indices " + ", ".join(map(str,networkMissing)) + "\n")
-            sys.exit(1)
+        checkNetworkVertexCount(refList, genomeNetwork, use_gpu)
 
         fit_type = model.type
         isolateClustering = {fit_type: printClusters(genomeNetwork,
