@@ -572,6 +572,46 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     return distMat
 
 
+def pickReferenceIsolate(prefix, names):
+    """Selects a reference isolate as that with a minimal proportion
+    of missing data.
+
+    Args:
+        prefix (str)
+            Prefix of output files
+        names (list)
+            Names of samples to QC
+
+    Returns:
+        reference_isolate (str)
+            Name of isolate selected as reference
+    """
+    # open databases
+    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+    hdf_in = h5py.File(db_name, 'r+')
+    
+    min_prop_n = 1.0
+    reference_isolate = None
+    
+    try:
+        # process data structures
+        read_grp = hdf_in['sketches']
+        # iterate through sketches
+        for dataset in read_grp:
+            if hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length'] < min_prop_n:
+                min_prop_n = hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length']
+                reference_isolate = dataset
+            if min_prop_n == 0.0:
+                break
+    # if failure still close files to avoid corruption
+    except:
+        hdf_in.close()
+        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
+        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
+        raise
+
+    return reference_isolate
+
 def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.

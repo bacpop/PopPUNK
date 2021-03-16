@@ -251,32 +251,32 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
     # avoid circular import
     from .prune_db import prune_distance_matrix
     from .sketchlib import removeFromDB
+    from .sketchlib import pickReferenceIsolate
     
+    # Create overall list of sequences
+    if refList == refList:
+        seq_names_passing = refList
+    else:
+        seq_names_passing = refList + queryList
+        
+    # Sequences to remove
     to_prune = []
+
+    # Pick reference isolate if not supplied
+    if qc_dict['reference_isolate'] is None:
+        qc_dict['reference_isolate'] = pickReferenceIsolate(prefix, seq_names_passing)
+        sys.stderr.write('Selected reference isolate is ' + qc_dict['reference_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
     if len(long_distance_rows) > 0:
         names = list(iterDistRows(refList, queryList, refList == queryList))
         # Prune sequences based on reference sequence
-        if qc_dict['reference_isolate'] is not None:
-            for i in long_distance_rows:
-                if names[i][0] == qc_dict['reference_isolate']:
-                    to_prune.append(names[i][1])
-                elif names[i][1] == qc_dict['reference_isolate']:
-                    to_prune.append(names[i][0])
-        else:
-            anomalous_isolates = set()
-            for i in long_distance_rows:
-                anomalous_isolates.add(names[i][0])
-                anomalous_isolates.add(names[i][1])
-            to_prune = list(anomalous_isolates)
-
-    # Create overall list of sequences
-    if refList == refList:
-        seq_names_passing = refList
-    else:
-        seq_names_passing = refList + queryList
+        for i in long_distance_rows:
+            if names[i][0] == qc_dict['reference_isolate']:
+                to_prune.append(names[i][1])
+            elif names[i][1] == qc_dict['reference_isolate']:
+                to_prune.append(names[i][0])
     
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop':
