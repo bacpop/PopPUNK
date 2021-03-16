@@ -71,7 +71,7 @@ def main():
 
     import graph_tool.all as gt
     # load CUDA libraries
-    if use_gpu and not gpu_lib:
+    if args.gpu_graph and not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
 
