@@ -230,7 +230,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         reference_index_df = component_assignments.groupby('partition').nth(0)
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
         
-        # Order found references as in mash sketch files
+        # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
         refFileName = writeReferences(reference_names, outPrefix)
         
@@ -249,7 +249,6 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Construct graph
         G_ref = cugraph.Graph()
         G_ref.from_cudf_edgelist(G_ref_df)
-        return reference_indices, reference_names, refFileName, G_ref
     
     else:
 
@@ -329,7 +328,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Order found references as in mash sketch files
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
         refFileName = writeReferences(reference_names, outPrefix)
-        return reference_indices, reference_names, refFileName, G_ref
+    return reference_indices, reference_names, refFileName, G_ref
 
 def writeReferences(refList, outPrefix):
     """Writes chosen references to file
