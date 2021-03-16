@@ -12,7 +12,7 @@ Generating citations and methods
 --------------------------------
 You can add ``--citation`` to your PopPUNK command to generate a full list of papers
 to cite. This will also produce a basic methods paragraph for you to edit and include. You
-can do this after running `poppunk_assign` or `poppunk --fit-model`::
+can do this after running ``poppunk_assign`` or ``poppunk --fit-model``::
 
     poppunk --citation --fit-model bgmm --ref-db example_db --K 4
 
