@@ -136,7 +136,7 @@ def checkNetworkVertexCount(seq_list, G, use_gpu):
         use_gpu (bool)
             Whether to use cugraph for graph analyses
     """
-    vertex_list = set(get_vertex_list(genomeNetwork, use_gpu = use_gpu))
+    vertex_list = set(get_vertex_list(G, use_gpu = use_gpu))
     networkMissing = set(set(range(len(seq_list))).difference(vertex_list))
     if len(networkMissing) > 0:
         sys.stderr.write("ERROR: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
@@ -239,16 +239,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         G_df.columns = ['source','destination']
         G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
         # Add self-loop if needed
-        max_in_df = np.amax([G_df['source'].max(), G_df['destination'].max()])
         max_in_vertex_labels = len(reference_names) - 1
-        if max_in_df.item() != max_in_vertex_labels:
-            G_self_loop = cudf.DataFrame()
-            G_self_loop['source'] = [max_in_vertex_labels]
-            G_self_loop['destination'] = [max_in_vertex_labels]
-            G_ref_df = cudf.concat([G_ref_df, G_self_loop], ignore_index = True)
-        # Construct graph
-        G_ref = cugraph.Graph()
-        G_ref.from_cudf_edgelist(G_ref_df)
+        G_ref = add_self_loop(G_ref_df,max_in_vertex_labels)
     
     else:
 
@@ -781,20 +773,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             G_current_df.columns = ['source','destination']
             G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination'])
             G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
-        G = cugraph.Graph()
-        G.from_cudf_edgelist(G_df)
         
         # use self-loop to ensure all nodes are present
-        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = ref_count + len(qList) - 1
-        if max_in_df.item() != max_in_vertex_labels:
-            G_self_loop = cudf.DataFrame()
-            G_self_loop['source'] = [max_in_vertex_labels]
-            G_self_loop['destination'] = [max_in_vertex_labels]
-            G = cudf.concat([G,G_self_loop], ignore_index = True)
-        # Construct graph
-        G = cugraph.Graph()
-        G.from_cudf_edgelist(G_df)
+        include_weights = False
+        if weights is not None:
+            include_weights = True
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = include_weights)
         
     else:
         G.add_vertex(len(qList))
@@ -811,6 +796,34 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             G.vp.id[i + len(rList)] = q
 
     return G, qqDistMat
+
+def add_self_loop(G_df, seq_num, weights = False):
+    """Adds self-loop to cugraph graph to ensure all nodes are included in
+    the graph, even if singletons.
+
+    Args:
+        G_df (cudf)
+            cudf data frame containing edge list
+        seq_num (int)
+            The expected number of nodes in the graph
+
+    Returns:
+        G_new (graph)
+            Dictionary of cluster assignments (keys are sequence names)
+    """
+    # use self-loop to ensure all nodes are present
+    max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+    if max_in_df.item() != seq_num:
+        G_self_loop = cudf.DataFrame()
+        G_self_loop['source'] = [seq_num]
+        G_self_loop['destination'] = [seq_num]
+        if weights:
+            G_self_loop['weight'] = 0.0
+        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+    # Construct graph
+    G_new = cugraph.Graph()
+    G_new.from_cudf_edgelist(G_df)
+    return G_new
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                   externalClusterCSV = None, printRef = True, printCSV = True,
