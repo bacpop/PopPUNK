@@ -359,9 +359,17 @@ def generate_visualisations(query_db,
             if not overwrite:
                 existing_tree = load_tree(output, "MST", distances=mst_distances)
             if existing_tree is None:
-                # Get a default clustering if none provided
-                if display_cluster is None:
-                    display_cluster = list(isolateClustering.keys())[0]
+                # Check selecting clustering type is in CSV
+                clustering_name = 'Cluster'
+                if display_cluster != None:
+                    if display_cluster not in isolateClustering.keys():
+                        clustering_name = list(isolateClustering.keys())[0]
+                        sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
+                                         prev_clustering + '; instead using ' + clustering_name + '\n')
+                    else:
+                        clustering_name = display_cluster
+                else:
+                    clustering_name = list(isolateClustering.keys())[0]
                 # Get distance matrix
                 complete_distMat = \
                     np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
@@ -376,7 +384,7 @@ def generate_visualisations(query_db,
                                     weights_type=mst_distances,
                                     summarise=False)
                 mst_graph = generate_minimum_spanning_tree(G)
-                drawMST(mst_graph, output, isolateClustering, display_cluster, overwrite)
+                drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
                 mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
             else:
                 mst_tree = existing_tree
@@ -435,7 +443,7 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(os.path.dirname(prev_clustering),
+        genomeNetwork, cluster_file = fetchNetwork(os.path.dirname(graph_dir),
                                                     model,
                                                     rlist,
                                                     False,
