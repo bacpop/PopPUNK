@@ -280,20 +280,18 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # should be one if there is a one-to-one mapping of components - else links need to be added
         max_ref_comp_count = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().max()
         if max_ref_comp_count == 1:
-            partition_mismatch = False
-        else:
             # Iterate through components
             for component, component_df in combined_vertex_assignments.groupby(['labels'], sort = False):
                 # Find components in the overall graph matching multiple components in the reference graph
-                if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 1:
+                if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0]== 1:
                     # Make a graph of the component from the overall graph
                     vertices_in_component = component_assignments[component_assignments['labels']==component]['vertex']
+                    references_in_component = vertices_in_component[vertices_in_component.isin(reference_indices)].values
                     G_component_df = G_df[G_df['source'].isin(vertices_in_component) & G_df['destination'].isin(vertices_in_component)]
                     G_component = cugraph.Graph()
                     G_component.from_cudf_edgelist(G_component_df)
                     # Find single shortest path from a reference
-                    # Should check first will always be a reference
-                    traversal = cugraph.traversal.sssp(G_component,source = vertices_in_component.iloc[0])
+                    traversal = cugraph.traversal.sssp(G_component,source = references_in_component[0])
                     reference_index_set = set(reference_indices)
                     # Add predecessors to reference sequences on the SSSPs
                     predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
