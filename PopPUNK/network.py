@@ -290,7 +290,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                     G_component_df = G_df[G_df['source'].isin(vertices_in_component) & G_df['destination'].isin(vertices_in_component)]
                     G_component = cugraph.Graph()
                     G_component.from_cudf_edgelist(G_component_df)
-                    # Find single shortest path from a reference
+                    # Find single shortest path from a reference to all other nodes in the component
                     traversal = cugraph.traversal.sssp(G_component,source = references_in_component[0])
                     reference_index_set = set(reference_indices)
                     # Add predecessors to reference sequences on the SSSPs
@@ -1239,6 +1239,9 @@ def get_vertex_list(G, use_gpu = False):
     
     if use_gpu:
         vlist = G.nodes().to_array().tolist()
+        print("Nodes: " + str(G.nodes()))
+        print("Array: " + str(G.nodes().to_array()))
+        print("List: " + str(G.nodes().to_array().tolist()))
     else:
         vlist = list(G.vertices())
     
