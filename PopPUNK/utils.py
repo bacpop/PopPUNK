@@ -226,7 +226,7 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
+def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     """Checks distance matrix for outliers.
 
     Args:
@@ -236,8 +236,10 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
             Reference labels
         queryList (list)
             Query labels (or refList if self)
+        ref_db (str)
+            Prefix of reference database
         prefix (str)
-            Prefix for output files
+            Prefix of output files
         qc_dict (dict)
             Dict of QC options
             
@@ -264,7 +266,7 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
 
     # Pick reference isolate if not supplied
     if qc_dict['reference_isolate'] is None:
-        qc_dict['reference_isolate'] = pickReferenceIsolate(prefix, seq_names_passing)
+        qc_dict['reference_isolate'] = pickReferenceIsolate(ref_db, seq_names_passing)
         sys.stderr.write('Selected reference isolate is ' + qc_dict['reference_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
@@ -290,7 +292,7 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
             sys.exit(1)
         else:
             # Remove sketches
-            db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+            db_name = ref_db + '/' + os.path.basename(ref_db) + '.h5'
             filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
             removeFromDB(db_name,
                          filtered_db_name,

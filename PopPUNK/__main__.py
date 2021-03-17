@@ -314,10 +314,11 @@ def main():
 
         # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
         seq_names_passing, distMat = qcDistMat(distMat,
-                                seq_names_passing,
-                                seq_names_passing,
-                                args.output,
-                                qc_dict)
+                                                seq_names_passing,
+                                                seq_names_passing,
+                                                args.output,
+                                                args.output,
+                                                qc_dict)
 
         # Plot results
         plot_scatter(distMat,
@@ -369,7 +370,7 @@ def main():
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
         seq_names = set(set(refList) | set(queryList))
-        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, output, qc_dict)
+        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.ref_db, output, qc_dict)
         if len(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)

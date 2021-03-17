@@ -160,7 +160,7 @@ def assign_query(dbFuncs,
                               threads = threads,
                               use_gpu = gpu_dist)
     # QC distance matrix
-    seq_names_passing, distMat = qcDistMat(qrDistMat, rNames, qNames, output, qc_dict)
+    seq_names_passing, distMat = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
@@ -249,7 +249,7 @@ def assign_query(dbFuncs,
     dists_out = output + "/" + os.path.basename(output) + ".dists"
     if update_db:
         # Check new sequences pass QC before adding them
-        if not qcPass:
+        if len(set(seq_names_passing).difference(rNames + qNames)) > 0:
             sys.stderr.write("Queries contained outlier distances, "
                              "not updating database\n")
         else:
