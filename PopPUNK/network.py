@@ -912,13 +912,13 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
             Dictionary of cluster assignments (keys are sequence names)
     """
     # use self-loop to ensure all nodes are present
-    min_in_df = np.amin([G_df['source'].max(),G_df['destination'].max()])
+    min_in_df = np.amin([G_df['source'].min(),G_df['destination'].min()])
     if min_in_df.item() > 0:
         G_self_loop = cudf.DataFrame()
         G_self_loop['source'] = [0]
         G_self_loop['destination'] = [0]
         if weights:
-            G_self_loop['weight'] = 0.0
+            G_self_loop['weights'] = 0.0
         G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
     max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
     if max_in_df.item() != seq_num:
@@ -926,7 +926,7 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
         G_self_loop['source'] = [seq_num]
         G_self_loop['destination'] = [seq_num]
         if weights:
-            G_self_loop['weight'] = 0.0
+            G_self_loop['weights'] = 0.0
         G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
     # Construct graph
     G_new = cugraph.Graph()
@@ -1235,7 +1235,7 @@ def get_vertex_list(G, use_gpu = False):
     """
     
     if use_gpu:
-        vlist = G.nodes().to_array().tolist()
+        vlist = range(G.number_of_vertices().item())
     else:
         vlist = list(G.vertices())
     
