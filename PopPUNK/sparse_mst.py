@@ -106,9 +106,11 @@ def main():
         # Load previous MST if specified
         if args.previous_mst is not None:
             print("Previous: " + str(args.previous_mst))
-            extra_sources, extra_targets, extra_weights = load_previous_network(args.previous_mst,
+            extra_sources, extra_targets, extra_weights = network_to_edges(args.previous_mst,
                                                                                   rlist,
-                                                                                  weights = True)
+                                                                                  previous_pkl = args.distance_pkl,
+                                                                                  weights = True,
+                                                                                  use_gpu = use_gpu)
             sources = np.append(sparse_mat.row, np.asarray(extra_sources))
             targets = np.append(sparse_mat.col, np.asarray(extra_targets))
             weights = np.append(sparse_mat.data, np.asarray(extra_weights))

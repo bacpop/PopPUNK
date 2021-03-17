@@ -365,8 +365,9 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
-def load_previous_network(prev_G_fn, rlist, weights=False):
-    """Load previous network with graph-tool, extract the edges to match the
+def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
+                    use_gpu = False):
+    """Load previous network, extract the edges to match the
     vertex order specified in rlist, and also return weights if specified.
 
     Args:
@@ -374,9 +375,14 @@ def load_previous_network(prev_G_fn, rlist, weights=False):
             Path of file containing existing network.
         rlist (list)
             List of reference sequence labels in new network
+        previous_pkl (str)
+            Path of pkl file containing names of sequences in
+            previous network
         weights (bool)
             Whether to return edge weights
             (default = False)
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
 
     Returns:
         source_ids (list)
@@ -387,20 +393,46 @@ def load_previous_network(prev_G_fn, rlist, weights=False):
             Weights for each new edge
     """
     # get list for translating node IDs to rlist
-    prev_G = gt.load_graph(prev_G_fn)
-    old_ids = prev_G.vp["id"]
+    prev_G = load_network_file(prev_G_fn, use_gpu = use_gpu)
+    
+    # load list of names in previous network
+    if previous_pkl is not None:
+        with open(previous_pkl, 'rb') as pickle_file:
+            old_rlist, old_qlist, self = pickle.load(pickle_file)
+        if self:
+            old_ids = old_rlist
+        else:
+            old_ids = old_rlist + old_qlist
+    else:
+        sys.stderr.write('Pkl file containing names of sequences in previous network\n')
+        sys.exit(1)
+    
+    # Get edges as lists of source,destination,weight using original IDs
+    if use_gpu:
+        G_df = prev_G.view_edge_list()
+        if weights:
+            G_df.columns = ['source','destination','weight']
+            edge_weights = G_df['weight'].to_arrow().to_pylist()
+        else:
+            G_df.columns = ['source','destination']
+        old_source_ids = G_df['source'].to_arrow().to_pylist()
+        old_target_ids = G_df['destination'].to_arrow().to_pylist()
+    else:
+        # get the source and target nodes
+        old_source_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "source")
+        old_target_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "target")
+        # get the weights
+        if weights:
+            edge_weights = list(prev_G.ep['weight'])
+    
+    # Update IDs to new versions
     old_id_indices = [rlist.index(x) for x in old_ids]
-    # get the source and target nods
-    source_old_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "source")
-    target_old_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "target")
     # translate to indices
-    source_ids = [old_id_indices[x] for x in source_old_ids]
-    target_ids = [old_id_indices[x] for x in target_old_ids]
-    # convert to ndarray
-    # get the weights
+    source_ids = [old_id_indices[x] for x in old_source_ids]
+    target_ids = [old_id_indices[x] for x in old_target_ids]
+    
+    # return values
     if weights:
-        edge_weights = list(prev_G.ep['weight'])
-        # return values
         return source_ids, target_ids, edge_weights
     else:
         return source_ids, target_ids
@@ -408,7 +440,7 @@ def load_previous_network(prev_G_fn, rlist, weights=False):
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
-                     previous_network = None, use_gpu = False):
+                     previous_network = None, previous_pkl = None, use_gpu = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -440,6 +472,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -495,18 +529,28 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # read previous graph
     if previous_network is not None:
-        if weights is not None or sparse_input is not None:
-            extra_sources, extra_targets, extra_weights = load_previous_network(previous_network,rlist,
-                                                                                weights = True)
-            for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
-                edge_tuple = (ref, query, weight)
-                connections.append(edge_tuple)
+        if previous_pkl is not None:
+            if weights is not None or sparse_input is not None:
+                extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
+                                                                                    rlist,
+                                                                                    previous_pkl = previous_pkl,
+                                                                                    weights = True,
+                                                                                    use_gpu = use_gpu)
+                for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
+                    edge_tuple = (ref, query, weight)
+                    connections.append(edge_tuple)
+            else:
+                extra_sources, extra_targets = network_to_edges(prev_G,
+                                                                rlist,
+                                                                previous_pkl = previous_pkl,
+                                                                weights = False,
+                                                                use_gpu = use_gpu)
+                for (ref, query) in zip(extra_sources, extra_targets):
+                    edge_tuple = (ref, query)
+                    connections.append(edge_tuple)
         else:
-            extra_sources, extra_targets = load_previous_network(prev_G,rlist,
-                                                                                weights = False)
-            for (ref, query) in zip(extra_sources, extra_targets):
-                edge_tuple = (ref, query)
-                connections.append(edge_tuple)
+            sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
+            sys.exit(1)
 
     # load GPU libraries if necessary
     if use_gpu:
