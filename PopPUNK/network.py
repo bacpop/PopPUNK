@@ -278,7 +278,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
             print("Counting: " + str(combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().to_arrow().to_pylist()))
             max_ref_comp_count = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().max()
-            if max_ref_comp_count == 1:
+            if max_ref_comp_count == 0:
                 partition_mismatch = False
             else:
                 for component, component_df in combined_vertex_assignments.groupby():
