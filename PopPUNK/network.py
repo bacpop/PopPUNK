@@ -279,11 +279,11 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Find the number of components in the reference graph associated with each component in the overall graph -
         # should be one if there is a one-to-one mapping of components - else links need to be added
         max_ref_comp_count = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().max()
-        if max_ref_comp_count == 1:
+        if max_ref_comp_count > 1:
             # Iterate through components
             for component, component_df in combined_vertex_assignments.groupby(['labels'], sort = False):
                 # Find components in the overall graph matching multiple components in the reference graph
-                if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0]== 1:
+                if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 1:
                     # Make a graph of the component from the overall graph
                     vertices_in_component = component_assignments[component_assignments['labels']==component]['vertex']
                     references_in_component = vertices_in_component[vertices_in_component.isin(reference_indices)].values
@@ -305,7 +305,10 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                         predecessors = set(predecessor_list[predecessor_list >= 0])
                     # Add expanded reference set to the overall list
                     reference_indices = list(reference_index_set)
-    
+            # Create new reference graph
+            G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+            G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
+            
     else:
 
         # Each component is independent, so can be multithreaded
