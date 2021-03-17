@@ -263,20 +263,22 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         if 'src' in G_df.columns:
             G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+        G_ref_df.rename(columns={'labels': 'ref_labels'})
         # Add self-loop if needed
         max_in_vertex_labels = max(reference_indices)
         G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
         
         # Check on targets
         reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
-        combined_vertex_assignments = cudf.concat([reference_component_assignments,component_assignments],
-                                                    axis = 1,
-                                                    join = 'inner')
+        combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
+                                                                            on = 'vertex',
+                                                                            how = 'left')
         print("Reference indices: " + str(reference_indices))
         print("Overall cudf: " + str(G_df))
         print("Reference df: " + str(G_ref_df))
         print("Reference component assignments: " + str(reference_component_assignments))
         print("Component assignments: " + str(component_assignments))
+        print("Combined assignments: " + str(combined_vertex_assignments))
     
     else:
 
