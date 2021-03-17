@@ -281,7 +281,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             if max_ref_comp_count == 0:
                 partition_mismatch = False
             else:
-                for component, component_df in combined_vertex_assignments.groupby([labels], sort = False):
+                for component, component_df in combined_vertex_assignments.groupby(['labels'], sort = False):
                     print("Nunique!: " + str(component_df.groupby(['labels'], sort = False)['ref_labels'].nunique()))
                     if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique() > 1:
                         G_component_df = G_df[G_df['labels'] == component]
