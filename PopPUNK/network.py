@@ -267,52 +267,48 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         max_in_vertex_labels = max(reference_indices)
         G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
         
-        # Check on targets
+        # Check references in same component in overall graph are connected in the reference graph
         partition_mismatch = True
         while partition_mismatch:
+            # Get components of original reference graph
             reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
             reference_component_assignments.rename(columns={'labels': 'ref_labels'}, inplace=True)
+            # Merge with component assignments from overall graph
             combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
                                                                                 on = 'vertex',
                                                                                 how = 'left')
             combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
-            print("Counting: " + str(combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().to_arrow().to_pylist()))
+            # Find the number of components in the reference graph associated with each component in the overall graph -
+            # should be one if there is a one-to-one mapping of components - else links need to be added
             max_ref_comp_count = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().max()
-            if max_ref_comp_count == 0:
+            if max_ref_comp_count == 1:
                 partition_mismatch = False
             else:
+                # Iterate through components
                 for component, component_df in combined_vertex_assignments.groupby(['labels'], sort = False):
-                    print("Nunique!: " + str(component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0]))
-                    if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 0:
+                    # Find components in the overall graph matching multiple components in the reference graph
+                    if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 1:
+                        # Make a graph of the component from the overall graph
                         vertices_in_component = component_assignments[component_assignments['labels']==component]['vertex']
-                        print("Vertices in components: " + str(vertices_in_component))
                         G_component_df = G_df[G_df['source'].isin(vertices_in_component) & G_df['destination'].isin(vertices_in_component)]
-                        print("Component info: " + str(G_component_df))
                         G_component = cugraph.Graph()
                         G_component.from_cudf_edgelist(G_component_df)
+                        # Find single shortest path from a reference
+                        # Should check first will always be a reference
                         traversal = cugraph.traversal.sssp(G_component,source = vertices_in_component.iloc[0])
-                        print("Traversal: " + str(traversal))
                         reference_index_set = set(reference_indices)
-                        #predecessors = set(traversal[traversal['vertex'].isin(reference_indices) & traversal['predecessor'] != -1]['predecessor'].to_arrow().to_pylist())
-                        print("Ref indices: " + str(reference_indices))
+                        # Add predecessors to reference sequences on the SSSPs
                         predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
-                        print("Raw traversal: " + str(traversal[traversal['vertex'].isin(reference_indices)]))
-                        print("pred list: " + str(predecessor_list))
                         predecessors = set(predecessor_list[predecessor_list >= 0])
-#                        predecessors = set(predecessor_list[predecessor_list >= 0])
+                        # Add predecessors to reference set and check whether this results in complete paths
+                        # where complete paths are indicated by references' predecessors being within the set of
+                        # references
                         while len(predecessors) > 0 and len(predecessors - reference_index_set) > 0:
                             reference_index_set = reference_index_set.union(predecessors)
-                            predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].to_arrow().to_pylist()
+                            predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
                             predecessors = set(predecessor_list[predecessor_list >= 0])
-                        print("Predecessors: " + str(predecessors))
+                        # Add expanded reference set to the overall list
                         reference_indices = list(reference_index_set)
-            print("Final references: " + str(reference_indices))
-            print('max is ' + str(max_ref_comp_count))
-#            print("Reference indices: " + str(reference_indices))
-#            print("Overall cudf: " + str(G_df))
-#            print("Reference df: " + str(G_ref_df))
-#            print("Reference component assignments: " + str(reference_component_assignments))
-#            print("Component assignments: " + str(component_assignments))
             partition_mismatch = False
     
     else:
