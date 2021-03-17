@@ -264,6 +264,14 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     # Sequences to remove
     to_prune = []
 
+    # Create output directory if it does not exist already
+    if not os.path.isdir(prefix):
+        try:
+            os.makedirs(prefix)
+        except OSError:
+            sys.stderr.write("Cannot create output directory " + prefix + "\n")
+            sys.exit(1)
+
     # Pick reference isolate if not supplied
     if qc_dict['reference_isolate'] is None:
         qc_dict['reference_isolate'] = pickReferenceIsolate(ref_db, seq_names_passing)
