@@ -294,7 +294,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                         print("Traversal: " + str(traversal))
                         reference_index_set = set(reference_indices)
                         predecessors = set(traversal[traversal['vertex'].isin(reference_indices) & traversal['predecessor'] >= 0]['predecessor'].to_arrow().to_pylist())
-                        while len(predecessors) > 0 and len(reference_index_set.difference(predecessors)) > 0:
+                        while len(predecessors) > 0 and len(predecessors - reference_index_set) > 0:
                             reference_index_set = reference_index_set.union(predecessors)
                             predecessors = set()
                             predecessors = set(traversal[traversal['vertex'].isin(reference_indices) & traversal['predecessor'] >= 0]['predecessor'].to_arrow().to_pylist())
