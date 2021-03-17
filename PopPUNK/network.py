@@ -259,10 +259,14 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Extract reference edges
         G_df = G.view_edge_list()
         G_df.columns = ['source','destination']
-        G_ref_df = G_df[G_df['source'].isin(reference_names) & G_df['destination'].isin(reference_names)]
+        G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
         # Add self-loop if needed
         max_in_vertex_labels = len(reference_names) - 1
-        G_ref = add_self_loop(G_ref_df,max_in_vertex_labels)
+        G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
+        
+        # Check on targets
+        reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
+        print("Reference component assignments: " + str(reference_component_assignments))
     
     else:
 
@@ -339,7 +343,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             G_ref = gt.GraphView(G, vfilt = reference_vertex)
             G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
 
-        # Order found references as in mash sketch files
+        # Order found references as in sketch files
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
         refFileName = writeReferences(reference_names, outPrefix)
     return reference_indices, reference_names, refFileName, G_ref
@@ -424,7 +428,7 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
         # get the weights
         if weights:
             edge_weights = list(prev_G.ep['weight'])
-    
+
     # Update IDs to new versions
     old_id_indices = [rlist.index(x) for x in old_ids]
     # translate to indices
@@ -861,7 +865,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
     return G, qqDistMat
 
-def add_self_loop(G_df, seq_num, weights = False):
+def add_self_loop(G_df, seq_num, weights = False, renumber = True):
     """Adds self-loop to cugraph graph to ensure all nodes are included in
     the graph, even if singletons.
 
@@ -870,6 +874,8 @@ def add_self_loop(G_df, seq_num, weights = False):
             cudf data frame containing edge list
         seq_num (int)
             The expected number of nodes in the graph
+        renumber (bool)
+            Whether to renumber the vertices when added to the graph
 
     Returns:
         G_new (graph)
@@ -886,7 +892,7 @@ def add_self_loop(G_df, seq_num, weights = False):
         G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
     # Construct graph
     G_new = cugraph.Graph()
-    G_new.from_cudf_edgelist(G_df)
+    G_new.from_cudf_edgelist(G_df, renumber = renumber)
     return G_new
 
 def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
