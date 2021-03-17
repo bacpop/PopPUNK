@@ -614,8 +614,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(vertex_labels)-1
-        G = add_self_loop(G_df, max_in_vertex_labels, weights = (if weights is not None), renumber = False)
-#        
+        use_weights = False
+        if weights is not None:
+            use_weights = True
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
+#
 #        if max_in_df.item() != max_in_vertex_labels:
 #            G_self_loop = cudf.DataFrame()
 #            G_self_loop['source'] = [max_in_vertex_labels]
@@ -624,7 +627,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 #                G_self_loop['weights'] = [0.0]
 #            G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
 #            new_max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
-#        
+#
 #        # construct graph
 #        G = cugraph.Graph()
 #        if weights is not None or sparse_input is not None:
