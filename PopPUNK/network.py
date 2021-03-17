@@ -267,6 +267,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         
         # Check on targets
         reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
+        print("Reference indices: " + str(reference_indices))
+        print("Overall cudf: " + str(G_df))
         print("Reference df: " + str(G_ref_df))
         print("Reference component assignments: " + str(reference_component_assignments))
         print("Component assignments: " + str(component_assignments))
