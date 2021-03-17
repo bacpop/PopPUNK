@@ -249,7 +249,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Record the original components to which sequences belonged
         component_assignments = cugraph.components.connectivity.connected_components(G)
         # Leiden method has resolution parameter - higher values give greater precision
-        partition_assignments, score = cugraph.leiden(G, resolution = 1.0)
+        partition_assignments, score = cugraph.leiden(G, resolution = 10.0)
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = partition_assignments.groupby('partition').nth(0)
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
@@ -277,8 +277,19 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                                                                                 how = 'left')
             combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
             print("Counting: " + str(combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().to_arrow().to_pylist()))
-            combined_vertex_assignments['ref_comp_count'] = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique()
             max_ref_comp_count = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().max()
+            if max_ref_comp_count == 1:
+                partition_mismatch = False
+            else:
+                for component, component_df in combined_vertex_assignments.groupby():
+                    print("Nunique!: " + str(component_df.groupby(['labels'], sort = False)['ref_labels'].nunique()))
+                    if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique() > 1:
+                        G_component_df = G_df[G_df['labels'] == component]
+                        print("Component info: " + str(G_component_df))
+                        G_component = cugraph.Graph()
+                        G_component.from_cudf_edgelist(G_component_df)
+                        traversal = cugraph.traversal.sssp(G_component,source = component_df['vertex'][0])
+                        print("Traversal: " + str(traversal))
             print("Combined assignments: " + str(combined_vertex_assignments))
             print('max is ' + str(max_ref_comp_count))
 #            print("Reference indices: " + str(reference_indices))
