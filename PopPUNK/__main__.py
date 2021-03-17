@@ -391,7 +391,7 @@ def main():
                 model.plot(distMat, assignments)
             elif args.fit_model == "refine":
                 new_model = RefineFit(output)
-                model.set_threads(args.threads)
+                new_model.set_threads(args.threads)
                 assignments = new_model.fit(distMat, refList, model,
                                             args.pos_shift, args.neg_shift,
                                             args.manual_start,
