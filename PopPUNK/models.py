@@ -39,7 +39,6 @@ try:
     import cudf
     gpu_lib = True
 except ImportError as e:
-    sys.stderr.write("cugraph and cudf unavailable\n")
     gpu_lib = False
 
 import pp_sketchlib
@@ -266,7 +265,7 @@ class ClusterFit:
         """Copy the model to a new directory
         """
         self.outPrefix = prefix
-        save()
+        self.save()
 
 
 class BGMMFit(ClusterFit):
