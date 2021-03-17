@@ -67,7 +67,7 @@ subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.t
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --microreact", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape --network-file example_db/example_db_graph.gt", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --phandango", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --grapetree", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz_subset --microreact --include-files subset.txt", shell=True, check=True)
