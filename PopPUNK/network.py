@@ -281,15 +281,15 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             if max_ref_comp_count == 0:
                 partition_mismatch = False
             else:
-                for component, component_df in combined_vertex_assignments.groupby():
+                for component, component_df in combined_vertex_assignments.groupby([labels], sort = False):
                     print("Nunique!: " + str(component_df.groupby(['labels'], sort = False)['ref_labels'].nunique()))
                     if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique() > 1:
                         G_component_df = G_df[G_df['labels'] == component]
                         print("Component info: " + str(G_component_df))
                         G_component = cugraph.Graph()
                         G_component.from_cudf_edgelist(G_component_df)
-                        traversal = cugraph.traversal.sssp(G_component,source = component_df['vertex'][0])
-                        print("Traversal: " + str(traversal))
+                        distances, predecessors = cugraph.traversal.sssp(G_component,source = component_df['vertex'][0])
+                        print("Traversal: " + str(predecessors))
             print("Combined assignments: " + str(combined_vertex_assignments))
             print('max is ' + str(max_ref_comp_count))
 #            print("Reference indices: " + str(reference_indices))
