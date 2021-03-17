@@ -285,7 +285,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             print("Reference df: " + str(G_ref_df))
             print("Reference component assignments: " + str(reference_component_assignments))
             print("Component assignments: " + str(component_assignments))
-            partition_match = False
+            partition_mismatch = False
     
     else:
 
