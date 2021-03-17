@@ -263,7 +263,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         if 'src' in G_df.columns:
             G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-        G_ref_df.rename(columns={'labels': 'ref_labels'})
+        G_ref_df.rename(columns={'labels': 'ref_labels'}, inplace=True)
         # Add self-loop if needed
         max_in_vertex_labels = max(reference_indices)
         G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
@@ -273,6 +273,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
                                                                             on = 'vertex',
                                                                             how = 'left')
+        combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
         print("Reference indices: " + str(reference_indices))
         print("Overall cudf: " + str(G_df))
         print("Reference df: " + str(G_ref_df))
