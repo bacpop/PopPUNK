@@ -276,7 +276,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                                                                                 on = 'vertex',
                                                                                 how = 'left')
             combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
-            combined_vertex_assignments['ref_comp_count'] = combined_vertex_assignments.groupby(['labels'])['ref_labels'].nunique()
+            print("Counting: " + str(combined_vertex_assignments['ref_comp_count'] = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels']))
+            combined_vertex_assignments['ref_comp_count'] = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique()
             max_ref_comp_count = combined_vertex_assignments['ref_comp_count'].max()
             print("Combined assignments: " + str(combined_vertex_assignments))
             print('max is ' + str(max_ref_comp_count))
