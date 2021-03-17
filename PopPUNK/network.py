@@ -269,17 +269,23 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
         
         # Check on targets
-        reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
-        combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
-                                                                            on = 'vertex',
-                                                                            how = 'left')
-        combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
-        print("Reference indices: " + str(reference_indices))
-        print("Overall cudf: " + str(G_df))
-        print("Reference df: " + str(G_ref_df))
-        print("Reference component assignments: " + str(reference_component_assignments))
-        print("Component assignments: " + str(component_assignments))
-        print("Combined assignments: " + str(combined_vertex_assignments))
+        partition_match = False
+        while partition_match:
+            reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
+            combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
+                                                                                on = 'vertex',
+                                                                                how = 'left')
+            combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
+            combined_vertex_assignments['ref_comp_count'] = combined_vertex_assignments.groupby(['labels','ref_labels'])['ref_labels'].count()
+            max_ref_comp_count = combined_vertex_assignments['ref_comp_count'].max()
+            print('max is ' + str(max_ref_comp_count))
+            print("Reference indices: " + str(reference_indices))
+            print("Overall cudf: " + str(G_df))
+            print("Reference df: " + str(G_ref_df))
+            print("Reference component assignments: " + str(reference_component_assignments))
+            print("Component assignments: " + str(component_assignments))
+            print("Combined assignments: " + str(combined_vertex_assignments))
+            partition_match = True
     
     else:
 
