@@ -270,7 +270,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         
         # Check on targets
         partition_mismatch = True
-        while partition_match:
+        while partition_mismatch:
             reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
             combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
                                                                                 on = 'vertex',
