@@ -618,22 +618,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         if weights is not None:
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
-#
-#        if max_in_df.item() != max_in_vertex_labels:
-#            G_self_loop = cudf.DataFrame()
-#            G_self_loop['source'] = [max_in_vertex_labels]
-#            G_self_loop['destination'] = [max_in_vertex_labels]
-#            if weights is not None or sparse_input is not None:
-#                G_self_loop['weights'] = [0.0]
-#            G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
-#            new_max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
-#
-#        # construct graph
-#        G = cugraph.Graph()
-#        if weights is not None or sparse_input is not None:
-#            G.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
-#        else:
-#            G.from_cudf_edgelist(G_df, renumber=False)
 
     else:
 
@@ -928,6 +912,14 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
             Dictionary of cluster assignments (keys are sequence names)
     """
     # use self-loop to ensure all nodes are present
+     = np.amin([G_df['source'].max(),G_df['destination'].max()])
+    if min_in_df.item() > 0:
+        G_self_loop = cudf.DataFrame()
+        G_self_loop['source'] = [0]
+        G_self_loop['destination'] = [0]
+        if weights:
+            G_self_loop['weight'] = 0.0
+        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
     max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
     if max_in_df.item() != seq_num:
         G_self_loop = cudf.DataFrame()
