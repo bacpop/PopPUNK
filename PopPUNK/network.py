@@ -276,15 +276,15 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                                                                                 on = 'vertex',
                                                                                 how = 'left')
             combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
-            print("Combined assignments: " + str(combined_vertex_assignments))
             combined_vertex_assignments['ref_comp_count'] = combined_vertex_assignments.groupby(['labels'])['ref_labels'].nunique()
             max_ref_comp_count = combined_vertex_assignments['ref_comp_count'].max()
+            print("Combined assignments: " + str(combined_vertex_assignments))
             print('max is ' + str(max_ref_comp_count))
-            print("Reference indices: " + str(reference_indices))
-            print("Overall cudf: " + str(G_df))
-            print("Reference df: " + str(G_ref_df))
-            print("Reference component assignments: " + str(reference_component_assignments))
-            print("Component assignments: " + str(component_assignments))
+#            print("Reference indices: " + str(reference_indices))
+#            print("Overall cudf: " + str(G_df))
+#            print("Reference df: " + str(G_ref_df))
+#            print("Reference component assignments: " + str(reference_component_assignments))
+#            print("Component assignments: " + str(component_assignments))
             partition_mismatch = False
     
     else:
