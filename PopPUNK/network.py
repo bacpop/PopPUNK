@@ -1235,7 +1235,7 @@ def get_vertex_list(G, use_gpu = False):
     """
     
     if use_gpu:
-        vlist = range(G.number_of_vertices().item())
+        vlist = range(G.number_of_vertices())
     else:
         vlist = list(G.vertices())
     
