@@ -290,9 +290,17 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                         print("Component info: " + str(G_component_df))
                         G_component = cugraph.Graph()
                         G_component.from_cudf_edgelist(G_component_df)
-                        traversal = cugraph.traversal.sssp(G_component,source = component_df['vertex'][0])
+                        traversal = cugraph.traversal.sssp(G_component,source = vertices_in_component.iloc[0])
                         print("Traversal: " + str(traversal))
-            print("Combined assignments: " + str(combined_vertex_assignments))
+                        reference_index_set = set(reference_indices)
+                        predecessors = set(traversal[traversal['vertex'].isin(reference_indices) & traversal['predecessor'] >= 0]['predecessor'])
+                        while len(predecessors) > 0 and len(reference_index_set.difference(predecessors)) > 0:
+                            reference_index_set = reference_index_set.union(predecessors)
+                            predecessors = set()
+                            predecessors = set(traversal[traversal['vertex'].isin(reference_indices) & traversal['predecessor'] >= 0]['predecessor'])
+                        print("Predecessors: " + str(predecessors))
+                        reference_indices = list(reference_index_set)
+            print("Final references: " + str(reference_indices))
             print('max is ' + str(max_ref_comp_count))
 #            print("Reference indices: " + str(reference_indices))
 #            print("Overall cudf: " + str(G_df))
@@ -376,9 +384,9 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             G_ref = gt.GraphView(G, vfilt = reference_vertex)
             G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
 
-        # Order found references as in sketch files
-        reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
-        refFileName = writeReferences(reference_names, outPrefix)
+    # Order found references as in sketch files
+    reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
+    refFileName = writeReferences(reference_names, outPrefix)
     return reference_indices, reference_names, refFileName, G_ref
 
 def writeReferences(refList, outPrefix):
