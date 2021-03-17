@@ -269,7 +269,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
         
         # Check on targets
-        partition_match = False
+        partition_mismatch = True
         while partition_match:
             reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
             combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
@@ -285,7 +285,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             print("Reference component assignments: " + str(reference_component_assignments))
             print("Component assignments: " + str(component_assignments))
             print("Combined assignments: " + str(combined_vertex_assignments))
-            partition_match = True
+            partition_match = False
     
     else:
 
