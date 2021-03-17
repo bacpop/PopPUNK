@@ -260,7 +260,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         G_df = G.view_edge_list()
         print('G_df original structure: ' + str(G_df))
         if 'src' in G_df.columns:
-            G_df.rename(columns={'src': 'source','dst': 'destination'})
+            G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
         # Add self-loop if needed
         max_in_vertex_labels = len(reference_names) - 1
