@@ -249,7 +249,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # Record the original components to which sequences belonged
         component_assignments = cugraph.components.connectivity.connected_components(G)
         # Leiden method has resolution parameter - higher values give greater precision
-        partition_assignments, score = cugraph.leiden(G, resolution = 10.0)
+        partition_assignments, score = cugraph.leiden(G, resolution = 0.1)
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = partition_assignments.groupby('partition').nth(0)
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
