@@ -258,6 +258,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         
         # Extract reference edges
         G_df = G.view_edge_list()
+        print('G_df original structure: ' + str(G_df))
         if 'src' in G_df.columns:
             G_df.rename(columns={'src': 'source','dst': 'destination'})
         G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
