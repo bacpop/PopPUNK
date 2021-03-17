@@ -589,7 +589,7 @@ def pickReferenceIsolate(prefix, names):
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
     hdf_in = h5py.File(db_name, 'r+')
-    
+
     min_prop_n = 1.0
     reference_isolate = None
     

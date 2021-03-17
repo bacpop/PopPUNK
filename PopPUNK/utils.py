@@ -236,7 +236,7 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
             Reference labels
         queryList (list)
             Query labels (or refList if self)
-        prefix (list)
+        prefix (str)
             Prefix for output files
         qc_dict (dict)
             Dict of QC options
@@ -279,15 +279,15 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
                 to_prune.append(names[i][0])
     
     # prune based on distance from reference if provided
-    if qc_dict['qc_filter'] == 'stop':
-        if len(to_prune) > 0:
-            sys.stderr.write('Outlier distances exceed QC thresholds; prune sequences or raise thresholds\n')
-            sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
-            sys.exit(1)
+    if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
+        sys.stderr.write('Outlier distances exceed QC thresholds; prune sequences or raise thresholds\n')
+        sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
+        sys.exit(1)
     elif qc_dict['qc_filter'] == 'prune' and len(to_prune) > 0:
         if qc_dict['reference_isolate'] is None:
             sys.stderr.write('Distances exceeded QC thresholds but no reference isolate supplied\n')
             sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
+            sys.exit(1)
         else:
             # Remove sketches
             db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
@@ -304,6 +304,8 @@ def qcDistMat(distMat, refList, queryList, prefix, qc_dict):
                                                                 prefix + "/" + os.path.basename(prefix) + ".dists")
             # Remove from reflist
             sys.stderr.write('Pruned from the database after failing distance QC: ' + ';'.join(to_prune) + '\n')
+    else:
+        storePickle(seq_names_passing, seq_names_passing, True, distMat, prefix + "/" + os.path.basename(prefix) + ".dists")
 
     return seq_names_passing, distMat
 

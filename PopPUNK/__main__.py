@@ -369,8 +369,8 @@ def main():
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
         seq_names = set(set(refList) | set(queryList))
-        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.output, qc_dict)
-        if length(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
+        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, output, qc_dict)
+        if len(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
 
@@ -488,7 +488,7 @@ def main():
             genomeNetwork = indivNetworks[min(rank_list)]
 
         # Ensure all in dists are in final network
-        checkNetworkVertexCount(refList, genomeNetwork, use_gpu)
+        checkNetworkVertexCount(refList, genomeNetwork, use_gpu = args.gpu_graph)
 
         fit_type = model.type
         isolateClustering = {fit_type: printClusters(genomeNetwork,
