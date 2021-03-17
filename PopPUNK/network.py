@@ -283,7 +283,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
             else:
                 for component, component_df in combined_vertex_assignments.groupby(['labels'], sort = False):
                     print("Nunique!: " + str(component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0]))
-                    if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 1:
+                    if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 0:
                         G_component_df = G_df[G_df['labels'] == component]
                         print("Component info: " + str(G_component_df))
                         G_component = cugraph.Graph()
