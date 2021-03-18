@@ -782,6 +782,7 @@ class RefineFit(ClusterFit):
                             slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
+                print(e)
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
 

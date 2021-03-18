@@ -148,7 +148,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
                                                   start_point[0], start_point[1],
                                                   mean1[0], mean1[1], num_processes)
-        global_s = growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx)
+        global_s = np.array(growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx))
+        global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
         if min_idx > 0 and min_idx < len(s_range) - 1:
             bounds = [s_range[min_idx-1], s_range[min_idx+1]]
