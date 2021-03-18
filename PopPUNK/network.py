@@ -28,7 +28,6 @@ try:
     import cudf
     gpu_lib = True
 except ImportError as e:
-    sys.stderr.write("cugraph and cudf unavailable\n")
     gpu_lib = False
 
 from .__main__ import accepted_weights_types

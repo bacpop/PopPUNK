@@ -18,13 +18,12 @@ try:
     import cudf
     gpu_lib = True
 except ImportError as e:
-    sys.stderr.write("cugraph and cudf unavailable\n")
     gpu_lib = False
 
 # import poppunk package
 from .__init__ import __version__
 
-from .network import constructNetwork, generate_minimum_spanning_tree, load_previous_network
+from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
