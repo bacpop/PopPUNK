@@ -38,7 +38,7 @@ def assign_query(dbFuncs,
                  graph_weights,
                  max_a_dist,
                  max_pi_dist,
-                 reference_isolate,
+                 type_isolate,
                  model_dir,
                  strand_preserved,
                  previous_clustering,
@@ -378,7 +378,7 @@ def get_options():
                                                 default = 0.5, type = float)
     qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
-    qcGroup.add_argument('--reference-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
+    qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
                                                 default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = None, type = int)
@@ -471,7 +471,7 @@ def main():
             'upper_n': args.upper_n,
             'max_pi_dist': args.max_pi_dist,
             'max_a_dist': args.max_a_dist,
-            'reference_isolate': args.reference_isolate
+            'type_isolate': args.type_isolate
         }
 
     # Dict of DB access functions for assign_query (which is out of scope)
@@ -510,7 +510,7 @@ def main():
                  args.graph_weights,
                  args.max_a_dist,
                  args.max_pi_dist,
-                 args.reference_isolate,
+                 args.type_isolate,
                  args.model_dir,
                  args.strand_preserved,
                  args.previous_clustering,

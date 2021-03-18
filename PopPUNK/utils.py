@@ -253,7 +253,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     # avoid circular import
     from .prune_db import prune_distance_matrix
     from .sketchlib import removeFromDB
-    from .sketchlib import pickReferenceIsolate
+    from .sketchlib import pickTypeIsolate
     
     # Create overall list of sequences
     if refList == refList:
@@ -272,10 +272,10 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
             sys.stderr.write("Cannot create output directory " + prefix + "\n")
             sys.exit(1)
 
-    # Pick reference isolate if not supplied
-    if qc_dict['reference_isolate'] is None:
-        qc_dict['reference_isolate'] = pickReferenceIsolate(ref_db, seq_names_passing)
-        sys.stderr.write('Selected reference isolate is ' + qc_dict['reference_isolate'] + '\n')
+    # Pick type isolate if not supplied
+    if qc_dict['type_isolate'] is None:
+        qc_dict['type_isolate'] = pickTypeIsolate(ref_db, seq_names_passing)
+        sys.stderr.write('Selected type isolate is ' + qc_dict['type_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
@@ -283,9 +283,9 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         names = list(iterDistRows(refList, queryList, refList == queryList))
         # Prune sequences based on reference sequence
         for i in long_distance_rows:
-            if names[i][0] == qc_dict['reference_isolate']:
+            if names[i][0] == qc_dict['type_isolate']:
                 to_prune.append(names[i][1])
-            elif names[i][1] == qc_dict['reference_isolate']:
+            elif names[i][1] == qc_dict['type_isolate']:
                 to_prune.append(names[i][0])
     
     # prune based on distance from reference if provided
@@ -294,7 +294,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
         sys.exit(1)
     elif qc_dict['qc_filter'] == 'prune' and len(to_prune) > 0:
-        if qc_dict['reference_isolate'] is None:
+        if qc_dict['type_isolate'] is None:
             sys.stderr.write('Distances exceeded QC thresholds but no reference isolate supplied\n')
             sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
             sys.exit(1)

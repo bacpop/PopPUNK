@@ -572,8 +572,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
     return distMat
 
 
-def pickReferenceIsolate(prefix, names):
-    """Selects a reference isolate as that with a minimal proportion
+def pickTypeIsolate(prefix, names):
+    """Selects a type isolate as that with a minimal proportion
     of missing data.
 
     Args:
@@ -583,7 +583,7 @@ def pickReferenceIsolate(prefix, names):
             Names of samples to QC
 
     Returns:
-        reference_isolate (str)
+        type_isolate (str)
             Name of isolate selected as reference
     """
     # open databases
@@ -591,7 +591,7 @@ def pickReferenceIsolate(prefix, names):
     hdf_in = h5py.File(db_name, 'r+')
 
     min_prop_n = 1.0
-    reference_isolate = None
+    type_isolate = None
     
     try:
         # process data structures
@@ -600,7 +600,7 @@ def pickReferenceIsolate(prefix, names):
         for dataset in read_grp:
             if hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length'] < min_prop_n:
                 min_prop_n = hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length']
-                reference_isolate = dataset
+                type_isolate = dataset
             if min_prop_n == 0.0:
                 break
     # if failure still close files to avoid corruption
@@ -610,7 +610,7 @@ def pickReferenceIsolate(prefix, names):
         print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
         raise
 
-    return reference_isolate
+    return type_isolate
 
 def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
