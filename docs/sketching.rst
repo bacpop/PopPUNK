@@ -66,6 +66,8 @@ up the sketching and distance steps. Useful options include:
 .. warning::
    Some options have slightly different names. See the pp-sketchlib README for full details.
 
+.. _db-info:
+
 Viewing information about a database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Use ``poppunk_db_info`` on a HDF5 file::
