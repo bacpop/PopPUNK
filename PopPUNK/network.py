@@ -310,7 +310,8 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
                     reference_index_set = set(reference_indices)
                     # Add predecessors to reference sequences on the SSSPs
                     predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
-                    predecessors = set(predecessor_list[predecessor_list >= 0])
+                    print("Predecessors: " + str(predecessor_list) + " type: " + str(type(predecessor_list)))
+                    predecessors = set(predecessor_list[predecessor_list >= 0].values)
                     # Add predecessors to reference set and check whether this results in complete paths
                     # where complete paths are indicated by references' predecessors being within the set of
                     # references
@@ -725,7 +726,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
                     subgraph = cugraph.subgraph(G, component_vertices)
-                    component_betweenness = cugraph.betweenness_centrality(G)
+                    component_betweenness = cugraph.betweenness_centrality(G, k = 250)
                     betweenness.append(component_betweenness['betweenness_centrality'].max())
                     sizes.append(size)
         else:
