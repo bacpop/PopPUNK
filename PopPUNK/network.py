@@ -160,7 +160,7 @@ def checkNetworkVertexCount(seq_list, G, use_gpu):
     vertex_list = set(get_vertex_list(G, use_gpu = use_gpu))
     networkMissing = set(set(range(len(seq_list))).difference(vertex_list))
     if len(networkMissing) > 0:
-        sys.stderr.write("ERROR: Samples " + ",".join(map(str,networkMissing)) + " are missing from the final network\n")
+        sys.stderr.write("ERROR: " + str(len(networkMissing)) + " samples are missing from the final network\n")
         sys.exit(1)
 
 def getCliqueRefs(G, reference_indices = set()):
@@ -264,7 +264,11 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = partition_assignments.groupby('partition').nth(0)
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
-                
+
+        # Add type isolate if necessary - before edges are added
+        if type_isolate_index is not None and type_isolate_index not in reference_indices:
+            reference_indices.add(type_isolate_index)
+
         # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
         refFileName = writeReferences(reference_names, outPrefix)
@@ -339,6 +343,10 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
+        # Add type isolate if necessary - before edges are added
+        if type_isolate_index is not None and type_isolate_index not in reference_indices:
+            reference_indices.add(type_isolate_index)
+
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(threads)
 
@@ -394,10 +402,6 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
         if network_update_required:
             G_ref = gt.GraphView(G, vfilt = reference_vertex)
             G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
-
-    # Add type isolate if necessary
-    if type_isolate_index is not None and type_isolate_index not in reference_indices:
-        reference_indices.add(type_isolate_index)
 
     # Order found references as in sketch files
     reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]

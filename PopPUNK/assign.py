@@ -298,7 +298,7 @@ def assign_query(dbFuncs,
                     extractReferences(genomeNetwork,
                                         dbOrder,
                                         output,
-                                        rNames,
+                                        existingRefs = rNames,
                                         type_isolate = qc_dict['type_isolate'],
                                         threads = threads,
                                         use_gpu = gpu_graph)
