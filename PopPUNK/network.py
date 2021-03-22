@@ -243,7 +243,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
     # Add type isolate, if necessary
     type_isolate_index = None
     if type_isolate is not None:
-        if type_isolate is in dbOrder:
+        if type_isolate in dbOrder:
             type_isolate_index = dbOrder.index(type_isolate)
         else:
             sys.stderr.write('Type isolate ' + type_isolate + ' not found\n')

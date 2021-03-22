@@ -744,7 +744,7 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
     retained = [x for x in names if x in frozenset(retained)]
     
     # stop if type sequence does not pass QC or is absent
-    if qc_dict['type_isolate'] not in retained:
+    if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in retained:
         sys.stderr.write('Type isolate ' + qc_dict['type_isolate'] + ' not found in isolates after QC; check '
         'name of type isolate and QC options\n')
         sys.exit(1)
