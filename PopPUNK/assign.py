@@ -420,6 +420,11 @@ def get_options():
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
+    other.add_argument('--citation',
+                       action='store_true',
+                       default=False,
+                       help='Give a citation, and possible methods paragraph'
+                            ' based on the command line')
 
 
     # combine
@@ -442,6 +447,12 @@ def main():
     #*                            *#
     #******************************#
     args = get_options()
+
+    # May just want to print the citation
+    if args.citation:
+        from .citation import print_citation
+        print_citation(args, assign=True)
+        sys.exit(0)
 
     from .sketchlib import checkSketchlibLibrary
     from .utils import setGtThreads

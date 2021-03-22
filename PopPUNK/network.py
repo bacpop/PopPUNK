@@ -41,6 +41,8 @@ from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
 
+from .unwords import gen_unword
+
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False, use_gpu = False):
     """Load the network based on input options
@@ -103,7 +105,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
-    
+
     # Load network file
     genomeNetwork = load_network_file(network_file, use_gpu = use_gpu)
 
@@ -142,7 +144,7 @@ def load_network_file(fn, use_gpu = False):
     else:
         genomeNetwork = gt.load_graph(fn)
         sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
-    
+
     return genomeNetwork
 
 def checkNetworkVertexCount(seq_list, G, use_gpu):
@@ -254,7 +256,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
         if not gpu_lib:
             sys.stderr.write('Unable to load GPU libraries; exiting\n')
             sys.exit(1)
-    
+
         # For large network, use more approximate method for extracting references
         reference = {}
         # Record the original components to which sequences belonged
@@ -272,7 +274,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
         # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
         refFileName = writeReferences(reference_names, outPrefix)
-        
+
         # Extract reference edges
         G_df = G.view_edge_list()
         if 'src' in G_df.columns:
@@ -281,7 +283,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
         # Add self-loop if needed
         max_in_vertex_labels = max(reference_indices)
         G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
-        
+
         # Check references in same component in overall graph are connected in the reference graph
         # First get components of original reference graph
         reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
@@ -324,7 +326,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
             # Create new reference graph
             G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
             G_ref = add_self_loop(G_ref_df, max_in_vertex_labels, renumber = False)
-            
+
     else:
 
         # Each component is independent, so can be multithreaded
@@ -459,7 +461,7 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
     """
     # get list for translating node IDs to rlist
     prev_G = load_network_file(prev_G_fn, use_gpu = use_gpu)
-    
+
     # load list of names in previous network
     if previous_pkl is not None:
         with open(previous_pkl, 'rb') as pickle_file:
@@ -471,7 +473,7 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
     else:
         sys.stderr.write('Pkl file containing names of sequences in previous network\n')
         sys.exit(1)
-    
+
     # Get edges as lists of source,destination,weight using original IDs
     if use_gpu:
         G_df = prev_G.view_edge_list()
@@ -495,7 +497,7 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
     # translate to indices
     source_ids = [old_id_indices[x] for x in old_source_ids]
     target_ids = [old_id_indices[x] for x in old_target_ids]
-    
+
     # return values
     if weights:
         return source_ids, target_ids, edge_weights
@@ -619,20 +621,20 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # load GPU libraries if necessary
     if use_gpu:
-        
+
         if not gpu_lib:
            sys.stderr.write('Unable to load GPU libraries; exiting\n')
            sys.exit(1)
-        
+
         # Set memory management for large networks
         cudf.set_allocator("managed")
-        
+
         # create DataFrame using edge tuples
         if weights is not None or sparse_input is not None:
             G_df = cudf.DataFrame(connections, columns =['source', 'destination', 'weights'])
         else:
             G_df = cudf.DataFrame(connections, columns =['source', 'destination'])
-        
+
         # ensure the highest-integer node is included in the edge list
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
@@ -694,11 +696,11 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
             List of scores
     """
     if use_gpu:
-    
+
         if not gpu_lib:
            sys.stderr.write('Unable to load GPU libraries; exiting\n')
            sys.exit(1)
-    
+
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
@@ -718,7 +720,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
     if calc_betweenness:
         betweenness = []
         sizes = []
-        
+
         if use_gpu:
             component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
             for component in component_nums.to_pandas():
@@ -879,11 +881,11 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
     # finish by updating the network
     if use_gpu:
-    
+
         if not gpu_lib:
            sys.stderr.write('Unable to load GPU libraries; exiting\n')
            sys.exit(1)
-        
+
         # construct updated graph
         G_current_df = G.view_edge_list()
         if weights is not None:
@@ -894,14 +896,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             G_current_df.columns = ['source','destination']
             G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination'])
             G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
-        
+
         # use self-loop to ensure all nodes are present
         max_in_vertex_labels = ref_count + len(qList) - 1
         include_weights = False
         if weights is not None:
             include_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = include_weights)
-        
+
     else:
         G.add_vertex(len(qList))
 
@@ -956,9 +958,11 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
     G_new.from_cudf_edgelist(G_df, renumber = renumber)
     return G_new
 
-def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
-                  externalClusterCSV = None, printRef = True, printCSV = True,
-                  clustering_type = 'combined', use_gpu = False):
+
+def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
+                  externalClusterCSV=None, printRef=True, printCSV=True,
+                  clustering_type='combined', write_unwords=True,
+                  use_gpu = False):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -969,7 +973,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             :func:`~addQueryToNetwork`)
         outPrefix (str)
             Prefix for output CSV
-            Default = "_clusters.csv"
+            Default = None
         oldClusterFile (str)
             CSV with previous cluster assignments.
             Pass to ensure consistency in cluster assignment name.
@@ -987,9 +991,11 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         clustering_type (str)
             Type of clustering network, used for comparison with old clusters
             Default = 'combined'
+        write_unwords (bool)
+            Write clusters with a pronouncable name rather than numerical index
+            Default = True
         use_gpu (bool)
             Whether to use cugraph for network analysis
-
     Returns:
         clustering (dict)
             Dictionary of cluster assignments (keys are sequence names)
@@ -997,14 +1003,15 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
     """
     if oldClusterFile == None and printRef == False:
         raise RuntimeError("Trying to print query clusters with no query sequences")
+    if write_unwords and not printCSV:
+        write_unwords = False
 
     # get a sorted list of component assignments
     if use_gpu:
-    
         if not gpu_lib:
            sys.stderr.write('Unable to load GPU libraries; exiting\n')
            sys.exit(1)
-    
+
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
@@ -1040,9 +1047,12 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
     # Assign each cluster a name
     clustering = {}
     foundOldClusters = []
+    cluster_unword = {}
+    if write_unwords:
+        unword_generator = gen_unword()
 
     for newClsIdx, newCluster in enumerate(newClusters):
-
+        needs_unword = False
         # Ensure consistency with previous labelling
         if oldClusterFile != None:
             merge = False
@@ -1055,6 +1065,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             if len(ref_only) == 0:
                 cls_id = str(new_id)    # harmonise data types; string flexibility helpful
                 new_id += 1
+                needs_unword = True
             else:
                 # Search through old cluster IDs to find a match
                 for oldClusterName, oldClusterMembers in oldClusters.items():
@@ -1070,6 +1081,7 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
                         # Query has merged clusters
                         if len(join) < len(ref_only):
                             merge = True
+                            needs_unword = True
                             if cls_id == None:
                                 cls_id = oldClusterName
                             else:
@@ -1088,15 +1100,26 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
         # Otherwise just number sequentially starting from 1
         else:
             cls_id = newClsIdx + 1
+            needs_unword = True
+
+        if write_unwords and needs_unword:
+            unword = next(unword_generator)
+        else:
+            unword = None
 
         for cluster_member in newCluster:
             clustering[cluster_member] = cls_id
+            if unword is not None:
+                cluster_unword[cluster_member] = unword
 
     # print clustering to file
     if printCSV:
         outFileName = outPrefix + "_clusters.csv"
         with open(outFileName, 'w') as cluster_file:
             cluster_file.write("Taxon,Cluster\n")
+            if write_unwords:
+                unword_file = open(outPrefix + "_unword_clusters.csv", 'w')
+                unword_file.write("Taxon,Cluster_name\n")
 
             # sort the clusters by frequency - define a list with a custom sort order
             # first line gives tuples e.g. (1, 28), (2, 17) - cluster 1 has 28 members, cluster 2 has 17 members
@@ -1108,6 +1131,11 @@ def printClusters(G, rlist, outPrefix = "_clusters.csv", oldClusterFile = None,
             for cluster_member, cluster_name in sorted(clustering.items(), key=lambda i:freq_order.index(i[1])):
                 if printRef or cluster_member not in oldNames:
                     cluster_file.write(",".join((cluster_member, str(cluster_name))) + "\n")
+                if write_unwords and cluster_member in cluster_unword:
+                    unword_file.write(",".join((cluster_member, cluster_unword[cluster_member])) + "\n")
+
+            if write_unwords:
+                unword_file.close()
 
         if externalClusterCSV is not None:
             printExternalClusters(newClusters, externalClusterCSV, outPrefix, oldNames, printRef)
@@ -1256,12 +1284,12 @@ def get_vertex_list(G, use_gpu = False):
        vlist (list)
            List of integers corresponding to nodes
     """
-    
+
     if use_gpu:
         vlist = range(G.number_of_vertices())
     else:
         vlist = list(G.vertices())
-    
+
     return vlist
 
 def save_network(G, prefix = None, suffix = None, use_gpu = False):

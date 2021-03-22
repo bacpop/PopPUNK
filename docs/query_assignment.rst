@@ -1,7 +1,7 @@
 Query assignment
 ================
 This is the recommended mode to use PopPUNK, as long as a database is available for
-your species. If there is no DB available, you can fit your own (:doc:`model_fitting`).
+your species. If there is no database available, you can fit your own (:doc:`model_fitting`).
 
 Briefly, `download your reference database <https://poppunk.net/pages/databases.html>`__ and run::
 
@@ -16,7 +16,7 @@ Downloading a database
 Current PopPUNK databases can be found here: https://poppunk.net/pages/databases.html
 
 We refer to sequences in the database as references, and those being added
-as queries.
+as queries. The clusters assigned by PopPUNK are variable-length-k-mer clusters (VLKCs).
 
 A database called ``database`` will contain the following files, in ``database/``:
 
@@ -90,7 +90,7 @@ The output will look something like this::
     Could not find random match chances in database, calculating assuming equal base frequencies
     Calculating distances using 8 thread(s)
 
-Your clusters will be written to ``poppunk_clusters/poppunk_clusters_clusters.csv``::
+Your VLKCs will be written to ``poppunk_clusters/poppunk_clusters_clusters.csv``::
 
     Taxon,Cluster
     21946_6_66,9
@@ -110,7 +110,7 @@ in ascending order from largest to smallest, beginning from the end of the refer
 clusters.
 
 .. note::
-    You may observed clusters merging (but never splitting). If your genomes
+    You may observe clusters merging (but never splitting). If your genomes
     do cause clusters to merge this will be noted in the output, and the new
     clusters will be named using the old ones. For example, if clusters 23 and 38
     merged, the new cluster would be called 23_38.
@@ -161,7 +161,7 @@ default is to use the combined boundary, to use the others add ``--core-only`` o
 
 Increasing speed
 ----------------
-Query assignment is the most efficient mode, typically requiring :math:`Q` sketches and
+Query assignment is the most efficient mode in which to run PopPUNK, typically requiring :math:`Q` sketches and
 :math:`RQ` distances. If you are updating the database, this increases to :math:`Q^2 + RQ`
 distances. If you are assigning a very large number of queries you can run ``poppunk_assign``
 with ``--update-db`` repeatedly for batches of query input, as the :math:`Q^2` term will

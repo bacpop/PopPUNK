@@ -128,5 +128,7 @@ setup(
     ext_modules=[CMakeExtension('poppunk_refine')],
     test_suite="test",
     cmdclass=dict(build_ext=CMakeBuild),
-    zip_safe=False
+    zip_safe=False,
+    include_package_data=True,
+    package_data={'': ['PopPUNK/data/*.json.gz']}
 )

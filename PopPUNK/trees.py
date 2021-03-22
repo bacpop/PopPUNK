@@ -61,7 +61,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
         sys.exit(1)
 
     # read tree and return
-    tree = dendropy.Tree.get(path=tree_filename, schema="newick")
+    tree = dendropy.Tree.get(path=tree_filename, schema="newick", preserve_underscores=True)
     os.remove(tree_filename)
     return tree
 
@@ -104,7 +104,7 @@ def load_tree(prefix, type, distances = 'core'):
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
                 sys.stderr.write("Reading existing tree from " + tree_fn + "\n")
-                tree = dendropy.Tree.get(path=tree_fn, schema="newick")
+                tree = dendropy.Tree.get(path=tree_fn, schema="newick", preserve_underscores=True)
                 tree_string = tree.as_string(schema="newick",
                 suppress_rooting=True,
                 unquoted_underscores=True)

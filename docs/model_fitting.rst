@@ -35,7 +35,7 @@ Then, use ``poppunk --fit-model <model_name>`` with one of the following model n
   and attempts to improve it by maximising the network score. Particularly useful when
   components overlap significantly (often due to recombination), or when the strain boundary
   is thought to lie somewhere within a component.
-- ``threshold`` -- Apply a given core or accessory distance threshold to define clusters. Useful if
+- ``threshold`` -- Apply a given core or accessory distance threshold to define VLKCs. Useful if
   a cutoff threshold is already known/calculated, is estimated from a plot, or to compare a threshold
   between datasets or species.
 - ``lineage`` -- Lineage clustering. To find lineages within a strain (subclustering), or
@@ -48,7 +48,9 @@ further down this page.
 
 A completed fit will consist of:
 
-- A ``_clusters.csv`` file, which gives the strain (cluster) for each sample in the database.
+- A ``_clusters.csv`` file, which gives the VLKC (strain) for each sample in the database.
+- A ``_unword_clusters.csv`` file, which gives an English-pronounceable name instead of a number
+  to each VLKC.
 - ``_fit.npz`` and ``_fit.pkl`` files, which contain numeric data and metadata for the fit.
 - A ``_graph.gt`` file, which is the network defining the fit in graph-tool format.
 - Some plots of the fit, which depend on the specific model used.
@@ -78,7 +80,7 @@ Common arguments
   distances, rather than as 0 or 1 (useful for visualising the network).
 
 External clusters may be other cluster names, such as serotype, sequence type, cgMLST etc.
-PopPUNK clusters are mapped as one-to-many, so that each strain is labelled with all of
+VLKCs are mapped as one-to-many, so that each strain is labelled with all of
 the clusters any of its members is assigned to in this file. This input file must
 be comma separated, one sample per line, with the sample name as the first column, and
 other clusters as subsequent columns. A header line with 'sample' and the names of other cluster
@@ -87,7 +89,7 @@ types is required. Output is to ``output/output_external_clusters.csv``.
 How good is my fit?
 -------------------
 We have found the best way to assess this is to use :doc:`visualisation` on your output
-and look at your assigned clusters against a tree, to determine whether they have
+and look at your assigned VLKCs against a tree, to determine whether they have
 the specificity required.
 
 You can also compare models with their network score, and
@@ -108,7 +110,7 @@ All fits will output a network summary which looks similar to this::
         Score (w/ betweenness)			0.9126
         Score (w/ weighted-betweenness)		0.9009
 
-- Components are the number of strains (clusters) found using this model.
+- Components are the number of VLKCs (strains) found using this model.
 - Density is the proportion of distances assigned as 'within-strain'. Generally
   smaller is better as this gives more specific clusters, but too close to zero
   may be an over-specific model.
@@ -446,7 +448,7 @@ directory to load the model from with ``--model-dir``, if multiple model fits ar
     Done
 
 As this model was already well fitted, this doesn't change much, and finds very similar
-clusters (though noise points are eliminated):
+VLKC assignments (though noise points are eliminated):
 
 .. image:: images/listeria_refined.png
    :alt:  A refine fit on Listeria
@@ -467,7 +469,7 @@ draw a good boundary as the likelihood is very flat in this region:
    :align: center
 
 Although the score of this fit looks ok (0.904), inspection of the network and
-microreact reveals that it is too liberal and clusters have been merged. This
+microreact reveals that it is too liberal and VLKCs/strains have been merged. This
 is because some of the blur between the origin and the central distribution has
 been included, and connected clusters together erroneously.
 

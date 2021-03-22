@@ -1,15 +1,14 @@
-.. PopPUNK documentation master file, created by
-   sphinx-quickstart on Wed Mar 28 17:33:40 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 PopPUNK documentation
 ==================================
 .. image:: images/poppunk_v2.png
    :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
    :align: center
 
-PopPUNK is a tool for clustering genomes. The first version was targeted specifically
+PopPUNK is a tool for clustering genomes. We refer to the clusters as
+variable-length-k-mer clusters, or **VLKCs**. Biologically, these clusters
+typically represent distinct strains. We refer to subclusters of strains as lineages.
+
+The first version was targeted specifically
 as bacterial genomes, but the current version has also been used for viruses
 (e.g. enterovirus, influenza, SARS-CoV-2) and eukaryotes (e.g. *Candida* sp.,
 *P. falciparum*). Under the hood, PopPUNK uses
@@ -45,6 +44,7 @@ by reading the :doc:`best_practises`.
    troubleshooting.rst
    options.rst
    scripts.rst
+   citing.rst
    api.rst
    miscellaneous.rst
 
@@ -79,6 +79,8 @@ If you find PopPUNK useful, please cite as:
 Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, Bentley SD, Croucher NJ. Fast and flexible
 bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:1-13 (2019).
 doi:`10.1101/gr.241455.118 <https://dx.doi.org/10.1101/gr.241455.118>`__
+
+See :doc:`citing` for more details.
 
 Index:
 ------
