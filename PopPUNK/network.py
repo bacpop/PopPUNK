@@ -322,7 +322,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
                     reference_indices = list(reference_index_set)
             # Create new reference graph
             G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-            G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
+            G_ref = add_self_loop(G_ref_df, max_in_vertex_labels, renumber = False)
             
     else:
 
