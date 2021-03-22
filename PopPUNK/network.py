@@ -320,7 +320,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
                     while len(predecessors) > 0 and len(predecessors - reference_index_set) > 0:
                         reference_index_set = reference_index_set.union(predecessors)
                         predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
-                        predecessors = set(predecessor_list[predecessor_list >= 0])
+                        predecessors = set(predecessor_list[predecessor_list >= 0].flatten().tolist())
                     # Add expanded reference set to the overall list
                     reference_indices = list(reference_index_set)
             # Create new reference graph
