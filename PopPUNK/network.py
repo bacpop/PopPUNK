@@ -206,7 +206,8 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
-def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, use_gpu = False):
+def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
+                        existingRefs = None, threads = 1, use_gpu = False):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -218,6 +219,8 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
                Prefix for output file (.refs will be appended)
+           type_isolate (str)
+               Isolate to be included in set of references
            existingRefs (list)
                References that should be used for each clique
            use_gpu (bool)
@@ -237,6 +240,15 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
+    # Add type isolate, if necessary
+    type_isolate_index = None
+    if type_isolate is not None:
+        if type_isolate is in dbOrder:
+            type_isolate_index = dbOrder.index(type_isolate)
+        else:
+            sys.stderr.write('Type isolate ' + type_isolate + ' not found\n')
+            sys.exit(1)
+
     if use_gpu:
 
         if not gpu_lib:
@@ -252,7 +264,7 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = partition_assignments.groupby('partition').nth(0)
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
-        
+                
         # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
         refFileName = writeReferences(reference_names, outPrefix)
@@ -382,6 +394,10 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1, u
         if network_update_required:
             G_ref = gt.GraphView(G, vfilt = reference_vertex)
             G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
+
+    # Add type isolate if necessary
+    if type_isolate_index is not None and type_isolate_index not in reference_indices:
+        reference_indices.add(type_isolate_index)
 
     # Order found references as in sketch files
     reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]

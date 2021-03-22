@@ -295,7 +295,13 @@ def assign_query(dbFuncs,
             dbOrder = rNames + qNames
             newRepresentativesIndices, newRepresentativesNames, \
                 newRepresentativesFile, genomeNetwork = \
-                    extractReferences(genomeNetwork, dbOrder, output, rNames, threads = threads, use_gpu = gpu_graph)
+                    extractReferences(genomeNetwork,
+                                        dbOrder,
+                                        output,
+                                        rNames,
+                                        type_isolate = qc_dict['type_isolate'],
+                                        threads = threads,
+                                        use_gpu = gpu_graph)
             # intersection that maintains order
             newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
 
@@ -444,7 +450,7 @@ def main():
     # Dict of QC options for passing to database construction and querying functions
     if args.length_sigma is None and None in args.length_range and args.prop_n is None \
         and args.upper_n is None and args.max_a_dist is None and args.max_pi_dist is None:
-        qc_dict = {'run_qc': False }
+        qc_dict = {'run_qc': False, 'type_isolate': None }
     else:
         # define defaults if one QC parameter given
         # length_sigma
