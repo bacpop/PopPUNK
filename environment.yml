@@ -4,6 +4,8 @@ channels:
   - bioconda
   - defaults
   - r
+  - nvidia
+  - rapidsai
 dependencies:
   - pip
   - numpy
@@ -42,3 +44,5 @@ dependencies:
   - libgomp
   - tqdm
   - flask-apscheduler
+  - cudf
+  - cugraph
