@@ -389,13 +389,15 @@ def main():
                 model = DBSCANFit(output)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
-                model.plot()
+                if not args.no_plot:
+                    model.plot()
             # Run Gaussian model
             elif args.fit_model == "bgmm":
                 model = BGMMFit(output)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.K)
-                model.plot(distMat, assignments)
+                if not args.no_plot:
+                    model.plot(distMat, assignments)
             elif args.fit_model == "refine":
                 new_model = RefineFit(output)
                 model.set_threads(args.threads)
@@ -407,14 +409,16 @@ def main():
                                             args.score_idx,
                                             args.no_local,
                                             args.gpu_graph)
-                new_model.plot(distMat)
+                if not args.no_plot:
+                    new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "threshold":
                 new_model = RefineFit(output)
                 new_model.set_threads(args.threads)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
-                new_model.plot(distMat)
+                if not args.no_plot:
+                    new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
@@ -422,7 +426,8 @@ def main():
                 model = LineageFit(output, rank_list)
                 model.set_threads(args.threads)
                 model.fit(distMat, args.use_accessory)
-                model.plot(distMat)
+                if not args.no_plot:
+                    model.plot(distMat)
 
                 assignments = {}
                 for rank in rank_list:
