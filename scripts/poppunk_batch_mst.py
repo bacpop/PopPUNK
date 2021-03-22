@@ -247,7 +247,7 @@ if __name__ == "__main__":
     # Validate batches
     batch_names = sorted(set(batches))
     if len(batch_names) < 2:
-        sys.stderr.write("You must supply multiple batches")
+        sys.stderr.write("You must supply multiple batches\n")
         sys.exit(1)
     first_batch = batch_names.pop(0)
 
