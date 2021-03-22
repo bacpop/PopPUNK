@@ -116,8 +116,6 @@ def get_options():
     modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
                                                         'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
     modelGroup.add_argument('--threshold', help='Cutoff if using --fit-model threshold', type=float)
-    modelGroup.add_argument('--no-plot', help='Switch off plotting, which can be slow for large datasets', type=bool,
-                                                default=False, action='store_true')
 
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
@@ -127,8 +125,6 @@ def get_options():
             type=float, default = None)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
-    refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
-            default=False, action='store_true')
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
     refinementGroup.add_argument('--score-idx',
@@ -159,6 +155,10 @@ def get_options():
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating networks [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
+    other.add_argument('--no-plot', help='Switch off model plotting, which can be slow for large datasets', type=bool,
+                                                default=False, action='store_true')
+    other.add_argument('--no-local', help='Do not perform the local optimization step in model refinement (speed up on very large datasets)',
+                                                default=False, action='store_true')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
