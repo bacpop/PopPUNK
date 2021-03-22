@@ -267,7 +267,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
 
         # Add type isolate if necessary - before edges are added
         if type_isolate_index is not None and type_isolate_index not in reference_indices:
-            reference_indices.add(type_isolate_index)
+            reference_indices.append(type_isolate_index)
 
         # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
