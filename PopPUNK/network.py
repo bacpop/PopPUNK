@@ -312,8 +312,8 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
                     reference_index_set = set(reference_indices)
                     # Add predecessors to reference sequences on the SSSPs
                     predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
-                    print("Predecessors: " + str(predecessor_list.flatten()) + " type: " + str(type(predecessor_list)))
-                    predecessors = set(predecessor_list[predecessor_list >= 0].flatten())
+                    print("Predecessors: " + str(predecessor_list.flatten().tolist()) + " type: " + str(type(predecessor_list)))
+                    predecessors = set(predecessor_list[predecessor_list >= 0].flatten().tolist())
                     # Add predecessors to reference set and check whether this results in complete paths
                     # where complete paths are indicated by references' predecessors being within the set of
                     # references
