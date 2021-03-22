@@ -116,6 +116,8 @@ def get_options():
     modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
                                                         'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
     modelGroup.add_argument('--threshold', help='Cutoff if using --fit-model threshold', type=float)
+    modelGroup.add_argument('--no-plot', help='Switch off plotting, which can be slow for large datasets', type=bool,
+                                                default=False, action='store_true')
 
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
