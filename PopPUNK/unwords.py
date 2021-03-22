@@ -27,7 +27,7 @@ def gen_unword(unique=True):
       # Retry loop
       while True:
           word = ""
-          for i in range(random.randint(1, 3)):
+          for i in range(random.randint(2, 3)):
               word += "".join(syllable()[0]())
           if word not in real_words and (not unique or word not in returned_words):
               returned_words.add(word)
