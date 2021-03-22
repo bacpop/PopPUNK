@@ -155,7 +155,7 @@ def get_options():
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating networks [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
-    other.add_argument('--no-plot', help='Switch off model plotting, which can be slow for large datasets', type=bool,
+    other.add_argument('--no-plot', help='Switch off model plotting, which can be slow for large datasets',
                                                 default=False, action='store_true')
     other.add_argument('--no-local', help='Do not perform the local optimization step in model refinement (speed up on very large datasets)',
                                                 default=False, action='store_true')
@@ -323,9 +323,10 @@ def main():
                                                 qc_dict)
 
         # Plot results
-        plot_scatter(distMat,
-                     args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
-                     args.output + " distances")
+        if not args.no_plot:
+            plot_scatter(distMat,
+                         args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
+                         args.output + " distances")
 
     #******************************#
     #*                            *#
@@ -389,15 +390,11 @@ def main():
                 model = DBSCANFit(output)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
-                if not args.no_plot:
-                    model.plot()
             # Run Gaussian model
             elif args.fit_model == "bgmm":
                 model = BGMMFit(output)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.K)
-                if not args.no_plot:
-                    model.plot(distMat, assignments)
             elif args.fit_model == "refine":
                 new_model = RefineFit(output)
                 model.set_threads(args.threads)
@@ -409,16 +406,12 @@ def main():
                                             args.score_idx,
                                             args.no_local,
                                             args.gpu_graph)
-                if not args.no_plot:
-                    new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "threshold":
                 new_model = RefineFit(output)
                 new_model.set_threads(args.threads)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
-                if not args.no_plot:
-                    new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
@@ -426,8 +419,6 @@ def main():
                 model = LineageFit(output, rank_list)
                 model.set_threads(args.threads)
                 model.fit(distMat, args.use_accessory)
-                if not args.no_plot:
-                    model.plot(distMat)
 
                 assignments = {}
                 for rank in rank_list:
@@ -436,6 +427,10 @@ def main():
 
             # save model
             model.save()
+            
+            # plot model
+            if not args.no_plot:
+                model.plot(distMat, assignments)
 
         # use model
         else:

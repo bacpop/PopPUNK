@@ -1048,7 +1048,7 @@ class LineageFit(ClusterFit):
         self.nn_dists = fit_npz
         self.fitted = True
 
-    def plot(self, X):
+    def plot(self, X, y = None):
         '''Extends :func:`~ClusterFit.plot`
 
         Write a summary of the fit, and plot the results using
@@ -1057,6 +1057,9 @@ class LineageFit(ClusterFit):
         Args:
             X (numpy.array)
                 Core and accessory distances
+            y (any)
+                Unused variable for compatibility with other
+                plotting functions
         '''
         ClusterFit.plot(self, X)
         for rank in self.ranks:
