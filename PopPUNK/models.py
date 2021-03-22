@@ -782,6 +782,7 @@ class RefineFit(ClusterFit):
                             slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
                 self.indiv_fitted = True
             except RuntimeError as e:
+                print(e)
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
 
@@ -988,8 +989,7 @@ class LineageFit(ClusterFit):
                 pp_sketchlib.sparsifyDists(
                     pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
                     0,
-                    rank,
-                    self.threads
+                    rank
                 )
             data = [epsilon if d < epsilon else d for d in data]
             self.nn_dists[rank] = coo_matrix((data, (row, col)),

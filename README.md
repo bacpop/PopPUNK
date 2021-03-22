@@ -21,8 +21,16 @@ Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, B
 Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019).
 doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 
+You can also run your command with `--citation` to get a [list of citations](https://poppunk.readthedocs.io/en/latest/citing.html) and a
+suggested methods paragraph.
+
 ## News
 
+### 2021-03-15
+We have fixed a number of bugs with may affect the use of `poppunk_assign` with
+`--update-db`. We have also fixed a number of bugs with GPU distances. These are
+'advanced' features and are not likely to be encountered in most cases, but if you do wish to use either of these features please make sure that you are using
+`PopPUNK >=v2.4.0` with `pp-sketchlib >=v1.7.0`.
 ### 2020-09-30
 We have discovered a bug affecting the interaction of pp-sketchlib and PopPUNK.
 If you have used `PopPUNK >=v2.0.0` with `pp-sketchlib <v1.5.1` label order may
