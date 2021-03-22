@@ -575,8 +575,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
             Network used to define clusters (from :func:`~constructNetwork` or
             :func:`~addQueryToNetwork`)
         outPrefix (str)
-            Suffix for output CSV
-            Default = "_clusters.csv"
+            Prefix for output CSV
+            Default = None
         oldClusterFile (str)
             CSV with previous cluster assignments.
             Pass to ensure consistency in cluster assignment name.
