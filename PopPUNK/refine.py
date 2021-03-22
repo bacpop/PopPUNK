@@ -30,6 +30,7 @@ try:
     import cudf
     gpu_lib = True
 except ImportError as e:
+    sys.stderr.write("cugraph and cudf unavailable\n")
     gpu_lib = False
 
 from .network import constructNetwork
