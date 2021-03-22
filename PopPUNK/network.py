@@ -595,7 +595,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
             Type of clustering network, used for comparison with old clusters
             Default = 'combined'
         write_unwords (bool)
-            Write clusters with a pronouncable name rather than numbered name
+            Write clusters with a pronouncable name rather than numerical index
             Default = True
     Returns:
         clustering (dict)
