@@ -934,7 +934,7 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
             Dictionary of cluster assignments (keys are sequence names)
     """
     # use self-loop to ensure all nodes are present
-    min_in_df = np.amin([G_df['source'].min(),G_df['destination'].min()])
+    min_in_df = np.amin([G_df['source'].min(), G_df['destination'].min()])
     if min_in_df.item() > 0:
         G_self_loop = cudf.DataFrame()
         G_self_loop['source'] = [0]
