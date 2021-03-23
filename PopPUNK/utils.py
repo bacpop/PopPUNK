@@ -275,7 +275,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     # Pick type isolate if not supplied
     if qc_dict['type_isolate'] is None:
         qc_dict['type_isolate'] = pickTypeIsolate(ref_db, seq_names_passing)
-        sys.stderr.write('Selected type isolate is ' + qc_dict['type_isolate'] + '\n')
+        sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()

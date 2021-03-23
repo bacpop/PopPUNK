@@ -112,30 +112,41 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         x_max = np.linspace(x_max_start, x_max_end, global_grid_resolution, dtype=np.float32)
         y_max = np.linspace(y_max_start, y_max_end, global_grid_resolution, dtype=np.float32)
 
-        if gt.openmp_enabled():
-            gt.openmp_set_num_threads(1)
+        if use_gpu:
+            global_s = map(partial(newNetwork2D,
+                                   sample_names = sample_names,
+                                   distMat = distMat,
+                                   x_range = x_max,
+                                   y_range = y_max,
+                                   score_idx = score_idx,
+                                   use_gpu = True),
+                           range(global_grid_resolution))
+        else:
+            if gt.openmp_enabled():
+                gt.openmp_set_num_threads(1)
 
-        with SharedMemoryManager() as smm:
-            shm_distMat = smm.SharedMemory(size = distMat.nbytes)
-            distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-            distances_shared_array[:] = distMat[:]
-            distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
+            with SharedMemoryManager() as smm:
+                shm_distMat = smm.SharedMemory(size = distMat.nbytes)
+                distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
+                distances_shared_array[:] = distMat[:]
+                distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
 
-            with Pool(processes = num_processes) as pool:
-                global_s = pool.map(partial(newNetwork2D,
-                                            sample_names = sample_names,
-                                            distMat = distances_shared,
-                                            x_range = x_max,
-                                            y_range = y_max,
-                                            score_idx = score_idx,
-                                            use_gpu = use_gpu),
-                                    range(global_grid_resolution))
+                with Pool(processes = num_processes) as pool:
+                    global_s = pool.map(partial(newNetwork2D,
+                                                sample_names = sample_names,
+                                                distMat = distances_shared,
+                                                x_range = x_max,
+                                                y_range = y_max,
+                                                score_idx = score_idx,
+                                                use_gpu = False),
+                                        range(global_grid_resolution))
 
-        if gt.openmp_enabled():
-            gt.openmp_set_num_threads(num_processes)
+            if gt.openmp_enabled():
+                gt.openmp_set_num_threads(num_processes)
 
-        global_s = list(chain.from_iterable(global_s))
-        min_idx = np.argmin(np.array(global_s))
+        global_s = np.array(list(chain.from_iterable(global_s)))
+        global_s[np.isnan(global_s)] = 1
+        min_idx = np.argmin(global_s)
         optimal_x = x_max[min_idx % global_grid_resolution]
         optimal_y = y_max[min_idx // global_grid_resolution]
 
@@ -217,18 +228,17 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
             Optional thread idx (if multithreaded) to offset progress bar by
         use_gpu (bool)
             Whether to use cugraph for graph analyses
-            
+
     Returns:
         scores (list)
             -1 * network score for each of x_range.
             Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
-    
     # load CUDA libraries
     if use_gpu and not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
-    
+
     scores = []
     edge_list = []
     prev_idx = 0
@@ -313,7 +323,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
             Number of CPUs to use for calculating assignment
         use_gpu (bool)
             Whether to use cugraph for graph analysis
-            
+
     Returns:
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
@@ -364,7 +374,7 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, us
             [default = 0]
         use_gpu (bool)
             Whether to use cugraph for graph analysis
-            
+
     Returns:
         scores (list)
             -1 * network score for each of x_range.
