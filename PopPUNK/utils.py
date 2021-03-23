@@ -242,25 +242,25 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
             Prefix of output files
         qc_dict (dict)
             Dict of QC options
-            
+
     Returns:
         seq_names_passing (list)
             List of isolates passing QC distance filters
         distMat ([n,2] numpy ndarray)
             Filtered long form distance matrix
     """
-    
+
     # avoid circular import
     from .prune_db import prune_distance_matrix
     from .sketchlib import removeFromDB
     from .sketchlib import pickTypeIsolate
-    
+
     # Create overall list of sequences
     if refList == refList:
         seq_names_passing = refList
     else:
         seq_names_passing = refList + queryList
-        
+
     # Sequences to remove
     to_prune = []
 
@@ -287,7 +287,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
                 to_prune.append(names[i][1])
             elif names[i][1] == qc_dict['type_isolate']:
                 to_prune.append(names[i][0])
-    
+
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
         sys.stderr.write('Outlier distances exceed QC thresholds; prune sequences or raise thresholds\n')
