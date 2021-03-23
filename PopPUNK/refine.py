@@ -24,6 +24,14 @@ import pp_sketchlib
 import poppunk_refine
 import graph_tool.all as gt
 
+# GPU support
+try:
+    import cugraph
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
+
 from .network import constructNetwork
 from .network import networkSummary
 
@@ -32,7 +40,7 @@ from .utils import decisionBoundary
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
-              unconstrained = False, no_local = False, num_processes = 1):
+              unconstrained = False, no_local = False, num_processes = 1, use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -65,8 +73,10 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             Quicker, but may be less well refined.
         num_processes (int)
             Number of threads to use in the global optimisation step.
-
             (default = 1)
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
+
     Returns:
         start_point (tuple)
             (x, y) co-ordinates of starting point
@@ -102,29 +112,41 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         x_max = np.linspace(x_max_start, x_max_end, global_grid_resolution, dtype=np.float32)
         y_max = np.linspace(y_max_start, y_max_end, global_grid_resolution, dtype=np.float32)
 
-        if gt.openmp_enabled():
-            gt.openmp_set_num_threads(1)
+        if use_gpu:
+            global_s = map(partial(newNetwork2D,
+                                   sample_names = sample_names,
+                                   distMat = distMat,
+                                   x_range = x_max,
+                                   y_range = y_max,
+                                   score_idx = score_idx,
+                                   use_gpu = True),
+                           range(global_grid_resolution))
+        else:
+            if gt.openmp_enabled():
+                gt.openmp_set_num_threads(1)
 
-        with SharedMemoryManager() as smm:
-            shm_distMat = smm.SharedMemory(size = distMat.nbytes)
-            distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
-            distances_shared_array[:] = distMat[:]
-            distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
+            with SharedMemoryManager() as smm:
+                shm_distMat = smm.SharedMemory(size = distMat.nbytes)
+                distances_shared_array = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = shm_distMat.buf)
+                distances_shared_array[:] = distMat[:]
+                distances_shared = NumpyShared(name = shm_distMat.name, shape = distMat.shape, dtype = distMat.dtype)
 
-            with Pool(processes = num_processes) as pool:
-                global_s = pool.map(partial(newNetwork2D,
-                                            sample_names = sample_names,
-                                            distMat = distances_shared,
-                                            x_range = x_max,
-                                            y_range = y_max,
-                                            score_idx = score_idx),
-                                    range(global_grid_resolution))
+                with Pool(processes = num_processes) as pool:
+                    global_s = pool.map(partial(newNetwork2D,
+                                                sample_names = sample_names,
+                                                distMat = distances_shared,
+                                                x_range = x_max,
+                                                y_range = y_max,
+                                                score_idx = score_idx,
+                                                use_gpu = False),
+                                        range(global_grid_resolution))
 
-        if gt.openmp_enabled():
-            gt.openmp_set_num_threads(num_processes)
+            if gt.openmp_enabled():
+                gt.openmp_set_num_threads(num_processes)
 
-        global_s = list(chain.from_iterable(global_s))
-        min_idx = np.argmin(np.array(global_s))
+        global_s = np.array(list(chain.from_iterable(global_s)))
+        global_s[np.isnan(global_s)] = 1
+        min_idx = np.argmin(global_s)
         optimal_x = x_max[min_idx % global_grid_resolution]
         optimal_y = y_max[min_idx // global_grid_resolution]
 
@@ -148,7 +170,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
                                                   start_point[0], start_point[1],
                                                   mean1[0], mean1[1], num_processes)
-        global_s = np.array(growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx))
+        global_s = np.array(growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
         if min_idx > 0 and min_idx < len(s_range) - 1:
@@ -163,7 +185,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         local_s = scipy.optimize.minimize_scalar(newNetwork,
                         bounds=bounds,
                         method='Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient, slope, score_idx))
+                        args = (sample_names, distMat, start_point, mean1, gradient,
+                                slope, score_idx, num_processes, use_gpu),
+                        )
         optimised_s = local_s.x
 
     # Convert to x_max, y_max if needed
@@ -181,7 +205,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     return start_point, optimal_x, optimal_y, min_move, max_move
 
 
-def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_idx = 0):
+def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_idx = 0, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -202,11 +226,19 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
             [default = 0]
         thread_idx (int)
             Optional thread idx (if multithreaded) to offset progress bar by
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
+
     Returns:
         scores (list)
             -1 * network score for each of x_range.
             Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; exiting\n')
+        sys.exit(1)
+
     scores = []
     edge_list = []
     prev_idx = 0
@@ -220,12 +252,22 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                 # At first offset, make a new network, otherwise just add the new edges
                 if prev_idx == 0:
                     G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                         summarise=False, edge_list=True)
+                                         summarise=False, edge_list=True, use_gpu = use_gpu)
                 else:
-                    G.add_edge_list(edge_list)
+                    if use_gpu:
+                        G_current_df = G.view_edge_list()
+                        G_current_df.columns = ['source','destination']
+                        G_extra_df = cudf.DataFrame(edge_list, columns =['source','destination'])
+                        G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
+                        G = cugraph.Graph()
+                        G.from_cudf_edgelist(G_df)
+                    else:
+                        # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
+                        # We add to the cuDF, and then reconstruct the network instead
+                        G.add_edge_list(edge_list)
                 # Add score into vector for any offsets passed (should usually just be one)
                 for s in range(prev_idx, idx):
-                    scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
+                    scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
                     pbar.update(1)
                 prev_idx = idx
                 edge_list = []
@@ -234,18 +276,23 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
         # Add score for final offset(s) at end of loop
         if prev_idx == 0:
             G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                 summarise=False, edge_list=True)
+                                 summarise=False, edge_list=True, use_gpu = use_gpu)
         else:
-            G.add_edge_list(edge_list)
+            if use_gpu:
+                G = constructNetwork(sample_names, sample_names, edge_list, -1,
+                                        summarise=False, edge_list=True, use_gpu = use_gpu)
+            else:
+                # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
+                G.add_edge_list(edge_list)
         for s in range(prev_idx, len(s_range)):
-            scores.append(-networkSummary(G, score_idx > 0)[1][score_idx])
+            scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
             pbar.update(1)
 
     return(scores)
 
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
-               slope=2, score_idx=0, cpus=1):
+               slope=2, score_idx=0, cpus=1, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -274,6 +321,9 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
             [default = 0]
         cpus (int)
             Number of CPUs to use for calculating assignment
+        use_gpu (bool)
+            Whether to use cugraph for graph analysis
+
     Returns:
         score (float)
             -1 * network score. Where network score is from :func:`~PopPUNK.network.networkSummary`
@@ -295,13 +345,14 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
 
     # Make network
     boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False)
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False,
+                            use_gpu = use_gpu)
 
     # Return score
-    score = networkSummary(G, score_idx > 0)[1][score_idx]
+    score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
     return(-score)
 
-def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0):
+def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
@@ -321,6 +372,9 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0):
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        use_gpu (bool)
+            Whether to use cugraph for graph analysis
+
     Returns:
         scores (list)
             -1 * network score for each of x_range.
@@ -335,7 +389,7 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0):
     y_max = y_range[y_idx]
     i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate2D(distMat, x_range, y_max)
-    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx, y_idx)
+    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx, y_idx, use_gpu = use_gpu)
     return(scores)
 
 def readManualStart(startFile):
@@ -415,4 +469,3 @@ def likelihoodBoundary(s, model, start, end, within, between):
     X = transformLine(s, start, end).reshape(1, -1)
     responsibilities = model.assign(X, progress = False, values = True)
     return(responsibilities[0, within] - responsibilities[0, between])
-

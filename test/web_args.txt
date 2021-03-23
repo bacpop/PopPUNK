@@ -8,6 +8,8 @@
         "plot_fit":0,
         "graph_weights":true,
         "max_a_dist":0.5,
+        "max_pi_dist":0.5,
+        "type_isolate":null,
         "strand_preserved":false,
         "external_clustering":null,
         "core_only":false,
@@ -19,6 +21,7 @@
         "gpu_sketch":false,
         "deviceid":0,
         "gpu_dist":false,
+        "gpu_graph":false,
         "min_kmer_count":0,
         "min_k":14,
         "max_k":29,
@@ -36,6 +39,7 @@
     "visualise":{
         "threads":1,
         "gpu_dist":false,
+        "gpu_graph":false,
         "deviceid":0,
         "external_clustering":null,
         "microreact":true,
@@ -51,6 +55,7 @@
         "mst_distances":"core",
         "overwrite":true,
         "core_only":false,
-        "accessory_only":false
+        "accessory_only":false,
+        "display_cluster":null
     }
 }

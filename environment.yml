@@ -17,7 +17,7 @@ dependencies:
   - hdbscan
   - rapidnj
   - h5py
-  - pp-sketchlib >=1.6.2
+  - pp-sketchlib >=1.7.0
   - graph-tool >=2.35
   - requests
   - flask

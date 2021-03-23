@@ -123,7 +123,7 @@ def storePickle(rlist, qlist, self, X, pklName):
     np.save(pklName + ".npy", X)
 
 
-def readPickle(pklName, enforce_self = False):
+def readPickle(pklName, enforce_self=False, distances=True):
     """Loads core and accessory distances saved by :func:`~storePickle`
 
     Called during ``--fit-model``
@@ -133,6 +133,10 @@ def readPickle(pklName, enforce_self = False):
             Prefix for saved files
         enforce_self (bool)
             Error if self == False
+
+            [default = True]
+        distances (bool)
+            Read the distance matrix
 
             [default = True]
 
@@ -151,7 +155,10 @@ def readPickle(pklName, enforce_self = False):
         if enforce_self and not self:
             sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
             sys.stderr.exit(1)
-    X = np.load(pklName + ".npy")
+    if distances:
+        X = np.load(pklName + ".npy")
+    else:
+        X = None
     return rlist, qlist, self, X
 
 
@@ -219,9 +226,8 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, a_max):
-    """Checks distance matrix for outliers. At the moment
-    just a threshold for accessory distance
+def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
+    """Checks distance matrix for outliers.
 
     Args:
         distMat (np.array)
@@ -230,25 +236,88 @@ def qcDistMat(distMat, refList, queryList, a_max):
             Reference labels
         queryList (list)
             Query labels (or refList if self)
-        a_max (float)
-            Maximum accessory distance to allow
+        ref_db (str)
+            Prefix of reference database
+        prefix (str)
+            Prefix of output files
+        qc_dict (dict)
+            Dict of QC options
 
     Returns:
-        passed (bool)
-            False if any samples failed
+        seq_names_passing (list)
+            List of isolates passing QC distance filters
+        distMat ([n,2] numpy ndarray)
+            Filtered long form distance matrix
     """
-    passed = True
+
+    # avoid circular import
+    from .prune_db import prune_distance_matrix
+    from .sketchlib import removeFromDB
+    from .sketchlib import pickTypeIsolate
+
+    # Create overall list of sequences
+    if refList == refList:
+        seq_names_passing = refList
+    else:
+        seq_names_passing = refList + queryList
+
+    # Sequences to remove
+    to_prune = []
+
+    # Create output directory if it does not exist already
+    if not os.path.isdir(prefix):
+        try:
+            os.makedirs(prefix)
+        except OSError:
+            sys.stderr.write("Cannot create output directory " + prefix + "\n")
+            sys.exit(1)
+
+    # Pick type isolate if not supplied
+    if qc_dict['type_isolate'] is None:
+        qc_dict['type_isolate'] = pickTypeIsolate(ref_db, seq_names_passing)
+        sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
-    if np.any(distMat[:,1] > a_max):
-        passed = False
-        names = iterDistRows(refList, queryList, refList == queryList)
-        for i, (ref, query) in enumerate(names):
-            if distMat[i,1] > a_max:
-                sys.stderr.write("WARNING: Accessory outlier at a=" + str(distMat[i,1]) +
-                                 " 1:" + ref + " 2:" + query + "\n")
+    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
+    if len(long_distance_rows) > 0:
+        names = list(iterDistRows(refList, queryList, refList == queryList))
+        # Prune sequences based on reference sequence
+        for i in long_distance_rows:
+            if names[i][0] == qc_dict['type_isolate']:
+                to_prune.append(names[i][1])
+            elif names[i][1] == qc_dict['type_isolate']:
+                to_prune.append(names[i][0])
 
-    return passed
+    # prune based on distance from reference if provided
+    if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
+        sys.stderr.write('Outlier distances exceed QC thresholds; prune sequences or raise thresholds\n')
+        sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
+        sys.exit(1)
+    elif qc_dict['qc_filter'] == 'prune' and len(to_prune) > 0:
+        if qc_dict['type_isolate'] is None:
+            sys.stderr.write('Distances exceeded QC thresholds but no reference isolate supplied\n')
+            sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
+            sys.exit(1)
+        else:
+            # Remove sketches
+            db_name = ref_db + '/' + os.path.basename(ref_db) + '.h5'
+            filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
+            removeFromDB(db_name,
+                         filtered_db_name,
+                         to_prune,
+                         full_names = True)
+            os.rename(filtered_db_name, db_name)
+            # Remove from distance matrix
+            seq_names_passing, distMat = prune_distance_matrix(seq_names_passing,
+                                                                to_prune,
+                                                                distMat,
+                                                                prefix + "/" + os.path.basename(prefix) + ".dists")
+            # Remove from reflist
+            sys.stderr.write('Pruned from the database after failing distance QC: ' + ';'.join(to_prune) + '\n')
+    else:
+        storePickle(seq_names_passing, seq_names_passing, True, distMat, prefix + "/" + os.path.basename(prefix) + ".dists")
+
+    return seq_names_passing, distMat
 
 
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
@@ -296,7 +365,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
             cluster_name = clustersCsv.columns[cls_idx]
             cluster_name = cluster_name.replace('__autocolour','')
             if return_dict:
-                clusters[cluster_name][row.Index] = str(row[cls_idx + 1])
+                clusters[cluster_name][str(row.Index)] = str(row[cls_idx + 1])
             else:
                 if cluster_name not in clusters.keys():
                     clusters[cluster_name] = defaultdict(set)
@@ -409,6 +478,9 @@ def readRfile(rFile, oneSeq=False):
                                  "Must contain sample name and file, tab separated\n")
                 sys.exit(1)
 
+            if "/" in rFields[0]:
+                sys.stderr.write("Sample names may not contain slashes\n")
+                sys.exit(1)
             names.append(rFields[0])
             sample_files = []
             for sequence in rFields[1:]:
@@ -429,6 +501,14 @@ def readRfile(rFile, oneSeq=False):
         sys.stderr.write("Input contains duplicate names! All names must be unique\n")
         sys.stderr.write("Non-unique names are " + ",".join(dupes) + "\n")
         sys.exit(1)
+
+    # Names are sorted on return
+    # We have had issues (though they should be fixed) with unordered input
+    # not matching the database. This should help simplify things
+    list_iterable = zip(names, sequences)
+    sorted_names = sorted(list_iterable)
+    tuples = zip(*sorted_names)
+    names, sequences = [list(r_tuple) for r_tuple in tuples]
 
     return (names, sequences)
 

@@ -19,8 +19,17 @@ from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
+import pickle
 import graph_tool.all as gt
 import dendropy
+
+# GPU support
+try:
+    import cugraph
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
 
 from .__main__ import accepted_weights_types
 
@@ -36,7 +45,7 @@ from .utils import isolateNameToLabel
 from .unwords import gen_unword
 
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
-                  core_only = False, accessory_only = False):
+                  core_only = False, accessory_only = False, use_gpu = False):
     """Load the network based on input options
 
        Returns the network as a graph-tool format graph, and sets
@@ -54,12 +63,12 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
                 [default = False]
             core_only (bool)
                 Return the network created using only core distances
-
                 [default = False]
             accessory_only (bool)
                 Return the network created using only accessory distances
-
                 [default = False]
+            use_gpu (bool)
+                Use cugraph library to load graph
 
        Returns:
             genomeNetwork (graph)
@@ -69,33 +78,93 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     """
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
+
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; exiting\n')
+        sys.exit(1)
+
+    if use_gpu:
+        graph_suffix = '.csv.gz'
+    else:
+        graph_suffix = '.gt'
+
     if core_only and model.type == 'refine':
         model.slope = 0
-        network_file = dir_prefix + '_core_graph.gt'
+        network_file = dir_prefix + '_core_graph' + graph_suffix
         cluster_file = dir_prefix + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
         model.slope = 1
-        network_file = dir_prefix + '_accessory_graph.gt'
+        network_file = dir_prefix + '_accessory_graph' + graph_suffix
         cluster_file = dir_prefix + '_accessory_clusters.csv'
     else:
-        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph.gt'):
-            network_file = dir_prefix + '.refs_graph.gt'
+        if ref_graph and os.path.isfile(dir_prefix + '.refs_graph' + graph_suffix):
+            network_file = dir_prefix + '.refs_graph' + graph_suffix
         else:
-            network_file = dir_prefix + '_graph.gt'
+            network_file = dir_prefix + '_graph' + graph_suffix
         cluster_file = dir_prefix + '_clusters.csv'
         if core_only or accessory_only:
             sys.stderr.write("Can only do --core-only or --accessory-only fits from "
                              "a refined fit. Using the combined distances.\n")
 
-    genomeNetwork = gt.load_graph(network_file)
-    sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
+    # Load network file
+    genomeNetwork = load_network_file(network_file, use_gpu = use_gpu)
 
     # Ensure all in dists are in final network
-    networkMissing = set(map(str,set(range(len(refList))).difference(list(genomeNetwork.vertices()))))
-    if len(networkMissing) > 0:
-        sys.stderr.write("WARNING: Samples " + ",".join(networkMissing) + " are missing from the final network\n")
+    checkNetworkVertexCount(refList, genomeNetwork, use_gpu)
 
-    return (genomeNetwork, cluster_file)
+    return genomeNetwork, cluster_file
+
+def load_network_file(fn, use_gpu = False):
+    """Load the network based on input options
+
+       Returns the network as a graph-tool format graph, and sets
+       the slope parameter of the passed model object.
+
+       Args:
+            fn (str)
+                Network file name
+            use_gpu (bool)
+                Use cugraph library to load graph
+
+       Returns:
+            genomeNetwork (graph)
+                The loaded network
+    """
+    # Load the network from the specified file
+    if use_gpu:
+        G_df = cudf.read_csv(fn, compression = 'gzip')
+        genomeNetwork = cugraph.Graph()
+        if 'weights' in G_df.columns:
+            G_df.columns = ['source','destination','weights']
+            genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+        else:
+            G_df.columns = ['source','destination']
+            genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
+        sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_vertices()) + " samples\n")
+    else:
+        genomeNetwork = gt.load_graph(fn)
+        sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
+
+    return genomeNetwork
+
+def checkNetworkVertexCount(seq_list, G, use_gpu):
+    """Checks the number of network vertices matches the number
+    of sequence names.
+
+    Args:
+        seq_list (list)
+            The list of sequence names
+        G (graph)
+            The network of sequences
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
+    """
+    vertex_list = set(get_vertex_list(G, use_gpu = use_gpu))
+    networkMissing = set(set(range(len(seq_list))).difference(vertex_list))
+    if len(networkMissing) > 0:
+        sys.stderr.write("ERROR: " + str(len(networkMissing)) + " samples are missing from the final network\n")
+        sys.exit(1)
 
 def getCliqueRefs(G, reference_indices = set()):
     """Recursively prune a network of its cliques. Returns one vertex from
@@ -140,7 +209,8 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
-def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
+def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
+                        existingRefs = None, threads = 1, use_gpu = False):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -152,8 +222,12 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
                Prefix for output file (.refs will be appended)
+           type_isolate (str)
+               Isolate to be included in set of references
            existingRefs (list)
                References that should be used for each clique
+           use_gpu (bool)
+               Use cugraph for graph analysis (default = False)
 
        Returns:
            refFileName (str)
@@ -169,80 +243,168 @@ def extractReferences(G, dbOrder, outPrefix, existingRefs = None, threads = 1):
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
 
-    # Each component is independent, so can be multithreaded
-    components = gt.label_components(G)[0].a
-
-    # Turn gt threading off and on again either side of the parallel loop
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(1)
-
-    # Cliques are pruned, taking one reference from each, until none remain
-    with Pool(processes=threads) as pool:
-        ref_lists = pool.map(partial(cliquePrune,
-                                        graph=G,
-                                        reference_indices=reference_indices,
-                                        components_list=components),
-                             set(components))
-    # Returns nested lists, which need to be flattened
-    reference_indices = set([entry for sublist in ref_lists for entry in sublist])
-
-    if gt.openmp_enabled():
-        gt.openmp_set_num_threads(threads)
-
-    # Use a vertex filter to extract the subgraph of refences
-    # as a graphview
-    reference_vertex = G.new_vertex_property('bool')
-    for n, vertex in enumerate(G.vertices()):
-        if n in reference_indices:
-            reference_vertex[vertex] = True
+    # Add type isolate, if necessary
+    type_isolate_index = None
+    if type_isolate is not None:
+        if type_isolate in dbOrder:
+            type_isolate_index = dbOrder.index(type_isolate)
         else:
-            reference_vertex[vertex] = False
-    G_ref = gt.GraphView(G, vfilt = reference_vertex)
-    G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
+            sys.stderr.write('Type isolate ' + type_isolate + ' not found\n')
+            sys.exit(1)
 
-    # Find any clusters which are represented by >1 references
-    # This creates a dictionary: cluster_id: set(ref_idx in cluster)
-    clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
-    reference_clusters_in_full_graph = defaultdict(set)
-    for reference_index in reference_indices:
-        reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
+    if use_gpu:
+        if not gpu_lib:
+            sys.stderr.write('Unable to load GPU libraries; exiting\n')
+            sys.exit(1)
 
-    # Calculate the component membership within the reference graph
-    ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
-    clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
-    # Record the components/clusters the references are in the reference graph
-    # dict: name: ref_cluster
-    reference_clusters_in_reference_graph = {}
-    for reference_name in ref_order:
-        reference_clusters_in_reference_graph[reference_name] = clusters_in_reference_graph[reference_name]
+        # For large network, use more approximate method for extracting references
+        reference = {}
+        # Record the original components to which sequences belonged
+        component_assignments = cugraph.components.connectivity.connected_components(G)
+        # Leiden method has resolution parameter - higher values give greater precision
+        partition_assignments, score = cugraph.leiden(G, resolution = 0.1)
+        # group by partition, which becomes the first column, so retrieve second column
+        reference_index_df = partition_assignments.groupby('partition').nth(0)
+        reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
 
-    # Check if multi-reference components have been split as a validation test
-    # First iterate through clusters
-    network_update_required = False
-    for cluster_id, ref_idxs in reference_clusters_in_full_graph.items():
-        # Identify multi-reference clusters by this length
-        if len(ref_idxs) > 1:
-            check = list(ref_idxs)
-            # check if these are still in the same component in the reference graph
-            for i in range(len(check)):
-                component_i = reference_clusters_in_reference_graph[dbOrder[check[i]]]
-                for j in range(i + 1, len(check)):
-                    # Add intermediate nodes
-                    component_j = reference_clusters_in_reference_graph[dbOrder[check[j]]]
-                    if component_i != component_j:
-                        network_update_required = True
-                        vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
-                        # update reference list
-                        for vertex in vertex_list:
-                            reference_vertex[vertex] = True
-                            reference_indices.add(int(vertex))
+        # Add type isolate if necessary - before edges are added
+        if type_isolate_index is not None and type_isolate_index not in reference_indices:
+            reference_indices.append(type_isolate_index)
 
-    # update reference graph if vertices have been added
-    if network_update_required:
+        # Order found references as in sketchlib database
+        reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
+        refFileName = writeReferences(reference_names, outPrefix)
+
+        # Extract reference edges
+        G_df = G.view_edge_list()
+        if 'src' in G_df.columns:
+            G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
+        G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+        # Add self-loop if needed
+        max_in_vertex_labels = max(reference_indices)
+        G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
+
+        # Check references in same component in overall graph are connected in the reference graph
+        # First get components of original reference graph
+        reference_component_assignments = cugraph.components.connectivity.connected_components(G_ref)
+        reference_component_assignments.rename(columns={'labels': 'ref_labels'}, inplace=True)
+        # Merge with component assignments from overall graph
+        combined_vertex_assignments = reference_component_assignments.merge(component_assignments,
+                                                                            on = 'vertex',
+                                                                            how = 'left')
+        combined_vertex_assignments = combined_vertex_assignments[combined_vertex_assignments['vertex'].isin(reference_indices)]
+        # Find the number of components in the reference graph associated with each component in the overall graph -
+        # should be one if there is a one-to-one mapping of components - else links need to be added
+        max_ref_comp_count = combined_vertex_assignments.groupby(['labels'], sort = False)['ref_labels'].nunique().max()
+        if max_ref_comp_count > 1:
+            # Iterate through components
+            for component, component_df in combined_vertex_assignments.groupby(['labels'], sort = False):
+                # Find components in the overall graph matching multiple components in the reference graph
+                if component_df.groupby(['labels'], sort = False)['ref_labels'].nunique().iloc[0] > 1:
+                    # Make a graph of the component from the overall graph
+                    vertices_in_component = component_assignments[component_assignments['labels']==component]['vertex']
+                    references_in_component = vertices_in_component[vertices_in_component.isin(reference_indices)].values
+                    G_component_df = G_df[G_df['source'].isin(vertices_in_component) & G_df['destination'].isin(vertices_in_component)]
+                    G_component = cugraph.Graph()
+                    G_component.from_cudf_edgelist(G_component_df)
+                    # Find single shortest path from a reference to all other nodes in the component
+                    traversal = cugraph.traversal.sssp(G_component,source = references_in_component[0])
+                    reference_index_set = set(reference_indices)
+                    # Add predecessors to reference sequences on the SSSPs
+                    predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
+                    predecessors = set(predecessor_list[predecessor_list >= 0].flatten().tolist())
+                    # Add predecessors to reference set and check whether this results in complete paths
+                    # where complete paths are indicated by references' predecessors being within the set of
+                    # references
+                    while len(predecessors) > 0 and len(predecessors - reference_index_set) > 0:
+                        reference_index_set = reference_index_set.union(predecessors)
+                        predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
+                        predecessors = set(predecessor_list[predecessor_list >= 0].flatten().tolist())
+                    # Add expanded reference set to the overall list
+                    reference_indices = list(reference_index_set)
+            # Create new reference graph
+            G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+            G_ref = add_self_loop(G_ref_df, max_in_vertex_labels, renumber = False)
+
+    else:
+        # Each component is independent, so can be multithreaded
+        components = gt.label_components(G)[0].a
+
+        # Turn gt threading off and on again either side of the parallel loop
+        if gt.openmp_enabled():
+            gt.openmp_set_num_threads(1)
+
+        # Cliques are pruned, taking one reference from each, until none remain
+        with Pool(processes=threads) as pool:
+            ref_lists = pool.map(partial(cliquePrune,
+                                            graph=G,
+                                            reference_indices=reference_indices,
+                                            components_list=components),
+                                 set(components))
+        # Returns nested lists, which need to be flattened
+        reference_indices = set([entry for sublist in ref_lists for entry in sublist])
+
+        # Add type isolate if necessary - before edges are added
+        if type_isolate_index is not None and type_isolate_index not in reference_indices:
+            reference_indices.add(type_isolate_index)
+
+        if gt.openmp_enabled():
+            gt.openmp_set_num_threads(threads)
+
+        # Use a vertex filter to extract the subgraph of refences
+        # as a graphview
+        reference_vertex = G.new_vertex_property('bool')
+        for n, vertex in enumerate(G.vertices()):
+            if n in reference_indices:
+                reference_vertex[vertex] = True
+            else:
+                reference_vertex[vertex] = False
         G_ref = gt.GraphView(G, vfilt = reference_vertex)
         G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
 
-    # Order found references as in mash sketch files
+        # Find any clusters which are represented by >1 references
+        # This creates a dictionary: cluster_id: set(ref_idx in cluster)
+        clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
+        reference_clusters_in_full_graph = defaultdict(set)
+        for reference_index in reference_indices:
+            reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
+
+        # Calculate the component membership within the reference graph
+        ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
+        clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
+        # Record the components/clusters the references are in the reference graph
+        # dict: name: ref_cluster
+        reference_clusters_in_reference_graph = {}
+        for reference_name in ref_order:
+            reference_clusters_in_reference_graph[reference_name] = clusters_in_reference_graph[reference_name]
+
+        # Check if multi-reference components have been split as a validation test
+        # First iterate through clusters
+        network_update_required = False
+        for cluster_id, ref_idxs in reference_clusters_in_full_graph.items():
+            # Identify multi-reference clusters by this length
+            if len(ref_idxs) > 1:
+                check = list(ref_idxs)
+                # check if these are still in the same component in the reference graph
+                for i in range(len(check)):
+                    component_i = reference_clusters_in_reference_graph[dbOrder[check[i]]]
+                    for j in range(i + 1, len(check)):
+                        # Add intermediate nodes
+                        component_j = reference_clusters_in_reference_graph[dbOrder[check[j]]]
+                        if component_i != component_j:
+                            network_update_required = True
+                            vertex_list, edge_list = gt.shortest_path(G, check[i], check[j])
+                            # update reference list
+                            for vertex in vertex_list:
+                                reference_vertex[vertex] = True
+                                reference_indices.add(int(vertex))
+
+        # update reference graph if vertices have been added
+        if network_update_required:
+            G_ref = gt.GraphView(G, vfilt = reference_vertex)
+            G_ref = gt.Graph(G_ref, prune = True) # https://stackoverflow.com/questions/30839929/graph-tool-graphview-object
+
+    # Order found references as in sketch files
     reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
     refFileName = writeReferences(reference_names, outPrefix)
     return reference_indices, reference_names, refFileName, G_ref
@@ -268,9 +430,83 @@ def writeReferences(refList, outPrefix):
 
     return refFileName
 
+def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
+                    use_gpu = False):
+    """Load previous network, extract the edges to match the
+    vertex order specified in rlist, and also return weights if specified.
+
+    Args:
+        prev_G_fn (str)
+            Path of file containing existing network.
+        rlist (list)
+            List of reference sequence labels in new network
+        previous_pkl (str)
+            Path of pkl file containing names of sequences in
+            previous network
+        weights (bool)
+            Whether to return edge weights
+            (default = False)
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
+
+    Returns:
+        source_ids (list)
+            Source nodes for each edge
+        target_ids (list)
+            Target nodes for each edge
+        edge_weights (list)
+            Weights for each new edge
+    """
+    # get list for translating node IDs to rlist
+    prev_G = load_network_file(prev_G_fn, use_gpu = use_gpu)
+
+    # load list of names in previous network
+    if previous_pkl is not None:
+        with open(previous_pkl, 'rb') as pickle_file:
+            old_rlist, old_qlist, self = pickle.load(pickle_file)
+        if self:
+            old_ids = old_rlist
+        else:
+            old_ids = old_rlist + old_qlist
+    else:
+        sys.stderr.write('Missing .pkl file containing names of sequences in '
+                         'previous network\n')
+        sys.exit(1)
+
+    # Get edges as lists of source,destination,weight using original IDs
+    if use_gpu:
+        G_df = prev_G.view_edge_list()
+        if weights:
+            G_df.columns = ['source','destination','weight']
+            edge_weights = G_df['weight'].to_arrow().to_pylist()
+        else:
+            G_df.columns = ['source','destination']
+        old_source_ids = G_df['source'].to_arrow().to_pylist()
+        old_target_ids = G_df['destination'].to_arrow().to_pylist()
+    else:
+        # get the source and target nodes
+        old_source_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "source")
+        old_target_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "target")
+        # get the weights
+        if weights:
+            edge_weights = list(prev_G.ep['weight'])
+
+    # Update IDs to new versions
+    old_id_indices = [rlist.index(x) for x in old_ids]
+    # translate to indices
+    source_ids = [old_id_indices[x] for x in old_source_ids]
+    target_ids = [old_id_indices[x] for x in old_target_ids]
+
+    # return values
+    if weights:
+        return source_ids, target_ids, edge_weights
+    else:
+        return source_ids, target_ids
+
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
-                     weights_type = 'euclidean', sparse_input = None):
+                     weights_type = 'euclidean', sparse_input = None,
+                     previous_network = None, previous_pkl = None, use_gpu = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -299,6 +535,13 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             accessory or euclidean distance
         sparse_input (numpy.array)
             Sparse distance matrix from lineage fit
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        use_gpu (bool)
+            Whether to use GPUs for network construction
 
     Returns:
         G (graph)
@@ -350,25 +593,77 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                     edge_tuple = (ref, query)
                 connections.append(edge_tuple)
 
-    # build the graph
-    G = gt.Graph(directed = False)
-    G.add_vertex(len(vertex_labels))
+    # read previous graph
+    if previous_network is not None:
+        if previous_pkl is not None:
+            if weights is not None or sparse_input is not None:
+                extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
+                                                                                    rlist,
+                                                                                    previous_pkl = previous_pkl,
+                                                                                    weights = True,
+                                                                                    use_gpu = use_gpu)
+                for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
+                    edge_tuple = (ref, query, weight)
+                    connections.append(edge_tuple)
+            else:
+                extra_sources, extra_targets = network_to_edges(prev_G,
+                                                                rlist,
+                                                                previous_pkl = previous_pkl,
+                                                                weights = False,
+                                                                use_gpu = use_gpu)
+                for (ref, query) in zip(extra_sources, extra_targets):
+                    edge_tuple = (ref, query)
+                    connections.append(edge_tuple)
+        else:
+            sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
+            sys.exit(1)
 
-    if weights is not None or sparse_input is not None:
-        eweight = G.new_ep("float")
-        G.add_edge_list(connections, eprops = [eweight])
-        G.edge_properties["weight"] = eweight
+    # load GPU libraries if necessary
+    if use_gpu:
+
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
+
+        # Set memory management for large networks
+        cudf.set_allocator("managed")
+
+        # create DataFrame using edge tuples
+        if weights is not None or sparse_input is not None:
+            G_df = cudf.DataFrame(connections, columns =['source', 'destination', 'weights'])
+        else:
+            G_df = cudf.DataFrame(connections, columns =['source', 'destination'])
+
+        # ensure the highest-integer node is included in the edge list
+        # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = len(vertex_labels)-1
+        use_weights = False
+        if weights is not None:
+            use_weights = True
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
+
     else:
-        G.add_edge_list(connections)
 
-    # add isolate ID to network
-    vid = G.new_vertex_property('string',
-                                vals = vertex_labels)
-    G.vp.id = vid
+        # build the graph
+        G = gt.Graph(directed = False)
+        G.add_vertex(len(vertex_labels))
+
+        if weights is not None or sparse_input is not None:
+            eweight = G.new_ep("float")
+            G.add_edge_list(connections, eprops = [eweight])
+            G.edge_properties["weight"] = eweight
+        else:
+            G.add_edge_list(connections)
+
+        # add isolate ID to network
+        vid = G.new_vertex_property('string',
+                                    vals = vertex_labels)
+        G.vp.id = vid
 
     # print some summaries
     if summarise:
-        (metrics, scores) = networkSummary(G)
+        (metrics, scores) = networkSummary(G, use_gpu = use_gpu)
         sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
                                                        "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
                                                        "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
@@ -381,7 +676,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     return G
 
-def networkSummary(G, calc_betweenness=True):
+def networkSummary(G, calc_betweenness=True, use_gpu = False):
     """Provides summary values about the network
 
     Args:
@@ -389,6 +684,8 @@ def networkSummary(G, calc_betweenness=True):
             The network of strains from :func:`~constructNetwork`
         calc_betweenness (bool)
             Whether to calculate betweenness stats
+        use_gpu (bool)
+            Whether to use cugraph for graph analysis
 
     Returns:
         metrics (list)
@@ -397,27 +694,62 @@ def networkSummary(G, calc_betweenness=True):
         scores (list)
             List of scores
     """
-    component_assignments, component_frequencies = gt.label_components(G)
-    components = len(component_frequencies)
-    density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
-    transitivity = gt.global_clustering(G)[0]
+    if use_gpu:
+
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
+
+        component_assignments = cugraph.components.connectivity.connected_components(G)
+        component_nums = component_assignments['labels'].unique().astype(int)
+        components = len(component_nums)
+        density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
+        triangle_count = cugraph.community.triangle_count.triangles(G)
+        degree_df = G.in_degree()
+        triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
+        transitivity = 2 * triangle_count/triad_count
+    else:
+        component_assignments, component_frequencies = gt.label_components(G)
+        components = len(component_frequencies)
+        density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
+        transitivity = gt.global_clustering(G)[0]
 
     mean_bt = 0
     weighted_mean_bt = 0
     if calc_betweenness:
         betweenness = []
         sizes = []
-        for component, size in enumerate(component_frequencies):
-            if size > 3:
-                vfilt = component_assignments.a == component
-                subgraph = gt.GraphView(G, vfilt=vfilt)
-                betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
-                sizes.append(size)
+
+        if use_gpu:
+            component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
+            for component in component_nums.to_pandas():
+                size = component_frequencies[component_frequencies.index == component].iloc[0].astype(int)
+                if size > 3:
+                    component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
+                    subgraph = cugraph.subgraph(G, component_vertices)
+                    max_betweeness_k = 1000
+                    if len(component_vertices) >= max_betweeness_k:
+                        component_betweenness = cugraph.betweenness_centrality(subgraph, k = max_betweeness_k)
+                    else:
+                        component_betweenness = cugraph.betweenness_centrality(subgraph)
+                    betweenness.append(component_betweenness['betweenness_centrality'].max())
+                    sizes.append(size)
+        else:
+            for component, size in enumerate(component_frequencies):
+                if size > 3:
+                    vfilt = component_assignments.a == component
+                    subgraph = gt.GraphView(G, vfilt=vfilt)
+                    betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+                    sizes.append(size)
 
         if len(betweenness) > 1:
             mean_bt = np.mean(betweenness)
             weighted_mean_bt = np.average(betweenness, weights=sizes)
+        elif len(betweenness) == 1:
+            mean_bt = betweenness[0]
+            weighted_mean_bt = betweenness[0]
 
+    # Calculate scores
     metrics = [components, density, transitivity, mean_bt, weighted_mean_bt]
     base_score = transitivity * (1 - density)
     scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
@@ -425,7 +757,8 @@ def networkSummary(G, calc_betweenness=True):
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                       assignments, model, queryDB, queryQuery = False,
-                      strand_preserved = False, weights = None, threads = 1):
+                      strand_preserved = False, weights = None, threads = 1,
+                      use_gpu = False):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
 
@@ -458,6 +791,8 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             be annotated as an edge attribute
         threads (int)
             Number of threads to use if new db created
+        use_gpu (bool)
+            Whether to use cugraph for analysis
 
             (default = 1)
     Returns:
@@ -494,14 +829,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         else:
             sys.stderr.write("Calculating all query-query distances\n")
             addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-            qlist1, qlist2, qqDistMat = queryDatabase(rNames = qList,
-                                                      qNames = qList,
-                                                      dbPrefix = queryDB,
-                                                      queryPrefix = queryDB,
-                                                      klist = kmers,
-                                                      self = True,
-                                                      number_plot_fits = 0,
-                                                      threads = threads)
+            qqDistMat = queryDatabase(rNames = qList,
+                                      qNames = qList,
+                                      dbPrefix = queryDB,
+                                      queryPrefix = queryDB,
+                                      klist = kmers,
+                                      self = True,
+                                      number_plot_fits = 0,
+                                      threads = threads)
 
             queryAssignation = model.assign(qqDistMat)
             for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
@@ -524,21 +859,21 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
             # use database construction methods to find links between unassigned queries
             addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-            qlist1, qlist2, qqDistMat = queryDatabase(rNames = list(unassigned),
-                                                    qNames = list(unassigned),
-                                                    dbPrefix = queryDB,
-                                                    queryPrefix = queryDB,
-                                                    klist = kmers,
-                                                    self = True,
-                                                    number_plot_fits = 0,
-                                                    threads = threads)
+            qqDistMat = queryDatabase(rNames = list(unassigned),
+                                      qNames = list(unassigned),
+                                      dbPrefix = queryDB,
+                                      queryPrefix = queryDB,
+                                      klist = kmers,
+                                      self = True,
+                                      number_plot_fits = 0,
+                                      threads = threads)
 
             queryAssignation = model.assign(qqDistMat)
 
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
             # have to use names and link to query list in order to match to node indices
-            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qlist1, qlist2, self = True))):
+            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qList, self = True))):
                 if assignment == model.within_label:
                     if weights is not None:
                         dist = np.linalg.norm(qqDistMat[row_idx, :])
@@ -548,24 +883,89 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                     new_edges.append(edge_tuple)
 
     # finish by updating the network
-    G.add_vertex(len(qList))
+    if use_gpu:
 
-    if weights is not None:
-        eweight = G.new_ep("float")
-        G.add_edge_list(new_edges, eprops = [eweight])
-        G.edge_properties["weight"] = eweight
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
+
+        # construct updated graph
+        G_current_df = G.view_edge_list()
+        if weights is not None:
+            G_current_df.columns = ['source','destination','weights']
+            G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination','weights'])
+            G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
+        else:
+            G_current_df.columns = ['source','destination']
+            G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination'])
+            G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
+
+        # use self-loop to ensure all nodes are present
+        max_in_vertex_labels = ref_count + len(qList) - 1
+        include_weights = False
+        if weights is not None:
+            include_weights = True
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = include_weights)
+
     else:
-        G.add_edge_list(new_edges)
+        G.add_vertex(len(qList))
 
-    # including the vertex ID property map
-    for i, q in enumerate(qList):
-        G.vp.id[i + len(rList)] = q
+        if weights is not None:
+            eweight = G.new_ep("float")
+            G.add_edge_list(new_edges, eprops = [eweight])
+            G.edge_properties["weight"] = eweight
+        else:
+            G.add_edge_list(new_edges)
 
-    return qqDistMat
+        # including the vertex ID property map
+        for i, q in enumerate(qList):
+            G.vp.id[i + len(rList)] = q
+
+    return G, qqDistMat
+
+def add_self_loop(G_df, seq_num, weights = False, renumber = True):
+    """Adds self-loop to cugraph graph to ensure all nodes are included in
+    the graph, even if singletons.
+
+    Args:
+        G_df (cudf)
+            cudf data frame containing edge list
+        seq_num (int)
+            The expected number of nodes in the graph
+        renumber (bool)
+            Whether to renumber the vertices when added to the graph
+
+    Returns:
+        G_new (graph)
+            Dictionary of cluster assignments (keys are sequence names)
+    """
+    # use self-loop to ensure all nodes are present
+    min_in_df = np.amin([G_df['source'].min(), G_df['destination'].min()])
+    if min_in_df.item() > 0:
+        G_self_loop = cudf.DataFrame()
+        G_self_loop['source'] = [0]
+        G_self_loop['destination'] = [0]
+        if weights:
+            G_self_loop['weights'] = 0.0
+        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+    max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+    if max_in_df.item() != seq_num:
+        G_self_loop = cudf.DataFrame()
+        G_self_loop['source'] = [seq_num]
+        G_self_loop['destination'] = [seq_num]
+        if weights:
+            G_self_loop['weights'] = 0.0
+        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+    # Construct graph
+    G_new = cugraph.Graph()
+    G_new.from_cudf_edgelist(G_df, renumber = renumber)
+    return G_new
+
 
 def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
                   externalClusterCSV=None, printRef=True, printCSV=True,
-                  clustering_type='combined', write_unwords=True):
+                  clustering_type='combined', write_unwords=True,
+                  use_gpu = False):
     """Get cluster assignments
 
     Also writes assignments to a CSV file
@@ -597,6 +997,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         write_unwords (bool)
             Write clusters with a pronouncable name rather than numerical index
             Default = True
+        use_gpu (bool)
+            Whether to use cugraph for network analysis
     Returns:
         clustering (dict)
             Dictionary of cluster assignments (keys are sequence names)
@@ -608,13 +1010,28 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         write_unwords = False
 
     # get a sorted list of component assignments
-    component_assignments, component_frequencies = gt.label_components(G)
-    component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
-    newClusters = [set() for rank in range(len(component_frequency_ranks))]
-    for isolate_index, isolate_name in enumerate(rlist):
-        component = component_assignments.a[isolate_index]
-        component_rank = component_frequency_ranks[component]
-        newClusters[component_rank].add(isolate_name)
+    if use_gpu:
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
+
+        component_assignments = cugraph.components.connectivity.connected_components(G)
+        component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
+        newClusters = [set() for rank in range(component_frequencies.size)]
+        for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
+            component = component_assignments['labels'].iloc[isolate_index].item()
+            component_rank_bool = component_frequencies.index == component
+            component_rank = np.argmax(component_rank_bool.to_array())
+            newClusters[component_rank].add(isolate_name)
+    else:
+        component_assignments, component_frequencies = gt.label_components(G)
+        component_frequency_ranks = len(component_frequencies) - rankdata(component_frequencies, method = 'ordinal').astype(int)
+        # use components to determine new clusters
+        newClusters = [set() for rank in range(len(component_frequency_ranks))]
+        for isolate_index, isolate_name in enumerate(rlist):
+            component = component_assignments.a[isolate_index]
+            component_rank = component_frequency_ranks[component]
+            newClusters[component_rank].add(isolate_name)
 
     oldNames = set()
 
@@ -805,6 +1222,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
         if "weight" in G.edge_properties:
             mst_edge_prop_map = gt.min_spanning_tree(G, weights = G.ep["weight"])
             mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
+            mst_network = gt.Graph(mst_network, prune = True)
         else:
             sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
             raise RuntimeError("MST passed unweighted graph")
@@ -854,3 +1272,48 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
 
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     return mst_network
+
+def get_vertex_list(G, use_gpu = False):
+    """Generate a list of node indices
+
+    Args:
+       G (network)
+           Graph tool network
+       use_gpu (bool)
+            Whether graph is a cugraph or not
+            [default = False]
+
+    Returns:
+       vlist (list)
+           List of integers corresponding to nodes
+    """
+
+    if use_gpu:
+        vlist = range(G.number_of_vertices())
+    else:
+        vlist = list(G.vertices())
+
+    return vlist
+
+def save_network(G, prefix = None, suffix = None, use_gpu = False):
+    """Save a network to disc
+
+    Args:
+       G (network)
+           Graph tool network
+       prefix (str)
+           Prefix for output file
+       use_gpu (bool)
+           Whether graph is a cugraph or not
+           [default = False]
+
+    """
+    file_name = prefix + "/" + os.path.basename(prefix)
+    if suffix is not None:
+        file_name = file_name + suffix
+    if use_gpu:
+        G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
+                compression='gzip', index = False)
+    else:
+        G.save(file_name + '.gt',
+                fmt = 'gt')

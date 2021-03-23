@@ -33,6 +33,14 @@ except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
 
+# GPU support
+try:
+    import cugraph
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
+
 import pp_sketchlib
 import poppunk_refine
 
@@ -252,6 +260,12 @@ class ClusterFit:
         is done in the scaled space).
         '''
         self.scale = np.array([1, 1], dtype = self.default_dtype)
+        
+    def copy(self, prefix):
+        """Copy the model to a new directory
+        """
+        self.outPrefix = prefix
+        self.save()
 
 
 class BGMMFit(ClusterFit):
@@ -677,7 +691,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False):
+            unconstrained = False, score_idx = 0, no_local = False, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -700,11 +714,9 @@ class RefineFit(ClusterFit):
             startFile (str)
                 A file defining an initial fit, rather than one from ``--fit-model``.
                 See documentation for format.
-
                 (default = None).
             indiv_refine (bool)
                 Run refinement for core and accessory distances separately
-
                 (default = False).
             unconstrained (bool)
                 If True, search in 2D and change the slope of the boundary
@@ -714,6 +726,9 @@ class RefineFit(ClusterFit):
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
+            use_gpu (bool)
+                Whether to use cugraph for graph analyses
+                
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -723,6 +738,11 @@ class RefineFit(ClusterFit):
         self.max_move = max_move
         self.min_move = min_move
         self.unconstrained = unconstrained
+
+        # load CUDA libraries
+        if use_gpu and not gpu_lib:
+            sys.stderr.write('Unable to load GPU libraries; exiting\n')
+            sys.exit(1)
 
         # Get starting point
         model.no_scale()
@@ -761,7 +781,7 @@ class RefineFit(ClusterFit):
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                     slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = self.threads)
+                    no_local = no_local, num_processes = self.threads, use_gpu = use_gpu)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -779,7 +799,8 @@ class RefineFit(ClusterFit):
                 start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
+                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
+                            use_gpu = use_gpu)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)
@@ -1028,7 +1049,7 @@ class LineageFit(ClusterFit):
         self.nn_dists = fit_npz
         self.fitted = True
 
-    def plot(self, X):
+    def plot(self, X, y = None):
         '''Extends :func:`~ClusterFit.plot`
 
         Write a summary of the fit, and plot the results using
@@ -1037,6 +1058,9 @@ class LineageFit(ClusterFit):
         Args:
             X (numpy.array)
                 Core and accessory distances
+            y (any)
+                Unused variable for compatibility with other
+                plotting functions
         '''
         ClusterFit.plot(self, X)
         for rank in self.ranks:

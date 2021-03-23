@@ -388,6 +388,10 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         deviceid (int)
             GPU device id
             (default = 0)
+    Returns:
+        names (list)
+            List of names included in the database (some may be pruned due
+            to QC)
     """
     # read file names
     names, sequences = readRfile(assemblyList)
@@ -417,6 +421,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     # QC sequences
     if qc_dict['run_qc']:
         filtered_names = sketchlibAssemblyQC(oPrefix,
+                                             names,
                                              klist,
                                              qc_dict,
                                              strand_preserved,
@@ -517,10 +522,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             (default = 0)
 
     Returns:
-         refList (list)
-            Names of reference sequences
-         queryList (list)
-            Names of query sequences
          distMat (numpy.array)
             Core distances (column 0) and accessory distances (column 1) between
             refList and queryList
@@ -568,54 +569,58 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
                                              True, False, threads, use_gpu, deviceid)
 
-    return(rNames, qNames, distMat)
+    return distMat
 
-def calculateQueryQueryDistances(dbFuncs, qlist, kmers,
-                                 queryDB, threads = 1):
-    """Calculates distances between queries.
+
+def pickTypeIsolate(prefix, names):
+    """Selects a type isolate as that with a minimal proportion
+    of missing data.
 
     Args:
-        dbFuncs (list)
-            List of backend functions from :func:`~PopPUNK.utils.setupDBFuncs`
-        rlist (list)
-            List of reference names
-        qlist (list)
-            List of query names
-        kmers (list)
-            List of k-mer sizes
-        queryDB (str)
-            Query database location
-        threads (int)
-            Number of threads to use if new db created
-            (default = 1)
+        prefix (str)
+            Prefix of output files
+        names (list)
+            Names of samples to QC
 
     Returns:
-        qlist1 (list)
-            Ordered list of queries
-        distMat (numpy.array)
-            Query-query distances
+        type_isolate (str)
+            Name of isolate selected as reference
     """
+    # open databases
+    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
+    hdf_in = h5py.File(db_name, 'r+')
 
-    queryDatabase = dbFuncs['queryDatabase']
+    min_prop_n = 1.0
+    type_isolate = None
 
-    qlist1, qlist2, distMat = queryDatabase(rNames = qlist,
-                                            qNames = qlist,
-                                            dbPrefix = queryDB,
-                                            queryPrefix = queryDB,
-                                            klist = kmers,
-                                            self = True,
-                                            number_plot_fits = 0,
-                                            threads = threads)
+    try:
+        # process data structures
+        read_grp = hdf_in['sketches']
+        # iterate through sketches
+        for dataset in read_grp:
+            if hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length'] < min_prop_n:
+                min_prop_n = hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length']
+                type_isolate = dataset
+            if min_prop_n == 0.0:
+                break
+    # if failure still close files to avoid corruption
+    except:
+        hdf_in.close()
+        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
+        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
+        raise
 
-    return qlist1, distMat
+    return type_isolate
 
-def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
+def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
     Args:
         prefix (str)
             Prefix of output files
+        names (list)
+            Names of samples to QC
         klist (list)
             List of k-mer sizes to sketch
         qc_dict (dict)
@@ -647,10 +652,11 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
 
         # iterate through sketches
         for dataset in read_grp:
-            # test thresholds
-            remove = False
-            seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-            seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+            if dataset in names:
+                # test thresholds
+                remove = False
+                seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
+                seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
 
         # calculate thresholds
         # get mean length
@@ -733,6 +739,15 @@ def sketchlibAssemblyQC(prefix, klist, qc_dict, strand_preserved, threads):
     if 'random' in hdf_in:
         del hdf_in['random']
     hdf_in.close()
+
+    # This gives back retained in the same order as names
+    retained = [x for x in names if x in frozenset(retained)]
+
+    # stop if type sequence does not pass QC or is absent
+    if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in retained:
+        sys.stderr.write('Type isolate ' + qc_dict['type_isolate'] + ' not found in isolates after QC; check '
+        'name of type isolate and QC options\n')
+        sys.exit(1)
 
     return retained
 

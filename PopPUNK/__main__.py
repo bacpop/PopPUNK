@@ -94,6 +94,10 @@ def get_options():
                                                 'separate database [default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
                                                 default = 0.5, type = float)
+    qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
+                                                default = 0.5, type = float)
+    qcGroup.add_argument('--type-isolate', help='Isolate from which distances will be calculated for pruning [default = None]',
+                                                default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = 5, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -121,8 +125,6 @@ def get_options():
             type=float, default = None)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
-    refinementGroup.add_argument('--no-local', help='Do not perform the local optimization step (speed up on very large datasets)',
-            default=False, action='store_true')
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
     refinementGroup.add_argument('--score-idx',
@@ -150,7 +152,12 @@ def get_options():
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating networks [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
+    other.add_argument('--no-plot', help='Switch off model plotting, which can be slow for large datasets',
+                                                default=False, action='store_true')
+    other.add_argument('--no-local', help='Do not perform the local optimization step in model refinement (speed up on very large datasets)',
+                                                default=False, action='store_true')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -200,6 +207,9 @@ def main():
     from .network import constructNetwork
     from .network import extractReferences
     from .network import printClusters
+    from .network import get_vertex_list
+    from .network import save_network
+    from .network import checkNetworkVertexCount
 
     from .plot import writeClusterCsv
     from .plot import plot_scatter
@@ -233,7 +243,10 @@ def main():
         'length_sigma': args.length_sigma,
         'length_range': args.length_range,
         'prop_n': args.prop_n,
-        'upper_n': args.upper_n
+        'upper_n': args.upper_n,
+        'max_pi_dist': args.max_pi_dist,
+        'max_a_dist': args.max_a_dist,
+        'type_isolate': args.type_isolate
     }
 
     # Dict of DB access functions
@@ -288,38 +301,42 @@ def main():
             sys.stderr.write("--create-db requires --r-files and --output")
             sys.exit(1)
 
-        # generate sketches and QC sequences
+        # generate sketches and QC sequences to identify sequences not matching specified criteria
         createDatabaseDir(args.output, kmers)
-        seq_names = constructDatabase(
-                        args.r_files,
-                        kmers,
-                        sketch_sizes,
-                        args.output,
-                        args.threads,
-                        args.overwrite,
-                        codon_phased = args.codon_phased,
-                        calc_random = True)
+        seq_names_passing = \
+            constructDatabase(
+                args.r_files,
+                kmers,
+                sketch_sizes,
+                args.output,
+                args.threads,
+                args.overwrite,
+                codon_phased = args.codon_phased,
+                calc_random = True)
 
-        rNames = seq_names
-        qNames = seq_names
-        refList, queryList, distMat = queryDatabase(rNames = rNames,
-                                                    qNames = qNames,
-                                                    dbPrefix = args.output,
-                                                    queryPrefix = args.output,
-                                                    klist = kmers,
-                                                    self = True,
-                                                    number_plot_fits = args.plot_fit,
-                                                    threads = args.threads)
-        qcDistMat(distMat, refList, queryList, args.max_a_dist)
+        # calculate distances between sequences
+        distMat = queryDatabase(rNames = seq_names_passing,
+                                qNames = seq_names_passing,
+                                dbPrefix = args.output,
+                                queryPrefix = args.output,
+                                klist = kmers,
+                                self = True,
+                                number_plot_fits = args.plot_fit,
+                                threads = args.threads)
 
-        # Save results
-        dists_out = args.output + "/" + os.path.basename(args.output) + ".dists"
-        storePickle(refList, queryList, True, distMat, dists_out)
+        # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
+        seq_names_passing, distMat = qcDistMat(distMat,
+                                                seq_names_passing,
+                                                seq_names_passing,
+                                                args.output,
+                                                args.output,
+                                                qc_dict)
 
         # Plot results
-        plot_scatter(distMat,
-                     args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
-                     args.output + " distances")
+        if not args.no_plot:
+            plot_scatter(distMat,
+                         args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
+                         args.output + " distances")
 
     #******************************#
     #*                            *#
@@ -340,7 +357,7 @@ def main():
             sys.stderr.write("Need to provide --ref-db where .h5 and .dists from "
                              "--create-db mode were output")
         if args.distances is None:
-            distances = os.path.basename(args.ref_db) + "/" + args.ref_db + ".dists"
+            distances = args.ref_db + "/" + os.path.basename(args.ref_db) + ".dists"
         else:
             distances = args.distances
         if args.output is None:
@@ -365,8 +382,9 @@ def main():
 
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
-        if qcDistMat(distMat, refList, queryList, args.max_a_dist) == False \
-                and args.qc_filter == "stop":
+        seq_names = set(set(refList) | set(queryList))
+        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.ref_db, output, qc_dict)
+        if len(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
 
@@ -382,13 +400,11 @@ def main():
                 model = DBSCANFit(output)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop)
-                model.plot()
             # Run Gaussian model
             elif args.fit_model == "bgmm":
                 model = BGMMFit(output)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.K)
-                model.plot(distMat, assignments)
             elif args.fit_model == "refine":
                 new_model = RefineFit(output)
                 new_model.set_threads(args.threads)
@@ -398,15 +414,14 @@ def main():
                                             args.indiv_refine,
                                             args.unconstrained,
                                             args.score_idx,
-                                            args.no_local)
-                new_model.plot(distMat)
+                                            args.no_local,
+                                            args.gpu_graph)
                 model = new_model
             elif args.fit_model == "threshold":
                 new_model = RefineFit(output)
                 new_model.set_threads(args.threads)
                 assignments = new_model.apply_threshold(distMat,
                                                         args.threshold)
-                new_model.plot(distMat)
                 model = new_model
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
@@ -414,7 +429,6 @@ def main():
                 model = LineageFit(output, rank_list)
                 model.set_threads(args.threads)
                 model.fit(distMat, args.use_accessory)
-                model.plot(distMat)
 
                 assignments = {}
                 for rank in rank_list:
@@ -423,6 +437,10 @@ def main():
 
             # save model
             model.save()
+            
+            # plot model
+            if not args.no_plot:
+                model.plot(distMat, assignments)
 
         # use model
         else:
@@ -443,7 +461,8 @@ def main():
                                  queryList,
                                  assignments,
                                  model.within_label,
-                                 weights=weights)
+                                 weights = weights,
+                                 use_gpu = args.gpu_graph)
         else:
             # Lineage fit requires some iteration
             indivNetworks = {}
@@ -459,13 +478,15 @@ def main():
                                         refList,
                                         assignments[rank],
                                         0,
-                                        edge_list=True,
-                                        weights=weights
+                                        edge_list = True,
+                                        weights = weights,
+                                        use_gpu = args.gpu_graph
                                        )
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
                                   refList,
-                                  printCSV = False)
+                                  printCSV = False,
+                                  use_gpu = args.gpu_graph)
 
             # print output of each rank as CSV
             overall_lineage = createOverallLineage(rank_list, lineage_clusters)
@@ -480,16 +501,14 @@ def main():
             genomeNetwork = indivNetworks[min(rank_list)]
 
         # Ensure all in dists are in final network
-        networkMissing = set(map(str,set(range(len(refList))).difference(list(genomeNetwork.vertices()))))
-        if len(networkMissing) > 0:
-            missing_isolates = [refList[m] for m in networkMissing]
-            sys.stderr.write("WARNING: Samples " + ", ".join(missing_isolates) + " are missing from the final network\n")
+        checkNetworkVertexCount(refList, genomeNetwork, use_gpu = args.gpu_graph)
 
         fit_type = model.type
         isolateClustering = {fit_type: printClusters(genomeNetwork,
                                                      refList,
                                                      output + "/" + os.path.basename(output),
-                                                     externalClusterCSV = args.external_clustering)}
+                                                     externalClusterCSV = args.external_clustering,
+                                                     use_gpu = args.gpu_graph)}
 
         # Write core and accessory based clusters, if they worked
         if model.indiv_fitted:
@@ -517,9 +536,7 @@ def main():
                 fit_type = 'accessory'
                 genomeNetwork = indivNetworks['accessory']
 
-        genomeNetwork.save(output + "/" + \
-                           os.path.basename(output) + '_graph.gt',
-                           fmt = 'gt')
+        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
 
         #******************************#
         #*                            *#
@@ -530,7 +547,12 @@ def main():
         # (this no longer loses information and should generally be kept on)
         if model.type != "lineage":
             newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork, refList, output, threads = args.threads)
+                extractReferences(genomeNetwork,
+                                    refList,
+                                    output,
+                                    type_isolate = qc_dict['type_isolate'],
+                                    threads = args.threads,
+                                    use_gpu = args.gpu_graph)
             nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
             names_to_remove = [refList[n] for n in nodes_to_remove]
 
@@ -539,9 +561,8 @@ def main():
                 prune_distance_matrix(refList, names_to_remove, distMat,
                                       output + "/" + os.path.basename(output) + ".refs.dists")
                 # Save reference network
-                genomeNetwork.save(output + "/" + \
-                                   os.path.basename(output) + '.refs_graph.gt',
-                                   fmt = 'gt')
+                save_network(genomeNetwork, prefix = output, suffix = ".refs_graph",
+                            use_gpu = args.gpu_graph)
                 removeFromDB(args.ref_db, output, names_to_remove)
                 os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
                           output + "/" + os.path.basename(output) + ".refs.h5")

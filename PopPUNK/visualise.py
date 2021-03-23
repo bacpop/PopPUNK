@@ -53,18 +53,21 @@ def get_options():
                              'to clusters [default = reference database directory]',
                         type = str)
     iGroup.add_argument('--previous-clustering',
-                        help='Directory containing previous cluster definitions '
+                        help='File containing previous cluster definitions '
                              'and network [default = use that in the directory '
                              'containing the model]',
                         type = str)
     iGroup.add_argument('--previous-query-clustering',
-                        help='Directory containing previous cluster definitions '
+                        help='File containing previous cluster definitions '
                              'from poppunk_assign [default = use that in the directory '
-                             'containing the model]',
+                             'of the query database]',
                         type = str)
-    iGroup.add_argument('--use-network',
-                        help='Specify a directory containing a .gt file to use for any graph visualisations',
+    iGroup.add_argument('--network-file',
+                        help='Specify a file to use for any graph visualisations',
                         type = str)
+    iGroup.add_argument('--display-cluster',
+                        help='Column of clustering CSV to use for plotting',
+                        default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -92,7 +95,7 @@ def get_options():
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
     faGroup.add_argument('--tree', help='Type of tree to calculate [default = nj]', type=str, default='nj',
-        choices=['nj', 'mst', 'both'])
+        choices=['nj', 'mst', 'both', 'none'])
     faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree [default = core]', type=str,
         default='core', choices=accepted_weights_types)
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
@@ -106,6 +109,7 @@ def get_options():
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating graphs [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--strand-preserved', default=False, action='store_true',
                        help='If distances being calculated, treat strand as known when calculating random '
@@ -146,20 +150,24 @@ def generate_visualisations(query_db,
                             model_dir,
                             previous_clustering,
                             previous_query_clustering,
-                            use_network,
+                            network_file,
+                            gpu_graph,
                             info_csv,
                             rapidnj,
                             tree,
                             mst_distances,
                             overwrite,
                             core_only,
-                            accessory_only):
+                            accessory_only,
+                            display_cluster,
+                            web):
 
     from .models import loadClusterFit
 
     from .network import constructNetwork
     from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
+    from .network import load_network_file
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -299,43 +307,37 @@ def generate_visualisations(query_db,
         sys.exit(1)
 
     # Load previous clusters
-    mode = "clusters"
-    suffix = "_clusters.csv"
-    if model.type == "lineage":
-        mode = "lineages"
-        suffix = "_lineages.csv"
-    if model.indiv_fitted:
-        sys.stderr.write("Note: Individual (core/accessory) fits found, but "
-                         "visualisation only supports combined boundary fit\n")
-
-    # Set directories of previous fit
     if previous_clustering is not None:
         prev_clustering = previous_clustering
+        mode = "clusters"
+        suffix = "_clusters.csv"
+        if prev_clustering.endswith('_lineages.csv'):
+            mode = "lineages"
+            suffix = "_lineages.csv"
     else:
-        prev_clustering = os.path.dirname(model_file)
-    cluster_file = prev_clustering + '/' + os.path.basename(prev_clustering) + suffix
-    isolateClustering = readIsolateTypeFromCsv(cluster_file,
+        # Identify type of clustering based on model
+        mode = "clusters"
+        suffix = "_clusters.csv"
+        if model.type == "lineage":
+            mode = "lineages"
+            suffix = "_lineages.csv"
+        if model.indiv_fitted:
+            sys.stderr.write("Note: Individual (core/accessory) fits found, but "
+                             "visualisation only supports combined boundary fit\n")
+        prev_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + suffix
+    isolateClustering = readIsolateTypeFromCsv(prev_clustering,
                                                mode = mode,
                                                return_dict = True)
-
-    # Set graph location
-    if use_network is not None:
-        graph_dir = use_network
-        if graph_dir != prev_clustering:
-            sys.stderr.write("WARNING: Loading graph from a different directory to clusters\n")
-            sys.stderr.write("WARNING: Ensure that they are consistent\n")
-    else:
-        graph_dir = prev_clustering
 
     # Join clusters with query clusters if required
     if not self:
         if previous_query_clustering is not None:
-            prev_query_clustering = previous_query_clustering + '/' + os.path.basename(previous_query_clustering)
+            prev_query_clustering = previous_query_clustering
         else:
-            prev_query_clustering = query_db_loc
+            prev_query_clustering = os.path.basename(query_db) + '/' + os.path.basename(query_db) + suffix
 
         queryIsolateClustering = readIsolateTypeFromCsv(
-                prev_query_clustering + suffix,
+                prev_query_clustering,
                 mode = mode,
                 return_dict = True)
         isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
@@ -351,6 +353,18 @@ def generate_visualisations(query_db,
             if not overwrite:
                 existing_tree = load_tree(output, "MST", distances=mst_distances)
             if existing_tree is None:
+                # Check selecting clustering type is in CSV
+                clustering_name = 'Cluster'
+                if display_cluster != None:
+                    if display_cluster not in isolateClustering.keys():
+                        clustering_name = list(isolateClustering.keys())[0]
+                        sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
+                                         prev_clustering + '; instead using ' + clustering_name + '\n')
+                    else:
+                        clustering_name = display_cluster
+                else:
+                    clustering_name = list(isolateClustering.keys())[0]
+                # Get distance matrix
                 complete_distMat = \
                     np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                             pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
@@ -364,7 +378,7 @@ def generate_visualisations(query_db,
                                     weights_type=mst_distances,
                                     summarise=False)
                 mst_graph = generate_minimum_spanning_tree(G)
-                drawMST(mst_graph, output, isolateClustering, overwrite)
+                drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
                 mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
             else:
                 mst_tree = existing_tree
@@ -423,7 +437,7 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        genomeNetwork, cluster_file = fetchNetwork(graph_dir, model, rlist, False, core_only, accessory_only)
+        genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
@@ -453,14 +467,17 @@ def main():
                             args.model_dir,
                             args.previous_clustering,
                             args.previous_query_clustering,
-                            args.use_network,
+                            args.network_file,
+                            args.gpu_graph,
                             args.info_csv,
                             args.rapidnj,
                             args.tree,
                             args.mst_distances,
                             args.overwrite,
                             args.core_only,
-                            args.accessory_only)
+                            args.accessory_only,
+                            args.display_cluster,
+                            web = False)
 
 if __name__ == '__main__':
     main()
