@@ -114,16 +114,18 @@ def sketchAssign():
                                 args.visualise.strand_preserved,
                                 outdir + "/include.txt",
                                 species_db,
-                                species_db,
+                                species_db + "/" + os.path.basename(species_db) + "_clusters.csv",
                                 args.visualise.previous_query_clustering,
-                                outdir,
+                                outdir + "/" + os.path.basename(outdir) + "_graph.gt",                                args.visualise.gpu_graph,
                                 args.visualise.info_csv,
                                 args.visualise.rapidnj,
                                 args.visualise.tree,
                                 args.visualise.mst_distances,
                                 args.visualise.overwrite,
                                 args.visualise.core_only,
-                                args.visualise.accessory_only)
+                                args.visualise.accessory_only,
+                                args.visualise.display_cluster,
+                                web=True)
         networkJson = graphml_to_json(outdir)
         if len(to_include) >= 3:
             with open(os.path.join(outdir, os.path.basename(outdir) + "_core_NJ.nwk"), "r") as p:

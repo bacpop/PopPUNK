@@ -43,7 +43,9 @@ outputDirs = [
     "example_api",
     "batch1",
     "batch2",
-    "batch12"
+    "batch3",
+    "batch12",
+    "batch123"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)

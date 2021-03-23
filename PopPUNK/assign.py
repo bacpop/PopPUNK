@@ -160,7 +160,10 @@ def assign_query(dbFuncs,
                               threads = threads,
                               use_gpu = gpu_dist)
     # QC distance matrix
-    seq_names_passing, distMat = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)
+    if qc_dict['run_qc']:
+        seq_names_passing = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)[0]
+    else:
+        seq_names_passing = rNames + qNames
 
     # Load the network based on supplied options
     genomeNetwork, old_cluster_file = \
