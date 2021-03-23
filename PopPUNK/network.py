@@ -19,6 +19,7 @@ from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
+import pickle
 import graph_tool.all as gt
 import dendropy
 
@@ -252,7 +253,6 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
             sys.exit(1)
 
     if use_gpu:
-
         if not gpu_lib:
             sys.stderr.write('Unable to load GPU libraries; exiting\n')
             sys.exit(1)
@@ -327,7 +327,6 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
             G_ref = add_self_loop(G_ref_df, max_in_vertex_labels, renumber = False)
 
     else:
-
         # Each component is independent, so can be multithreaded
         components = gt.label_components(G)[0].a
 
@@ -470,7 +469,8 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
         else:
             old_ids = old_rlist + old_qlist
     else:
-        sys.stderr.write('Pkl file containing names of sequences in previous network\n')
+        sys.stderr.write('Missing .pkl file containing names of sequences in '
+                         'previous network\n')
         sys.exit(1)
 
     # Get edges as lists of source,destination,weight using original IDs
