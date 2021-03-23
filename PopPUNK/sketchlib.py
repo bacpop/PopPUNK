@@ -592,7 +592,7 @@ def pickTypeIsolate(prefix, names):
 
     min_prop_n = 1.0
     type_isolate = None
-    
+
     try:
         # process data structures
         read_grp = hdf_in['sketches']
@@ -742,13 +742,13 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
 
     # This gives back retained in the same order as names
     retained = [x for x in names if x in frozenset(retained)]
-    
+
     # stop if type sequence does not pass QC or is absent
     if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in retained:
         sys.stderr.write('Type isolate ' + qc_dict['type_isolate'] + ' not found in isolates after QC; check '
         'name of type isolate and QC options\n')
         sys.exit(1)
-    
+
     return retained
 
 def fitKmerCurve(pairwise, klist, jacobian):
