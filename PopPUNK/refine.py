@@ -186,7 +186,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                         bounds=bounds,
                         method='Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, num_processes, use_gpu),
+                                slope, score_idx, num_processes, use_gpu = use_gpu),
                         )
         optimised_s = local_s.x
 
