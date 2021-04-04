@@ -794,7 +794,8 @@ class RefineFit(ClusterFit):
                 start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
                             sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
+                            slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
+                            use_gpu = use_gpu)
                 # optimise accessory distance boundary
                 start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
                   refineFit(X/self.scale,
