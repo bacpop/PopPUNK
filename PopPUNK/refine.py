@@ -186,7 +186,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                         bounds=bounds,
                         method='Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, num_processes, use_gpu = use_gpu),
+                                slope, score_idx, num_processes, use_gpu),
                         )
         optimised_s = local_s.x
 
@@ -331,6 +331,11 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     if isinstance(distMat, NumpyShared):
         distMat_shm = shared_memory.SharedMemory(name = distMat.name)
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
+
+    if use_gpu:
+        sys.stderr.write("Using GPU for network calculations")
+    else:
+        sys.stderr.write("NOT using GPU for network calculations")
 
     # Set up boundary
     new_intercept = transformLine(s, start_point, mean1)
