@@ -519,7 +519,8 @@ def main():
                     constructNetwork(refList,
                                      queryList,
                                      indivAssignments,
-                                     model.within_label)
+                                     model.within_label,
+                                     use_gpu = args.gpu_graph)
                 isolateClustering[dist_type] = \
                     printClusters(indivNetworks[dist_type],
                                   refList,

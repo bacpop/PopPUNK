@@ -729,9 +729,12 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                     subgraph = cugraph.subgraph(G, component_vertices)
                     max_betweeness_k = 1000
                     if len(component_vertices) >= max_betweeness_k:
-                        component_betweenness = cugraph.betweenness_centrality(subgraph, k = max_betweeness_k)
+                        component_betweenness = cugraph.betweenness_centrality(subgraph,
+                                                                                k = max_betweeness_k,
+                                                                                normalized = True)
                     else:
-                        component_betweenness = cugraph.betweenness_centrality(subgraph)
+                        component_betweenness = cugraph.betweenness_centrality(subgraph,
+                                                                                normalized = True)
                     betweenness.append(component_betweenness['betweenness_centrality'].max())
                     sizes.append(size)
         else:
