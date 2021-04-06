@@ -339,11 +339,6 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         distMat_shm = shared_memory.SharedMemory(name = distMat.name)
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
 
-    if use_gpu:
-        sys.stderr.write("Using GPU for network calculations")
-    else:
-        sys.stderr.write("NOT using GPU for network calculations")
-
     # Set up boundary
     start_time = time.time()
     new_intercept = transformLine(s, start_point, mean1)
