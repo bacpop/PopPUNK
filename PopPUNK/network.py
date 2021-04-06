@@ -617,7 +617,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             edge_df = edge_df[['ref','query']]
             
         # Convert to tuples
-        connections = list(edge_df.itertuples(index=False, name=None))
+        connections = list(zip(*[edge_df[c].values.tolist() for c in edge_df]))
 
     edge_time = time.time()
 
