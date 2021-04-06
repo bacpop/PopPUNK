@@ -590,34 +590,38 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             # Set memory management for large networks
             cudf.set_allocator("managed")
 
-            # Set up DF
-            edge_df = cudf.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
+            # Add node indices to DF
+            G_df = cudf.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
 
         else:
+        
+            # Add node indices to DF
+            G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
 
-            edge_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
-
-        edge_df.columns = ['ref','query']
-        edge_df['assignments'] = assignments
+        # Add further information to DF
+        G_df.columns = ['ref','query']
+        G_df['assignments'] = assignments
         if weights is not None:
             if weights_type == 'euclidean':
-                edge_df['weights'] = np.linalg.norm(weights, axis = 1)
+                G_df['weights'] = np.linalg.norm(weights, axis = 1)
             elif weights_type == 'core':
-                edge_df['weights'] = weights[:, 0]
+                G_df['weights'] = weights[:, 0]
             elif weights_type == 'accessory':
-                edge_df['weights'] = weights[:, 1]
+                G_df['weights'] = weights[:, 1]
 
         # Select rows
         edge_df = edge_df[edge_df['assignments'] == within_label]
 
         # Select columns
         if weights is not None:
-            edge_df = edge_df[['ref','query','weights']]
+            G_df = edge_df[['ref','query','weights']]
         else:
-            edge_df = edge_df[['ref','query']]
+            G_df = edge_df[['ref','query']]
             
-        # Convert to tuples
-        connections = list(zip(*[edge_df[c].values.tolist() for c in edge_df]))
+        if not use_gpu:
+            # Convert to tuples
+            connections = list(zip(*[G_df[c].values.tolist() for c in edge_df]))
+            del G_df
 
     edge_time = time.time()
 
@@ -663,6 +667,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         if weights is not None:
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
+        del G_df
         graph_time = time.time()
         print("Edge time: " + str(edge_time - start_time) + "\tGraph time: " + str(graph_time - edge_time))
     else:
