@@ -591,11 +591,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             cudf.set_allocator("managed")
 
             # Set up DF
-            edge_df = cudf.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+            edge_df = cudf.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
 
         else:
 
-            edge_df = pd.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+            edge_df = pd.DataFrame(listlistDistInts(rlist, qlist, self = self_comparison)))
 
         edge_df.columns = ['ref','query']
         edge_df['assignments'] = assignments
