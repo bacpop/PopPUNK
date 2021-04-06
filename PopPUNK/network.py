@@ -589,7 +589,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             if weights_type == 'euclidean':
                 edge_df['weights'] = np.linalg.norm(weights, axis = 0)
             elif weights_type == 'core':
-                edge_df['weights'] =  = weights[:, 0]
+                edge_df['weights'] = weights[:, 0]
             elif weights_type == 'accessory':
                 edge_df['weights'] =  = weights[:, 1]
             edge_tuple = (ref, query, dist)
