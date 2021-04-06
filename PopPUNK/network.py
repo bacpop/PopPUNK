@@ -591,7 +591,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             elif weights_type == 'core':
                 edge_df['weights'] = weights[:, 0]
             elif weights_type == 'accessory':
-                edge_df['weights'] =  = weights[:, 1]
+                edge_df['weights'] = weights[:, 1]
             edge_tuple = (ref, query, dist)
         
         # Select rows
