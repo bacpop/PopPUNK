@@ -589,9 +589,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
             # Set memory management for large networks
             cudf.set_allocator("managed")
-            
+
             # Set up DF
-            edge_df = cugraph.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+            edge_df = cudf.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
 
         else:
 
