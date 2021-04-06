@@ -583,7 +583,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     connections = []
     if edge_list:
         if use_gpu:
-            G_df = cudf.DataFrame(assignments, columns = ['ref','query'])
+            G_df = cudf.DataFrame(assignments, columns = ['source','destination'])
             if weights is not None:
                 G_df['weights'] = weights
         else:
@@ -595,8 +595,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     elif sparse_input is not None:
         if use_gpu:
             G_df = cudf.DataFrame()
-            G_df['ref'] = sparse_input.row
-            G_df['query'] =  sparse_input.col
+            G_df['source'] = sparse_input.row
+            G_df['destination'] =  sparse_input.col
             G_df['weights'] = sparse_input.data
         else:
             for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
@@ -611,7 +611,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
 
         # Add further information to DF
-        G_df.columns = ['ref','query']
+        G_df.columns = ['source','destination']
         G_df['assignments'] = assignments
         if weights is not None:
             if weights_type == 'euclidean':
@@ -626,9 +626,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
         # Select columns
         if weights is not None:
-            G_df = G_df[['ref','query','weights']]
+            G_df = G_df[['source','destination','weights']]
         else:
-            G_df = G_df[['ref','query']]
+            G_df = G_df[['source','destination']]
             
         if not use_gpu:
             # Convert to tuples
