@@ -599,9 +599,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         
         # Select columns
         if weights is not None:
-            edge_df = edge_df[['ref','query','weights']
+            edge_df = edge_df[['ref','query','weights']]
         else:
-            edge_df = edge_df[['ref','query']
+            edge_df = edge_df[['ref','query']]
             
         # Convert to tuples
         connections = list(edge_df.itertuples(index=False, name=None))
