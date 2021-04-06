@@ -610,17 +610,17 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                 G_df['weights'] = weights[:, 1]
 
         # Select rows
-        edge_df = edge_df[edge_df['assignments'] == within_label]
+        G_df = G_df[G_df['assignments'] == within_label]
 
         # Select columns
         if weights is not None:
-            G_df = edge_df[['ref','query','weights']]
+            G_df = G_df[['ref','query','weights']]
         else:
-            G_df = edge_df[['ref','query']]
+            G_df = G_df[['ref','query']]
             
         if not use_gpu:
             # Convert to tuples
-            connections = list(zip(*[G_df[c].values.tolist() for c in edge_df]))
+            connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
             del G_df
 
     edge_time = time.time()
