@@ -580,21 +580,32 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
             connections.append((ref, query, weight))
     else:
-        for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
-                                                                 listDistInts(rlist, qlist,
-                                                                              self = self_comparison))):
-            if assignment == within_label:
-                if weights is not None:
-                    if weights_type == 'euclidean':
-                        dist = np.linalg.norm(weights[row_idx, :])
-                    elif weights_type == 'core':
-                        dist = weights[row_idx, 0]
-                    elif weights_type == 'accessory':
-                        dist = weights[row_idx, 1]
-                    edge_tuple = (ref, query, dist)
-                else:
-                    edge_tuple = (ref, query)
-                connections.append(edge_tuple)
+    
+        # Build edge pandas dataframe
+        edge_df = pd.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+        edge_df.columns = ['ref','query']
+        edge_df['assignments'] = assignments
+        if weights is not None:
+            if weights_type == 'euclidean':
+                edge_df['weights'] = np.linalg.norm(weights, axis = 0)
+            elif weights_type == 'core':
+                edge_df['weights'] =  = weights[:, 0]
+            elif weights_type == 'accessory':
+                edge_df['weights'] =  = weights[:, 1]
+            edge_tuple = (ref, query, dist)
+        
+        # Select rows
+        edge_df = edge_df[edge_df['assignments'] == within_label]
+        
+        # Select columns
+        if weights is not None:
+            edge_df = edge_df[['ref','query','weights']
+        else:
+            edge_df = edge_df[['ref','query']
+            
+        # Convert to tuples
+        connections = list(edge_df.itertuples(index=False, name=None))
+
     edge_time = time.time()
 
     # read previous graph
