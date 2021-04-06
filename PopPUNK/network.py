@@ -592,6 +592,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                     connections.append((ref, query, weight))
             else:
                 connections = assignments
+        make_initial_df = time.time()
+        print("Initial DF time: " + str(make_initial_df - start_time))
     elif sparse_input is not None:
         if use_gpu:
             G_df = cudf.DataFrame()
@@ -601,6 +603,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         else:
             for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
                 connections.append((ref, query, weight))
+        make_initial_df = time.time()
     else:
     
         if use_gpu:
@@ -609,7 +612,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         else:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
-
+        make_initial_df = time.time()
         # Add further information to DF
         G_df.columns = ['source','destination']
         G_df['assignments'] = assignments
@@ -631,7 +634,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df = G_df[['source','destination']]
             
         if not use_gpu:
-            # Convert to tuples
+            # Convert to tuples and delete the unnecessary data frame
             connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
             del G_df
 
@@ -646,25 +649,39 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                                                                     previous_pkl = previous_pkl,
                                                                                     weights = True,
                                                                                     use_gpu = use_gpu)
-                for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
-                    edge_tuple = (ref, query, weight)
-                    connections.append(edge_tuple)
             else:
                 extra_sources, extra_targets = network_to_edges(prev_G,
                                                                 rlist,
                                                                 previous_pkl = previous_pkl,
                                                                 weights = False,
                                                                 use_gpu = use_gpu)
-                for (ref, query) in zip(extra_sources, extra_targets):
-                    edge_tuple = (ref, query)
-                    connections.append(edge_tuple)
+            # Add to DF if using GPU libraries
+            if use_gpu:
+                G_extra_df = cudf.DataFrame()
+                G_extra_df['source'] = sparse_input.row
+                G_extra_df['destination'] =  sparse_input.col
+                if weights is not None or sparse_input is not None:
+                    G_extra_df['weights'] =  extra_weights
+                G_df = G_df.append(G_extra_df)
+            # Add to connections if using CPU libraries
+            else:
+                if weights is not None or sparse_input is not None:
+                    for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
+                        edge_tuple = (ref, query, weight)
+                        connections.append(edge_tuple)
+                else:
+                    for (ref, query) in zip(extra_sources, extra_targets):
+                        edge_tuple = (ref, query)
+                        connections.append(edge_tuple)
+                
+                
+                G_extra_df['weights'] = sparse_input.data
         else:
             sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
             sys.exit(1)
 
     # load GPU libraries if necessary
     if use_gpu:
-
         # ensure the highest-integer node is included in the edge list
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
@@ -677,7 +694,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         graph_time = time.time()
         print("Edge time: " + str(edge_time - start_time) + "\tGraph time: " + str(graph_time - edge_time))
     else:
-
         # build the graph
         G = gt.Graph(directed = False)
         G.add_vertex(len(vertex_labels))
