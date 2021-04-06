@@ -191,6 +191,8 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             for ref in refSeqs:
                 yield(ref, query)
 
+from numba import jit
+@jit(nopython=True)
 def listDistInts(refSeqs, querySeqs, self=True):
     """Gets the ref and query ID for each row of the distance matrix
 
