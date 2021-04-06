@@ -581,22 +581,35 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             connections.append((ref, query, weight))
     else:
     
-        # Build edge pandas dataframe
-        edge_df = pd.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+        if use_gpu:
+            # Build edge pandas dataframe
+            if not gpu_lib:
+               sys.stderr.write('Unable to load GPU libraries; exiting\n')
+               sys.exit(1)
+
+            # Set memory management for large networks
+            cudf.set_allocator("managed")
+            
+            # Set up DF
+            edge_df = cugraph.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+
+        else:
+
+            edge_df = pd.DataFrame(listDistInts(rlist, qlist, self = self_comparison))
+
         edge_df.columns = ['ref','query']
         edge_df['assignments'] = assignments
         if weights is not None:
             if weights_type == 'euclidean':
-                edge_df['weights'] = np.linalg.norm(weights, axis = 0)
+                edge_df['weights'] = np.linalg.norm(weights, axis = 1)
             elif weights_type == 'core':
                 edge_df['weights'] = weights[:, 0]
             elif weights_type == 'accessory':
                 edge_df['weights'] = weights[:, 1]
-            edge_tuple = (ref, query, dist)
-        
+
         # Select rows
         edge_df = edge_df[edge_df['assignments'] == within_label]
-        
+
         # Select columns
         if weights is not None:
             edge_df = edge_df[['ref','query','weights']]
@@ -635,13 +648,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # load GPU libraries if necessary
     if use_gpu:
-
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
-
-        # Set memory management for large networks
-        cudf.set_allocator("managed")
 
         # create DataFrame using edge tuples
         if weights is not None or sparse_input is not None:
