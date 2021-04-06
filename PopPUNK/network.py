@@ -549,6 +549,17 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         G (graph)
             The resulting network
     """
+    
+    # Set up for GPU if specified
+    if use_gpu:
+        # Build edge pandas dataframe
+        if not gpu_lib:
+           sys.stderr.write('Unable to load GPU libraries; exiting\n')
+           sys.exit(1)
+
+        # Set memory management for large networks
+        cudf.set_allocator("managed")
+    
     # data structures
     connections = []
     self_comparison = True
@@ -571,30 +582,31 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     start_time = time.time()
     connections = []
     if edge_list:
-        if weights is not None:
-            for weight, (ref, query) in zip(weights, assignments):
-                connections.append((ref, query, weight))
+        if use_gpu:
+            G_df = cudf.DataFrame(assignments, columns = ['ref','query'])
+            if weights is not None:
+                G_df['weights'] = weights
         else:
-            connections = assignments
+            if weights is not None:
+                for weight, (ref, query) in zip(weights, assignments):
+                    connections.append((ref, query, weight))
+            else:
+                connections = assignments
     elif sparse_input is not None:
-        for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
-            connections.append((ref, query, weight))
+        if use_gpu:
+            G_df = cudf.DataFrame()
+            G_df['ref'] = sparse_input.row
+            G_df['query'] =  sparse_input.col
+            G_df['weights'] = sparse_input.data
+        else:
+            for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
+                connections.append((ref, query, weight))
     else:
     
         if use_gpu:
-            # Build edge pandas dataframe
-            if not gpu_lib:
-               sys.stderr.write('Unable to load GPU libraries; exiting\n')
-               sys.exit(1)
-
-            # Set memory management for large networks
-            cudf.set_allocator("managed")
-
             # Add node indices to DF
             G_df = cudf.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
-
         else:
-        
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
 
@@ -652,10 +664,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # load GPU libraries if necessary
     if use_gpu:
-
-        # create DataFrame using edge tuples
-        if weights is not None or sparse_input is not None:
-            G_df = cudf.DataFrame(connections, columns =['source', 'destination', 'weights'])
 
         # ensure the highest-integer node is included in the edge list
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
