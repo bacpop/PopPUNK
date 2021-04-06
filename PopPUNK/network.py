@@ -656,8 +656,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         # create DataFrame using edge tuples
         if weights is not None or sparse_input is not None:
             G_df = cudf.DataFrame(connections, columns =['source', 'destination', 'weights'])
-        else:
-            G_df = cudf.DataFrame(connections, columns =['source', 'destination'])
 
         # ensure the highest-integer node is included in the edge list
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
