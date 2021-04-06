@@ -503,6 +503,8 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
     else:
         return source_ids, target_ids
 
+import time
+
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
@@ -566,6 +568,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         raise RuntimeError("Cannot construct network from edge list and sparse matrix")
 
     # identify edges
+    start_time = time.time()
     connections = []
     if edge_list:
         if weights is not None:
@@ -592,6 +595,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                 else:
                     edge_tuple = (ref, query)
                 connections.append(edge_tuple)
+    edge_time = time.time()
 
     # read previous graph
     if previous_network is not None:
@@ -642,7 +646,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         if weights is not None:
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
-
+        graph_time = time.time()
+        print("Edge time: " + str(edge_time - start_time) + "\tGraph time: " + str(graph_time - edge_time))
     else:
 
         # build the graph

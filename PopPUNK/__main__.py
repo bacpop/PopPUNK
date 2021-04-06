@@ -525,10 +525,12 @@ def main():
                     printClusters(indivNetworks[dist_type],
                                   refList,
                                   output + "/" + os.path.basename(output) + "_" + dist_type,
-                                  externalClusterCSV = args.external_clustering)
-                indivNetworks[dist_type].save(
-                    output + "/" + os.path.basename(output) + \
-                    "_" + dist_type + '_graph.gt', fmt = 'gt')
+                                  externalClusterCSV = args.external_clustering,
+                                  use_gpu = args.gpu_graph)
+                save_network(indivNetworks[dist_type],
+                                prefix = output,
+                                suffix = '_graph',
+                                use_gpu = args.gpu_graph)
 
             if args.indiv_refine == 'core':
                 fit_type = 'core'

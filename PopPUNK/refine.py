@@ -164,7 +164,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             mean1 = (optimal_x + delta, delta * gradient)
 
     else:
-        global_grid_resolution = 40 # Seems to work
+        global_grid_resolution = 3 # Seems to work
         s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
         i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
@@ -204,6 +204,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
     return start_point, optimal_x, optimal_y, min_move, max_move
 
+import time
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_idx = 0, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
@@ -255,12 +256,17 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                                          summarise=False, edge_list=True, use_gpu = use_gpu)
                 else:
                     if use_gpu:
+                        start_time = time.time()
                         G_current_df = G.view_edge_list()
                         G_current_df.columns = ['source','destination']
+                        existing_df_time = time.time()
                         G_extra_df = cudf.DataFrame(edge_list, columns =['source','destination'])
-                        G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
+                        G_df = G_current_df.append(G_extra_df)
+                        make_df_time = time.time()
                         G = cugraph.Graph()
                         G.from_cudf_edgelist(G_df)
+                        make_graph_time = time.time()
+                        print("Global time: " + str(make_graph_time - start_time) + "\tDF time: " + str(existing_df_time - start_time) + "\tConcat time: " + str(make_df_time - existing_df_time) + "\tGraph time: " + str(make_graph_time - make_df_time))
                     else:
                         # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
                         # We add to the cuDF, and then reconstruct the network instead
@@ -290,6 +296,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
 
     return(scores)
 
+import time
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
                slope=2, score_idx=0, cpus=1, use_gpu = False):
@@ -338,6 +345,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         sys.stderr.write("NOT using GPU for network calculations")
 
     # Set up boundary
+    start_time = time.time()
     new_intercept = transformLine(s, start_point, mean1)
     if slope == 2:
         x_max, y_max = decisionBoundary(new_intercept, gradient)
@@ -350,11 +358,15 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
 
     # Make network
     boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
+    assign_time = time.time()
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False,
                             use_gpu = use_gpu)
+    construct_time = time.time()
 
     # Return score
     score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
+    end_time = time.time()
+    print("Time: " + str(end_time - start_time) + "\nAssign time: " + str(assign_time - start_time) + "\nConstruct time: " + str(construct_time - assign_time) + "\nScore time: " + str(end_time - construct_time) + "\n")
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, use_gpu = False):
