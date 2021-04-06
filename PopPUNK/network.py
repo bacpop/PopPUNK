@@ -595,7 +595,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
         else:
 
-            edge_df = pd.DataFrame(listlistDistInts(rlist, qlist, self = self_comparison)))
+            edge_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
 
         edge_df.columns = ['ref','query']
         edge_df['assignments'] = assignments
