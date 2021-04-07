@@ -242,7 +242,7 @@ def expand_cugraph_network(G, extra_edges):
             Expanded cugraph network
     """
     # load CUDA libraries
-    if use_gpu and not gpu_lib:
+    if not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
     G_current_df = G.view_edge_list()
