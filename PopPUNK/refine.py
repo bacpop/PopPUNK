@@ -331,7 +331,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 import time
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
-               slope=2, score_idx=0, potential_edges_df, cpus=1, use_gpu = False):
+               slope=2, score_idx=0, potential_edges_df=None, cpus=1, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
