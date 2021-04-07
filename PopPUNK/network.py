@@ -579,11 +579,14 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         raise RuntimeError("Cannot construct network from edge list and sparse matrix")
 
     # identify edges
+    from numba import cuda
     start_time = time.time()
     connections = []
     if edge_list:
         if use_gpu:
-            G_df = cudf.DataFrame(assignments, columns = ['source','destination'])
+            edge_array = np.array(assignments,dtype = np.int32)
+            edge_gpu_matrix = numba.cuda.to_device(edge_array)
+            G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
             if weights is not None:
                 G_df['weights'] = weights
         else:
