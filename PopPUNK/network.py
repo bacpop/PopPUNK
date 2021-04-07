@@ -767,7 +767,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.in_degree()
         print("Description of degree: " + str(degree_df['degree'].describe()))
-        triad_count = sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 0,['degree']].to_pandas()])
+        triad_count = sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 0].to_pandas()])
         if triad_count > 0:
             transitivity = 2 * triangle_count/triad_count
         else:
