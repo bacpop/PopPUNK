@@ -105,7 +105,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Trying to optimise score globally\n")
 
     # Generate sample combinations
-    potential_edges = list(listDistInts(rList, qList, rList==qList))
+    potential_edges = list(listDistInts(sample_names, sample_names, True))
     if use_gpu:
         edge_array = cupy.array(potential_edges, dtype = np.int32)
         edge_gpu_matrix = cuda.to_device(edge_array)
