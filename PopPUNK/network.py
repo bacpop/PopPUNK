@@ -623,7 +623,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
         make_initial_df = time.time()
         # Add further information to DF
-        G_df.columns = ['source','destination']
+        if 'src' in G_df.columns:
+            G_df.rename(columns={'src': 'source', 'dst': 'destination'})
         G_df['assignments'] = assignments
         if weights is not None:
             if weights_type == 'euclidean':
