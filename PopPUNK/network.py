@@ -765,7 +765,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.in_degree()
-        triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
+        triad_count = sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 0]['degree'].to_pandas()])
         if triad_count > 0:
             transitivity = 2 * triangle_count/triad_count
         else:
@@ -958,11 +958,11 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         G_current_df = G.view_edge_list()
         if weights is not None:
             G_current_df.columns = ['source','destination','weights']
-            G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination','weights'])
+            G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination','weights'])
             G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
         else:
             G_current_df.columns = ['source','destination']
-            G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination'])
+            G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination'])
             G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
 
         # use self-loop to ensure all nodes are present
