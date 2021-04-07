@@ -27,6 +27,8 @@ import dendropy
 try:
     import cugraph
     import cudf
+    import cupy
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -579,8 +581,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         raise RuntimeError("Cannot construct network from edge list and sparse matrix")
 
     # identify edges
-    from numba import cuda
-    import cupy
     start_time = time.time()
     connections = []
     if edge_list:
@@ -766,6 +766,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.in_degree()
+        print("Description of degree: " + str(degree_df['degree'].describe()))
         triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
         if triad_count > 0:
             transitivity = 2 * triangle_count/triad_count
