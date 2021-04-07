@@ -585,6 +585,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     connections = []
     if edge_list:
         if use_gpu:
+            # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
             edge_array = cupy.array(assignments,dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
@@ -597,7 +598,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             else:
                 connections = assignments
         make_initial_df = time.time()
-        print("Initial DF time: " + str(make_initial_df - start_time))
     elif sparse_input is not None:
         if use_gpu:
             G_df = cudf.DataFrame()
@@ -614,8 +614,12 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             # Add node indices to DF
             edge_array = cupy.array(list(listDistInts(rlist, qlist, self = self_comparison)),
                                     dtype = np.int32)
+            array_time = time.time()
             edge_gpu_matrix = cuda.to_device(edge_array)
+            cuda_time = time.time()
             G_df = cudf.DataFrame(edge_gpu_matrix)
+            make_initial_df = time.time()
+            print("Array time: " + str(array_time - start_time) + "\tCuda time: " + str(cuda_time - array_time) + "\tInitial DF: " + str(make_initial_df - cuda_time))
         else:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
