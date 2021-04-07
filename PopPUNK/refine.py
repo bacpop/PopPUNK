@@ -113,7 +113,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         edge_gpu_matrix = cuda.to_device(edge_array)
         potential_edges_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
     else:
-        potential_edges_df = pd.DataFrame(potential_edges)
+        potential_edges_df = pd.DataFrame(potential_edges, columns = ['source','destination'])
 
     if unconstrained:
         if slope != 2:
