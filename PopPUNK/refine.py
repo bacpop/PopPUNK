@@ -29,6 +29,7 @@ import pandas as pd
 try:
     import cugraph
     import cudf
+    import cupy
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
