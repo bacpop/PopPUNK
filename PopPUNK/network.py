@@ -615,14 +615,13 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             array_time = time.time()
             edge_gpu_matrix = cuda.to_device(edge_array)
             cuda_time = time.time()
-            G_df = cudf.DataFrame(edge_gpu_matrix)
+            G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
             make_initial_df = time.time()
             print("Array time: " + str(array_time - start_time) + "\tCuda time: " + str(cuda_time - array_time) + "\tInitial DF: " + str(make_initial_df - cuda_time))
         elif G_df is None:
             # Add node indices to DF
-            G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
-        if G_df is None:
-            G_df.columns = ['source','destination']
+            G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)),
+                                columns = ['source','destination'])
         make_initial_df = time.time()
         # Add further information to DF
         if 'src' in G_df.columns:
