@@ -612,7 +612,10 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     
         if use_gpu:
             # Add node indices to DF
-            G_df = cudf.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
+            edge_array = cupy.array(list(listDistInts(rlist, qlist, self = self_comparison)),
+                                    dtype = np.int32)
+            edge_gpu_matrix = cuda.to_device(edge_array)
+            G_df = cudf.DataFrame(edge_gpu_matrix)
         else:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
