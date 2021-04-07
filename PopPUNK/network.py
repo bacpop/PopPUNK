@@ -587,13 +587,12 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     start_time = time.time()
     connections = []
     if edge_list:
-        if use_gpu and G_df is None:
+        if use_gpu:
             # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
             edge_array = cupy.array(assignments, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
-
-        elif G_df is None:
+        else:
             G_df = pd.DataFrame(assignments, columns = ['source','destination'])
         if weights is not None:
             G_df['weights'] = weights
@@ -609,7 +608,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         G_df['weights'] = sparse_input.data
         make_initial_df = time.time()
     else:
-        if use_gpu:
+        if use_gpu and G_df is None:
             # Add node indices to DF
             edge_array = cupy.array(list(listDistInts(rlist, qlist, self = self_comparison)),
                                     dtype = np.int32)
@@ -619,7 +618,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df = cudf.DataFrame(edge_gpu_matrix)
             make_initial_df = time.time()
             print("Array time: " + str(array_time - start_time) + "\tCuda time: " + str(cuda_time - array_time) + "\tInitial DF: " + str(make_initial_df - cuda_time))
-        else:
+        elif G_df is None:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
         make_initial_df = time.time()
@@ -643,10 +642,10 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         else:
             G_df = G_df[['source','destination']]
             
-        if not use_gpu:
-            # Convert to tuples and delete the unnecessary data frame
-            connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
-            del G_df
+    if not use_gpu:
+        # Convert to tuples and delete the unnecessary data frame
+        connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
+        del G_df
 
     edge_time = time.time()
 
