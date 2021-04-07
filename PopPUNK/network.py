@@ -510,7 +510,8 @@ import time
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
-                     previous_network = None, previous_pkl = None, use_gpu = False):
+                     G_df = None, previous_network = None,
+                     previous_pkl = None, use_gpu = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -539,6 +540,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             accessory or euclidean distance
         sparse_input (numpy.array)
             Sparse distance matrix from lineage fit
+        G_df (cudf or pandas data frame)
+            Two column source/destination data frame of integers
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
@@ -584,32 +587,28 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     start_time = time.time()
     connections = []
     if edge_list:
-        if use_gpu:
+        if use_gpu and G_df is None:
             # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
-            edge_array = cupy.array(assignments,dtype = np.int32)
+            edge_array = cupy.array(assignments, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
-            if weights is not None:
-                G_df['weights'] = weights
-        else:
-            if weights is not None:
-                for weight, (ref, query) in zip(weights, assignments):
-                    connections.append((ref, query, weight))
-            else:
-                connections = assignments
+
+        elif G_df is None:
+            G_df = pd.DataFrame(assignments, columns = ['source','destination'])
+        if weights is not None:
+            G_df['weights'] = weights
         make_initial_df = time.time()
     elif sparse_input is not None:
-        if use_gpu:
+        if use_gpu and G_df is None:
             G_df = cudf.DataFrame()
+        elif G_df is None:
+            G_df = pd.DataFrame()
+        if G_df is None:
             G_df['source'] = sparse_input.row
             G_df['destination'] =  sparse_input.col
-            G_df['weights'] = sparse_input.data
-        else:
-            for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
-                connections.append((ref, query, weight))
+        G_df['weights'] = sparse_input.data
         make_initial_df = time.time()
     else:
-    
         if use_gpu:
             # Add node indices to DF
             edge_array = cupy.array(list(listDistInts(rlist, qlist, self = self_comparison)),
@@ -766,8 +765,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         triangle_count = cugraph.community.triangle_count.triangles(G)
         degree_df = G.in_degree()
-        print("Description of degree: " + str(degree_df['degree'].describe()))
-        triad_count = sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 0].to_pandas()])
+        triad_count = sum([d * (d - 1) for d in degree_df.to_pandas()])
         if triad_count > 0:
             transitivity = 2 * triangle_count/triad_count
         else:

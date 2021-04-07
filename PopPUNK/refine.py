@@ -23,6 +23,7 @@ except ImportError as e:
 import pp_sketchlib
 import poppunk_refine
 import graph_tool.all as gt
+import pandas as pd
 
 # GPU support
 try:
@@ -37,6 +38,7 @@ from .network import networkSummary
 
 from .utils import transformLine
 from .utils import decisionBoundary
+from .utils import listDistInts
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
@@ -102,6 +104,15 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
 
+    # Generate sample combinations
+    potential_edges = list(listDistInts(rList, qList, rList==qList))
+    if use_gpu:
+        edge_array = cupy.array(potential_edges, dtype = np.int32)
+        edge_gpu_matrix = cuda.to_device(edge_array)
+        potential_edges_df = cudf.DataFrame(edge_gpu_matrix)
+    else:
+        potential_edges_df = pd.DataFrame(potential_edges)
+
     if unconstrained:
         if slope != 2:
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
@@ -119,6 +130,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                    x_range = x_max,
                                    y_range = y_max,
                                    score_idx = score_idx,
+                                   potential_edges_df = potential_edges_df,
                                    use_gpu = True),
                            range(global_grid_resolution))
         else:
@@ -138,6 +150,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                                 x_range = x_max,
                                                 y_range = y_max,
                                                 score_idx = score_idx,
+                                                potential_edges_df = potential_edges_df,
                                                 use_gpu = False),
                                         range(global_grid_resolution))
 
@@ -170,7 +183,14 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
                                                   start_point[0], start_point[1],
                                                   mean1[0], mean1[1], num_processes)
-        global_s = np.array(growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, use_gpu = use_gpu))
+        global_s = np.array(growNetwork(sample_names,
+                                            i_vec,
+                                            j_vec,
+                                            idx_vec,
+                                            s_range,
+                                            score_idx,
+                                            potential_edges_df = potential_edges_df,
+                                            use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
         if min_idx > 0 and min_idx < len(s_range) - 1:
@@ -186,7 +206,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                         bounds=bounds,
                         method='Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, num_processes, use_gpu),
+                                slope, score_idx, potential_edges_df, num_processes, use_gpu),
                         )
         optimised_s = local_s.x
 
@@ -206,7 +226,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
 import time
 
-def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_idx = 0, use_gpu = False):
+def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
+                potential_edges_df = None, thread_idx = 0, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -225,6 +246,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        potential_edges_df (cudf or pandas data frame)
+            Two column source/destination data frame of integers
         thread_idx (int)
             Optional thread idx (if multithreaded) to offset progress bar by
         use_gpu (bool)
@@ -253,7 +276,10 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
                 # At first offset, make a new network, otherwise just add the new edges
                 if prev_idx == 0:
                     G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                         summarise=False, edge_list=True, use_gpu = use_gpu)
+                                         summarise=False,
+                                         edge_list=True,
+                                         G_df = potential_edges_df,
+                                         use_gpu = use_gpu)
                 else:
                     if use_gpu:
                         start_time = time.time()
@@ -282,11 +308,17 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
         # Add score for final offset(s) at end of loop
         if prev_idx == 0:
             G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                 summarise=False, edge_list=True, use_gpu = use_gpu)
+                                 summarise=False,
+                                 edge_list=True,
+                                 G_df = potential_edges_df,
+                                 use_gpu = use_gpu)
         else:
             if use_gpu:
                 G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                        summarise=False, edge_list=True, use_gpu = use_gpu)
+                                        summarise=False,
+                                        edge_list=True,
+                                        G_df = potential_edges_df,
+                                        use_gpu = use_gpu)
             else:
                 # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
                 G.add_edge_list(edge_list)
@@ -299,7 +331,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
 import time
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
-               slope=2, score_idx=0, cpus=1, use_gpu = False):
+               slope=2, score_idx=0, potential_edges_df, cpus=1, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -326,6 +358,8 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        potential_edges_df (cudf or pandas data frame)
+            Two column source/destination data frame of integers
         cpus (int)
             Number of CPUs to use for calculating assignment
         use_gpu (bool)
@@ -354,7 +388,9 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     # Make network
     boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
     assign_time = time.time()
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False,
+    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1,
+                            summarise = False,
+                            G_df = potential_edges_df,
                             use_gpu = use_gpu)
     construct_time = time.time()
 
@@ -364,7 +400,8 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     print("Time: " + str(end_time - start_time) + "\nAssign time: " + str(assign_time - start_time) + "\nConstruct time: " + str(construct_time - assign_time) + "\nScore time: " + str(end_time - construct_time) + "\n")
     return(-score)
 
-def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, use_gpu = False):
+def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
+                potential_edges_df = potential_edges_df, use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
@@ -384,6 +421,8 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, us
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        potential_edges_df (cudf or pandas data frame)
+            Two column source/destination data frame of integers
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -401,7 +440,15 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, us
     y_max = y_range[y_idx]
     i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate2D(distMat, x_range, y_max)
-    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx, y_idx, use_gpu = use_gpu)
+    scores = growNetwork(sample_names,
+                            i_vec,
+                            j_vec,
+                            idx_vec,
+                            x_range,
+                            score_idx,
+                            y_idx,
+                            G_df = potential_edges_df,
+                            use_gpu = use_gpu)
     return(scores)
 
 def readManualStart(startFile):
