@@ -621,6 +621,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         elif G_df is None:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)))
+        if G_df is None:
+            G_df.columns = ['source','destination']
         make_initial_df = time.time()
         # Add further information to DF
         if 'src' in G_df.columns:
