@@ -580,11 +580,12 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # identify edges
     from numba import cuda
+    import cupy
     start_time = time.time()
     connections = []
     if edge_list:
         if use_gpu:
-            edge_array = np.array(assignments,dtype = np.int32)
+            edge_array = cupy.array(assignments,dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
             if weights is not None:
