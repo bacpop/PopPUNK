@@ -30,7 +30,7 @@ try:
     import cugraph
     import cudf
     import cupy
-    from numpy import cuda
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
