@@ -781,7 +781,6 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
         transitivity = gt.global_clustering(G)[0]
         print("Triangles: " + str(gt.global_clustering(G, ret_counts = True)[1]) + "\ttriads: " + str(gt.global_clustering(G, ret_counts = True)[2]) + "\tedges: " + str(G.num_edges()))
-    quit()
 
     mean_bt = 0
     weighted_mean_bt = 0
