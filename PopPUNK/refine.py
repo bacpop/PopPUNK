@@ -246,8 +246,7 @@ def expand_cugraph_network(G, G_extra_df):
     if not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
-    G_df = G.view_edge_list()
-    G_df = G_df.append(G_extra_df)
+    G_df = G.view_edge_list().append(G_extra_df)
     G = cugraph.Graph()
     G.from_cudf_edgelist(G_df)
     return G
