@@ -769,6 +769,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
+        print("Triangles: " + str(triangle_count) + "\ttriads: " + str(triad_count) + "\tedges: " + str(G.number_of_edges()))
         if triad_count > 0:
             transitivity = 2 * triangle_count/triad_count
         else:
@@ -778,6 +779,8 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         components = len(component_frequencies)
         density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
         transitivity = gt.global_clustering(G)[0]
+        print("Triangles: " + str(gt.global_clustering(G, ret_counts = True)[1]) + "\ttriads: " + str(gt.global_clustering(G, ret_counts = True)[2]) + "\tedges: " + str(G.num_edges()))
+    quit()
 
     mean_bt = 0
     weighted_mean_bt = 0
