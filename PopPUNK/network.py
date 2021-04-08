@@ -764,9 +764,10 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
-        triangle_count = cugraph.community.triangle_count.triangles(G)
+        triangle_count = cugraph.community.triangle_count.triangles(G)/3 # consistent with graph-tool
         degree_df = G.in_degree()
-        triad_count = sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 0]['degree'].to_pandas()])
+         # consistent with graph-tool
+        triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 0]['degree'].to_pandas()])
         if triad_count > 0:
             transitivity = 2 * triangle_count/triad_count
         else:
