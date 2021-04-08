@@ -199,6 +199,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             bounds = [s_range[min_idx-1], s_range[min_idx+1]]
         else:
             no_local = True
+        if no_local:
             optimised_s = s_range[min_idx]
 
     # Local optimisation around global optimum
