@@ -324,7 +324,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 #                                         G_df = edge_df,
 #                                         use_gpu = use_gpu)
 #                else:
-                G = constructNetwork(sample_names, sample_names, edge_list, -1,
+                G = constructNetwork(sample_names, sample_names, 1, -1,
                                      summarise=False,
                                      edge_list=False,
                                      G_df = edge_df,
@@ -337,7 +337,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                 else:
                     # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
                     # We add to the cuDF, and then reconstruct the network instead
-                    edge_list = list(edge_list_df[:,['source','destination']].to_records(index=False))
+                    edge_list = list(edge_df[['source','destination']].itertuples(index=False, name=None))
+                    print("Edge list type is " + str(type(edge_list)) + " Element type: " + str(type(edge_list[0])))
                     G.add_edge_list(edge_list)
                     print('Num edges: ' + str(G.num_edges))
                     edge_list = []
