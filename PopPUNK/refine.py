@@ -307,21 +307,19 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
               bar_format="{bar}| {n_fmt}/{total_fmt}",
               ncols=40,
               position=thread_idx) as pbar:
-        for idx in edge_list_df.idx_list.unique():
+        for idx in edge_list_df['idx_list'].unique():
             # Create DF
             edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
             # At first offset, make a new network, otherwise just add the new edges
             if prev_idx == 0:
                 print('Edge list length: ' + str(len(edge_list)))
                 if use_gpu:
-                    print('Num edges: ' + str(G.number_of_edges()))
                     G = constructNetwork(sample_names, sample_names, 1, -1,
                                          summarise=False,
                                          edge_list=False,
                                          G_df = edge_df,
                                          use_gpu = use_gpu)
                 else:
-                    print('Num edges: ' + str(G.num_edges()))
                     edge_list = list(edge_list_df[:,['source','destination']].to_records(index=False))
                     G = constructNetwork(sample_names, sample_names, edge_list, -1,
                                          summarise=False,
