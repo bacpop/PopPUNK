@@ -294,7 +294,10 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     prev_idx = 0
     
     # create data frame
-    edge_list_df = pd.DataFrame()
+    if use_gpu:
+        edge_list_df = cudf.DataFrame()
+    else:
+        edge_list_df = pd.DataFrame()
     edge_list_df['source'] = i_vec
     edge_list_df['destination'] = j_vec
     edge_list_df['idx_list'] = idx_vec
@@ -306,7 +309,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
               position=thread_idx) as pbar:
         for idx in edge_list_df.idx_list.unique():
             # Create DF
-            edge_df = edge_list_df[edge_list_df['idx_list']==idx,['source','destination']]
+            edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
             # At first offset, make a new network, otherwise just add the new edges
             if prev_idx == 0:
                 print('Edge list length: ' + str(len(edge_list)))
