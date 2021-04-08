@@ -301,13 +301,17 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     edge_list_df['source'] = i_vec
     edge_list_df['destination'] = j_vec
     edge_list_df['idx_list'] = idx_vec
+    if use_gpu:
+        idx_values = edge_list_df.to_pandas().idx_list.unique()
+    else:
+        idx_values = edge_list_df.idx_list.unique()
 
     # Grow a network
     with tqdm(total=(idx_vec[-1] + 1),
               bar_format="{bar}| {n_fmt}/{total_fmt}",
               ncols=40,
               position=thread_idx) as pbar:
-        for idx in edge_list_df['idx_list'].unique():
+        for idx in idx_values:
             # Create DF
             edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
             # At first offset, make a new network, otherwise just add the new edges
