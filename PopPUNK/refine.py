@@ -324,7 +324,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                                          G_df = edge_df,
                                          use_gpu = use_gpu)
                 else:
-                    edge_list = list(edge_list_df[:,['source','destination']].to_records(index=False))
+                    edge_list = list(edge_list_df[['source','destination']].to_records(index=False))
                     G = constructNetwork(sample_names, sample_names, edge_list, -1,
                                          summarise=False,
                                          edge_list=True,
