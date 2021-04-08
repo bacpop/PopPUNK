@@ -179,7 +179,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             mean1 = (optimal_x + delta, delta * gradient)
 
     else:
-        global_grid_resolution = 3 # Seems to work
+        global_grid_resolution = 40 # Seems to work
         s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
         i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
