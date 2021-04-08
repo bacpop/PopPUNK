@@ -229,14 +229,14 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
 import time
 
-def expand_cugraph_network(G, extra_edges):
+def expand_cugraph_network(G, G_extra_df):
     """Reconstruct a cugraph network with additional edges.
     
     Args:
         G (cugraph network)
             Original cugraph network
-        extra_edges (list of tuples)
-            List of edges to add
+        extra_edges (cudf dataframe)
+            Data frame of edges to add
 
     Returns:
         G (cugraph network)
@@ -246,15 +246,10 @@ def expand_cugraph_network(G, extra_edges):
     if not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
-    G_current_df = G.view_edge_list()
-    G_current_df.columns = ['source','destination']
-    existing_df_time = time.time()
-    G_extra_df = cudf.DataFrame(extra_edges, columns =['source','destination'])
-    G_df = G_current_df.append(G_extra_df)
-    make_df_time = time.time()
+    G_df = G.view_edge_list()
+    G_df = G_df.append(G_extra_df)
     G = cugraph.Graph()
     G.from_cudf_edgelist(G_df)
-    make_graph_time = time.time()
     return G
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
@@ -297,42 +292,57 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     scores = []
     edge_list = []
     prev_idx = 0
+    
+    # create data frame
+    edge_list_df = pd.DataFrame()
+    edge_list_df['source'] = i_vec
+    edge_list_df['destination'] = j_vec
+    edge_list_df['idx_list'] = idx_vec
+
     # Grow a network
     with tqdm(total=(idx_vec[-1] + 1),
               bar_format="{bar}| {n_fmt}/{total_fmt}",
               ncols=40,
               position=thread_idx) as pbar:
-        for i, j, idx in zip(i_vec, j_vec, idx_vec):
-            if idx > prev_idx:
-                # At first offset, make a new network, otherwise just add the new edges
-                if prev_idx == 0:
-                    print('Edge list length: ' + str(len(edge_list)))
+        for idx in edge_list_df.idx_list.unique():
+            # Create DF
+            edge_df = edge_list_df[edge_list_df['idx_list']==idx,['source','destination']]
+            # At first offset, make a new network, otherwise just add the new edges
+            if prev_idx == 0:
+                print('Edge list length: ' + str(len(edge_list)))
+                if use_gpu:
+                    print('Num edges: ' + str(G.number_of_edges()))
+                    G = constructNetwork(sample_names, sample_names, 1, -1,
+                                         summarise=False,
+                                         edge_list=False,
+                                         G_df = edge_df,
+                                         use_gpu = use_gpu)
+                else:
+                    print('Num edges: ' + str(G.num_edges()))
+                    edge_list = list(edge_list_df[:,['source','destination']].to_records(index=False))
                     G = constructNetwork(sample_names, sample_names, edge_list, -1,
                                          summarise=False,
                                          edge_list=True,
-                                         G_df = potential_edges_df,
+                                         G_df = edge_df,
                                          use_gpu = use_gpu)
-                    if use_gpu:
-                        print('Num edges: ' + str(G.number_of_edges()))
-                    else:
-                        print('Num edges: ' + str(G.num_edges()))
+            else:
+                print('Edge list length: ' + str(len(edge_list)))
+                if use_gpu:
+                    G = expand_cugraph_network(G, edge_df)
+                    print('Num edges: ' + str(G.number_of_edges()))
                 else:
-                    print('Edge list length: ' + str(len(edge_list)))
-                    if use_gpu:
-                        G = expand_cugraph_network(G, edge_list)
-                        print('Num edges: ' + str(G.number_of_edges()))
-                    else:
-                        # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
-                        # We add to the cuDF, and then reconstruct the network instead
-                        G.add_edge_list(edge_list)
-                        print('Num edges: ' + str(G.num_edges))
-                # Add score into vector for any offsets passed (should usually just be one)
-                for s in range(prev_idx, idx):
-                    scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
-                    pbar.update(1)
-                prev_idx = idx
-                edge_list = []
-            edge_list.append((i, j))
+                    # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
+                    # We add to the cuDF, and then reconstruct the network instead
+                    edge_list = list(edge_list_df[:,['source','destination']].to_records(index=False))
+                    G.add_edge_list(edge_list)
+                    print('Num edges: ' + str(G.num_edges))
+                    edge_list = []
+            # Add score into vector for any offsets passed (should usually just be one)
+            for s in range(prev_idx, idx):
+                scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
+                pbar.update(1)
+            prev_idx = idx
+
 
         # Add score for final offset(s) at end of loop
         if prev_idx == 0:
