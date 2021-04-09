@@ -318,17 +318,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
         for idx in idx_values:
             # Create DF
             edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
-            print('Edge df: ' + str(edge_df))
             # At first offset, make a new network, otherwise just add the new edges
             if prev_idx == 0:
-#                if use_gpu:
-#                    G = constructNetwork(sample_names, sample_names, 1, -1,
-#                                         summarise=False,
-#                                         edge_list=False,
-#                                         G_df = edge_df,
-#                                         use_gpu = use_gpu)
-#                else:
-                G = constructNetwork(sample_names, sample_names, 1, -1,
+                G = constructNetwork(sample_names, sample_names, 1, 1,
                                      summarise=False,
                                      edge_list=False,
                                      G_df = edge_df,
@@ -348,7 +340,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                 scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
                 pbar.update(1)
             prev_idx = idx
-
 
         # Add score for final offset(s) at end of loop
         if prev_idx == 0:

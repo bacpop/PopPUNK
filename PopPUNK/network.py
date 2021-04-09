@@ -600,9 +600,10 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     elif sparse_input is not None:
         if use_gpu and G_df is None:
             G_df = cudf.DataFrame()
+            G_df['source'] = sparse_input.row
+            G_df['destination'] =  sparse_input.col
         elif G_df is None:
             G_df = pd.DataFrame()
-        if G_df is None:
             G_df['source'] = sparse_input.row
             G_df['destination'] =  sparse_input.col
         G_df['weights'] = sparse_input.data
@@ -610,7 +611,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     else:
         if use_gpu and G_df is None:
             # Add node indices to DF
-            edge_array = cupy.array(list(listDistInts(rlist, qlist, self = self_comparison)),
+            edge_array = cupy.array(list(
+                                        listDistInts(rlist,
+                                                     qlist,
+                                                     self = self_comparison)
+                                    ),
                                     dtype = np.int32)
             array_time = time.time()
             edge_gpu_matrix = cuda.to_device(edge_array)
