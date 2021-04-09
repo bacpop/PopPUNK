@@ -37,6 +37,7 @@ except ImportError as e:
 
 from .network import constructNetwork
 from .network import networkSummary
+from .network import add_self_loop
 
 from .utils import transformLine
 from .utils import decisionBoundary
@@ -246,14 +247,14 @@ def expand_cugraph_network(G, G_extra_df):
     if not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
+    G_vertex_count = G.number_of_vertices()-1
     G_original_df = G.view_edge_list()
     if 'src' in G_original_df.columns:
         G_original_df.columns = ['source','destination']
     G_df = G_original_df.append(G_extra_df)
     del G_original_df
     del G_extra_df
-    G = cugraph.Graph()
-    G.from_cudf_edgelist(G_df)
+    G = add_self_loop(G_df, G_vertex_count, weights = False, renumber = False)
     return G
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
