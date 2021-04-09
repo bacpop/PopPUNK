@@ -741,6 +741,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     return G
 
+def get_cugraph_triangles(G)
+    A = view_adj_list(G)
+    triangle_count = cp.trace(cp.multiply(A, cp.multiply(A, A)))/6
+    return triangle_count
+
 def networkSummary(G, calc_betweenness=True, use_gpu = False):
     """Provides summary values about the network
 
@@ -772,6 +777,8 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         # consistent with graph-tool for small graphs - triangle counts differ for large graphs
         # could reflect issue https://github.com/rapidsai/cugraph/issues/1043
         triangle_count = cugraph.community.triangle_count.triangles(G)/3
+        alt_triangle_count = get_cugraph_triangles(G)
+        print("Old triangles: " + str(triangle_count) + "\tNew triangles: " + str(alt_triangle_count))
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
