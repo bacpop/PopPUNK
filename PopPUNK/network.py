@@ -750,56 +750,26 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     return G
 
 def get_cugraph_triangles(G):
+    """Counts the number of triangles in a cugraph
+    network. Can be removed when the cugraph issue
+    https://github.com/rapidsai/cugraph/issues/1043 is fixed.
+
+    Args:
+        G (cugraph network)
+            Network to be analysed
+    
+    Returns:
+        triangle_count (int)
+            Count of triangles in graph
+    """
     import cupy as cp
-    import numpy
-    import scipy.linalg as la
     nlen = G.number_of_vertices()
-    print("Number of nodes: " + str(nlen))
-    print("Number of edges: " + str(G.number_of_edges()))
-    df_start_time = time.time()
     df = G.view_edge_list()
     df['values'] = 1
-    #print('Source max: ' + str(df['src'].max())  + ' joint max: ' + str(max(df['src'].max(),df['dst'].max())))
-    #node_indices = cp.arange(0,max(df['src'].max(),df['dst'].max()))
     A = cp.full((nlen, nlen), 0, dtype = int)
     A[df.src.values, df.dst.values] = 1
-    #print("DF is : " + str(df) + "with shape " + str(df.shape[0]))
-    #A = df.pivot(index='src',columns='dst').fillna(0).values#.reindex(columns=node_indices, index=node_indices)
-    print("A dim: " + str(A.shape))
     A = cp.maximum( A, A.transpose() )
-    print(A)
-    #for i in range(0,df.shape[0]):
-    #    A[df['src'].iloc[i], df['dst'].iloc[i]] = 1
-    #    A[df['dst'].iloc[i], df['src'].iloc[i]] = 1
-    df_end_time = time.time()
-    print("Df time: " + str(df_end_time - df_start_time))
-    print("Sum of adj matrix:  " + str(A.sum()))
-    print("A:\n" + str(A))
-    triangle_count = triangles(A)
-    print("Triangle count is " + str(triangle_count))
-    triangle_count = alt_triangles(A)
-    print("Second triangle count is " + str(triangle_count))
-    return triangle_count
-
-def triangles(M):
-    # from https://www.math.ubc.ca/~pwalls/math-python/linear-algebra/applications/#graph-theory
-    import cupy as cp
-    import cupy.linalg as la
-    tri_start = time.time()
-    A = (M + M.T)/2
-    eigvals = la.eigvalsh(A)
-    eigvals = eigvals.real
-    triangle_count = int(cp.around(cp.sum(eigvals**3)/6,0))
-    tri_end = time.time()
-    print("Triangle time: " + str(tri_end - tri_start))
-    return triangle_count
-
-def alt_triangles(M):
-    import cupy as cp
-    tri_start = time.time()
     triangle_count = int(cp.around(cp.trace(cp.matmul(M, cp.matmul(M, M)))/6,0))
-    tri_end = time.time()
-    print("Triangle2 time: " + str(tri_end - tri_start))
     return triangle_count
 
 def networkSummary(G, calc_betweenness=True, use_gpu = False):
