@@ -769,7 +769,7 @@ def get_cugraph_triangles(G):
     A = cp.full((nlen, nlen), 0, dtype = int)
     A[df.src.values, df.dst.values] = 1
     A = cp.maximum( A, A.transpose() )
-    triangle_count = int(cp.around(cp.trace(cp.matmul(M, cp.matmul(M, M)))/6,0))
+    triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
     return triangle_count
 
 def networkSummary(G, calc_betweenness=True, use_gpu = False):
