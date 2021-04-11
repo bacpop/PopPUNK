@@ -757,12 +757,20 @@ def get_cugraph_triangles(G):
     print("Number of nodes: " + str(nlen))
     print("Number of edges: " + str(G.number_of_edges()))
     df_start_time = time.time()
-    A = cp.full((nlen, nlen), 0, dtype = int)
     df = G.view_edge_list()
-    print("DF is : " + str(df) + "with shape " + str(df.shape[0]))
-    for i in range(0,df.shape[0]):
-        A[df['src'].iloc[i], df['dst'].iloc[i]] = 1
-        A[df['dst'].iloc[i], df['src'].iloc[i]] = 1
+    df['values'] = 1
+    #print('Source max: ' + str(df['src'].max())  + ' joint max: ' + str(max(df['src'].max(),df['dst'].max())))
+    #node_indices = cp.arange(0,max(df['src'].max(),df['dst'].max()))
+    A = cp.full((nlen, nlen), 0, dtype = int)
+    A[df.src.values, df.dst.values] = 1
+    #print("DF is : " + str(df) + "with shape " + str(df.shape[0]))
+    #A = df.pivot(index='src',columns='dst').fillna(0).values#.reindex(columns=node_indices, index=node_indices)
+    print("A dim: " + str(A.shape))
+    A = cp.maximum( A, A.transpose() )
+    print(A)
+    #for i in range(0,df.shape[0]):
+    #    A[df['src'].iloc[i], df['dst'].iloc[i]] = 1
+    #    A[df['dst'].iloc[i], df['src'].iloc[i]] = 1
     df_end_time = time.time()
     print("Df time: " + str(df_end_time - df_start_time))
     print("Sum of adj matrix:  " + str(A.sum()))
