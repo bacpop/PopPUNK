@@ -802,10 +802,8 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         # consistent with graph-tool for small graphs - triangle counts differ for large graphs
         # could reflect issue https://github.com/rapidsai/cugraph/issues/1043
-        triangle_count = cugraph.community.triangle_count.triangles(G)/3
-        alt_triangle_count = get_cugraph_triangles(G)
-        print("Old triangles: " + str(triangle_count) + "\tNew triangles: " + str(alt_triangle_count))
-        print("Number of vertices: " + str(G.number_of_vertices()))
+#        triangle_count = cugraph.community.triangle_count.triangles(G)/3
+        triangle_count = get_cugraph_triangles(G)
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
