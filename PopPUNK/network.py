@@ -591,6 +591,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
             edge_array = cupy.array(assignments, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
+            print("GPU mat: " + str(edge_array))
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
         else:
             G_df = pd.DataFrame(assignments, columns = ['source','destination'])
@@ -707,6 +708,13 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
         del G_df
+        print("Number of vertices should be: " + str(max_in_vertex_labels))
+        print("Number of vertices is: " + str(G.number_of_vertices()))
+        if G.number_of_edges() == 22943:
+            print("Found small network")
+            save_network(G,"small_network_correct_count",False,use_gpu=True)
+        elif G.number_of_edges() == 23939:
+            save_network(G,"large_network_incorrect_count",False,use_gpu=True)
         graph_time = time.time()
         print("Edge time: " + str(edge_time - start_time) + "\tGraph time: " + str(graph_time - edge_time))
     else:
@@ -741,9 +749,49 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     return G
 
-def get_cugraph_triangles(G)
-    A = view_adj_list(G)
-    triangle_count = cp.trace(cp.multiply(A, cp.multiply(A, A)))/6
+def get_cugraph_triangles(G):
+    import cupy as cp
+    import numpy
+    import scipy.linalg as la
+    nlen = G.number_of_vertices()
+    print("Number of nodes: " + str(nlen))
+    print("Number of edges: " + str(G.number_of_edges()))
+    df_start_time = time.time()
+    A = cp.full((nlen, nlen), 0, dtype = int)
+    df = G.view_edge_list()
+    print("DF is : " + str(df) + "with shape " + str(df.shape[0]))
+    for i in range(0,df.shape[0]):
+        A[df['src'].iloc[i], df['dst'].iloc[i]] = 1
+        A[df['dst'].iloc[i], df['src'].iloc[i]] = 1
+    df_end_time = time.time()
+    print("Df time: " + str(df_end_time - df_start_time))
+    print("Sum of adj matrix:  " + str(A.sum()))
+    print("A:\n" + str(A))
+    triangle_count = triangles(A)
+    print("Triangle count is " + str(triangle_count))
+    triangle_count = alt_triangles(A)
+    print("Second triangle count is " + str(triangle_count))
+    return triangle_count
+
+def triangles(M):
+    # from https://www.math.ubc.ca/~pwalls/math-python/linear-algebra/applications/#graph-theory
+    import cupy as cp
+    import cupy.linalg as la
+    tri_start = time.time()
+    A = (M + M.T)/2
+    eigvals = la.eigvalsh(A)
+    eigvals = eigvals.real
+    triangle_count = int(cp.around(cp.sum(eigvals**3)/6,0))
+    tri_end = time.time()
+    print("Triangle time: " + str(tri_end - tri_start))
+    return triangle_count
+
+def alt_triangles(M):
+    import cupy as cp
+    tri_start = time.time()
+    triangle_count = int(cp.around(cp.trace(cp.matmul(M, cp.matmul(M, M)))/6,0))
+    tri_end = time.time()
+    print("Triangle2 time: " + str(tri_end - tri_start))
     return triangle_count
 
 def networkSummary(G, calc_betweenness=True, use_gpu = False):
@@ -779,6 +827,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         triangle_count = cugraph.community.triangle_count.triangles(G)/3
         alt_triangle_count = get_cugraph_triangles(G)
         print("Old triangles: " + str(triangle_count) + "\tNew triangles: " + str(alt_triangle_count))
+        print("Number of vertices: " + str(G.number_of_vertices()))
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
