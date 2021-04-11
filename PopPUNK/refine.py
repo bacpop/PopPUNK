@@ -334,7 +334,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                     # We add to the cuDF, and then reconstruct the network instead
                     edge_list = list(edge_df[['source','destination']].itertuples(index=False, name=None))
                     G.add_edge_list(edge_list)
-                    print('Num edges: ' + str(G.num_edges))
                     edge_list = []
             # Add score into vector for any offsets passed (should usually just be one)
             for s in range(prev_idx, idx):
@@ -350,14 +349,11 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                                  G_df = potential_edges_df,
                                  use_gpu = use_gpu)
         else:
-            print('Edge list length: ' + str(len(edge_list)))
             if use_gpu:
                 G = expand_cugraph_network(G, edge_list)
-                print('Num edges: ' + str(G.number_of_edges()))
             else:
                 # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
                 G.add_edge_list(edge_list)
-                print('Num edges: ' + str(G.num_edges()))
         for s in range(prev_idx, len(s_range)):
             scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
             pbar.update(1)
@@ -433,7 +429,6 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     # Return score
     score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
     end_time = time.time()
-    print("Time: " + str(end_time - start_time) + "\nAssign time: " + str(assign_time - start_time) + "\nConstruct time: " + str(construct_time - assign_time) + "\nScore time: " + str(end_time - construct_time) + "\n")
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
