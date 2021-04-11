@@ -591,7 +591,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
             edge_array = cupy.array(assignments, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
-            print("GPU mat: " + str(edge_array))
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
         else:
             G_df = pd.DataFrame(assignments, columns = ['source','destination'])
@@ -623,7 +622,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             cuda_time = time.time()
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
             make_initial_df = time.time()
-            print("Array time: " + str(array_time - start_time) + "\tCuda time: " + str(cuda_time - array_time) + "\tInitial DF: " + str(make_initial_df - cuda_time))
         elif G_df is None:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)),
@@ -708,15 +706,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
         del G_df
-        print("Number of vertices should be: " + str(max_in_vertex_labels))
-        print("Number of vertices is: " + str(G.number_of_vertices()))
-        if G.number_of_edges() == 22943:
-            print("Found small network")
-            save_network(G,"small_network_correct_count",False,use_gpu=True)
-        elif G.number_of_edges() == 23939:
-            save_network(G,"large_network_incorrect_count",False,use_gpu=True)
-        graph_time = time.time()
-        print("Edge time: " + str(edge_time - start_time) + "\tGraph time: " + str(graph_time - edge_time))
     else:
         # build the graph
         G = gt.Graph(directed = False)
