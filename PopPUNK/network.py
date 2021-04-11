@@ -803,13 +803,13 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         # consistent with graph-tool for small graphs - triangle counts differ for large graphs
         # could reflect issue https://github.com/rapidsai/cugraph/issues/1043
 #        triangle_count = cugraph.community.triangle_count.triangles(G)/3
-        triangle_count = get_cugraph_triangles(G)
+        triangle_count = 3*get_cugraph_triangles(G)
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
         print("Triangles: " + str(triangle_count) + "\ttriads: " + str(triad_count) + "\tedges: " + str(G.number_of_edges()))
         if triad_count > 0:
-            transitivity = 2 * triangle_count/triad_count
+            transitivity = triangle_count/triad_count
         else:
             transitivity = 0.0
     else:
