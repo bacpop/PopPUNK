@@ -715,9 +715,9 @@ class RefineFit(ClusterFit):
                 A file defining an initial fit, rather than one from ``--fit-model``.
                 See documentation for format.
                 (default = None).
-            indiv_refine (bool)
-                Run refinement for core and accessory distances separately
-                (default = False).
+            indiv_refine (str)
+                Run refinement for core or accessory distances separately
+                (default = None).
             unconstrained (bool)
                 If True, search in 2D and change the slope of the boundary
             score_idx (int)
@@ -787,21 +787,24 @@ class RefineFit(ClusterFit):
         # Try and do a 1D refinement for both core and accessory
         self.core_boundary = self.optimal_x
         self.accessory_boundary = self.optimal_y
-        if indiv_refine:
+        if indiv_refine is not None:
             try:
-                sys.stderr.write("Refining core and accessory separately\n")
-                # optimise core distance boundary
-                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
-                  refineFit(X/self.scale,
-                            sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
-                            use_gpu = use_gpu)
-                # optimise accessory distance boundary
-                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
-                  refineFit(X/self.scale,
-                            sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
-                            use_gpu = use_gpu)
+                if indiv_refine in ['both','core']:
+                    sys.stderr.write("Refining core distances separately\n")
+                    # optimise core distance boundary
+                    start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
+                      refineFit(X/self.scale,
+                                sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
+                                slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
+                                use_gpu = use_gpu)
+                if indiv_refine in ['both','accessory']:
+                    sys.stderr.write("Refining accessory distances separately\n")
+                    # optimise accessory distance boundary
+                    start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
+                      refineFit(X/self.scale,
+                                sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
+                                slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
+                                use_gpu = use_gpu)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)

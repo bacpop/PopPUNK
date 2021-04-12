@@ -135,7 +135,7 @@ def get_options():
             help='Optimise both boundary gradient and intercept',
             default=False, action='store_true')
     refineMode.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
-            choices=['both', 'core', 'accessory'], default=False)
+            choices=['both', 'core', 'accessory'], default=None)
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -510,36 +510,32 @@ def main():
                                                      externalClusterCSV = args.external_clustering,
                                                      use_gpu = args.gpu_graph)}
 
+        # Save network
+        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
+
         # Write core and accessory based clusters, if they worked
         if model.indiv_fitted:
             indivNetworks = {}
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                indivAssignments = model.assign(distMat, slope)
-                indivNetworks[dist_type] = \
-                    constructNetwork(refList,
-                                     queryList,
-                                     indivAssignments,
-                                     model.within_label,
-                                     use_gpu = args.gpu_graph)
-                isolateClustering[dist_type] = \
-                    printClusters(indivNetworks[dist_type],
-                                  refList,
-                                  output + "/" + os.path.basename(output) + "_" + dist_type,
-                                  externalClusterCSV = args.external_clustering,
-                                  use_gpu = args.gpu_graph)
-                save_network(indivNetworks[dist_type],
-                                prefix = output,
-                                suffix = '_graph',
-                                use_gpu = args.gpu_graph)
-
-            if args.indiv_refine == 'core':
-                fit_type = 'core'
-                genomeNetwork = indivNetworks['core']
-            elif args.indiv_refine == 'accessory':
-                fit_type = 'accessory'
-                genomeNetwork = indivNetworks['accessory']
-
-        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
+                if ((dist_type == 'core') and (args.indiv_refine in ['both','core']) \
+                        or (dist_type == 'accessory') and (args.indiv_refine in ['both','accessory'])):
+                    indivAssignments = model.assign(distMat, slope)
+                    indivNetworks[dist_type] = \
+                        constructNetwork(refList,
+                                         queryList,
+                                         indivAssignments,
+                                         model.within_label,
+                                         use_gpu = args.gpu_graph)
+                    isolateClustering[dist_type] = \
+                        printClusters(indivNetworks[dist_type],
+                                      refList,
+                                      output + "/" + os.path.basename(output) + "_" + dist_type,
+                                      externalClusterCSV = args.external_clustering,
+                                      use_gpu = args.gpu_graph)
+                    save_network(indivNetworks[dist_type],
+                                    prefix = output,
+                                    suffix = '_graph',
+                                    use_gpu = args.gpu_graph)
 
         #******************************#
         #*                            *#
