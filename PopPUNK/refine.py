@@ -302,7 +302,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     scores = []
     edge_list = []
     prev_idx = 0
-    
+
     # create data frame
     if use_gpu:
         edge_list_df = cudf.DataFrame()
@@ -345,23 +345,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                 scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
                 pbar.update(1)
             prev_idx = idx
-
-        # Add score for final offset(s) at end of loop
-        if prev_idx == 0:
-            G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                 summarise=False,
-                                 edge_list=True,
-                                 G_df = potential_edges_df,
-                                 use_gpu = use_gpu)
-        else:
-            if use_gpu:
-                G = expand_cugraph_network(G, edge_list)
-            else:
-                # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
-                G.add_edge_list(edge_list)
-        for s in range(prev_idx, len(s_range)):
-            scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
-            pbar.update(1)
 
     return(scores)
 

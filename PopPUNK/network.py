@@ -754,7 +754,6 @@ def get_cugraph_triangles(G):
     import cupy as cp
     nlen = G.number_of_vertices()
     df = G.view_edge_list()
-    df['values'] = 1
     A = cp.full((nlen, nlen), 0, dtype = int)
     A[df.src.values, df.dst.values] = 1
     A = cp.maximum( A, A.transpose() )
@@ -819,7 +818,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
                     subgraph = cugraph.subgraph(G, component_vertices)
-                    max_betweeness_k = 1000
+                    max_betweeness_k = 100
                     if len(component_vertices) >= max_betweeness_k:
                         component_betweenness = cugraph.betweenness_centrality(subgraph,
                                                                                 k = max_betweeness_k,
