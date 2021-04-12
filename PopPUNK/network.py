@@ -754,7 +754,7 @@ def get_cugraph_triangles(G):
     import cupy as cp
     nlen = G.number_of_vertices()
     df = G.view_edge_list()
-    A = cp.full((nlen, nlen), 0, dtype = int)
+    A = cp.full((nlen, nlen), 0, dtype = cp.int8)
     A[df.src.values, df.dst.values] = 1
     A = cp.maximum( A, A.transpose() )
     triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
