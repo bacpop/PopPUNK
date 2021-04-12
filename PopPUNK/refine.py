@@ -301,7 +301,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 
     scores = []
     edge_list = []
-    prev_idx = 0
+    prev_idx = -1
 
     # create data frame
     if use_gpu:
@@ -325,7 +325,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
             # Create DF
             edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
             # At first offset, make a new network, otherwise just add the new edges
-            if prev_idx == 0:
+            if prev_idx == -1:
                 G = constructNetwork(sample_names, sample_names, 1, 1,
                                      summarise=False,
                                      edge_list=False,
