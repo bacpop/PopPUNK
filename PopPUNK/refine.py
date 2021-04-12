@@ -293,8 +293,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     if use_gpu and not gpu_lib:
         sys.stderr.write('Unable to load GPU libraries; exiting\n')
         sys.exit(1)
-        
-        # Set memory management for large networks
+    
+    # Set memory management for large networks
+    if use_gpu:
         cudf.set_allocator("managed")
 
     scores = []
