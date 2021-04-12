@@ -95,6 +95,15 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
                       + "," + "{:.2f}".format(start_point[1]) + ")\n")
 
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+      sys.stderr.write('Unable to load GPU libraries; exiting\n')
+      sys.exit(1)
+
+    # Set memory management for large networks
+    if use_gpu:
+      cudf.set_allocator("managed")
+
     # calculate distance between start point and means if none is supplied
     if min_move is None:
         min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5
@@ -289,14 +298,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
             -1 * network score for each of x_range.
             Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
-    # load CUDA libraries
-    if use_gpu and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
-    
-    # Set memory management for large networks
-    if use_gpu:
-        cudf.set_allocator("managed")
 
     scores = []
     edge_list = []
