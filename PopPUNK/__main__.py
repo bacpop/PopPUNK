@@ -289,6 +289,10 @@ def main():
 
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
+    
+    # Set GPU device
+    if args.gpu_graph or args.gpu_sketch or args.gpu_dist:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.deviceid
 
     #******************************#
     #*                            *#
