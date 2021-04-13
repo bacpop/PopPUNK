@@ -27,7 +27,7 @@ import dendropy
 try:
     import cugraph
     import cudf
-    import cupy
+    import cupy as cp
     from numba import cuda
     gpu_lib = True
 except ImportError as e:
@@ -505,8 +505,6 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
     else:
         return source_ids, target_ids
 
-import time
-
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
@@ -584,7 +582,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         raise RuntimeError("Cannot construct network from edge list and sparse matrix")
 
     # identify edges
-    start_time = time.time()
     connections = []
     if edge_list:
         if use_gpu:
@@ -596,7 +593,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df = pd.DataFrame(assignments, columns = ['source','destination'])
         if weights is not None:
             G_df['weights'] = weights
-        make_initial_df = time.time()
     elif sparse_input is not None:
         if use_gpu and G_df is None:
             G_df = cudf.DataFrame()
@@ -607,7 +603,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df['source'] = sparse_input.row
             G_df['destination'] =  sparse_input.col
         G_df['weights'] = sparse_input.data
-        make_initial_df = time.time()
     else:
         if use_gpu and G_df is None:
             # Add node indices to DF
@@ -617,16 +612,12 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                                                      self = self_comparison)
                                     ),
                                     dtype = np.int32)
-            array_time = time.time()
             edge_gpu_matrix = cuda.to_device(edge_array)
-            cuda_time = time.time()
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
-            make_initial_df = time.time()
         elif G_df is None:
             # Add node indices to DF
             G_df = pd.DataFrame(list(listDistInts(rlist, qlist, self = self_comparison)),
                                 columns = ['source','destination'])
-        make_initial_df = time.time()
         # Add further information to DF
         if 'src' in G_df.columns:
             G_df.rename(columns={'src': 'source', 'dst': 'destination'})
@@ -652,8 +643,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         # Convert to tuples and delete the unnecessary data frame
         connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
         del G_df
-
-    edge_time = time.time()
 
     # read previous graph
     if previous_network is not None:
@@ -751,7 +740,6 @@ def get_cugraph_triangles(G):
         triangle_count (int)
             Count of triangles in graph
     """
-    import cupy as cp
     nlen = G.number_of_vertices()
     df = G.view_edge_list()
     A = cp.full((nlen, nlen), 0, dtype = cp.int32)
@@ -790,6 +778,7 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         # consistent with graph-tool for small graphs - triangle counts differ for large graphs
         # could reflect issue https://github.com/rapidsai/cugraph/issues/1043
+        # this command can be restored once the above issue is fixed - scheduled for cugraph 0.20
 #        triangle_count = cugraph.community.triangle_count.triangles(G)/3
         triangle_count = 3*get_cugraph_triangles(G)
         degree_df = G.in_degree()

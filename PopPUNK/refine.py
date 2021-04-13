@@ -237,8 +237,6 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
     return start_point, optimal_x, optimal_y, min_move, max_move
 
-import time
-
 def expand_cugraph_network(G, G_extra_df):
     """Reconstruct a cugraph network with additional edges.
     
@@ -348,8 +346,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 
     return(scores)
 
-import time
-
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
                slope=2, score_idx=0, potential_edges_df=None, cpus=1, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
@@ -394,7 +390,6 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
 
     # Set up boundary
-    start_time = time.time()
     new_intercept = transformLine(s, start_point, mean1)
     if slope == 2:
         x_max, y_max = decisionBoundary(new_intercept, gradient)
@@ -407,16 +402,13 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
 
     # Make network
     boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
-    assign_time = time.time()
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1,
                             summarise = False,
                             G_df = potential_edges_df,
                             use_gpu = use_gpu)
-    construct_time = time.time()
 
     # Return score
     score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
-    end_time = time.time()
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
