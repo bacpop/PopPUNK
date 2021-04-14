@@ -130,6 +130,9 @@ def get_options():
     refinementGroup.add_argument('--score-idx',
             help='Index of score to use [default = 0]',
             type=int, default = 0, choices=[0, 1, 2])
+    refinementGroup.add_argument('--betweenness-sample',
+            help='Number of sequences used to estimate betweeness with a GPU [default = 100]',
+            type=int, default = 100)
     refineMode = refinementGroup.add_mutually_exclusive_group()
     refineMode.add_argument('--unconstrained',
             help='Optimise both boundary gradient and intercept',
@@ -419,6 +422,7 @@ def main():
                                             args.unconstrained,
                                             args.score_idx,
                                             args.no_local,
+                                            args.betweenness_sample,
                                             args.gpu_graph)
                 model = new_model
             elif args.fit_model == "threshold":
@@ -466,6 +470,7 @@ def main():
                                  assignments,
                                  model.within_label,
                                  weights = weights,
+                                 betweenness_sample = args.betweenness_sample,
                                  use_gpu = args.gpu_graph)
         else:
             # Lineage fit requires some iteration
@@ -484,6 +489,7 @@ def main():
                                         0,
                                         edge_list = True,
                                         weights = weights,
+                                        betweenness_sample = args.betweenness_sample,
                                         use_gpu = args.gpu_graph
                                        )
                 lineage_clusters[rank] = \
@@ -529,6 +535,7 @@ def main():
                                          queryList,
                                          indivAssignments,
                                          model.within_label,
+                                         betweenness_sample = args.betweenness_sample,
                                          use_gpu = args.gpu_graph)
                     isolateClustering[dist_type] = \
                         printClusters(indivNetworks[dist_type],

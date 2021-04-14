@@ -691,7 +691,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False, use_gpu = False):
+            unconstrained = False, score_idx = 0, no_local = False, betweenness_sample = 100, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -726,6 +726,9 @@ class RefineFit(ClusterFit):
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
+            betweenness_sample (int)
+                Number of sequences per component used to estimate betweenness using
+                a GPU. Smaller numbers are faster but less precise [default = 100]
             use_gpu (bool)
                 Whether to use cugraph for graph analyses
                 
@@ -781,7 +784,8 @@ class RefineFit(ClusterFit):
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                     slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = self.threads, use_gpu = use_gpu)
+                    no_local = no_local, num_processes = self.threads, betweenness_sample = betweenness_sample,
+                    use_gpu = use_gpu)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
@@ -796,7 +800,7 @@ class RefineFit(ClusterFit):
                       refineFit(X/self.scale,
                                 sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                                 slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
-                                use_gpu = use_gpu)
+                                betweenness_sample = betweenness_sample, use_gpu = use_gpu)
                 if indiv_refine in ['both','accessory']:
                     sys.stderr.write("Refining accessory distances separately\n")
                     # optimise accessory distance boundary
@@ -804,7 +808,7 @@ class RefineFit(ClusterFit):
                       refineFit(X/self.scale,
                                 sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
                                 slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
-                                use_gpu = use_gpu)
+                                betweenness_sample = betweenness_sample, use_gpu = use_gpu)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)

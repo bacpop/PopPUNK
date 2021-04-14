@@ -45,7 +45,8 @@ from .utils import listDistInts
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
-              unconstrained = False, no_local = False, num_processes = 1, use_gpu = False):
+              unconstrained = False, no_local = False, num_processes = 1,
+              betweenness_sample = 100, use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -79,6 +80,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         num_processes (int)
             Number of threads to use in the global optimisation step.
             (default = 1)
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -142,7 +146,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                    x_range = x_max,
                                    y_range = y_max,
                                    score_idx = score_idx,
-                                   potential_edges_df = potential_edges_df,
+                                   betweenness_sample = betweenness_sample,
                                    use_gpu = True),
                            range(global_grid_resolution))
         else:
@@ -162,7 +166,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                                 x_range = x_max,
                                                 y_range = y_max,
                                                 score_idx = score_idx,
-                                                potential_edges_df = potential_edges_df,
+                                                betweenness_sample = betweenness_sample,
                                                 use_gpu = False),
                                         range(global_grid_resolution))
 
@@ -201,6 +205,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                             idx_vec,
                                             s_range,
                                             score_idx,
+                                            betweenness_sample = betweenness_sample,
                                             use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
@@ -218,7 +223,8 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                         bounds=bounds,
                         method='Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, potential_edges_df, num_processes, use_gpu),
+                                slope, score_idx, potential_edges_df, num_processes,
+                                betweenness_sample, use_gpu),
                         )
         optimised_s = local_s.x
 
@@ -264,7 +270,7 @@ def expand_cugraph_network(G, G_extra_df):
     return G
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
-                thread_idx = 0, use_gpu = False):
+                thread_idx = 0, betweenness_sample = 100, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -285,6 +291,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
             [default = 0]
         thread_idx (int)
             Optional thread idx (if multithreaded) to offset progress bar by
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -325,6 +334,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                                      summarise=False,
                                      edge_list=False,
                                      G_df = edge_df,
+                                     betweenness_sample = betweenness_sample,
                                      use_gpu = use_gpu)
             else:
                 if use_gpu:
@@ -337,14 +347,18 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                     edge_list = []
             # Add score into vector for any offsets passed (should usually just be one)
             for s in range(prev_idx, idx):
-                scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
+                scores.append(-networkSummary(G,
+                                                score_idx > 0,
+                                                betweenness_sample = betweenness_sample,
+                                                use_gpu = use_gpu)[1][score_idx])
                 pbar.update(1)
             prev_idx = idx
 
     return(scores)
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
-               slope=2, score_idx=0, potential_edges_df=None, cpus=1, use_gpu = False):
+               slope=2, score_idx=0, potential_edges_df=None, cpus=1,
+               betweenness_sample = 100, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -375,6 +389,9 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
             Two column source/destination data frame of integers
         cpus (int)
             Number of CPUs to use for calculating assignment
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -402,14 +419,18 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     G = constructNetwork(sample_names, sample_names, boundary_assignments, -1,
                             summarise = False,
                             G_df = potential_edges_df,
+                            betweenness_sample = betweenness_sample,
                             use_gpu = use_gpu)
 
     # Return score
-    score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
+    score = networkSummary(G,
+                            score_idx > 0,
+                            betweenness_sample = betweenness_sample,
+                            use_gpu = use_gpu)[1][score_idx]
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
-                 use_gpu = False):
+                 betweenness_sample = 100, use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
@@ -429,6 +450,9 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -453,6 +477,7 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
                             x_range,
                             score_idx,
                             y_idx,
+                            betweenness_sample,
                             use_gpu = use_gpu)
     return(scores)
 

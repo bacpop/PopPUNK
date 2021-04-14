@@ -509,7 +509,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
                      G_df = None, previous_network = None,
-                     previous_pkl = None, use_gpu = False):
+                     previous_pkl = None, betweenness_sample = 100, use_gpu = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -545,6 +545,9 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             network
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -638,7 +641,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             G_df = G_df[['source','destination','weights']]
         else:
             G_df = G_df[['source','destination']]
-            
+
     if not use_gpu:
         # Convert to tuples and delete the unnecessary data frame
         connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
@@ -714,7 +717,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
 
     # print some summaries
     if summarise:
-        (metrics, scores) = networkSummary(G, use_gpu = use_gpu)
+        (metrics, scores) = networkSummary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
         sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
                                                        "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
                                                        "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
@@ -748,7 +751,8 @@ def get_cugraph_triangles(G):
     triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
     return triangle_count
 
-def networkSummary(G, calc_betweenness=True, use_gpu = False):
+def networkSummary(G, calc_betweenness=True, betweenness_sample = 100,
+                    use_gpu = False):
     """Provides summary values about the network
 
     Args:
@@ -807,10 +811,9 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
                     subgraph = cugraph.subgraph(G, component_vertices)
-                    max_betweeness_k = 100
-                    if len(component_vertices) >= max_betweeness_k:
+                    if len(component_vertices) >= betweenness_sample:
                         component_betweenness = cugraph.betweenness_centrality(subgraph,
-                                                                                k = max_betweeness_k,
+                                                                                k = betweenness_sample,
                                                                                 normalized = True)
                     else:
                         component_betweenness = cugraph.betweenness_centrality(subgraph,
