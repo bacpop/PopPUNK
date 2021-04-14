@@ -409,7 +409,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
-                potential_edges_df = None, use_gpu = False):
+                 use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
@@ -429,8 +429,6 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
-        potential_edges_df (cudf or pandas data frame)
-            Two column source/destination data frame of integers
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
