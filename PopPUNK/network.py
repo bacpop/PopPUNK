@@ -589,7 +589,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     if edge_list:
         if use_gpu:
             # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
-            edge_array = cupy.array(assignments, dtype = np.int32)
+            edge_array = cp.array(assignments, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
         else:
@@ -609,7 +609,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     else:
         if use_gpu and G_df is None:
             # Add node indices to DF
-            edge_array = cupy.array(list(
+            edge_array = cp.array(list(
                                         listDistInts(rlist,
                                                      qlist,
                                                      self = self_comparison)
