@@ -16,6 +16,7 @@ from scipy import sparse
 try:
     import cugraph
     import cudf
+    import cupy as cp
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -150,7 +151,7 @@ def main():
     # Save output
     sys.stderr.write("Generating output\n")
     mst.save(args.output + "/" + os.path.basename(args.output) + ".graphml", fmt="graphml")
-    mst_as_tree = mst_to_phylogeny(mst, rlist)
+    mst_as_tree = mst_to_phylogeny(mst, rlist, use_gpu = args.gpu_graph)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
 
     # Make plots

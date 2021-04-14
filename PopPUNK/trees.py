@@ -7,7 +7,17 @@ import sys
 import os
 import subprocess
 import numpy as np
+import pandas as pd
 import dendropy
+
+# GPU support
+try:
+    import cugraph
+    import cudf
+    import cupy as cp
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
 
 def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
     """Use rapidNJ for more rapid tree building
@@ -161,13 +171,17 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
                                  unquoted_underscores=True)
     return tree_string
 
-def mst_to_phylogeny(mst_network, names):
+def mst_to_phylogeny(mst_network, names, use_gpu = False):
     """Convert a MST graph to a phylogeny
 
     Args:
        mst_network (network)
            Minimum spanning tree from
            :func:`~PopPUNK.network.generate_minimum_spanning_tree`
+       names (list)
+            Names of sequences in network
+       use_gpu (bool)
+            Whether to use GPU-specific libraries for processing
 
     Returns:
        mst_network (str)
@@ -176,6 +190,11 @@ def mst_to_phylogeny(mst_network, names):
     #
     # MST graph -> phylogeny
     #
+    
+    if use_gpu and not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; exiting\n')
+        sys.exit(1)
+    
     # Define sequences names for tree
     taxon_namespace = dendropy.TaxonNamespace(names)
     # Initialise tree and create nodes
@@ -183,39 +202,31 @@ def mst_to_phylogeny(mst_network, names):
     tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
 
     # Identify edges
-    tree_edges = {v:[] for v in tree_nodes.keys()}
-    tree_edge_lengths = {v:[] for v in tree_nodes.keys()}
-    network_edge_weights = list(mst_network.ep["weight"])
-    for i, edge in enumerate(mst_network.get_edges()):
-        # Connectivity - add both directions as unrooted tree is not directional -
-        # do not know which will be leaf node
-        tree_edges[edge[0]].append(edge[1])
-        tree_edges[edge[1]].append(edge[0])
-        # Lengths added in the same order as the corresponding children to enable
-        # branches to be matched to child nodes
-        tree_edge_lengths[edge[0]].append(network_edge_weights[i])
-        tree_edge_lengths[edge[1]].append(network_edge_weights[i])
-
-    # Identify seed node as that with most links
-    max_links = 0
-    seed_node_index = None
-    for vertex in tree_edges.keys():
-        if len(tree_edges[vertex]) > max_links:
-            max_links = len(tree_edges[vertex])
-            seed_node_index = vertex
-    tree.seed_node = tree_nodes[seed_node_index]
+    if use_gpu:
+        mst_edges_df = cudf.DataFrame(mst_network.get_edges(),
+                                columns = ['src', 'dst'])
+    else:
+        mst_edges_df = pd.DataFrame(mst_network.get_edges(),
+                                    columns = ['src', 'dst'])
+    mst_edges_df['weights'] = list(mst_network.ep['weight'])
+    seed_node = int(mst_edges_df[['src','dst']].stack().mode()[0])
 
     # Generate links of tree
-    parent_node_indices = [seed_node_index]
+    parent_node_indices = [seed_node]
     added_nodes = set(parent_node_indices)
     i = 0
     while i < len(parent_node_indices): # NB loop end will increase
-        for x, child_node_index in enumerate(tree_edges[parent_node_indices[i]]):
-            if child_node_index not in added_nodes:
-                tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node_index])
-                tree_nodes[child_node_index].edge_length = tree_edge_lengths[parent_node_indices[i]][x]
-                added_nodes.add(child_node_index)
-                parent_node_indices.append(child_node_index)
+        # select links from data frames
+        mst_links_dst = mst_edges_df[['dst','weights']].loc[mst_edges_df['src']==parent_node_indices[i]]
+        mst_links_src = mst_edges_df[['src','weights']].loc[mst_edges_df['dst']==parent_node_indices[i]]
+        mst_links_src.columns = ['dst','weights']
+        mst_links = mst_links_dst.append(mst_links_src)
+        for (child_node,edge_length) in mst_links.itertuples(index=False, name=None):
+            if child_node not in added_nodes:
+                tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node])
+                tree_nodes[child_node].edge_length = edge_length
+                added_nodes.add(child_node)
+                parent_node_indices.append(child_node)
         i = i + 1
 
     # Add zero length branches for internal nodes in MST
