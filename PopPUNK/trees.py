@@ -209,10 +209,11 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
         mst_edges_df = pd.DataFrame(mst_network.get_edges(),
                                     columns = ['src', 'dst'])
     mst_edges_df['weights'] = list(mst_network.ep['weight'])
-    seed_node = int(mst_edges_df[['src','dst']].stack().mode()[0])
+    seed_node_index = int(mst_edges_df[['src','dst']].stack().mode()[0])
+    tree.seed_node = tree_nodes[seed_node_index]
 
     # Generate links of tree
-    parent_node_indices = [seed_node]
+    parent_node_indices = [seed_node_index]
     added_nodes = set(parent_node_indices)
     i = 0
     while i < len(parent_node_indices): # NB loop end will increase
@@ -240,4 +241,5 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     tree_string = tree.as_string(schema="newick",
                                  suppress_rooting=True,
                                  unquoted_underscores=True)
+                                     
     return tree_string
