@@ -201,7 +201,6 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                             idx_vec,
                                             s_range,
                                             score_idx,
-                                            potential_edges_df = potential_edges_df,
                                             use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
@@ -265,7 +264,7 @@ def expand_cugraph_network(G, G_extra_df):
     return G
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
-                potential_edges_df = None, thread_idx = 0, use_gpu = False):
+                thread_idx = 0, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -284,8 +283,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
-        potential_edges_df (cudf or pandas data frame)
-            Two column source/destination data frame of integers
         thread_idx (int)
             Optional thread idx (if multithreaded) to offset progress bar by
         use_gpu (bool)
@@ -458,7 +455,6 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
                             x_range,
                             score_idx,
                             y_idx,
-                            G_df = potential_edges_df,
                             use_gpu = use_gpu)
     return(scores)
 
