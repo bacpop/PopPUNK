@@ -1326,7 +1326,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
         # MST - check cuDF implementation is the same
         max_indices = mst_df.groupby(['labels'])['degree'].idxmax()
         seed_vertices = mst_df.iloc[max_indices]['vertex']
-        num_components = seed_vertices.len()
+        num_components = seed_vertices.size()
         del mst_df
     else:
         component_assignments, component_frequencies = gt.label_components(mst_network)
@@ -1351,7 +1351,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             max_weight = G_df['weights'].max()
             first_seed = seed_vertices[0]
             G_seed_link_df = cudf.DataFrame()
-            G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.len()]
+            G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.size()]
             G_seed_link_df['src'] = seed_vertices.iloc[0]
             G_seed_link_df['weights'] = seed_vertices.iloc[0]
             G_df = G_df.append(G_seed_link_df)
