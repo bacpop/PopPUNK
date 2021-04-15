@@ -199,7 +199,11 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     taxon_namespace = dendropy.TaxonNamespace(names)
     # Initialise tree and create nodes
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
-    tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
+    if use_gpu:
+        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) \
+            for v in range(0,mst_network.number_of_vertices)}
+    else:
+        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
 
     # Identify edges
     if use_gpu:
