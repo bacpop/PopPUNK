@@ -1319,7 +1319,10 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
     seed_vertices = set()
     if from_cugraph:
         mst_df = cugraph.components.connectivity.connected_components(mst_network)
-        num_components = mst_df['labels'].unique().size()
+        if isinstance(mst_df['labels'].unique(), int):
+            num_components = 1
+        else:
+            num_components = mst_df['labels'].unique().size()
         if num_components > 1:
             mst_df['degree'] = mst_network.in_degree()['degree']
             # idxmax only returns first occurrence of maximum so should maintain
