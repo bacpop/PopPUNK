@@ -168,6 +168,7 @@ def generate_visualisations(query_db,
     from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
+    from .network import cugraph_to_graph_tool
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -374,12 +375,20 @@ def generate_visualisations(query_db,
                                     combined_seq,
                                     np.zeros(complete_distMat.shape[0]),
                                     0,
-                                    weights=complete_distMat,
-                                    weights_type=mst_distances,
-                                    summarise=False)
-                mst_graph = generate_minimum_spanning_tree(G)
+                                    weights = complete_distMat,
+                                    weights_type = mst_distances,
+                                    use_gpu = gpu_graph,
+                                    summarise = False)
+                if gpu_graph:
+                    G = cugraph.minimum_spanning_tree(G, weight='weights')
+                mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
+                del G
+                mst_as_tree = mst_to_phylogeny(mst_graph,
+                                                isolateNameToLabel(combined_seq),
+                                                use_gpu = gpu_graph)
+                if gpu_graph:
+                    mst_graph = cugraph_to_graph_tool(mst_graph, isolateNameToLabel(combined_seq))
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
-                mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
             else:
                 mst_tree = existing_tree
 
@@ -437,6 +446,9 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
+        if network_file is None:
+            sys.stderr.write('Cytoscape output requires a network file is provided\n')
+            sys.exit(1)
         genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':

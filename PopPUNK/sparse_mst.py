@@ -24,7 +24,8 @@ except ImportError as e:
 # import poppunk package
 from .__init__ import __version__
 
-from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges, save_network
+from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges,
+            save_network, cugraph_to_graph_tool
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
@@ -153,15 +154,7 @@ def main():
 
         # Convert cugraph to graph-tool for graphml saving
         if args.gpu_graph:
-            edge_df = G.view_edge_list()
-            sys.stderr.write("Calculating MST (CPU part)\n")
-            edge_tuple = edge_df[['src', 'dst']].values
-            G = constructNetwork(rlist, rlist,
-                                   edge_tuple,
-                                   0, edge_list=True,
-                                   weights=edge_df['weights'].values_host,
-                                   summarise=False)
-            del edge_df
+            G = cugraph_to_graph_tool(G, rlist)
             
         # Parse clustering
         if args.previous_clustering != None:

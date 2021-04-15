@@ -1447,3 +1447,32 @@ def save_network(G, prefix = None, suffix = None, use_graphml = False,
         else:
             G.save(file_name + '.gt',
                     fmt = 'gt')
+
+def cugraph_to_graph_tool(G, rlist = None):
+    """Save a network to disc
+
+    Args:
+       G (cugraph network)
+         Cugraph network
+       rlist (list)
+         List of sequence names
+           
+    Returns:
+      G (graph-tool network)
+          Graph tool network
+    """
+    edge_df = G.view_edge_list()
+    edge_tuple = edge_df[['src', 'dst']].values
+    if 'weights' in edge_df.columns:
+        G = constructNetwork(rlist, rlist,
+                               edge_tuple,
+                               0, edge_list=True,
+                               weights=edge_df['weights'].values_host,
+                               summarise=False)
+    else:
+        G = constructNetwork(rlist, rlist,
+                                edge_tuple,
+                                0, edge_list=True,
+                                summarise=False)
+    del edge_df
+    return G
