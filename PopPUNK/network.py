@@ -1315,14 +1315,18 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             raise RuntimeError("MST passed unweighted graph")
 
     # Find seed nodes as those with greatest outdegree in each component
+    num_components = 0
     seed_vertices = set()
     if from_cugraph:
         mst_df = cugraph.components.connectivity.connected_components(mst_network)
-        mst_df['degree'] = mst_network.in_degree()
+        print("DF is: " + str(mst_df))
+        print("Degree is " + str(mst_network.in_degree()))
+        mst_df['degree'] = mst_network.in_degree()['degree']
         # idxmax only returns first occurrence of maximum so should maintain
         # MST - check cuDF implementation is the same
-        max_indices = df.groupby(['labels'])['degree'].idxmax()
-        seed_vertices = mst_df[max_indices]['vertex']
+        max_indices = mst_df.groupby(['labels'])['degree'].idxmax()
+        seed_vertices = mst_df.iloc[max_indices]['vertex']
+        num_components = seed_vertices.len()
         del mst_df
     else:
         component_assignments, component_frequencies = gt.label_components(mst_network)
@@ -1333,9 +1337,10 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             out_degrees = component.get_out_degrees(component_vertices)
             seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
             seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+            num_components = len(component_frequencies)
 
     # If multiple components, add distances between seed nodes
-    if len(component_frequencies) > 1:
+    if num_components > 1:
         
         # Extract edges and maximum edge length - as DF for cugraph
         # list of tuples for graph-tool
