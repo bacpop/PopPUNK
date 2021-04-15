@@ -211,7 +211,7 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     else:
         mst_edges_df = pd.DataFrame(mst_network.get_edges(),
                                     columns = ['src', 'dst'])
-    mst_edges_df['weights'] = list(mst_network.ep['weight'])
+        mst_edges_df['weights'] = list(mst_network.ep['weight'])
     seed_node_index = int(mst_edges_df[['src','dst']].stack().mode()[0])
     tree.seed_node = tree_nodes[seed_node_index]
 
