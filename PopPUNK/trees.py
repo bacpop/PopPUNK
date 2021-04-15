@@ -207,8 +207,8 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
 
     # Identify edges
     if use_gpu:
-        mst_edges_df = cudf.DataFrame(mst_network.get_edges(),
-                                columns = ['src', 'dst'])
+        mst_edges_df = G.view_edge_list()
+        mst_edges_df.columns = ['src', 'dst']
     else:
         mst_edges_df = pd.DataFrame(mst_network.get_edges(),
                                     columns = ['src', 'dst'])
