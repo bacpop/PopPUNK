@@ -1177,9 +1177,9 @@ class LineageFit(ClusterFit):
                                                  shape=(full_mat.shape[0], full_mat.shape[0]),
                                                  dtype = self.nn_dists[rank].dtype)
             else:
-                self.nn_dists[rank] = coo_matrix((data, (row, col)),
-                                        shape=(full_mat.shape[0], full_mat.shape[0]),
-                                        dtype = self.nn_dists[rank].dtype)
+                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                                    shape=(full_mat.shape[0], full_mat.shape[0]),
+                                                    dtype = self.nn_dists[rank].dtype)
 
         y = self.assign(min(self.ranks))
         return y
