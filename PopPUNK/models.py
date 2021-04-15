@@ -1080,9 +1080,15 @@ class LineageFit(ClusterFit):
         '''
         ClusterFit.plot(self, X)
         for rank in self.ranks:
-            distHistogram(self.nn_dists[rank].data,
-                          rank,
-                          self.outPrefix + "/" + os.path.basename(self.outPrefix))
+            if self.use_gpu:
+                numpy_version = self.nn_dists[rank].get()
+                distHistogram(numpy_version.data,
+                              rank,
+                              self.outPrefix + "/" + os.path.basename(self.outPrefix))
+            else:
+                distHistogram(self.nn_dists[rank].data,
+                              rank,
+                              self.outPrefix + "/" + os.path.basename(self.outPrefix))
 
     def assign(self, rank):
         '''Get the edges for the network. A little different from other methods,
