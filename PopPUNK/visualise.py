@@ -9,6 +9,16 @@ import sys
 import numpy as np
 import scipy.sparse
 
+# GPU support
+try:
+    import cugraph
+    import cudf
+    import cupy as cp
+    from numba import cuda
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
+
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
 
