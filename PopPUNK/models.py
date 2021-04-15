@@ -1171,9 +1171,15 @@ class LineageFit(ClusterFit):
                     else:
                         break
 
-            self.nn_dists[rank] = coo_matrix((data, (row, col)),
-                                    shape=(full_mat.shape[0], full_mat.shape[0]),
-                                    dtype = self.nn_dists[rank].dtype)
+            if self.use_gpu:
+                self.nn_dists[rank] = coo_matrix((cp.array(data),
+                                                    (cp.array(row), cp.array(col))),
+                                                 shape=(full_mat.shape[0], full_mat.shape[0]),
+                                                 dtype = self.nn_dists[rank].dtype)
+            else:
+                self.nn_dists[rank] = coo_matrix((data, (row, col)),
+                                        shape=(full_mat.shape[0], full_mat.shape[0]),
+                                        dtype = self.nn_dists[rank].dtype)
 
         y = self.assign(min(self.ranks))
         return y
