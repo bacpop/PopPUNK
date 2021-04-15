@@ -5,11 +5,15 @@
 import os
 import sys
 import numpy as np
-from sklearn import manifold
-
+from sklearn import manifold as manifold_cpu
+try:
+    from cuml import manifold as manifold_gpu
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
 from .utils import readPickle
 
-def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity = 0):
+def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity = 0, use_gpu = False):
     """Generate t-SNE projection using accessory distances
 
     Writes a plot of t-SNE clustering of accessory distances (.dot)
@@ -26,18 +30,24 @@ def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity
             `outPrefix` subdirectory
         overwrite (bool)
             Overwrite existing output if present
-
             (default = False)
         verbosity (int)
             Verbosity of t-SNE process (0-3)
-
             (default = 0)
+        use_gpu (bool)
+            Whether to use GPU libraries
     """
     # generate accessory genome distance representation
     tsne_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
     if overwrite or not os.path.isfile(tsne_filename):
         sys.stderr.write("Running t-SNE\n")
-        accArray_embedded = manifold.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))
+        if use_gpu:
+            if not gpu_lib:
+                sys.stderr.write('Unable to load cuml library\n')
+                sys.exit(1)
+            accArray_embedded = manifold_gpu.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))
+        else:
+            accArray_embedded = manifold_cpu.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))
 
         # print dot file
         with open(tsne_filename, 'w') as nFile:

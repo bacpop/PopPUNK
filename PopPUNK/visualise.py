@@ -430,7 +430,8 @@ def generate_visualisations(query_db,
                              output,
                              info_csv,
                              queryList = qlist,
-                             overwrite = overwrite)
+                             overwrite = overwrite,
+                             use_gpu = gpu_graph)
 
     if phandango:
         sys.stderr.write("Writing phandango output\n")

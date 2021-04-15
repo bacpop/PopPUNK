@@ -694,7 +694,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         sys.exit(1)
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
-                         outPrefix, epiCsv, queryList = None, overwrite = False):
+                         outPrefix, epiCsv, queryList = None, overwrite = False,
+                         use_gpu = False):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -724,6 +725,8 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        use_gpu (bool)
+            Whether to use a GPU for t-SNE generation
     """
     # Avoid recursive import
     from .tsne import generate_tsne
@@ -736,7 +739,7 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
                         combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
+    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, use_gpu)
 
     # write NJ tree
     if nj_tree is not None:
