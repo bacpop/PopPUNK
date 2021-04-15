@@ -17,7 +17,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
-from scipy.sparse import coo_matrix, bmat, find
+from scipy.sparse import coo_matrix, bmat, find, save_npz, load_npz
 import hdbscan
 
 # Parallel support
@@ -100,7 +100,7 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
             prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
             rank_file = os.path.dirname(pkl_file) + "/" + \
                         prefix.group(1) + rankFile(rank)
-            fit_data[rank] = scipy.sparse.load_npz(rank_file)
+            fit_data[rank] = load_npz(rank_file)
     else:
         fit_data = np.load(npz_file)
 
@@ -1036,7 +1036,7 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to save unfitted model")
         else:
             for rank in self.ranks:
-                scipy.sparse.save_npz(
+                save_npz(
                     self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                     rankFile(rank),
                     self.nn_dists[rank])
