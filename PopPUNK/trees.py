@@ -201,7 +201,7 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
     if use_gpu:
         tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) \
-            for v in range(0,mst_network.number_of_vertices)}
+            for v in range(0,mst_network.number_of_vertices())}
     else:
         tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
 
