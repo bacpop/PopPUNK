@@ -37,6 +37,8 @@ except ImportError as e:
 try:
     import cugraph
     import cudf
+    import cupy as cp
+    from cupyx.scipy.sparse import coo_matrix, bmat, find, save_npz, load_npz
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
