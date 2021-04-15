@@ -137,7 +137,7 @@ def main():
                                  sparse_input=sparse_mat, summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
 
-    mst = generate_minimum_spanning_tree(G, args.gpu_graph)
+    G = generate_minimum_spanning_tree(G, args.gpu_graph)
 
     # Save output
     sys.stderr.write("Generating output\n")
@@ -145,11 +145,25 @@ def main():
                     suffix = '_MST',
                     use_graphml = True,
                     use_gpu = args.gpu_graph)
-    mst_as_tree = mst_to_phylogeny(mst, rlist, use_gpu = args.gpu_graph)
+    mst_as_tree = mst_to_phylogeny(G, rlist, use_gpu = args.gpu_graph)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
 
     # Make plots
-    if not args.no_plot and not args.gpu_graph:
+    if not args.no_plot:
+
+        # Convert cugraph to graph-tool for graphml saving
+        if args.gpu_graph:
+            edge_df = G.view_edge_list()
+            sys.stderr.write("Calculating MST (CPU part)\n")
+            edge_tuple = edge_df[['src', 'dst']].values
+            G = constructNetwork(rlist, rlist,
+                                   edge_tuple,
+                                   0, edge_list=True,
+                                   weights=edge_df['weights'].values_host,
+                                   summarise=False)
+            del edge_df
+            
+        # Parse clustering
         if args.previous_clustering != None:
             mode = "clusters"
             if args.previous_clustering.endswith('_lineages.csv'):
@@ -176,7 +190,7 @@ def main():
             clustering_name = list(isolateClustering.keys())[0]
 
         # Draw MST
-        drawMST(mst, args.output, isolateClustering, clustering_name, True)
+        drawMST(G, args.output, isolateClustering, clustering_name, True)
 
     sys.exit(0)
 
