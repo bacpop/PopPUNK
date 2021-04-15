@@ -434,7 +434,7 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
-                model = LineageFit(output, rank_list)
+                model = LineageFit(output, rank_list, use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
                 model.fit(distMat, args.use_accessory)
 

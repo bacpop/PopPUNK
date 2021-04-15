@@ -974,7 +974,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks):
+    def __init__(self, outPrefix, ranks, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -985,7 +985,7 @@ class LineageFit(ClusterFit):
                 sys.exit(0)
             else:
                 self.ranks.append(int(rank))
-
+        self.use_gpu = use_gpu
 
     def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
@@ -1023,9 +1023,15 @@ class LineageFit(ClusterFit):
                     rank
                 )
             data = [epsilon if d < epsilon else d for d in data]
-            self.nn_dists[rank] = coo_matrix((data, (row, col)),
-                                             shape=(sample_size, sample_size),
-                                             dtype = X.dtype)
+            if self.use_gpu:
+                self.nn_dists[rank] = coo_matrix((cp.array(data),
+                                                    (cp.array(row), cp.array(col))),
+                                                 shape=(sample_size, sample_size),
+                                                 dtype = X.dtype)
+            else:
+                self.nn_dists[rank] = coo_matrix((data, (row, col)),
+                                                 shape=(sample_size, sample_size),
+                                                 dtype = X.dtype)
 
         self.fitted = True
 
