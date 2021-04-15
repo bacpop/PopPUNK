@@ -1417,7 +1417,8 @@ def get_vertex_list(G, use_gpu = False):
 
     return vlist
 
-def save_network(G, prefix = None, suffix = None, use_gpu = False):
+def save_network(G, prefix = None, suffix = None, use_graphml = False,
+                use_gpu = False):
     """Save a network to disc
 
     Args:
@@ -1425,6 +1426,9 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
            Graph tool network
        prefix (str)
            Prefix for output file
+       use_graphml (bool)
+           Whether to output a graph-tool file
+           in graphml format
        use_gpu (bool)
            Whether graph is a cugraph or not
            [default = False]
@@ -1437,5 +1441,9 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
         G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
                 compression='gzip', index = False)
     else:
-        G.save(file_name + '.gt',
-                fmt = 'gt')
+        if use_graphml:
+            G.save(file_name + '.graphml',
+                    fmt = 'graphml')
+        else:
+            G.save(file_name + '.gt',
+                    fmt = 'gt')

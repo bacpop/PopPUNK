@@ -141,12 +141,15 @@ def main():
 
     # Save output
     sys.stderr.write("Generating output\n")
-    save_network(G, prefix = args.output, suffix = 'MST', use_gpu = args.gpu_graph)
+    save_network(G, prefix = args.output,
+                    suffix = '_MST',
+                    use_graphml = True,
+                    use_gpu = args.gpu_graph)
     mst_as_tree = mst_to_phylogeny(mst, rlist, use_gpu = args.gpu_graph)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
 
     # Make plots
-    if not args.no_plot:
+    if not args.no_plot and not args.gpu_graph:
         if args.previous_clustering != None:
             mode = "clusters"
             if args.previous_clustering.endswith('_lineages.csv'):
