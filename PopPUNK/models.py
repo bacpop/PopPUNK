@@ -1138,10 +1138,18 @@ class LineageFit(ClusterFit):
 
         for rank in self.ranks:
             # Add the matrices together to make a large square matrix
-            full_mat = bmat([[self.nn_dists[rank], qrRect.transpose()],
-                             [qrRect,              qqSquare]],
-                            format = 'csr',
-                            dtype = self.nn_dists[rank].dtype)
+            if self.use_gpu:
+                full_mat = bmat([[self.nn_dists[rank],
+                                qrRect.transpose()],
+                                [qrRect,qqSquare]],
+                                format = 'csr',
+                                dtype = self.nn_dists[rank].dtype)
+            else:
+                full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
+                                            qrRect.transpose()],
+                                            [qrRect,qqSquare]],
+                                            format = 'csr',
+                                            dtype = self.nn_dists[rank].dtype)
 
             # Reapply the rank to each row, using sparse matrix functions
             data = []
