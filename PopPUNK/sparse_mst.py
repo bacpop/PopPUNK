@@ -24,8 +24,12 @@ except ImportError as e:
 # import poppunk package
 from .__init__ import __version__
 
-from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges,
-            save_network, cugraph_to_graph_tool
+from .network import cugraph_to_graph_tool
+from .network import save_network
+from .network import network_to_edges
+from .network import generate_minimum_spanning_tree
+from .network import constructNetwork
+
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
