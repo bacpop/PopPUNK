@@ -477,8 +477,14 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
             (default = None)
         writeCsv (bool)
             Whether to print CSV file to accompany network
+        viz_subset (list)
+            List of sequences to include in visualisation
 
     """
+    
+    # Avoid circular import
+    from .network import save_network
+    
     # get list of isolate names
     isolate_names = list(G.vp.id)
 
@@ -508,11 +514,11 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
         for n,v in enumerate(G_mst.vertices()):
             G_mst.vp.id[v] = isolate_labels[n]
-        if suffix is None:
-            graph_file_name = os.path.basename(outPrefix) + "_cytoscape_mst.graphml"
+        if suffix is not None:
+            graph_suffix = '_' + suffix + '_cytoscape_mst'
         else:
-            graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape_mst.graphml"
-        G_mst.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
+            graph_suffix = '_cytoscape_mst'
+        save_network(G_mst, prefix = outPrefix, suffix = graph_suffix, use_graphml = True)
 
     # Write CSV of metadata
     if writeCsv:

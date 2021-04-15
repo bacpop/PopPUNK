@@ -460,6 +460,8 @@ def generate_visualisations(query_db,
             sys.stderr.write('Cytoscape output requires a network file is provided\n')
             sys.exit(1)
         genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
+        if gpu_graph:
+            genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(combined_seq))
         outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
