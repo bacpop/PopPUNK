@@ -1334,35 +1334,55 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
             seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
 
-    # If multiple components, calculate distances between seed nodes
+    # If multiple components, add distances between seed nodes
     if len(component_frequencies) > 1:
-        # Extract distances
-        connections = []
-        max_weight = float(np.max(G.edge_properties["weight"].a))
-        for ref in seed_vertices:
-            seed_edges = G.get_all_edges(ref, [G.ep['weight']])
-            found = False  # Not all edges may be in graph
-            for seed_edge in seed_edges:
-                if seed_edge[1] in seed_vertices:
-                    found = True
-                    connections.append((seed_edge))
-            # TODO: alternative would be to requery the DB (likely quick)
-            if found == False:
-                for query in seed_vertices:
-                    if query != ref:
-                        connections.append((ref, query, max_weight))
+        
+        # Extract edges and maximum edge length - as DF for cugraph
+        # list of tuples for graph-tool
+        if from_cugraph:
+            # With cugraph the MST is already calculated
+            # so no extra edges can be retrieved from the graph
+            G_df = G.view_edge_list()
+            max_weight = G_df['weights'].max()
+            first_seed = seed_vertices[0]
+            G_seed_link_df = cudf.DataFrame()
+            G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.len()]
+            G_seed_link_df['src'] = seed_vertices.iloc[0]
+            G_seed_link_df['weights'] = seed_vertices.iloc[0]
+            G_df = G_df.append(G_seed_link_df)
+        else:
+            # With graph-tool look to retrieve edges in larger graph
+            connections = []
+            max_weight = float(np.max(G.edge_properties["weight"].a))
+
+            # Identify edges between seeds to link components together
+            for ref in seed_vertices:
+                seed_edges = G.get_all_edges(ref, [G.ep['weight']])
+                found = False  # Not all edges may be in graph
+                for seed_edge in seed_edges:
+                    if seed_edge[1] in seed_vertices:
+                        found = True
+                        connections.append((seed_edge))
+                # TODO: alternative would be to requery the DB (likely quick)
+                if found == False:
+                    for query in seed_vertices:
+                        if query != ref:
+                            connections.append((ref, query, max_weight))
 
         # Construct graph
-        seed_G = gt.Graph(directed = False)
-        seed_G.add_vertex(len(seed_vertex))
-        eweight = seed_G.new_ep("float")
-        seed_G.add_edge_list(connections, eprops = [eweight])
-        seed_G.edge_properties["weight"] = eweight
-        seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
-        seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
-        # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
-        deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
-        mst_network.add_edge_list(deep_edges)
+        if from_cugraph:
+            mst_network = G_df.from_cudf_edgelist(edge_attr='weights', renumber=False)
+        else:
+            seed_G = gt.Graph(directed = False)
+            seed_G.add_vertex(len(seed_vertex))
+            eweight = seed_G.new_ep("float")
+            seed_G.add_edge_list(connections, eprops = [eweight])
+            seed_G.edge_properties["weight"] = eweight
+            seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
+            seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
+            # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
+            deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
+            mst_network.add_edge_list(deep_edges)
 
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     return mst_network

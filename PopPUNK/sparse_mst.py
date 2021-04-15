@@ -125,16 +125,7 @@ def main():
         G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
 
         # Generate minimum spanning tree
-        sys.stderr.write("Calculating MST (GPU part)\n")
-        G_mst = cugraph.minimum_spanning_tree(G_cu, weight='weights')
-        edge_df = G_mst.view_edge_list()
-        sys.stderr.write("Calculating MST (CPU part)\n")
-        edge_tuple = edge_df[['src', 'dst']].values
-        G = constructNetwork(rlist, rlist,
-                               edge_tuple,
-                               0, edge_list=True,
-                               weights=edge_df['weights'].values_host,
-                               summarise=False)
+        G = cugraph.minimum_spanning_tree(G_cu, weight='weights')
     else:
         # Load previous MST if specified
         if args.previous_mst is not None:
