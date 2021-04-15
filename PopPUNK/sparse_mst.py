@@ -24,7 +24,7 @@ except ImportError as e:
 # import poppunk package
 from .__init__ import __version__
 
-from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges
+from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges, save_network
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
@@ -141,7 +141,7 @@ def main():
 
     # Save output
     sys.stderr.write("Generating output\n")
-    mst.save(args.output + "/" + os.path.basename(args.output) + ".graphml", fmt="graphml")
+    save_network(G, prefix = args.output, suffix = 'MST', use_gpu = args.gpu_graph)
     mst_as_tree = mst_to_phylogeny(mst, rlist, use_gpu = args.gpu_graph)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
 
