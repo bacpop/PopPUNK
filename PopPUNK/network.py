@@ -1100,7 +1100,6 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         if not gpu_lib:
            sys.stderr.write('Unable to load GPU libraries; exiting\n')
            sys.exit(1)
-
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
@@ -1301,7 +1300,9 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
     #
     # Create MST
     #
-    if not from_cugraph:
+    if from_cugraph:
+        mst_network = G
+    else:
         sys.stderr.write("Starting calculation of minimum-spanning tree\n")
 
         # Test if weighted network and calculate minimum spanning tree
@@ -1312,19 +1313,26 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
         else:
             sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
             raise RuntimeError("MST passed unweighted graph")
-    else:
-        mst_network = G
 
     # Find seed nodes as those with greatest outdegree in each component
     seed_vertices = set()
-    component_assignments, component_frequencies = gt.label_components(mst_network)
-    for component_index in range(len(component_frequencies)):
-        component_members = component_assignments.a == component_index
-        component = gt.GraphView(mst_network, vfilt = component_members)
-        component_vertices = component.get_vertices()
-        out_degrees = component.get_out_degrees(component_vertices)
-        seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
-        seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+    if from_cugraph:
+        mst_df = cugraph.components.connectivity.connected_components(mst_network)
+        mst_df['degree'] = mst_network.in_degree()
+        # idxmax only returns first occurrence of maximum so should maintain
+        # MST - check cuDF implementation is the same
+        max_indices = df.groupby(['labels'])['degree'].idxmax()
+        seed_vertices = mst_df[max_indices]['vertex']
+        del mst_df
+    else:
+        component_assignments, component_frequencies = gt.label_components(mst_network)
+        for component_index in range(len(component_frequencies)):
+            component_members = component_assignments.a == component_index
+            component = gt.GraphView(mst_network, vfilt = component_members)
+            component_vertices = component.get_vertices()
+            out_degrees = component.get_out_degrees(component_vertices)
+            seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
+            seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
 
     # If multiple components, calculate distances between seed nodes
     if len(component_frequencies) > 1:
