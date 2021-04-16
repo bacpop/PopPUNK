@@ -1451,7 +1451,7 @@ def save_network(G, prefix = None, suffix = None, use_graphml = False,
                     fmt = 'gt')
 
 def cugraph_to_graph_tool(G, rlist = None):
-    """Save a network to disc
+    """Save a network to disk
 
     Args:
        G (cugraph network)
