@@ -282,7 +282,7 @@ def generate_visualisations(query_db,
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
         if len(viz_subset.difference(combined_seq)) > 0:
-            sys.stderr.write("--subset contains names not in --distances")
+            sys.stderr.write("--include-files contains names not in --distances\n")
 
         # Only keep found rows
         row_slice = [True if name in viz_subset else False for name in combined_seq]
