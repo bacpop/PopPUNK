@@ -1081,12 +1081,10 @@ class LineageFit(ClusterFit):
         ClusterFit.plot(self, X)
         for rank in self.ranks:
             if self.use_gpu:
-                numpy_version = self.nn_dists[rank].get()
-                distHistogram(numpy_version.data,
-                              rank,
-                              self.outPrefix + "/" + os.path.basename(self.outPrefix))
+                hist_data = self.nn_dists[rank].get().data
             else:
-                distHistogram(self.nn_dists[rank].data,
+                hist_data = self.nn_dists[rank].data
+            distHistogram(hist_data,
                               rank,
                               self.outPrefix + "/" + os.path.basename(self.outPrefix))
 
@@ -1191,4 +1189,3 @@ class LineageFit(ClusterFit):
 
         y = self.assign(min(self.ranks))
         return y
-
