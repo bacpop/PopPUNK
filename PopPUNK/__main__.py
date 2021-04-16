@@ -195,10 +195,6 @@ def main():
         sys.exit(1)
 
     args = get_options()
-    
-    # Set GPU device if requested
-    if args.gpu_graph or args.gpu_sketch or args.gpu_dist:
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.deviceid)
 
     # May just want to print the citation
     if args.citation:
