@@ -796,7 +796,7 @@ class RefineFit(ClusterFit):
         if indiv_refine is not None:
             try:
                 for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                    if args.indiv_refine == 'both' or args.indiv_refine == dist_type:
+                    if indiv_refine == 'both' or indiv_refine == dist_type:
                         sys.stderr.write("Refining " + dist_type + " distances separately\n")
                         # optimise core distance boundary
                         start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
