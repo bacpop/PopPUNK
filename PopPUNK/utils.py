@@ -591,3 +591,21 @@ def decisionBoundary(intercept, gradient):
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
+
+def import_gpu_libraries():
+    """Imports and configures the libraries needed for GPU analyses.
+    
+    Returns:
+        gpu_lib (bool)
+            Whether the GPU libraries were successfully loaded
+    """
+    try:
+        import cupyx
+        import cugraph
+        import cudf
+        import cupy as cp
+        from numba import cuda
+        gpu_lib = True
+    except ImportError as e:
+        gpu_lib = False
+    return gpu_lib

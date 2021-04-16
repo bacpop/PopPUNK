@@ -25,16 +25,6 @@ import poppunk_refine
 import graph_tool.all as gt
 import pandas as pd
 
-# GPU support
-try:
-    import cugraph
-    import cudf
-    import cupy
-    from numba import cuda
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
-
 from .network import constructNetwork
 from .network import networkSummary
 from .network import add_self_loop
@@ -42,6 +32,8 @@ from .network import add_self_loop
 from .utils import transformLine
 from .utils import decisionBoundary
 from .utils import listDistInts
+from .utils import import_gpu_libraries
+gpu_lib = import_gpu_libraries()
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
@@ -123,7 +115,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Generate sample combinations
     potential_edges = list(listDistInts(sample_names, sample_names, True))
     if use_gpu:
-        edge_array = cupy.array(potential_edges, dtype = np.int32)
+        edge_array = cp.array(potential_edges, dtype = np.int32)
         edge_gpu_matrix = cuda.to_device(edge_array)
         potential_edges_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
     else:

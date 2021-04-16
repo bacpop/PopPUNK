@@ -34,19 +34,12 @@ except ImportError as e:
     sys.exit(0)
 
 # GPU support
-try:
-    import cugraph
-    import cudf
-    import cupy as cp
-    from cupyx.scipy.sparse import coo_matrix, bmat, find, save_npz, load_npz
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
-
 import pp_sketchlib
 import poppunk_refine
 
 from .utils import set_env
+from .utils import import_gpu_libraries
+gpu_lib = import_gpu_libraries()
 
 # BGMM
 from .bgmm import fit2dMultiGaussian

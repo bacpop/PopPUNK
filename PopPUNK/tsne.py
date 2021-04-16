@@ -6,13 +6,10 @@ import os
 import sys
 import numpy as np
 from sklearn import manifold as manifold_cpu
-try:
-    import cudf
-    from cuml import manifold as manifold_gpu
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
+
 from .utils import readPickle
+from .utils import import_gpu_libraries
+gpu_lib = import_gpu_libraries()
 
 def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity = 0, use_gpu = False):
     """Generate t-SNE projection using accessory distances
