@@ -527,8 +527,7 @@ def main():
         if model.indiv_fitted:
             indivNetworks = {}
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                if ((dist_type == 'core') and (args.indiv_refine in ['both','core']) \
-                        or (dist_type == 'accessory') and (args.indiv_refine in ['both','accessory'])):
+                if args.indiv_refine == 'both' or args.indiv_refine == dist_type:
                     indivAssignments = model.assign(distMat, slope)
                     indivNetworks[dist_type] = \
                         constructNetwork(refList,
