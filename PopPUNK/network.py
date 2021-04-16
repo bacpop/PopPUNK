@@ -1421,7 +1421,7 @@ def get_vertex_list(G, use_gpu = False):
 
 def save_network(G, prefix = None, suffix = None, use_graphml = False,
                 use_gpu = False):
-    """Save a network to disc
+    """Save a network to disk
 
     Args:
        G (network)
