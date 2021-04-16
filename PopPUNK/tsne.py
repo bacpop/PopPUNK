@@ -43,8 +43,6 @@ def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity
             if not gpu_lib:
                 sys.stderr.write('Unable to load cuml library\n')
                 sys.exit(1)
-            else:
-                cudf.set_allocator("managed")
             accArray_embedded = manifold_gpu.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))
         else:
             accArray_embedded = manifold_cpu.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))

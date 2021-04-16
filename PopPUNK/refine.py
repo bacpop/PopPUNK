@@ -96,10 +96,6 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
       sys.stderr.write('Unable to load GPU libraries; exiting\n')
       sys.exit(1)
 
-    # Set memory management for large networks
-    if use_gpu:
-      cudf.set_allocator("managed")
-
     # calculate distance between start point and means if none is supplied
     if min_move is None:
         min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5

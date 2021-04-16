@@ -555,9 +555,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         if not gpu_lib:
            sys.stderr.write('Unable to load GPU libraries; exiting\n')
            sys.exit(1)
-
-        # Set memory management for large networks
-        cudf.set_allocator("managed")
     
     # data structures
     connections = []
