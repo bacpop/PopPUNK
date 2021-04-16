@@ -597,12 +597,11 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         if weights is not None:
             G_df['weights'] = weights
     elif sparse_input is not None:
-        if use_gpu and G_df is None:
-            G_df = cudf.DataFrame()
-            G_df['source'] = sparse_input.row
-            G_df['destination'] =  sparse_input.col
-        elif G_df is None:
-            G_df = pd.DataFrame()
+        if G_df is None:
+            if use_gpu:
+                G_df = cudf.DataFrame()
+            else:
+                G_df = pd.DataFrame()
             G_df['source'] = sparse_input.row
             G_df['destination'] =  sparse_input.col
         G_df['weights'] = sparse_input.data
