@@ -199,16 +199,14 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     taxon_namespace = dendropy.TaxonNamespace(names)
     # Initialise tree and create nodes
     tree = dendropy.Tree(taxon_namespace=taxon_namespace)
-    if use_gpu:
-        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) \
-            for v in range(0,mst_network.number_of_vertices())}
-    else:
-        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
 
     # Identify edges
     if use_gpu:
+        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) \
+            for v in range(0,mst_network.number_of_vertices())}
         mst_edges_df = mst_network.view_edge_list()
     else:
+        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
         mst_edges_df = pd.DataFrame(mst_network.get_edges(),
                                     columns = ['src', 'dst'])
         mst_edges_df['weights'] = list(mst_network.ep['weight'])
