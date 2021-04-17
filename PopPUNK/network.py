@@ -23,7 +23,18 @@ import pickle
 import graph_tool.all as gt
 import dendropy
 
-# GPU support
+# Load GPU libraries
+try:
+    import cupyx
+    import cugraph
+    import cudf
+    cudf.set_allocator("managed")
+    import cupy as cp
+    from numba import cuda
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
+
 from .__main__ import accepted_weights_types
 
 from .sketchlib import addRandom
@@ -34,8 +45,6 @@ from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
-from .utils import import_gpu_libraries
-gpu_lib = import_gpu_libraries()
 
 from .unwords import gen_unword
 

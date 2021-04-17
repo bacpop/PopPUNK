@@ -33,13 +33,23 @@ except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
 
+# Load GPU libraries
+try:
+    import cupyx
+    import cugraph
+    import cudf
+    cudf.set_allocator("managed")
+    import cupy as cp
+    from numba import cuda
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
+
 # GPU support
 import pp_sketchlib
 import poppunk_refine
 
 from .utils import set_env
-from .utils import import_gpu_libraries
-gpu_lib = import_gpu_libraries()
 
 # BGMM
 from .bgmm import fit2dMultiGaussian

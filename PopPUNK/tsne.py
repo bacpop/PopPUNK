@@ -8,8 +8,18 @@ import numpy as np
 from sklearn import manifold as manifold_cpu
 
 from .utils import readPickle
-from .utils import import_gpu_libraries
-gpu_lib = import_gpu_libraries()
+
+# Load GPU libraries
+try:
+    import cupyx
+    import cugraph
+    import cudf
+    cudf.set_allocator("managed")
+    import cupy as cp
+    from numba import cuda
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
 
 def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity = 0, use_gpu = False):
     """Generate t-SNE projection using accessory distances

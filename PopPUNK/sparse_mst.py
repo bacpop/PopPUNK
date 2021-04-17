@@ -12,11 +12,14 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-# GPU support
+# Load GPU libraries
 try:
+    import cupyx
     import cugraph
     import cudf
+    cudf.set_allocator("managed")
     import cupy as cp
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
