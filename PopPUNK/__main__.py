@@ -88,8 +88,11 @@ def get_options():
     # qc options
     qcGroup = parser.add_argument_group('Quality control options')
     qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
-                                                ' (analyse data passing QC), or "continue" (analyse all data)',
-                                                default='stop', type = str, choices=['stop', 'prune', 'continue'])
+                                                ' (analyse data passing QC), "continue" (analyse all data),'
+                                                ' or "none" (do not run QC)',
+                                                default='stop',
+                                                type = str,
+                                                choices=['stop', 'prune', 'continue','none'])
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
                                                 'separate database [default = False]', default=False, action='store_true')
     qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
@@ -328,12 +331,13 @@ def main():
                                 threads = args.threads)
 
         # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
-        seq_names_passing, distMat = qcDistMat(distMat,
-                                                seq_names_passing,
-                                                seq_names_passing,
-                                                args.output,
-                                                args.output,
-                                                qc_dict)
+        if args.qc_filter != "none":
+            seq_names_passing, distMat = qcDistMat(distMat,
+                                                    seq_names_passing,
+                                                    seq_names_passing,
+                                                    args.output,
+                                                    args.output,
+                                                    qc_dict)
 
         # Plot results
         if not args.no_plot:
@@ -386,7 +390,8 @@ def main():
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
         seq_names = set(set(refList) | set(queryList))
-        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.ref_db, output, qc_dict)
+        if args.qc_filter != "none":
+            seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.ref_db, output, qc_dict)
         if len(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
             sys.exit(1)
