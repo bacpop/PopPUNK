@@ -105,17 +105,17 @@ def main():
     tree = dendropy.Tree.get(path = args.tree, schema = 'newick')
     
     # Extract taxon names and save to pickle
-    rlist = [taxon for taxon in tree.taxon_namespace]
+    rlist = [taxon.label for taxon in tree.taxon_namespace]
     
     # Extract distances
     core_distances = list()
     pdc = tree.phylogenetic_distance_matrix()
     for seq1,seq2 in listDistInts(rlist, rlist, self = True):
-        core_distances.append(pdc(rlist[seq1],rlist[seq2]))
+        core_distances.append(pdc(tree.taxon_namespace[seq1],tree.taxon_namespace[seq2]))
     
     # Convert distances
     distMat = np.zeros((len(core_distances),2),
-                        dtype = float)
+                        dtype = np.float32)
     distMat[:,0] = np.asarray(core_distances)
     
     # Save output

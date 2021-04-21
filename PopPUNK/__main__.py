@@ -387,10 +387,15 @@ def main():
                 sys.stderr.write("Model needs to be from BGMM or DBSCAN to refine\n")
                 sys.exit(1)
 
-        # Load the distances
+        # Load the distances and QC unless specified otherwise
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
         seq_names = set(set(refList) | set(queryList))
-        if args.qc_filter != "none":
+        if args.qc_filter == "none":
+            if self:
+                seq_names_passing = refList
+            else:
+                seq_names_passing = refList + queryList
+        else:
             seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.ref_db, output, qc_dict)
         if len(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
             sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
