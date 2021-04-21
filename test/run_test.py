@@ -96,8 +96,8 @@ subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_
 
 # scripts
 sys.stderr.write("Running scripts\n")
-subprocess.run(python_cmd + " ../scripts/poppunk_alternative_distances.py --tree example_viz/example_viz_core_NJ.nwk --output alt_dist")
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --qc-filter none --ref-db example_db --distances alt_dist/alt_dist --output new_dist")
+subprocess.run(python_cmd + " ../scripts/poppunk_alternative_distances.py --tree ./example_viz/example_viz_core_NJ.nwk --output alt_dist", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --qc-filter none --ref-db example_db --distances alt_dist/alt_dist --output new_dist", shell=True, check=True)
 
 
 # citations
