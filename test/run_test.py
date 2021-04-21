@@ -94,6 +94,12 @@ subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/
 sys.stderr.write("Running poppunk_references\n")
 subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db", shell=True, check=True)
 
+# scripts
+sys.stderr.write("Running scripts\n")
+subprocess.run(python_cmd + "../scripts/poppunk_alternative_distances.py --tree example_viz/example_viz_core_NJ.nwk --output alt_dist")
+subprocess.run(python_cmd + "../poppunk-runner.py --fit-model lineage --qc-filter none --ref-db example_db --distances alt_dist/alt_dist --output new_dist")
+
+
 # citations
 sys.stderr.write("Printing citations\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
