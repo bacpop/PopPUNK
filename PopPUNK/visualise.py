@@ -9,18 +9,6 @@ import sys
 import numpy as np
 import scipy.sparse
 
-# Load GPU libraries
-try:
-    import cupyx
-    import cugraph
-    import cudf
-    cudf.set_allocator("managed")
-    import cupy as cp
-    from numba import cuda
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
-
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
 

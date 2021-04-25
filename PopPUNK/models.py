@@ -50,6 +50,7 @@ import pp_sketchlib
 import poppunk_refine
 
 from .utils import set_env
+from .utils import check_and_set_gpu
 
 # BGMM
 from .bgmm import fit2dMultiGaussian
@@ -748,9 +749,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = unconstrained
 
         # load CUDA libraries
-        if use_gpu and not gpu_lib:
-            sys.stderr.write('Unable to load GPU libraries; exiting\n')
-            sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
 
         # Get starting point
         model.no_scale()

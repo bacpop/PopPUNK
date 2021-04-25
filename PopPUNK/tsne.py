@@ -8,6 +8,7 @@ import numpy as np
 from sklearn import manifold as manifold_cpu
 
 from .utils import readPickle
+from .utils import check_and_set_gpu
 
 # Load GPU libraries
 try:
@@ -49,10 +50,8 @@ def generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, verbosity
     tsne_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_perplexity" + str(perplexity) + "_accessory_tsne.dot"
     if overwrite or not os.path.isfile(tsne_filename):
         sys.stderr.write("Running t-SNE\n")
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
         if use_gpu:
-            if not gpu_lib:
-                sys.stderr.write('Unable to load cuml library\n')
-                sys.exit(1)
             accArray_embedded = manifold_gpu.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))
         else:
             accArray_embedded = manifold_cpu.TSNE(n_components=2, perplexity=perplexity, verbose=verbosity).fit_transform(np.array(accMat))

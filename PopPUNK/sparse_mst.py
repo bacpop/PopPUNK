@@ -17,7 +17,6 @@ try:
     import cupyx
     import cugraph
     import cudf
-    cudf.set_allocator("managed")
     import cupy as cp
     from numba import cuda
     gpu_lib = True
@@ -36,6 +35,7 @@ from .network import constructNetwork
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
+from .utils import check_and_set_gpu
 
 # command line parsing
 def get_options():
@@ -79,9 +79,7 @@ def main():
 
     import graph_tool.all as gt
     # load CUDA libraries
-    if args.gpu_graph and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
+    args.gpu_graph = check_and_set_gpu(args.gpu_graph, gpu_lib)
 
     # Read in sample names
     if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):

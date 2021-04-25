@@ -30,7 +30,6 @@ try:
     import cupyx
     import cugraph
     import cudf
-    cudf.set_allocator("managed")
     import cupy as cp
     from numba import cuda
     gpu_lib = True
@@ -44,6 +43,7 @@ from .network import add_self_loop
 from .utils import transformLine
 from .utils import decisionBoundary
 from .utils import listDistInts
+from .utils import check_and_set_gpu
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
@@ -102,9 +102,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                       + "," + "{:.2f}".format(start_point[1]) + ")\n")
 
     # load CUDA libraries
-    if use_gpu and not gpu_lib:
-      sys.stderr.write('Unable to load GPU libraries; exiting\n')
-      sys.exit(1)
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
 
     # calculate distance between start point and means if none is supplied
     if min_move is None:

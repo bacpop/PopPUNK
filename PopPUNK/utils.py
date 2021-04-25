@@ -591,3 +591,27 @@ def decisionBoundary(intercept, gradient):
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
+
+def check_and_set_gpu(use_gpu, gpu_lib):
+    """Check GPU libraries can be loaded and set managed memory.
+
+    Args:
+        use_gpu (bool)
+            Whether GPU packages have been requested
+        gpu_lib (bool)
+            Whether GPU packages are available
+    Returns:
+        use_gpu (bool)
+            Whether GPU packages can be used
+    """
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; using CPU libraries '
+        'instead\n')
+        use_gpu = False
+
+    # Set memory management for large networks
+    if use_gpu:
+        cudf.set_allocator("managed")
+        
+    return use_gpu

@@ -10,12 +10,13 @@ import numpy as np
 import pandas as pd
 import dendropy
 
+from .utils import check_and_set_gpu
+
 # Load GPU libraries
 try:
     import cupyx
     import cugraph
     import cudf
-    cudf.set_allocator("managed")
     import cupy as cp
     from numba import cuda
     gpu_lib = True
@@ -194,9 +195,7 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     # MST graph -> phylogeny
     #
     
-    if use_gpu and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
     
     # Define sequences names for tree
     taxon_namespace = dendropy.TaxonNamespace(names)
