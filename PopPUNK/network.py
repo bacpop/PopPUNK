@@ -1449,7 +1449,7 @@ def save_network(G, prefix = None, suffix = None, use_graphml = False,
             G.save(file_name + '.gt',
                     fmt = 'gt')
 
-def cugraph_to_graph_tool(G, rlist = None):
+def cugraph_to_graph_tool(G, rlist):
     """Save a network to disk
 
     Args:
