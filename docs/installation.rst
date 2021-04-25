@@ -87,12 +87,14 @@ v2.3.2.
 
 GPU packages
 ------------
-To install RAPIDS, see the `guide <https://rapids.ai/start.html#get-rapids>`__. We
-would recommend installing into a clean conda environment with a command such as::
+To use GPU acceleration, PopPUNK uses cupy, numba and packages from RAPIDS. Both
+cupy and numba can be installed as standard packages using conda. To install RAPIDS,
+see the `guide <https://rapids.ai/start.html#get-rapids>`__. We would recommend
+installing into a clean conda environment with a command such as::
 
     conda create -n poppunk_gpu -c rapidsai -c nvidia -c conda-forge \
     -c bioconda -c defaults rapids=0.17 python=3.8 cudatoolkit=11.0 \
-    pp-sketchlib>=1.6.2 poppunk>=2.3.0 networkx
+    pp-sketchlib>=1.6.2 poppunk>=2.3.0 networkx cupy numba
     conda activate poppunk_gpu
 
 The version of pp-sketchlib on conda only supports some GPUs. If this doesn't work
@@ -104,7 +106,8 @@ conda environment::
 
 .. note::
 
-    On OSX replace ``libgomp libgfortan-ng`` with ``llvm-openmp gfortran_impl_osx-64``.
+    On OSX replace ``libgomp libgfortan-ng`` with ``llvm-openmp gfortran_impl_osx-64``,
+    and remove ``libgomp`` from ``environment.yml``.
 
 Clone the sketchlib repository::
 
@@ -153,3 +156,14 @@ and installation of sketchlib will include GPU components::
 You can confirm that your custom installation of sketchlib is being used by checking
 the location of sketchlib library reported by ``popppunk`` points to your python
 site-packages, rather than the conda version.
+
+Selecting a GPU
+---------------
+
+A single GPU will be selected on systems where multiple devices are available. For
+sketching and distance calculations, this can be specified by the ``--deviceid`` flag.
+Alternatively, all GPU-enabled functions will used device 0 by default. Any GPU can
+be set to device 0 using the system ``CUDA_VISIBLE_DEVICES`` variable, which can be set
+before running PopPUNK; e.g. to use GPU device 1::
+
+    export CUDA_VISIBLE_DEVICES=1
