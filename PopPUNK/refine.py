@@ -260,8 +260,6 @@ def expand_cugraph_network(G, G_extra_df):
     if 'src' in G_original_df.columns:
         G_original_df.columns = ['source','destination']
     G_df = G_original_df.append(G_extra_df)
-    del G_original_df
-    del G_extra_df
     G = add_self_loop(G_df, G_vertex_count, weights = False, renumber = False)
     return G
 

@@ -642,7 +642,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
     if not use_gpu:
         # Convert to tuples and delete the unnecessary data frame
         connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
-        del G_df
 
     # read previous graph
     if previous_network is not None:
@@ -694,7 +693,6 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         if weights is not None:
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
-        del G_df
     else:
         # build the graph
         G = gt.Graph(directed = False)
@@ -1328,7 +1326,6 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             max_indices = mst_df.groupby(['labels'])['degree'].idxmax()
             seed_vertices = mst_df.iloc[max_indices]['vertex']
             num_components = seed_vertices.size()
-        del mst_df
     else:
         component_assignments, component_frequencies = gt.label_components(mst_network)
         num_components = len(component_frequencies)
@@ -1474,5 +1471,4 @@ def cugraph_to_graph_tool(G, rlist):
                                 edge_tuple,
                                 0, edge_list=True,
                                 summarise=False)
-    del edge_df
     return G
