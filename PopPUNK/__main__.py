@@ -375,7 +375,8 @@ def main():
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
-                                   output)
+                                   output,
+                                   use_gpu = args.gpu_graph)
             model.set_threads(args.threads)
             sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
             if args.fit_model == "refine" and args.manual_start == None \

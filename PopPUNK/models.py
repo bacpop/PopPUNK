@@ -17,7 +17,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
-from scipy.sparse import coo_matrix, bmat, find, save_npz, load_npz
+import scipy.sparse
 import hdbscan
 
 # Parallel support
@@ -35,7 +35,7 @@ except ImportError as e:
 
 # Load GPU libraries
 try:
-    import cupyx
+    import cupyx.scipy.sparse
     import cugraph
     import cudf
     cudf.set_allocator("managed")
@@ -79,7 +79,8 @@ epsilon = 1e-10
 def rankFile(rank):
     return('_rank' + str(rank) + '_fit.npz')
 
-def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
+def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
+                   use_gpu = False):
     '''Call this to load a fitted model
 
     Args:
@@ -91,8 +92,15 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
             Output prefix for model to save to (e.g. plots)
         max_samples (int)
             Maximum samples if subsampling X
-
             [default = 100000]
+        use_gpu (bool)
+            Whether to load npz file with GPU libraries
+            for lineage models
+    
+    Returns:
+        load_obj (model)
+            Loaded model
+            
     '''
     with open(pkl_file, 'rb') as pickle_obj:
         fit_object, fit_type = pickle.load(pickle_obj)
@@ -106,7 +114,10 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
             prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
             rank_file = os.path.dirname(pkl_file) + "/" + \
                         prefix.group(1) + rankFile(rank)
-            fit_data[rank] = load_npz(rank_file)
+            if use_gpu:
+                fit_data[rank] = cupyx.scipy.sparse.load_npz(rank_file)
+            else:
+                fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
         fit_data = np.load(npz_file)
 
@@ -1028,14 +1039,13 @@ class LineageFit(ClusterFit):
                 )
             data = [epsilon if d < epsilon else d for d in data]
             if self.use_gpu:
-                self.nn_dists[rank] = coo_matrix((cp.array(data),
-                                                    (cp.array(row), cp.array(col))),
-                                                 shape=(sample_size, sample_size),
-                                                 dtype = X.dtype)
+                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((cp.array(data),(cp.array(row),cp.array(col))),
+                                                    shape=(sample_size, sample_size),
+                                                    dtype = X.dtype)
             else:
                 self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                                         shape=(sample_size, sample_size),
-                                                         dtype = X.dtype)
+                                                    shape=(sample_size, sample_size),
+                                                    dtype = X.dtype)
 
         self.fitted = True
 
@@ -1048,10 +1058,16 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to save unfitted model")
         else:
             for rank in self.ranks:
-                save_npz(
-                    self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                    rankFile(rank),
-                    self.nn_dists[rank])
+                if self.use_gpu:
+                    cupyx.scipy.sparse.save_npz(
+                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                        rankFile(rank),
+                        self.nn_dists[rank])
+                else:
+                    scipy.sparse.save_npz(
+                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                        rankFile(rank),
+                        self.nn_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks, self.dist_col], self.type], pickle_file)
@@ -1141,11 +1157,11 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             # Add the matrices together to make a large square matrix
             if self.use_gpu:
-                full_mat = bmat([[self.nn_dists[rank],
-                                qrRect.transpose()],
-                                [qrRect,qqSquare]],
-                                format = 'csr',
-                                dtype = self.nn_dists[rank].dtype)
+                full_mat = cupyx.scipy.sparse.bmat([[self.nn_dists[rank],
+                                                    qrRect.transpose()],
+                                                    [qrRect,qqSquare]],
+                                                    format = 'csr',
+                                                    dtype = self.nn_dists[rank].dtype)
             else:
                 full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
                                             qrRect.transpose()],
@@ -1159,7 +1175,10 @@ class LineageFit(ClusterFit):
             col = []
             for row_idx in range(full_mat.shape[0]):
                 sample_row = full_mat.getrow(row_idx)
-                dist_row, dist_col, dist = find(sample_row)
+                if self.use_gpu:
+                    dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
+                else:
+                    dist_row, dist_col, dist = scipy.sparse.find(sample_row)
                 dist = [epsilon if d < epsilon else d for d in dist]
                 dist_idx_sort = np.argsort(dist)
 
@@ -1182,10 +1201,10 @@ class LineageFit(ClusterFit):
                         break
 
             if self.use_gpu:
-                self.nn_dists[rank] = coo_matrix((cp.array(data),
-                                                    (cp.array(row), cp.array(col))),
-                                                 shape=(full_mat.shape[0], full_mat.shape[0]),
-                                                 dtype = self.nn_dists[rank].dtype)
+                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix(
+                                        (cp.array(data), (cp.array(row), cp.array(col))),
+                                        shape=(full_mat.shape[0], full_mat.shape[0]),
+                                        dtype = self.nn_dists[rank].dtype)
             else:
                 self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
                                                     shape=(full_mat.shape[0], full_mat.shape[0]),
