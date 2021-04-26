@@ -1460,15 +1460,12 @@ def cugraph_to_graph_tool(G, rlist):
     """
     edge_df = G.view_edge_list()
     edge_tuple = edge_df[['src', 'dst']].values
+    edge_weights = None
     if 'weights' in edge_df.columns:
-        G = constructNetwork(rlist, rlist,
-                               edge_tuple,
-                               0, edge_list=True,
-                               weights=edge_df['weights'].values_host,
-                               summarise=False)
-    else:
-        G = constructNetwork(rlist, rlist,
-                                edge_tuple,
-                                0, edge_list=True,
-                                summarise=False)
+        edge_weights = edge_df['weights'].values_host
+    G = constructNetwork(rlist, rlist,
+                           edge_tuple,
+                           0, edge_list=True,
+                           weights = edge_weights,
+                           summarise=False)
     return G
