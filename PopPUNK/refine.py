@@ -36,6 +36,8 @@ try:
 except ImportError as e:
     gpu_lib = False
 
+from .__main__ import betweenness_sample_default
+
 from .network import constructNetwork
 from .network import networkSummary
 from .network import add_self_loop
@@ -48,7 +50,7 @@ from .utils import check_and_set_gpu
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
               unconstrained = False, no_local = False, num_processes = 1,
-              betweenness_sample = 100, use_gpu = False):
+              betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -264,7 +266,8 @@ def expand_cugraph_network(G, G_extra_df):
     return G
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
-                thread_idx = 0, betweenness_sample = 100, use_gpu = False):
+                thread_idx = 0, betweenness_sample = betweenness_sample_default,
+                use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -352,7 +355,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
                slope=2, score_idx=0, potential_edges_df=None, cpus=1,
-               betweenness_sample = 100, use_gpu = False):
+               betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -424,7 +427,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
-                 betweenness_sample = 100, use_gpu = False):
+                 betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list

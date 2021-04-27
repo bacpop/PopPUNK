@@ -49,6 +49,8 @@ except ImportError as e:
 import pp_sketchlib
 import poppunk_refine
 
+from .__main__ import betweenness_sample_default
+
 from .utils import set_env
 from .utils import check_and_set_gpu
 
@@ -708,7 +710,8 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False, betweenness_sample = 100, use_gpu = False):
+            unconstrained = False, score_idx = 0, no_local = False,
+            betweenness_sample = betweenness_sample_default, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling

@@ -35,6 +35,7 @@ except ImportError as e:
     gpu_lib = False
 
 from .__main__ import accepted_weights_types
+from .__main__ import betweenness_sample_default
 
 from .sketchlib import addRandom
 
@@ -509,7 +510,8 @@ def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,
                      weights_type = 'euclidean', sparse_input = None,
                      G_df = None, previous_network = None,
-                     previous_pkl = None, betweenness_sample = 100, use_gpu = False):
+                     previous_pkl = None, betweenness_sample = betweenness_sample_default,
+                     use_gpu = False):
     """Construct an unweighted, undirected network without self-loops.
     Nodes are samples and edges where samples are within the same cluster
 
@@ -746,7 +748,7 @@ def get_cugraph_triangles(G):
     triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
     return triangle_count
 
-def networkSummary(G, calc_betweenness=True, betweenness_sample = 100,
+def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sample_default,
                     use_gpu = False):
     """Provides summary values about the network
 

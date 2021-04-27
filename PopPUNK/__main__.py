@@ -25,6 +25,7 @@ from .__init__ import __version__
 
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
+betweenness_sample_default = 100
 
 #******************************#
 #*                            *#
@@ -132,7 +133,7 @@ def get_options():
             type=int, default = 0, choices=[0, 1, 2])
     refinementGroup.add_argument('--betweenness-sample',
             help='Number of sequences used to estimate betweeness with a GPU [default = 100]',
-            type=int, default = 100)
+            type = int, default = betweenness_sample_default)
     refineMode = refinementGroup.add_mutually_exclusive_group()
     refineMode.add_argument('--unconstrained',
             help='Optimise both boundary gradient and intercept',
