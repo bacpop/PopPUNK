@@ -318,10 +318,10 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
         idx_values = edge_list_df.idx_list.unique()
 
     # Grow a network
-    with tqdm(total=len(idx_values),
-              bar_format="{bar}| {n_fmt}/{total_fmt}",
-              ncols=40,
-              position=thread_idx) as pbar:
+    with tqdm(total = idx_values[-1] + 1,
+              bar_format = "{bar}| {n_fmt}/{total_fmt}",
+              ncols = 40,
+              position = thread_idx) as pbar:
         for idx in idx_values:
             # Create DF
             edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
