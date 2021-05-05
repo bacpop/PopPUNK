@@ -612,10 +612,10 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         connections = []
         if weights is not None:
             for ((src, dest), weight) in zip(edge_list, weights):
-                connections.append((src, dest), weight)
+                connections.append((src, dest, weight)
             if previous_network is not None:
                 for ((src, dest), weight) in zip(extra_sources, extra_targets, extra_weights):
-                    connections.append((src, dest), weight)
+                    connections.append((src, dest, weight))
         else:
             connections = edge_list
             if previous_network is not None:
