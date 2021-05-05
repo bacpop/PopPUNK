@@ -30,6 +30,12 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
   return (edges);
 }
 
+edge_tuple generateTuples(const std::vector<double> &assignments,
+                            const int within_label) {
+  edge_tuple edges = generate_tuples(assignments, within_label);
+  return (edges);
+}
+
 network_coo thresholdIterate1D(const Eigen::Ref<NumpyMatrix> &distMat,
                                const std::vector<double> &offsets,
                                const int slope, const double x0,
@@ -73,6 +79,11 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("distMat").noconvert(), py::arg("slope"), py::arg("x_max"),
         py::arg("y_max"));
 
+    m.def("generateTuples", &generateTuples,
+          py::return_value_policy::reference_internal,
+          "Return edge tuples based on assigned groups",
+          py::arg("assignments"), py::arg("within_label"));
+    
   m.def("thresholdIterate1D", &thresholdIterate1D,
         py::return_value_policy::reference_internal,
         "Move a 2D boundary to grow a network by adding edges at each offset",
