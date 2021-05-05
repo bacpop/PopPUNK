@@ -464,7 +464,7 @@ class BGMMFit(ClusterFit):
 
                 y[:] = y_shared_array[:]
 
-        return y.astype(np.int32)
+        return y
 
 
 class DBSCANFit(ClusterFit):
@@ -686,7 +686,7 @@ class DBSCANFit(ClusterFit):
 
                 y[:] = y_shared_array[:]
 
-        return y.astype(np.int32)
+        return y
 
 
 class RefineFit(ClusterFit):
@@ -976,7 +976,7 @@ class RefineFit(ClusterFit):
             elif slope == 1 or (slope == None and self.slope == 1):
                 y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, self.threads)
 
-        return y.astype(np.int32)
+        return y
 
 
 class LineageFit(ClusterFit):

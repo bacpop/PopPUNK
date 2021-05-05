@@ -522,7 +522,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             List of reference sequence labels
         qlist (list)
             List of query sequence labels
-        assignments (numpy.array)
+        assignments (numpy.array or int)
             Labels of most likely cluster assignment from :func:`~PopPUNK.bgmm.assign_samples`
         within_label (int)
             The label for the cluster representing within-strain distances
@@ -623,7 +623,7 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         # Add further information to DF
         if 'src' in G_df.columns:
             G_df.rename(columns={'src': 'source', 'dst': 'destination'})
-        G_df['assignments'] = assignments
+        G_df['assignments'] = assignments.astype(np.int32)
         if weights is not None:
             if weights_type == 'euclidean':
                 G_df['weights'] = np.linalg.norm(weights, axis = 1)
