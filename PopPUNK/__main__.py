@@ -470,6 +470,7 @@ def main():
                                                      assignments,
                                                      model.within_label,
                                                      weights = weights,
+                                                     weights_type = 'euclidean',
                                                      betweenness_sample = args.betweenness_sample,
                                                      use_gpu = args.gpu_graph)
         else:
