@@ -459,7 +459,7 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
 
     Args:
         G (graph)
-            The network to write from :func:`~PopPUNK.network.constructNetwork`
+            The network to write
         G_mst (graph)
             The minimum spanning tree of G
         clustering (dict)

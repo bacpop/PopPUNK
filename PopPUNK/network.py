@@ -22,6 +22,7 @@ from multiprocessing import Pool
 import pickle
 import graph_tool.all as gt
 import dendropy
+import poppunk_refine
 
 # Load GPU libraries
 try:
@@ -505,6 +506,213 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
         return source_ids, target_ids, edge_weights
     else:
         return source_ids, target_ids
+
+def print_network_summary(G, betweenness_sample = betweenness_sample_default, use_gpu = False):
+    # print some summaries
+    (metrics, scores) = networkSummary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
+                                                   "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
+                                                   "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
+                                                   "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
+                                                   "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
+                                                   "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
+                                                   "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
+                                                   "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
+                                                   + "\n")
+
+def initial_graph_properties(rlist, qlist):
+
+    self_comparison = True
+    vertex_labels = rlist
+    if rlist != qlist:
+        self_comparison = False
+        vertex_labels.append(qlist)
+    return vertex_labels, self_comparison
+
+def process_weights(weights, weights_type):
+    if weights_type is not None:
+        # Check weights type is valid
+        if weights_type not in accepted_weights_types:
+            sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
+                             "accepted types are " + str(accepted_weights_types) + "\n")
+        if weights_type == 'euclidean':
+            processed_weights = np.linalg.norm(weights, axis = 1)
+        elif weights_type == 'core':
+            processed_weights = weights[:, 0]
+        elif weights_type == 'accessory':
+            processed_weights = weights[:, 1]
+    else:
+        processed_weights = weights
+    return processed_weights
+    
+def process_previous_network(previous_network = None, previous_pkl = None, vertex_labels = None, weights = False, use_gpu = False):
+    if previous_pkl is not None:
+        if weights is not None:
+            # Extract from network
+            extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
+                                                                            vertex_labels,
+                                                                            previous_pkl = previous_pkl,
+                                                                            weights = True,
+                                                                            use_gpu = use_gpu)
+        else:
+            # Extract from network
+            extra_sources, extra_targets = network_to_edges(previous_network,
+                                                            vertex_labels,
+                                                            previous_pkl = previous_pkl,
+                                                            weights = False,
+                                                            use_gpu = use_gpu)
+            extra_weights = None
+    else:
+        sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
+        sys.exit(1)
+    
+    return extra_sources, extra_targets, extra_weights
+
+def construct_network_from_edge_list(rlist, qlist, edge_list,
+    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+
+    # data structures
+    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    weights = process_weights(weights, weights_type)
+    
+    # Load previous network
+    if previous_network is not None:
+        extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
+                                                                                previous_pkl = previous_pkl,
+                                                                                vertex_labels = vertex_labels,
+                                                                                weights = weights,
+                                                                                use_gpu = use_gpu)
+
+    # Create new network
+    if use_gpu:
+        # Add extra information from previous network
+        if previous_network is not None:
+            for (src, dest) in zip(extra_sources, extra_targets):
+                edge_list.append((src, dest))
+            if weights is not None:
+                weights.extend(extra_weights)
+        # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
+        edge_array = cp.array(edge_list, dtype = np.int32)
+        edge_gpu_matrix = cuda.to_device(edge_array)
+        G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
+        if weights is not None:
+            G_df['weights'] = weights
+        G = construct_network_from_df(rlist, qlist, G_df,
+                                        weights = weights,
+                                        weights_type = weights_type,
+                                        previous_network = previous_network,
+                                        previous_pkl = previous_pkl,
+                                        betweenness_sample = betweenness_sample,
+                                        summarise = summarise,
+                                        use_gpu = use_gpu)
+    else:
+        # Construct list of tuples for graph-tool
+        # Include information from previous graph if supplied
+        connections = []
+        if weights is not None:
+            for ((src, dest), weight) in zip(edge_list, weights):
+                connections.append((src, dest), weight)
+            if previous_network is not None:
+                for ((src, dest), weight) in zip(extra_sources, extra_targets, extra_weights):
+                    connections.append((src, dest), weight)
+        else:
+            connections = edge_list
+            if previous_network is not None:
+                for (src, dest) in zip(extra_sources, extra_targets):
+                    connections.append((src, dest))
+        # build the graph
+        G = gt.Graph(directed = False)
+        G.add_vertex(len(vertex_labels))
+        if weights is not None:
+            eweight = G.new_ep("float")
+            G.add_edge_list(connections, eprops = [eweight])
+            G.edge_properties["weight"] = eweight
+        else:
+            G.add_edge_list(connections)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
+
+def construct_network_from_df(rlist, qlist, G_df,
+    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+
+    # data structures
+    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    weights = process_weights(weights, weights_type)
+
+    # Load previous network
+    if previous_network is not None:
+        extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
+                                                                                previous_pkl = previous_pkl,
+                                                                                vertex_labels = vertex_labels,
+                                                                                weights = weights,
+                                                                                use_gpu = use_gpu)
+    if use_gpu:
+        # direct conversion
+        # ensure the highest-integer node is included in the edge list
+        # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = len(vertex_labels)-1
+        use_weights = False
+        if weights is not None:
+            use_weights = True
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
+    else:
+        connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
+        construct_network_from_edge_list(rlist, qlist, connections,
+                                            weights = weights,
+                                            weights_type = weights_type,
+                                            previous_network = previous_network,
+                                            previous_pkl = previous_pkl,
+                                            betweenness_sample = betweenness_sample,
+                                            summarise = summarise,
+                                            use_gpu = use_gpu)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
+
+def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
+    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+
+    if use_gpu:
+        G_df = cudf.DataFrame()
+    else:
+        G_df = pd.DataFrame()
+    G_df['source'] = sparse_input.row
+    G_df['destination'] =  sparse_input.col
+    G_df['weights'] = sparse_input.data
+    G = construct_network_from_df(rlist, qlist, G_df,
+                                    weights = weights,
+                                    weights_type = weights_type,
+                                    previous_network = previous_network,
+                                    previous_pkl = previous_pkl,
+                                    betweenness_sample = betweenness_sample,
+                                    summarise = summarise,
+                                    use_gpu = use_gpu)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
+
+def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1,
+    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    
+    # Get indices of edges from assignments
+    connections = poppunk_refine.generateTuples(assignments, within_label)
+    G = construct_network_from_edge_list(rlist, qlist, connections,
+                                            weights = weights,
+                                            weights_type = weights_type,
+                                            previous_network = previous_network,
+                                            previous_pkl = previous_pkl,
+                                            betweenness_sample = betweenness_sample,
+                                            summarise = summarise,
+                                            use_gpu = use_gpu)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
 
 def constructNetwork(rlist, qlist, assignments, within_label,
                      summarise = True, edge_list = False, weights = None,

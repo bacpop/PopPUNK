@@ -30,7 +30,7 @@ from .network import cugraph_to_graph_tool
 from .network import save_network
 from .network import network_to_edges
 from .network import generate_minimum_spanning_tree
-from .network import constructNetwork
+from .network import construct_network_from_sparse_matrix
 
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
@@ -135,12 +135,16 @@ def main():
     else:
         # Load previous MST if specified
         if args.previous_mst is not None:
-            G = constructNetwork(rlist, rlist, None, 0,
-                                 sparse_input=sparse_mat, summarise=False,
-                                 previous_network = args.previous_mst)
+            G = construct_network_from_sparse_matrix(rlist,
+                                                        rlist,
+                                                        sparse_mat,
+                                                        summarise=False,
+                                                        previous_network = args.previous_mst)
         else:
-            G = constructNetwork(rlist, rlist, None, 0,
-                                 sparse_input=sparse_mat, summarise=False)
+            G = construct_network_from_sparse_matrix(rlist,
+                                                        rlist,
+                                                        sparse_mat,
+                                                        summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
 
     G = generate_minimum_spanning_tree(G, args.gpu_graph)

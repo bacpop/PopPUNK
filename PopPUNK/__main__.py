@@ -209,6 +209,8 @@ def main():
     from .sketchlib import removeFromDB
 
     from .network import constructNetwork
+    from .network import construct_network_from_edge_list
+    from .network import construct_network_from_assignments
     from .network import extractReferences
     from .network import printClusters
     from .network import get_vertex_list
@@ -463,13 +465,13 @@ def main():
             else:
                 weights = None
             genomeNetwork = \
-                constructNetwork(refList,
-                                 queryList,
-                                 assignments,
-                                 model.within_label,
-                                 weights = weights,
-                                 betweenness_sample = args.betweenness_sample,
-                                 use_gpu = args.gpu_graph)
+                construct_network_from_assignments(refList,
+                                                     queryList,
+                                                     assignments,
+                                                     model.within_label,
+                                                     weights = weights,
+                                                     betweenness_sample = args.betweenness_sample,
+                                                     use_gpu = args.gpu_graph)
         else:
             # Lineage fit requires some iteration
             indivNetworks = {}
@@ -480,16 +482,13 @@ def main():
                     weights = model.edge_weights(rank)
                 else:
                     weights = None
-                indivNetworks[rank] = constructNetwork(
-                                        refList,
-                                        refList,
-                                        assignments[rank],
-                                        0,
-                                        edge_list = True,
-                                        weights = weights,
-                                        betweenness_sample = args.betweenness_sample,
-                                        use_gpu = args.gpu_graph
-                                       )
+                indivNetworks[rank] = construct_network_from_edge_list(refList,
+                                                                        refList,
+                                                                        assignments[rank],
+                                                                        weights = weights,
+                                                                        betweenness_sample = args.betweenness_sample,
+                                                                        use_gpu = args.gpu_graph
+                                                                       )
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
                                   refList,
@@ -528,12 +527,12 @@ def main():
                 if args.indiv_refine == 'both' or args.indiv_refine == dist_type:
                     indivAssignments = model.assign(distMat, slope)
                     indivNetworks[dist_type] = \
-                        constructNetwork(refList,
-                                         queryList,
-                                         indivAssignments,
-                                         model.within_label,
-                                         betweenness_sample = args.betweenness_sample,
-                                         use_gpu = args.gpu_graph)
+                        construct_network_from_assignments(refList,
+                                                             queryList,
+                                                             indivAssignments,
+                                                             model.within_label,
+                                                             betweenness_sample = args.betweenness_sample,
+                                                             use_gpu = args.gpu_graph)
                     isolateClustering[dist_type] = \
                         printClusters(indivNetworks[dist_type],
                                       refList,
