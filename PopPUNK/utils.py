@@ -14,6 +14,7 @@ from itertools import chain
 from tempfile import mkstemp
 from functools import partial
 import contextlib
+import poppunk_refine
 
 import numpy as np
 import pandas as pd
@@ -279,15 +280,16 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
-    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
-    if len(long_distance_rows) > 0:
-        names = list(iterDistRows(refList, queryList, refList == queryList))
+    #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
+    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
+    long_edges = poppunk_refine.generateTuples(long_distance_rows, 0)
+    if len(long_edges) > 0:
         # Prune sequences based on reference sequence
-        for i in long_distance_rows:
-            if names[i][0] == qc_dict['type_isolate']:
-                to_prune.append(names[i][1])
-            elif names[i][1] == qc_dict['type_isolate']:
-                to_prune.append(names[i][0])
+        for (s,t) in long_edges:
+            if seq_names_passing[s] == qc_dict['type_isolate']:
+                to_prune.append(names[t])
+            elif seq_names_passing[t] == qc_dict['type_isolate']:
+                to_prune.append(names[s])
 
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
