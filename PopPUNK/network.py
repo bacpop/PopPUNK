@@ -1256,7 +1256,7 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
         G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
     # Construct graph
     G_new = cugraph.Graph()
-    if weights is not None:
+    if weights:
         G_new.from_cudf_edgelist(G_df, edge_attr = 'weights', renumber = renumber)
     else:
         G_new.from_cudf_edgelist(G_df, renumber = renumber)
