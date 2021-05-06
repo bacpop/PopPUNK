@@ -1219,10 +1219,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         else:
             G.add_edge_list(new_edges)
 
-        # including the vertex ID property map
-        for i, q in enumerate(qList):
-            G.vp.id[i + len(rList)] = q
-
     return G, qqDistMat
 
 def add_self_loop(G_df, seq_num, weights = False, renumber = True):
