@@ -697,7 +697,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
-                                                                                weights = if weights is not None,
+                                                                                weights = (weights is not None),
                                                                                 use_gpu = use_gpu)
 
     # Create new network
@@ -794,7 +794,7 @@ def construct_network_from_df(rlist, qlist, G_df,
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
     if weights_type is not None:
-        G_df['weights'] = = process_weights(distMat, weights_type)
+        G_df['weights'] = process_weights(distMat, weights_type)
 
     # Check df format is correct
     if weights:
