@@ -38,6 +38,7 @@ except ImportError as e:
 
 from .__main__ import betweenness_sample_default
 
+from .network import construct_network_from_df
 from .network import constructNetwork
 from .network import networkSummary
 from .network import add_self_loop
@@ -119,14 +120,6 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Trying to optimise score globally\n")
 
     # Generate sample combinations
-    potential_edges = list(listDistInts(sample_names, sample_names, True))
-    if use_gpu:
-        edge_array = cp.array(potential_edges, dtype = np.int32)
-        edge_gpu_matrix = cuda.to_device(edge_array)
-        potential_edges_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
-    else:
-        potential_edges_df = pd.DataFrame(potential_edges, columns = ['source','destination'])
-
     if unconstrained:
         if slope != 2:
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
@@ -218,10 +211,10 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     if not no_local:
         sys.stderr.write("Trying to optimise score locally\n")
         local_s = scipy.optimize.minimize_scalar(newNetwork,
-                        bounds=bounds,
-                        method='Bounded', options={'disp': True},
+                        bounds = bounds,
+                        method = 'Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, potential_edges_df, num_processes,
+                                slope, score_idx, num_processes,
                                 betweenness_sample, use_gpu),
                         )
         optimised_s = local_s.x
@@ -327,20 +320,14 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
             edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
             # At first offset, make a new network, otherwise just add the new edges
             if prev_idx == -1:
-                G = constructNetwork(sample_names, sample_names,
-                                     edge_list_df['idx_list']==idx,
-                                     1,
-                                     summarise=False,
-                                     edge_list=False,
-                                     G_df = edge_df,
-                                     betweenness_sample = betweenness_sample,
-                                     use_gpu = use_gpu)
+                G = construct_network_from_df(sample_names, sample_names,
+                                                 edge_df,
+                                                 summarise = False,
+                                                 use_gpu = use_gpu)
             else:
                 if use_gpu:
                     G = expand_cugraph_network(G, edge_df)
                 else:
-                    # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
-                    # We add to the cuDF, and then reconstruct the network instead
                     edge_list = list(edge_df[['source','destination']].itertuples(index=False, name=None))
                     G.add_edge_list(edge_list)
                     edge_list = []
@@ -356,9 +343,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     return(scores)
 
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
-               slope=2, score_idx=0, potential_edges_df=None, cpus=1,
-               betweenness_sample = betweenness_sample_default, use_gpu = False):
-    """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
+               slope=2, score_idx=0, cpus=1, betweenness_sample = betweenness_sample_default,
+               use_gpu = False):
+    """Wrapper function for :func:`~PopPUNK.network.construct_network_from_edge_list` which is called
     by optimisation functions moving a triangular decision boundary.
 
     Given the boundary parameterisation, constructs the network and returns
@@ -384,8 +371,6 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
-        potential_edges_df (cudf or pandas data frame)
-            Two column source/destination data frame of integers
         cpus (int)
             Number of CPUs to use for calculating assignment
         betweenness_sample (int)
@@ -414,12 +399,12 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         y_max = new_intercept[1]
 
     # Make network
-    boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1,
-                            summarise = False,
-                            G_df = potential_edges_df,
-                            betweenness_sample = betweenness_sample,
-                            use_gpu = use_gpu)
+    connections = poppunk_refine.edgeThreshold(distMat, slope, x_max, y_max)
+    G = construct_network_from_edge_list(sample_names,
+                                        sample_names,
+                                        connections,
+                                        summarise = False,
+                                        use_gpu = use_gpu)
 
     # Return score
     score = networkSummary(G,

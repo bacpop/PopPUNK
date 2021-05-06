@@ -375,7 +375,7 @@ def generate_visualisations(query_db,
                                                         combined_seq,
                                                         np.zeros(complete_distMat.shape[0]),
                                                         0,
-                                                        weights = complete_distMat,
+                                                        distMat = complete_distMat,
                                                         weights_type = mst_distances,
                                                         use_gpu = gpu_graph,
                                                         summarise = False)

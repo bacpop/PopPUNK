@@ -529,20 +529,21 @@ def initial_graph_properties(rlist, qlist):
         vertex_labels.append(qlist)
     return vertex_labels, self_comparison
 
-def process_weights(weights, weights_type):
-    if weights_type is not None:
+def process_weights(distMat, weights_type):
+    processed_weights = []
+    if weights_type is not None and distMat is not None:
         # Check weights type is valid
         if weights_type not in accepted_weights_types:
             sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
                              "accepted types are " + str(accepted_weights_types) + "\n")
         if weights_type == 'euclidean':
-            processed_weights = np.linalg.norm(weights, axis = 1)
+            processed_weights = np.linalg.norm(distMat, axis = 1)
         elif weights_type == 'core':
-            processed_weights = weights[:, 0]
+            processed_weights = distMat[:, 0]
         elif weights_type == 'accessory':
-            processed_weights = weights[:, 1]
+            processed_weights = distMat[:, 1]
     else:
-        processed_weights = weights
+        sys.stderr.write('Require distance matrix to calculate distances\n')
     return processed_weights
     
 def process_previous_network(previous_network = None, previous_pkl = None, vertex_labels = None, weights = False, use_gpu = False):
@@ -569,12 +570,13 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
     return extra_sources, extra_targets, extra_weights
 
 def construct_network_from_edge_list(rlist, qlist, edge_list,
-    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
 
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
-    weights = process_weights(weights, weights_type)
+    if weights_type is not None:
+        weights = process_weights(distMat, weights_type)
     
     # Load previous network
     if previous_network is not None:
@@ -600,6 +602,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
             G_df['weights'] = weights
         G = construct_network_from_df(rlist, qlist, G_df,
                                         weights = weights,
+                                        distMat = distMat,
                                         weights_type = weights_type,
                                         previous_network = previous_network,
                                         previous_pkl = previous_pkl,
@@ -635,12 +638,13 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     return G
 
 def construct_network_from_df(rlist, qlist, G_df,
-    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
 
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
-    weights = process_weights(weights, weights_type)
+    if weights_type is not None:
+        weights = process_weights(distMat, weights_type)
 
     # Load previous network
     if previous_network is not None:
@@ -661,8 +665,9 @@ def construct_network_from_df(rlist, qlist, G_df,
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
     else:
         connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
-        construct_network_from_edge_list(rlist, qlist, connections,
+        G = construct_network_from_edge_list(rlist, qlist, connections,
                                             weights = weights,
+                                            distMat = distMat,
                                             weights_type = weights_type,
                                             previous_network = previous_network,
                                             previous_pkl = previous_pkl,
@@ -697,13 +702,19 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
     return G
 
 def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1,
-    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
     
-    # Get indices of edges from assignments
+    # Convert edge indices to tuples
     connections = poppunk_refine.generateTuples(assignments, within_label)
+    # Filter weights to only the relevant edges
+    if weights is not None:
+        weights = weights[assignments == within_label]
+    elif distMat is not None:
+        distMat = distMat[assignments == within_label,:]
     G = construct_network_from_edge_list(rlist, qlist, connections,
                                             weights = weights,
+                                            distMat = distMat,
                                             weights_type = weights_type,
                                             previous_network = previous_network,
                                             previous_pkl = previous_pkl,

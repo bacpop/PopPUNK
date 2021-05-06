@@ -461,16 +461,16 @@ def main():
         #******************************#
         if model.type != "lineage":
             if args.graph_weights:
-                weights = distMat
+                weights_type = 'euclidean'
             else:
-                weights = None
+                weights_type = None
             genomeNetwork = \
                 construct_network_from_assignments(refList,
                                                      queryList,
                                                      assignments,
                                                      model.within_label,
-                                                     weights = weights,
-                                                     weights_type = 'euclidean',
+                                                     distMat = distMat,
+                                                     weights_type = weights_type,
                                                      betweenness_sample = args.betweenness_sample,
                                                      use_gpu = args.gpu_graph)
         else:
@@ -488,7 +488,8 @@ def main():
                                                                         assignments[rank],
                                                                         weights = weights,
                                                                         betweenness_sample = args.betweenness_sample,
-                                                                        use_gpu = args.gpu_graph
+                                                                        use_gpu = args.gpu_graph,
+                                                                        summarise = False
                                                                        )
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
