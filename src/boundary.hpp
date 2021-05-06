@@ -26,7 +26,7 @@ Eigen::VectorXf assign_threshold(const NumpyMatrix &distMat, const int slope,
 edge_tuple edge_iterate(const NumpyMatrix &distMat, const int slope,
                         const float x_max, const float y_max);
 
-edge_tuple generate_tuples(const std::vector<double> &assignments,
+edge_tuple generate_tuples(const std::vector<int> &assignments,
                            const int within_label);
 
 network_coo threshold_iterate_1D(const NumpyMatrix &distMat,

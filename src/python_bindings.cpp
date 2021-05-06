@@ -30,7 +30,7 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
   return (edges);
 }
 
-edge_tuple generateTuples(const std::vector<double> &assignments,
+edge_tuple generateTuples(const std::vector<int> &assignments,
                             const int within_label) {
   edge_tuple edges = generate_tuples(assignments, within_label);
   return (edges);
