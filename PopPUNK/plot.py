@@ -453,7 +453,7 @@ def drawMST(mst, outPrefix, isolate_clustering, clustering_name, overwrite):
             gt.graph_draw(mst, pos=pos, vertex_fill_color=mst.vertex_properties['plot_color'],
                     output=graph2_file_name, output_size=(3000, 3000))
 
-def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = None,
+def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, queryList = None,
                         suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
@@ -462,6 +462,8 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
             The network to write
         G_mst (graph)
             The minimum spanning tree of G
+        isolate_names (list)
+            Ordered list of sequence names
         clustering (dict)
             Dictionary of cluster assignments (keys are nodeNames).
         outPrefix (str)
@@ -484,9 +486,6 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
     
     # Avoid circular import
     from .network import save_network
-    
-    # get list of isolate names
-    isolate_names = list(G.vp.id)
 
     # mask network if subsetting
     if viz_subset is not None:
@@ -499,9 +498,10 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
         G.set_vertex_filter(viz_vertex)
 
     # edit names
-    edited_names = isolateNameToLabel(G.vp.id)
-    for n,v in enumerate(G.vertices()):
-        G.vp.id[v] = edited_names[n]
+    seqLabels = isolateNameToLabel(isolate_names)
+    vid = G.new_vertex_property('string',
+                                vals = seqLabels)
+    G.vp.id = vid
 
     # write graph file
     if suffix is None:
@@ -522,7 +522,6 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
 
     # Write CSV of metadata
     if writeCsv:
-        seqLabels = isolateNameToLabel(isolate_names)
         writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_cytoscape.csv",
                         isolate_names,
                         seqLabels,

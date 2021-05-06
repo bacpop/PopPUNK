@@ -646,6 +646,12 @@ def construct_network_from_df(rlist, qlist, G_df,
     if weights_type is not None:
         weights = process_weights(distMat, weights_type)
 
+    # Check df format is correct
+    if weights is not None:
+        G_df.columns = ['source','destination','weights']
+    else:
+        G_df.columns = ['source','destination']
+
     # Load previous network
     if previous_network is not None:
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
@@ -653,6 +659,16 @@ def construct_network_from_df(rlist, qlist, G_df,
                                                                                 vertex_labels = vertex_labels,
                                                                                 weights = weights,
                                                                                 use_gpu = use_gpu)
+        if use_gpu:
+            G_extra_df = cudf.DataFrame()
+        else:
+            G_extra_df = pd.DataFrame()
+        G_extra_df['source'] = extra_sources
+        G_extra_df['destination'] = extra_targets
+        if extra_weights is not None:
+            G_extra_df['weights'] = extra_weights
+        G_df = cudf.concat([G_df,G_extra_df], ignore_index = True)
+
     if use_gpu:
         # direct conversion
         # ensure the highest-integer node is included in the edge list
