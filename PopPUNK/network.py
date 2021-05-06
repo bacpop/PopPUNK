@@ -508,6 +508,17 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
         return source_ids, target_ids
 
 def print_network_summary(G, betweenness_sample = betweenness_sample_default, use_gpu = False):
+    """Wrapper function for printing network information
+
+    Args:
+        G (graph)
+            List of reference sequence labels
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+    """
     # print some summaries
     (metrics, scores) = networkSummary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
@@ -521,7 +532,22 @@ def print_network_summary(G, betweenness_sample = betweenness_sample_default, us
                                                    + "\n")
 
 def initial_graph_properties(rlist, qlist):
+    """Initial processing of sequence names for
+    network construction.
 
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+
+    Returns:
+        vertex_labels (list)
+            Ordered list of sequences in network
+        self_comparison (bool)
+            Whether the network is being constructed from all-v-all distances or
+            reference-v-query information
+    """
     self_comparison = True
     vertex_labels = rlist
     if rlist != qlist:
@@ -530,6 +556,18 @@ def initial_graph_properties(rlist, qlist):
     return vertex_labels, self_comparison
 
 def process_weights(distMat, weights_type):
+    """Calculate edge weights from the distance matrix
+    Args:
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+
+    Returns:
+        processed_weights (list)
+            Edge weights
+    """
     processed_weights = []
     if weights_type is not None and distMat is not None:
         # Check weights type is valid
@@ -546,7 +584,47 @@ def process_weights(distMat, weights_type):
         sys.stderr.write('Require distance matrix to calculate distances\n')
     return processed_weights
     
-def process_previous_network(previous_network = None, previous_pkl = None, vertex_labels = None, weights = False, use_gpu = False):
+def process_previous_network(previous_network = None, previous_pkl = None, vertex_labels = None,
+                            weights = False, use_gpu = False):
+    """Extract edge types from an existing network
+
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        G_df (cudf or pandas data frame)
+            Data frame in which the first two columns are the nodes linked by edges
+        weights (bool)
+            Whether weights in the G_df data frame should be included in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+            ordered based on the original network construction
+        vertex_labels (list)
+            Ordered list of sequence labels
+        weights (bool)
+            Whether weights should be extracted from the previous network
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        extra_sources (list)
+            List of source node identifiers
+        extra_targets (list)
+            List of destination node identifiers
+        extra_weights (list or None)
+            List of edge weights
+    """
     if previous_pkl is not None:
         if weights is not None:
             # Extract from network
@@ -572,7 +650,43 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
 def construct_network_from_edge_list(rlist, qlist, edge_list,
     weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using a data frame of edges. Nodes are samples and
+    edges where samples are within the same cluster
 
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        G_df (cudf or pandas data frame)
+            Data frame in which the first two columns are the nodes linked by edges
+        weights (bool)
+            Whether weights in the G_df data frame should be included in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
     if weights_type is not None:
@@ -583,7 +697,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
-                                                                                weights = weights,
+                                                                                weights = if weights is not None,
                                                                                 use_gpu = use_gpu)
 
     # Create new network
@@ -638,16 +752,52 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     return G
 
 def construct_network_from_df(rlist, qlist, G_df,
-    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = False, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using a data frame of edges. Nodes are samples and
+    edges where samples are within the same cluster
 
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        G_df (cudf or pandas data frame)
+            Data frame in which the first two columns are the nodes linked by edges
+        weights (bool)
+            Whether weights in the G_df data frame should be included in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
     if weights_type is not None:
-        weights = process_weights(distMat, weights_type)
+        G_df['weights'] = = process_weights(distMat, weights_type)
 
     # Check df format is correct
-    if weights is not None:
+    if weights:
         G_df.columns = ['source','destination','weights']
     else:
         G_df.columns = ['source','destination']
@@ -697,7 +847,43 @@ def construct_network_from_df(rlist, qlist, G_df,
 def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
     weights = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using a sparse matrix. Nodes are samples and
+    edges where samples are within the same cluster
 
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        sparse_input (numpy.array)
+            Sparse distance matrix from lineage fit
+        weights (list)
+            List of weights for each edge in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
     if use_gpu:
         G_df = cudf.DataFrame()
     else:
@@ -720,7 +906,46 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
 def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1,
     weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
-    
+    """Construct an undirected network using sequence lists, assignments of pairwise distances
+    to clusters, and the identifier of the cluster assigned to within-strain distances.
+    Nodes are samples and edges where samples are within the same cluster
+
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        assignments (numpy.array or int)
+            Labels of most likely cluster assignment
+        within_label (int)
+            The label for the cluster representing within-strain distances
+        weights (list)
+            List of weights for each edge in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
     # Convert edge indices to tuples
     connections = poppunk_refine.generateTuples(assignments, within_label)
     # Filter weights to only the relevant edges
