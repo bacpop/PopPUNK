@@ -208,7 +208,6 @@ def main():
     from .sketchlib import checkSketchlibLibrary
     from .sketchlib import removeFromDB
 
-    from .network import constructNetwork
     from .network import construct_network_from_edge_list
     from .network import construct_network_from_assignments
     from .network import extractReferences
