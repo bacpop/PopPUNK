@@ -39,6 +39,7 @@ except ImportError as e:
 from .__main__ import betweenness_sample_default
 
 from .network import construct_network_from_df
+from .network import construct_network_from_edge_list
 from .network import constructNetwork
 from .network import networkSummary
 from .network import add_self_loop
