@@ -58,7 +58,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
 
        Args:
             network_dir (str)
-                A network used to define clusters from :func:`~constructNetwork`
+                A network used to define clusters
             model (ClusterFit)
                 A fitted model object
             refList (list)
@@ -224,7 +224,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
 
        Args:
            G (graph)
-               A network used to define clusters from :func:`~constructNetwork`
+               A network used to define clusters
            dbOrder (list)
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
@@ -726,27 +726,25 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     else:
         # Construct list of tuples for graph-tool
         # Include information from previous graph if supplied
-        connections = []
         if weights is not None:
             for ((src, dest), weight) in zip(edge_list, weights):
-                connections.append((src, dest, weight))
+                edge_list.append((src, dest, weight))
             if previous_network is not None:
                 for ((src, dest), weight) in zip(extra_sources, extra_targets, extra_weights):
-                    connections.append((src, dest, weight))
+                    edge_list.append((src, dest, weight))
         else:
-            connections = edge_list
             if previous_network is not None:
                 for (src, dest) in zip(extra_sources, extra_targets):
-                    connections.append((src, dest))
+                    edge_list.append((src, dest))
         # build the graph
         G = gt.Graph(directed = False)
         G.add_vertex(len(vertex_labels))
         if weights is not None:
             eweight = G.new_ep("float")
-            G.add_edge_list(connections, eprops = [eweight])
+            G.add_edge_list(edge_list, eprops = [eweight])
             G.edge_properties["weight"] = eweight
         else:
-            G.add_edge_list(connections)
+            G.add_edge_list(edge_list)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     return G
@@ -830,7 +828,13 @@ def construct_network_from_df(rlist, qlist, G_df,
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
     else:
-        connections = list(zip(*[G_df[c].values.tolist() for c in G_df]))
+        # Convert bool to list of weights or None
+        if weights:
+            weights = G_df['weights']
+        else:
+            weights = None
+        # Convert data frame to list of tuples
+        connections = list(zip(*[G_df[c].values.tolist() for c in G_df[['source','destination']]]))
         G = construct_network_from_edge_list(rlist, qlist, connections,
                                             weights = weights,
                                             distMat = distMat,
@@ -892,7 +896,7 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
     G_df['destination'] =  sparse_input.col
     G_df['weights'] = sparse_input.data
     G = construct_network_from_df(rlist, qlist, G_df,
-                                    weights = weights,
+                                    weights = True,
                                     weights_type = weights_type,
                                     previous_network = previous_network,
                                     previous_pkl = previous_pkl,
@@ -1214,7 +1218,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
 
     Args:
         G (graph)
-            The network of strains from :func:`~constructNetwork`
+            The network of strains
         calc_betweenness (bool)
             Whether to calculate betweenness stats
         use_gpu (bool)
@@ -1514,8 +1518,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
     Args:
         G (graph)
-            Network used to define clusters (from :func:`~constructNetwork` or
-            :func:`~addQueryToNetwork`)
+            Network used to define clusters
         outPrefix (str)
             Prefix for output CSV
             Default = None
@@ -1921,9 +1924,11 @@ def cugraph_to_graph_tool(G, rlist):
     edge_weights = None
     if 'weights' in edge_df.columns:
         edge_weights = edge_df['weights'].values_host
-    G = constructNetwork(rlist, rlist,
-                           edge_tuple,
-                           0, edge_list=True,
-                           weights = edge_weights,
-                           summarise=False)
+    G = construct_network_from_edge_list(rlist, rlist,
+                                           edge_tuple,
+                                           weights = edge_weights,
+                                           summarise=False)
+    vid = G.new_vertex_property('string',
+                                vals = rlist)
+    G.vp.id = vid
     return G

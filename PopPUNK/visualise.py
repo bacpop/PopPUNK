@@ -373,8 +373,8 @@ def generate_visualisations(query_db,
                 sys.stderr.write("Generating MST from dense distances (may be slow)\n")
                 G = construct_network_from_assignments(combined_seq,
                                                         combined_seq,
-                                                        np.zeros(complete_distMat.shape[0]),
-                                                        0,
+                                                        [0]*complete_distMat.shape[0],
+                                                        within_label = 0,
                                                         distMat = complete_distMat,
                                                         weights_type = mst_distances,
                                                         use_gpu = gpu_graph,
@@ -388,6 +388,10 @@ def generate_visualisations(query_db,
                                                 use_gpu = gpu_graph)
                 if gpu_graph:
                     mst_graph = cugraph_to_graph_tool(mst_graph, isolateNameToLabel(combined_seq))
+                else:
+                    vid = mst_graph.new_vertex_property('string',
+                                                vals = isolateNameToLabel(combined_seq))
+                    mst_graph.vp.id = vid
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
             else:
                 mst_tree = existing_tree

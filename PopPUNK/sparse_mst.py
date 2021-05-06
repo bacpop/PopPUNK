@@ -162,8 +162,9 @@ def main():
     if not args.no_plot:
 
         # Convert cugraph to graph-tool for graphml saving
+        # and add IDs as vertex labels
         if args.gpu_graph:
-            G = cugraph_to_graph_tool(G, rlist)
+            G = cugraph_to_graph_tool(G, isolateNameToLabel(rlist))
             
         # Parse clustering
         if args.previous_clustering != None:
@@ -177,7 +178,7 @@ def main():
             # Create dictionary with everything in the same cluster if none passed
             isolateClustering = {'Cluster': {}}
             for v in mst.vertices:
-                isolateClustering['Cluster'][mst.vp.id[v]] = '0'
+                isolateClustering['Cluster'][G.vp.id[v]] = '0'
 
         # Check selecting clustering type is in CSV
         clustering_name = 'Cluster'
