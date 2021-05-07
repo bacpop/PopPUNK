@@ -715,7 +715,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         if weights is not None:
             G_df['weights'] = weights
         G = construct_network_from_df(rlist, qlist, G_df,
-                                        weights = (if weights is not None),
+                                        weights = (weights is not None),
                                         distMat = distMat,
                                         weights_type = weights_type,
                                         previous_network = previous_network,
