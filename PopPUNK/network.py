@@ -824,7 +824,7 @@ def construct_network_from_df(rlist, qlist, G_df,
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(vertex_labels)-1
         use_weights = False
-        if weights is not None:
+        if weights:
             use_weights = True
         G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
     else:
