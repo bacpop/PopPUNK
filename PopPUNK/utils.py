@@ -16,11 +16,16 @@ from functools import partial
 import contextlib
 import poppunk_refine
 
-import cudf
-
 import numpy as np
 import pandas as pd
 import h5py
+
+try:
+    import cudf
+    cudf.set_allocator("managed")
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
 
 import pp_sketchlib
 
