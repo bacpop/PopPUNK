@@ -16,6 +16,8 @@ from functools import partial
 import contextlib
 import poppunk_refine
 
+import cudf
+
 import numpy as np
 import pandas as pd
 import h5py
