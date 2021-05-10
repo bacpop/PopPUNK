@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2018-2020 John Lees and Nick Croucher
 
-"""Tests for PopPUNK usig GPUs where possible"""
+"""Tests for PopPUNK using GPUs where possible"""
 
 import subprocess
 import os
