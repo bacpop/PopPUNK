@@ -79,11 +79,11 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("distMat").noconvert(), py::arg("slope"), py::arg("x_max"),
         py::arg("y_max"));
 
-    m.def("generateTuples", &generateTuples,
+  m.def("generateTuples", &generateTuples,
           py::return_value_policy::reference_internal,
           "Return edge tuples based on assigned groups",
           py::arg("assignments"), py::arg("within_label"));
-    
+
   m.def("thresholdIterate1D", &thresholdIterate1D,
         py::return_value_policy::reference_internal,
         "Move a 2D boundary to grow a network by adding edges at each offset",
