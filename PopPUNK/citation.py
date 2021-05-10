@@ -51,8 +51,8 @@ poppunk_methods = "We built a database of %(number_samples)s isolates using " + 
 
 assign_methods = "We queried a database of %(number_samples)s isolates using pp-sketchlib version" + \
 " %(sketchlib_version)s (doi:%(sketchlib_doi)s) with sketch version %(sketchlib_hash)s, " + \
-"k-mer lengths %(kmin)s-%(kmax)s, a sketch size of %(sketch_size)s and %(seed_type)s seeds [6-8]. We " + \
-"sequence were classified using variable-length-k-mer clustering (VLKC) with PopPUNK " + \
+"k-mer lengths %(kmin)s-%(kmax)s, a sketch size of %(sketch_size)s and %(seed_type)s seeds [6-8]. " + \
+"Sequences were classified using variable-length-k-mer clustering (VLKC) with PopPUNK " + \
 "version %(poppunk_version)s (doi:%(poppunk_doi)s) [1-5].\n"
 
 def print_citation(args, assign=False):
