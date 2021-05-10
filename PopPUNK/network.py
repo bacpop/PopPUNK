@@ -46,6 +46,7 @@ from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
+from .utils import check_and_set_gpu
 
 from .unwords import gen_unword
 
@@ -86,10 +87,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
 
     # load CUDA libraries - here exit without switching to CPU libraries
     # to avoid loading an unexpected file
-    if use_gpu and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting before '
-        'loading network\n')
-        sys.exit(1)
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     if use_gpu:
         graph_suffix = '.csv.gz'
@@ -1012,9 +1010,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     """
     if use_gpu:
 
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
@@ -1211,9 +1207,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # finish by updating the network
     if use_gpu:
 
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
         # construct updated graph
         G_current_df = G.view_edge_list()
@@ -1335,9 +1329,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
     # get a sorted list of component assignments
     if use_gpu:
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]

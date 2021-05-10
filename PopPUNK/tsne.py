@@ -15,7 +15,6 @@ try:
     import cupyx
     import cugraph
     import cudf
-    cudf.set_allocator("managed")
     import cupy as cp
     from numba import cuda
     gpu_lib = True

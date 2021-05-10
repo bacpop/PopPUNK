@@ -22,7 +22,6 @@ import h5py
 
 try:
     import cudf
-    cudf.set_allocator("managed")
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -601,7 +600,7 @@ def decisionBoundary(intercept, gradient):
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
 
-def check_and_set_gpu(use_gpu, gpu_lib):
+def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
     """Check GPU libraries can be loaded and set managed memory.
 
     Args:
@@ -615,9 +614,13 @@ def check_and_set_gpu(use_gpu, gpu_lib):
     """
     # load CUDA libraries
     if use_gpu and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; using CPU libraries '
-        'instead\n')
-        use_gpu = False
+        if quit_on_fail:
+            sys.stderr.write('Unable to load GPU libraries; exiting\n')
+            sys.exit(1)
+        else:
+            sys.stderr.write('Unable to load GPU libraries; using CPU libraries '
+            'instead\n')
+            use_gpu = False
 
     # Set memory management for large networks
     if use_gpu:
