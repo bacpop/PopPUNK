@@ -588,7 +588,7 @@ def pickTypeIsolate(prefix, names):
     """
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r+')
+    hdf_in = h5py.File(db_name, 'r
 
     min_prop_n = 1.0
     type_isolate = None
@@ -637,7 +637,7 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r+')
+    hdf_in = h5py.File(db_name, 'r')
 
     # try/except structure to prevent h5 corruption
     failed_samples = False
