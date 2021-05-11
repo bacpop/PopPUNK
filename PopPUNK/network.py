@@ -685,6 +685,10 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         G (graph)
             The resulting network
     """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
     if weights_type is not None:
@@ -787,6 +791,10 @@ def construct_network_from_df(rlist, qlist, G_df,
         G (graph)
             The resulting network
     """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
     if weights_type is not None:
@@ -886,6 +894,10 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
         G (graph)
             The resulting network
     """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
     if use_gpu:
         G_df = cudf.DataFrame()
     else:
@@ -948,6 +960,10 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
         G (graph)
             The resulting network
     """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
     # Convert edge indices to tuples
     connections = poppunk_refine.generateTuples(assignments, within_label)
     # Filter weights to only the relevant edges
