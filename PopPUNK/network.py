@@ -1522,9 +1522,12 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                     else:
                         d[extCluster].append("NA")
 
-    pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
-                                columns = ["sample"] + list(extClusters.keys()),
-                                index = False)
+    if "sample" not in d:
+        sys.stderr.write("WARNING: No new samples found, cannot write external clusters\n")
+    else:
+        pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
+                                    columns = ["sample"] + list(extClusters.keys()),
+                                    index = False)
 
 def generate_minimum_spanning_tree(G, from_cugraph = False):
     """Generate a minimum spanning tree from a network
