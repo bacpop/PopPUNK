@@ -722,8 +722,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
                                         weights_type = weights_type,
                                         previous_network = previous_network,
                                         previous_pkl = previous_pkl,
-                                        betweenness_sample = betweenness_sample,
-                                        summarise = summarise,
+                                        summarise = False,
                                         use_gpu = use_gpu)
     else:
         # Construct list of tuples for graph-tool
@@ -847,8 +846,7 @@ def construct_network_from_df(rlist, qlist, G_df,
                                             weights_type = weights_type,
                                             previous_network = previous_network,
                                             previous_pkl = previous_pkl,
-                                            betweenness_sample = betweenness_sample,
-                                            summarise = summarise,
+                                            summarise = False,
                                             use_gpu = use_gpu)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
@@ -911,7 +909,7 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
                                     previous_network = previous_network,
                                     previous_pkl = previous_pkl,
                                     betweenness_sample = betweenness_sample,
-                                    summarise = summarise,
+                                    summarise = False,
                                     use_gpu = use_gpu)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
@@ -977,8 +975,7 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
                                             weights_type = weights_type,
                                             previous_network = previous_network,
                                             previous_pkl = previous_pkl,
-                                            betweenness_sample = betweenness_sample,
-                                            summarise = summarise,
+                                            summarise = False,
                                             use_gpu = use_gpu)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
