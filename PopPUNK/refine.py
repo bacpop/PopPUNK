@@ -295,7 +295,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 
     scores = []
     edge_list = []
-    prev_idx = 0
+    prev_idx = -1
 
     # Grow a network
     with tqdm(total = idx_vec[-1],
