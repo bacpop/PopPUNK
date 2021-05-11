@@ -313,12 +313,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                                                             use_gpu = use_gpu)
                 else:
                     if use_gpu:
-                       G = construct_network_from_edge_list(sample_names,
-                                            sample_names,
-                                            edge_list,
-                                            previous_network = G,
-                                            summarise = False,
-                                            use_gpu = use_gpu)
+                        G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination'])
+                        G = expand_cugraph_network(G, G_extra_df)
                     else:
                         # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
                         # We add to the cuDF, and then reconstruct the network instead
