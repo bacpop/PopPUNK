@@ -61,7 +61,7 @@ def assign_query(dbFuncs,
     from .sketchlib import removeFromDB
 
     from .network import fetchNetwork
-    from .network import constructNetwork
+    from .network import construct_network_from_edge_list
     from .network import extractReferences
     from .network import addQueryToNetwork
     from .network import printClusters
@@ -198,13 +198,11 @@ def assign_query(dbFuncs,
                 weights = model.edge_weights(rank)
             else:
                 weights = None
-            genomeNetwork[rank] = constructNetwork(rNames + qNames,
-                                                   rNames + qNames,
-                                                   assignment,
-                                                   0,
-                                                   edge_list = True,
-                                                   weights=weights,
-                                                   use_gpu = gpu_graph)
+            genomeNetwork[rank] = construct_network_from_edge_list(rNames + qNames,
+                                                                   rNames + qNames,
+                                                                   edge_list = assignment,
+                                                                   weights = weights,
+                                                                   use_gpu = gpu_graph)
 
             isolateClustering[rank] = \
                 printClusters(genomeNetwork[rank],

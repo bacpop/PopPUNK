@@ -22,6 +22,21 @@ def withinBoundary(dists, x_max, y_max, slope=2):
             boundary_test[row] = -1
     return(boundary_test)
 
+def check_tuples(t1, t2):
+    for t in t1:
+        if t not in t2:
+          raise RuntimeError("Results don't match")
+
+def iter_tuples(assign_results, n_samples):
+    tuple_list = []
+    idx = 0
+    for i in range(n_samples):
+        for j in range(i + 1, n_samples):
+            if assign_results[idx] == -1:
+                tuple_list.append((i, j))
+            idx += 1
+    return tuple_list
+
 def check_res(res, expected):
     if (not np.all(res == expected)):
         print(res)
@@ -45,11 +60,29 @@ check_res(assign0, assign0_res)
 check_res(assign1, assign1_res)
 check_res(assign2, assign2_res)
 
-# move boundary 1D
-# example is symmetrical at points (0.1, 0.1); (0.2, 0.2); (0.3, 0.3)
+# Check results when returned as tuple
 samples = 100
 distMat = np.random.rand(int(0.5 * samples * (samples - 1)), 2)
 distMat = np.array(distMat, dtype = np.float32)
+
+assign0_res = withinBoundary(distMat, 0.5, 0.5, 0)
+assign0_edge_res = iter_tuples(assign0_res, samples)
+check_tuples(assign0_edge_res,
+             poppunk_refine.generateTuples([int(x) for x in assign0_res], -1))
+
+assign1_edge_res = iter_tuples(withinBoundary(distMat, 0.5, 0.5, 1), samples)
+assign2_edge_res = iter_tuples(withinBoundary(distMat, 0.5, 0.5, 2), samples)
+
+assign0_edges = poppunk_refine.edgeThreshold(distMat, 0, 0.5, 0.5)
+assign1_edges = poppunk_refine.edgeThreshold(distMat, 1, 0.5, 0.5)
+assign2_edges = poppunk_refine.edgeThreshold(distMat, 2, 0.5, 0.5)
+
+check_tuples(assign0_edges, assign0_edge_res)
+check_tuples(assign1_edges, assign1_edge_res)
+check_tuples(assign2_edges, assign2_edge_res)
+
+# move boundary 1D
+# example is symmetrical at points (0.1, 0.1); (0.2, 0.2); (0.3, 0.3)
 offsets = [x * sqrt(2) for x in [-0.1, 0.0, 0.1]]
 i_vec, j_vec, idx_vec = poppunk_refine.thresholdIterate1D(distMat, offsets, 2, 0.2, 0.2, 0.3, 0.3)
 sketchlib_i = []

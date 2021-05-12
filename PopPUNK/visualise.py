@@ -164,10 +164,11 @@ def generate_visualisations(query_db,
 
     from .models import loadClusterFit
 
-    from .network import constructNetwork
+    from .network import construct_network_from_assignments
     from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
+    from .network import cugraph_to_graph_tool
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -271,7 +272,7 @@ def generate_visualisations(query_db,
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
         if len(viz_subset.difference(combined_seq)) > 0:
-            sys.stderr.write("--subset contains names not in --distances")
+            sys.stderr.write("--include-files contains names not in --distances\n")
 
         # Only keep found rows
         row_slice = [True if name in viz_subset else False for name in combined_seq]
@@ -370,16 +371,28 @@ def generate_visualisations(query_db,
                             pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
                 # Dense network may be slow
                 sys.stderr.write("Generating MST from dense distances (may be slow)\n")
-                G = constructNetwork(combined_seq,
-                                    combined_seq,
-                                    np.zeros(complete_distMat.shape[0]),
-                                    0,
-                                    weights=complete_distMat,
-                                    weights_type=mst_distances,
-                                    summarise=False)
-                mst_graph = generate_minimum_spanning_tree(G)
+                G = construct_network_from_assignments(combined_seq,
+                                                        combined_seq,
+                                                        [0]*complete_distMat.shape[0],
+                                                        within_label = 0,
+                                                        distMat = complete_distMat,
+                                                        weights_type = mst_distances,
+                                                        use_gpu = gpu_graph,
+                                                        summarise = False)
+                if gpu_graph:
+                    G = cugraph.minimum_spanning_tree(G, weight='weights')
+                mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
+                del G
+                mst_as_tree = mst_to_phylogeny(mst_graph,
+                                                isolateNameToLabel(combined_seq),
+                                                use_gpu = gpu_graph)
+                if gpu_graph:
+                    mst_graph = cugraph_to_graph_tool(mst_graph, isolateNameToLabel(combined_seq))
+                else:
+                    vid = mst_graph.new_vertex_property('string',
+                                                vals = isolateNameToLabel(combined_seq))
+                    mst_graph.vp.id = vid
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
-                mst_tree = mst_to_phylogeny(mst_graph, isolateNameToLabel(combined_seq))
             else:
                 mst_tree = existing_tree
 
@@ -411,7 +424,8 @@ def generate_visualisations(query_db,
                              output,
                              info_csv,
                              queryList = qlist,
-                             overwrite = overwrite)
+                             overwrite = overwrite,
+                             use_gpu = gpu_graph)
 
     if phandango:
         sys.stderr.write("Writing phandango output\n")
@@ -437,8 +451,19 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
+        if network_file is None:
+            sys.stderr.write('Cytoscape output requires a network file is provided\n')
+            sys.exit(1)
         genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
-        outputsForCytoscape(genomeNetwork, mst_graph, isolateClustering, output, info_csv, viz_subset = viz_subset)
+        if gpu_graph:
+            genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(combined_seq))
+        outputsForCytoscape(genomeNetwork,
+                            mst_graph,
+                            combined_seq,
+                            isolateClustering,
+                            output,
+                            info_csv,
+                            viz_subset = viz_subset)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 

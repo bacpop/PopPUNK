@@ -453,15 +453,17 @@ def drawMST(mst, outPrefix, isolate_clustering, clustering_name, overwrite):
             gt.graph_draw(mst, pos=pos, vertex_fill_color=mst.vertex_properties['plot_color'],
                     output=graph2_file_name, output_size=(3000, 3000))
 
-def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = None,
+def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, queryList = None,
                         suffix = None, writeCsv = True, viz_subset = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
         G (graph)
-            The network to write from :func:`~PopPUNK.network.constructNetwork`
+            The network to write
         G_mst (graph)
             The minimum spanning tree of G
+        isolate_names (list)
+            Ordered list of sequence names
         clustering (dict)
             Dictionary of cluster assignments (keys are nodeNames).
         outPrefix (str)
@@ -477,10 +479,13 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
             (default = None)
         writeCsv (bool)
             Whether to print CSV file to accompany network
+        viz_subset (list)
+            List of sequences to include in visualisation
 
     """
-    # get list of isolate names
-    isolate_names = list(G.vp.id)
+    
+    # Avoid circular import
+    from .network import save_network
 
     # mask network if subsetting
     if viz_subset is not None:
@@ -493,9 +498,10 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
         G.set_vertex_filter(viz_vertex)
 
     # edit names
-    edited_names = isolateNameToLabel(G.vp.id)
-    for n,v in enumerate(G.vertices()):
-        G.vp.id[v] = edited_names[n]
+    seqLabels = isolateNameToLabel(isolate_names)
+    vid = G.new_vertex_property('string',
+                                vals = seqLabels)
+    G.vp.id = vid
 
     # write graph file
     if suffix is None:
@@ -508,15 +514,14 @@ def outputsForCytoscape(G, G_mst, clustering, outPrefix, epiCsv, queryList = Non
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
         for n,v in enumerate(G_mst.vertices()):
             G_mst.vp.id[v] = isolate_labels[n]
-        if suffix is None:
-            graph_file_name = os.path.basename(outPrefix) + "_cytoscape_mst.graphml"
+        if suffix is not None:
+            graph_suffix = '_' + suffix + '_cytoscape_mst'
         else:
-            graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape_mst.graphml"
-        G_mst.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
+            graph_suffix = '_cytoscape_mst'
+        save_network(G_mst, prefix = outPrefix, suffix = graph_suffix, use_graphml = True)
 
     # Write CSV of metadata
     if writeCsv:
-        seqLabels = isolateNameToLabel(isolate_names)
         writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_cytoscape.csv",
                         isolate_names,
                         seqLabels,
@@ -688,7 +693,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         sys.exit(1)
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
-                         outPrefix, epiCsv, queryList = None, overwrite = False):
+                         outPrefix, epiCsv, queryList = None, overwrite = False,
+                         use_gpu = False):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -718,6 +724,8 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        use_gpu (bool)
+            Whether to use a GPU for t-SNE generation
     """
     # Avoid recursive import
     from .tsne import generate_tsne
@@ -730,7 +738,7 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
                         combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite)
+    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, use_gpu)
 
     # write NJ tree
     if nj_tree is not None:

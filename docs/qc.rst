@@ -23,6 +23,11 @@ to write a separate sketch database with the failed samples.
 Random match chances in PopPUNK are only calculated and added to the database after the chosen
 QC step. If you use ``poppunk_sketch`` directly, they will be added without any automated QC.
 
+QC of input sequences
+---------------------
+The first QC step is applied directly to the input sequences themselves, to identify poor
+quality sequences.
+
 You can change the genome length cutoff with ``--length-sigma`` which sets the maximum number
 of standard deviations from the mean, and ``--length-range`` which sets an absolute range of
 allowable sizes.
@@ -30,9 +35,20 @@ allowable sizes.
 Ambiguous bases are controlled by ``--prop-n`` which gives the maximum percentage of Ns,
 and ``--upper-n`` which gives the absolute maximum value.
 
-The maximum allowed accessory distance is 0.5 to ensure you check for contamination. However,
-many species do really have high accessory values above this range, in which case you
+QC of pairwise distances
+------------------------
+The second QC step uses the pairwise distances, to enable the removal of outlier samples
+that may not be part of the taxon being studied.
+
+By default, the maximum allowed accessory distance is 0.5 to ensure you check for contamination.
+However, many species do really have high accessory values above this range, in which case you
 should increase the value of ``--max-a-dist``.
+
+The maximum allowed core distance is also 0.5, by default. This can be altered with ``--max-pi-dist``.
+
+All sequences differing from the type isolate by distances greater than either threshold will be
+identified by the analysis, with the behaviour determined by the ``--qc-filter`` option. The type
+isolate will be selected by PopPUNK, unless specified using ``--type-isolate``.
 
 Removing samples from an existing database
 ------------------------------------------

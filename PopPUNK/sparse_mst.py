@@ -12,10 +12,13 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 
-# GPU support
+# Load GPU libraries
 try:
+    import cupyx
     import cugraph
     import cudf
+    import cupy as cp
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -23,10 +26,16 @@ except ImportError as e:
 # import poppunk package
 from .__init__ import __version__
 
-from .network import constructNetwork, generate_minimum_spanning_tree, network_to_edges
+from .network import cugraph_to_graph_tool
+from .network import save_network
+from .network import network_to_edges
+from .network import generate_minimum_spanning_tree
+from .network import construct_network_from_sparse_matrix
+
 from .plot import drawMST
 from .trees import mst_to_phylogeny, write_tree
 from .utils import setGtThreads, readIsolateTypeFromCsv
+from .utils import check_and_set_gpu
 
 # command line parsing
 def get_options():
@@ -70,9 +79,7 @@ def main():
 
     import graph_tool.all as gt
     # load CUDA libraries
-    if args.gpu_graph and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
+    args.gpu_graph = check_and_set_gpu(args.gpu_graph, gpu_lib)
 
     # Read in sample names
     if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):
@@ -124,37 +131,42 @@ def main():
         G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
 
         # Generate minimum spanning tree
-        sys.stderr.write("Calculating MST (GPU part)\n")
-        G_mst = cugraph.minimum_spanning_tree(G_cu, weight='weights')
-        edge_df = G_mst.view_edge_list()
-        sys.stderr.write("Calculating MST (CPU part)\n")
-        edge_tuple = edge_df[['src', 'dst']].values
-        G = constructNetwork(rlist, rlist,
-                               edge_tuple,
-                               0, edge_list=True,
-                               weights=edge_df['weights'].values_host,
-                               summarise=False)
+        G = cugraph.minimum_spanning_tree(G_cu, weight='weights')
     else:
         # Load previous MST if specified
         if args.previous_mst is not None:
-            G = constructNetwork(rlist, rlist, None, 0,
-                                 sparse_input=sparse_mat, summarise=False,
-                                 previous_network = args.previous_mst)
+            G = construct_network_from_sparse_matrix(rlist,
+                                                        rlist,
+                                                        sparse_mat,
+                                                        summarise=False,
+                                                        previous_network = args.previous_mst)
         else:
-            G = constructNetwork(rlist, rlist, None, 0,
-                                 sparse_input=sparse_mat, summarise=False)
+            G = construct_network_from_sparse_matrix(rlist,
+                                                        rlist,
+                                                        sparse_mat,
+                                                        summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
 
-    mst = generate_minimum_spanning_tree(G, args.gpu_graph)
+    G = generate_minimum_spanning_tree(G, args.gpu_graph)
 
     # Save output
     sys.stderr.write("Generating output\n")
-    mst.save(args.output + "/" + os.path.basename(args.output) + ".graphml", fmt="graphml")
-    mst_as_tree = mst_to_phylogeny(mst, rlist)
+    save_network(G, prefix = args.output,
+                    suffix = '_MST',
+                    use_graphml = True,
+                    use_gpu = args.gpu_graph)
+    mst_as_tree = mst_to_phylogeny(G, rlist, use_gpu = args.gpu_graph)
     write_tree(mst_as_tree, args.output, "_MST.nwk", overwrite = True)
 
     # Make plots
     if not args.no_plot:
+
+        # Convert cugraph to graph-tool for graphml saving
+        # and add IDs as vertex labels
+        if args.gpu_graph:
+            G = cugraph_to_graph_tool(G, isolateNameToLabel(rlist))
+            
+        # Parse clustering
         if args.previous_clustering != None:
             mode = "clusters"
             if args.previous_clustering.endswith('_lineages.csv'):
@@ -166,7 +178,7 @@ def main():
             # Create dictionary with everything in the same cluster if none passed
             isolateClustering = {'Cluster': {}}
             for v in mst.vertices:
-                isolateClustering['Cluster'][mst.vp.id[v]] = '0'
+                isolateClustering['Cluster'][G.vp.id[v]] = '0'
 
         # Check selecting clustering type is in CSV
         clustering_name = 'Cluster'
@@ -181,7 +193,7 @@ def main():
             clustering_name = list(isolateClustering.keys())[0]
 
         # Draw MST
-        drawMST(mst, args.output, isolateClustering, clustering_name, True)
+        drawMST(G, args.output, isolateClustering, clustering_name, True)
 
     sys.exit(0)
 

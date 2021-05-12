@@ -23,24 +23,35 @@ except ImportError as e:
 import pp_sketchlib
 import poppunk_refine
 import graph_tool.all as gt
+import pandas as pd
 
-# GPU support
+# Load GPU libraries
 try:
+    import cupyx
     import cugraph
     import cudf
+    import cupy as cp
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
 
-from .network import constructNetwork
+from .__main__ import betweenness_sample_default
+
+from .network import construct_network_from_df
+from .network import construct_network_from_edge_list
 from .network import networkSummary
+from .network import add_self_loop
 
 from .utils import transformLine
 from .utils import decisionBoundary
+from .utils import listDistInts
+from .utils import check_and_set_gpu
 
 def refineFit(distMat, sample_names, start_s, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
-              unconstrained = False, no_local = False, num_processes = 1, use_gpu = False):
+              unconstrained = False, no_local = False, num_processes = 1,
+              betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -74,6 +85,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         num_processes (int)
             Number of threads to use in the global optimisation step.
             (default = 1)
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -90,6 +104,9 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
                       + "," + "{:.2f}".format(start_point[1]) + ")\n")
 
+    # load CUDA libraries
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
+
     # calculate distance between start point and means if none is supplied
     if min_move is None:
         min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5
@@ -102,6 +119,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
 
+    # Generate sample combinations
     if unconstrained:
         if slope != 2:
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
@@ -119,6 +137,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                    x_range = x_max,
                                    y_range = y_max,
                                    score_idx = score_idx,
+                                   betweenness_sample = betweenness_sample,
                                    use_gpu = True),
                            range(global_grid_resolution))
         else:
@@ -138,6 +157,7 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
                                                 x_range = x_max,
                                                 y_range = y_max,
                                                 score_idx = score_idx,
+                                                betweenness_sample = betweenness_sample,
                                                 use_gpu = False),
                                         range(global_grid_resolution))
 
@@ -170,23 +190,32 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
                                                   start_point[0], start_point[1],
                                                   mean1[0], mean1[1], num_processes)
-        global_s = np.array(growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, use_gpu = use_gpu))
+        global_s = np.array(growNetwork(sample_names,
+                                            i_vec,
+                                            j_vec,
+                                            idx_vec,
+                                            s_range,
+                                            score_idx,
+                                            betweenness_sample = betweenness_sample,
+                                            use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
         if min_idx > 0 and min_idx < len(s_range) - 1:
             bounds = [s_range[min_idx-1], s_range[min_idx+1]]
         else:
             no_local = True
+        if no_local:
             optimised_s = s_range[min_idx]
 
     # Local optimisation around global optimum
     if not no_local:
         sys.stderr.write("Trying to optimise score locally\n")
         local_s = scipy.optimize.minimize_scalar(newNetwork,
-                        bounds=bounds,
-                        method='Bounded', options={'disp': True},
+                        bounds = bounds,
+                        method = 'Bounded', options={'disp': True},
                         args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, num_processes, use_gpu),
+                                slope, score_idx, num_processes,
+                                betweenness_sample, use_gpu),
                         )
         optimised_s = local_s.x
 
@@ -204,8 +233,34 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
 
     return start_point, optimal_x, optimal_y, min_move, max_move
 
+def expand_cugraph_network(G, G_extra_df):
+    """Reconstruct a cugraph network with additional edges.
+    
+    Args:
+        G (cugraph network)
+            Original cugraph network
+        extra_edges (cudf dataframe)
+            Data frame of edges to add
 
-def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_idx = 0, use_gpu = False):
+    Returns:
+        G (cugraph network)
+            Expanded cugraph network
+    """
+    # load CUDA libraries
+    if not gpu_lib:
+        sys.stderr.write('Unable to load GPU libraries; exiting\n')
+        sys.exit(1)
+    G_vertex_count = G.number_of_vertices()-1
+    G_original_df = G.view_edge_list()
+    if 'src' in G_original_df.columns:
+        G_original_df.columns = ['source','destination']
+    G_df = G_original_df.append(G_extra_df)
+    G = add_self_loop(G_df, G_vertex_count, weights = False, renumber = False)
+    return G
+
+def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
+                thread_idx = 0, betweenness_sample = betweenness_sample_default,
+                use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -226,6 +281,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
             [default = 0]
         thread_idx (int)
             Optional thread idx (if multithreaded) to offset progress bar by
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -234,66 +292,60 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx, thread_
             -1 * network score for each of x_range.
             Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
-    # load CUDA libraries
-    if use_gpu and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
 
     scores = []
-    edge_list = []
-    prev_idx = 0
-    # Grow a network
-    with tqdm(total=(idx_vec[-1] + 1),
-              bar_format="{bar}| {n_fmt}/{total_fmt}",
-              ncols=40,
-              position=thread_idx) as pbar:
-        for i, j, idx in zip(i_vec, j_vec, idx_vec):
-            if idx > prev_idx:
-                # At first offset, make a new network, otherwise just add the new edges
-                if prev_idx == 0:
-                    G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                         summarise=False, edge_list=True, use_gpu = use_gpu)
-                else:
-                    if use_gpu:
-                        G_current_df = G.view_edge_list()
-                        G_current_df.columns = ['source','destination']
-                        G_extra_df = cudf.DataFrame(edge_list, columns =['source','destination'])
-                        G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
-                        G = cugraph.Graph()
-                        G.from_cudf_edgelist(G_df)
-                    else:
-                        # Adding edges to network not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
-                        # We add to the cuDF, and then reconstruct the network instead
-                        G.add_edge_list(edge_list)
-                # Add score into vector for any offsets passed (should usually just be one)
-                for s in range(prev_idx, idx):
-                    scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
-                    pbar.update(1)
-                prev_idx = idx
-                edge_list = []
-            edge_list.append((i, j))
+    prev_idx = -1
 
-        # Add score for final offset(s) at end of loop
-        if prev_idx == 0:
-            G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                 summarise=False, edge_list=True, use_gpu = use_gpu)
-        else:
-            if use_gpu:
-                G = constructNetwork(sample_names, sample_names, edge_list, -1,
-                                        summarise=False, edge_list=True, use_gpu = use_gpu)
+    # create data frame
+    if use_gpu:
+        edge_list_df = cudf.DataFrame()
+    else:
+        edge_list_df = pd.DataFrame()
+    edge_list_df['source'] = i_vec
+    edge_list_df['destination'] = j_vec
+    edge_list_df['idx_list'] = idx_vec
+    if use_gpu:
+        idx_values = edge_list_df.to_pandas().idx_list.unique()
+    else:
+        idx_values = edge_list_df.idx_list.unique()
+
+    # Grow a network
+    with tqdm(total = idx_values[-1] + 1,
+              bar_format = "{bar}| {n_fmt}/{total_fmt}",
+              ncols = 40,
+              position = thread_idx) as pbar:
+        for idx in idx_values:
+            # Create DF
+            edge_df = edge_list_df.loc[(edge_list_df['idx_list']==idx),['source','destination']]
+            # At first offset, make a new network, otherwise just add the new edges
+            if prev_idx == -1:
+                G = construct_network_from_df(sample_names, sample_names,
+                                                 edge_df,
+                                                 summarise = False,
+                                                 use_gpu = use_gpu)
             else:
-                # Not currently possible with GPU - https://github.com/rapidsai/cugraph/issues/805
-                G.add_edge_list(edge_list)
-        for s in range(prev_idx, len(s_range)):
-            scores.append(-networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx])
-            pbar.update(1)
+                if use_gpu:
+                    G = expand_cugraph_network(G, edge_df)
+                else:
+                    edge_list = list(edge_df[['source','destination']].itertuples(index=False, name=None))
+                    G.add_edge_list(edge_list)
+                    edge_list = []
+            # Add score into vector for any offsets passed (should usually just be one)
+            latest_score = -networkSummary(G,
+                                score_idx > 0,
+                                betweenness_sample = betweenness_sample,
+                                use_gpu = use_gpu)[1][score_idx]
+            for s in range(prev_idx, idx):
+                scores.append(latest_score)
+                pbar.update(1)
+            prev_idx = idx
 
     return(scores)
 
-
 def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
-               slope=2, score_idx=0, cpus=1, use_gpu = False):
-    """Wrapper function for :func:`~PopPUNK.network.constructNetwork` which is called
+               slope=2, score_idx=0, cpus=1, betweenness_sample = betweenness_sample_default,
+               use_gpu = False):
+    """Wrapper function for :func:`~PopPUNK.network.construct_network_from_edge_list` which is called
     by optimisation functions moving a triangular decision boundary.
 
     Given the boundary parameterisation, constructs the network and returns
@@ -321,6 +373,9 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
             [default = 0]
         cpus (int)
             Number of CPUs to use for calculating assignment
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -344,15 +399,22 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         y_max = new_intercept[1]
 
     # Make network
-    boundary_assignments = poppunk_refine.assignThreshold(distMat, slope, x_max, y_max, cpus)
-    G = constructNetwork(sample_names, sample_names, boundary_assignments, -1, summarise = False,
-                            use_gpu = use_gpu)
+    connections = poppunk_refine.edgeThreshold(distMat, slope, x_max, y_max)
+    G = construct_network_from_edge_list(sample_names,
+                                        sample_names,
+                                        connections,
+                                        summarise = False,
+                                        use_gpu = use_gpu)
 
     # Return score
-    score = networkSummary(G, score_idx > 0, use_gpu = use_gpu)[1][score_idx]
+    score = networkSummary(G,
+                            score_idx > 0,
+                            betweenness_sample = betweenness_sample,
+                            use_gpu = use_gpu)[1][score_idx]
     return(-score)
 
-def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, use_gpu = False):
+def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
+                 betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
@@ -372,6 +434,9 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, us
         score_idx (int)
             Index of score from :func:`~PopPUNK.network.networkSummary` to use
             [default = 0]
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -389,7 +454,15 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0, us
     y_max = y_range[y_idx]
     i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate2D(distMat, x_range, y_max)
-    scores = growNetwork(sample_names, i_vec, j_vec, idx_vec, x_range, score_idx, y_idx, use_gpu = use_gpu)
+    scores = growNetwork(sample_names,
+                            i_vec,
+                            j_vec,
+                            idx_vec,
+                            x_range,
+                            score_idx,
+                            y_idx,
+                            betweenness_sample,
+                            use_gpu = use_gpu)
     return(scores)
 
 def readManualStart(startFile):

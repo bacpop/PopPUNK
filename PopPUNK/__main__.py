@@ -25,6 +25,7 @@ from .__init__ import __version__
 
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
+betweenness_sample_default = 100
 
 #******************************#
 #*                            *#
@@ -130,12 +131,15 @@ def get_options():
     refinementGroup.add_argument('--score-idx',
             help='Index of score to use [default = 0]',
             type=int, default = 0, choices=[0, 1, 2])
+    refinementGroup.add_argument('--betweenness-sample',
+            help='Number of sequences used to estimate betweeness with a GPU [default = 100]',
+            type = int, default = betweenness_sample_default)
     refineMode = refinementGroup.add_mutually_exclusive_group()
     refineMode.add_argument('--unconstrained',
             help='Optimise both boundary gradient and intercept',
             default=False, action='store_true')
     refineMode.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
-            choices=['both', 'core', 'accessory'], default=False)
+            choices=['both', 'core', 'accessory'], default=None)
 
     # lineage clustering within strains
     lineagesGroup = parser.add_argument_group('Lineage analysis options')
@@ -204,7 +208,8 @@ def main():
     from .sketchlib import checkSketchlibLibrary
     from .sketchlib import removeFromDB
 
-    from .network import constructNetwork
+    from .network import construct_network_from_edge_list
+    from .network import construct_network_from_assignments
     from .network import extractReferences
     from .network import printClusters
     from .network import get_vertex_list
@@ -372,7 +377,8 @@ def main():
                 model_prefix = args.model_dir
             model = loadClusterFit(model_prefix + "/" + os.path.basename(model_prefix) + '_fit.pkl',
                                    model_prefix + "/" + os.path.basename(model_prefix) + '_fit.npz',
-                                   output)
+                                   output,
+                                   use_gpu = args.gpu_graph)
             model.set_threads(args.threads)
             sys.stderr.write("Loaded previous model of type: " + model.type + "\n")
             if args.fit_model == "refine" and args.manual_start == None \
@@ -415,6 +421,7 @@ def main():
                                             args.unconstrained,
                                             args.score_idx,
                                             args.no_local,
+                                            args.betweenness_sample,
                                             args.gpu_graph)
                 model = new_model
             elif args.fit_model == "threshold":
@@ -426,7 +433,7 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
-                model = LineageFit(output, rank_list)
+                model = LineageFit(output, rank_list, use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
                 model.fit(distMat, args.use_accessory)
 
@@ -453,16 +460,18 @@ def main():
         #******************************#
         if model.type != "lineage":
             if args.graph_weights:
-                weights = distMat
+                weights_type = 'euclidean'
             else:
-                weights = None
+                weights_type = None
             genomeNetwork = \
-                constructNetwork(refList,
-                                 queryList,
-                                 assignments,
-                                 model.within_label,
-                                 weights = weights,
-                                 use_gpu = args.gpu_graph)
+                construct_network_from_assignments(refList,
+                                                     queryList,
+                                                     assignments,
+                                                     model.within_label,
+                                                     distMat = distMat,
+                                                     weights_type = weights_type,
+                                                     betweenness_sample = args.betweenness_sample,
+                                                     use_gpu = args.gpu_graph)
         else:
             # Lineage fit requires some iteration
             indivNetworks = {}
@@ -473,15 +482,14 @@ def main():
                     weights = model.edge_weights(rank)
                 else:
                     weights = None
-                indivNetworks[rank] = constructNetwork(
-                                        refList,
-                                        refList,
-                                        assignments[rank],
-                                        0,
-                                        edge_list = True,
-                                        weights = weights,
-                                        use_gpu = args.gpu_graph
-                                       )
+                indivNetworks[rank] = construct_network_from_edge_list(refList,
+                                                                        refList,
+                                                                        assignments[rank],
+                                                                        weights = weights,
+                                                                        betweenness_sample = args.betweenness_sample,
+                                                                        use_gpu = args.gpu_graph,
+                                                                        summarise = False
+                                                                       )
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
                                   refList,
@@ -510,33 +518,32 @@ def main():
                                                      externalClusterCSV = args.external_clustering,
                                                      use_gpu = args.gpu_graph)}
 
+        # Save network
+        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
+
         # Write core and accessory based clusters, if they worked
         if model.indiv_fitted:
             indivNetworks = {}
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                indivAssignments = model.assign(distMat, slope)
-                indivNetworks[dist_type] = \
-                    constructNetwork(refList,
-                                     queryList,
-                                     indivAssignments,
-                                     model.within_label)
-                isolateClustering[dist_type] = \
-                    printClusters(indivNetworks[dist_type],
-                                  refList,
-                                  output + "/" + os.path.basename(output) + "_" + dist_type,
-                                  externalClusterCSV = args.external_clustering)
-                indivNetworks[dist_type].save(
-                    output + "/" + os.path.basename(output) + \
-                    "_" + dist_type + '_graph.gt', fmt = 'gt')
-
-            if args.indiv_refine == 'core':
-                fit_type = 'core'
-                genomeNetwork = indivNetworks['core']
-            elif args.indiv_refine == 'accessory':
-                fit_type = 'accessory'
-                genomeNetwork = indivNetworks['accessory']
-
-        save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
+                if args.indiv_refine == 'both' or args.indiv_refine == dist_type:
+                    indivAssignments = model.assign(distMat, slope)
+                    indivNetworks[dist_type] = \
+                        construct_network_from_assignments(refList,
+                                                             queryList,
+                                                             indivAssignments,
+                                                             model.within_label,
+                                                             betweenness_sample = args.betweenness_sample,
+                                                             use_gpu = args.gpu_graph)
+                    isolateClustering[dist_type] = \
+                        printClusters(indivNetworks[dist_type],
+                                      refList,
+                                      output + "/" + os.path.basename(output) + "_" + dist_type,
+                                      externalClusterCSV = args.external_clustering,
+                                      use_gpu = args.gpu_graph)
+                    save_network(indivNetworks[dist_type],
+                                    prefix = output,
+                                    suffix = '_graph',
+                                    use_gpu = args.gpu_graph)
 
         #******************************#
         #*                            *#

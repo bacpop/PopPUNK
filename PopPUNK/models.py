@@ -17,7 +17,7 @@ from sklearn import utils
 import scipy.optimize
 from scipy.spatial.distance import euclidean
 from scipy import stats
-from scipy.sparse import coo_matrix, bmat, find
+import scipy.sparse
 import hdbscan
 
 # Parallel support
@@ -33,18 +33,25 @@ except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
 
-# GPU support
+# Load GPU libraries
 try:
+    import cupyx.scipy.sparse
     import cugraph
     import cudf
+    import cupy as cp
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
 
+# GPU support
 import pp_sketchlib
 import poppunk_refine
 
+from .__main__ import betweenness_sample_default
+
 from .utils import set_env
+from .utils import check_and_set_gpu
 
 # BGMM
 from .bgmm import fit2dMultiGaussian
@@ -73,7 +80,8 @@ epsilon = 1e-10
 def rankFile(rank):
     return('_rank' + str(rank) + '_fit.npz')
 
-def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
+def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
+                   use_gpu = False):
     '''Call this to load a fitted model
 
     Args:
@@ -85,8 +93,15 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
             Output prefix for model to save to (e.g. plots)
         max_samples (int)
             Maximum samples if subsampling X
-
             [default = 100000]
+        use_gpu (bool)
+            Whether to load npz file with GPU libraries
+            for lineage models
+    
+    Returns:
+        load_obj (model)
+            Loaded model
+            
     '''
     with open(pkl_file, 'rb') as pickle_obj:
         fit_object, fit_type = pickle.load(pickle_obj)
@@ -100,7 +115,10 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000):
             prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
             rank_file = os.path.dirname(pkl_file) + "/" + \
                         prefix.group(1) + rankFile(rank)
-            fit_data[rank] = scipy.sparse.load_npz(rank_file)
+            if use_gpu:
+                fit_data[rank] = cupyx.scipy.sparse.load_npz(rank_file)
+            else:
+                fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
         fit_data = np.load(npz_file)
 
@@ -691,7 +709,8 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False, use_gpu = False):
+            unconstrained = False, score_idx = 0, no_local = False,
+            betweenness_sample = betweenness_sample_default, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -715,9 +734,9 @@ class RefineFit(ClusterFit):
                 A file defining an initial fit, rather than one from ``--fit-model``.
                 See documentation for format.
                 (default = None).
-            indiv_refine (bool)
-                Run refinement for core and accessory distances separately
-                (default = False).
+            indiv_refine (str)
+                Run refinement for core or accessory distances separately
+                (default = None).
             unconstrained (bool)
                 If True, search in 2D and change the slope of the boundary
             score_idx (int)
@@ -726,6 +745,9 @@ class RefineFit(ClusterFit):
             no_local (bool)
                 Turn off the local optimisation step.
                 Quicker, but may be less well refined.
+            betweenness_sample (int)
+                Number of sequences per component used to estimate betweenness using
+                a GPU. Smaller numbers are faster but less precise [default = 100]
             use_gpu (bool)
                 Whether to use cugraph for graph analyses
                 
@@ -740,9 +762,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = unconstrained
 
         # load CUDA libraries
-        if use_gpu and not gpu_lib:
-            sys.stderr.write('Unable to load GPU libraries; exiting\n')
-            sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
 
         # Get starting point
         model.no_scale()
@@ -781,26 +801,33 @@ class RefineFit(ClusterFit):
           refineFit(X/self.scale,
                     sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
                     slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = self.threads, use_gpu = use_gpu)
+                    no_local = no_local, num_processes = self.threads, betweenness_sample = betweenness_sample,
+                    use_gpu = use_gpu)
         self.fitted = True
 
         # Try and do a 1D refinement for both core and accessory
         self.core_boundary = self.optimal_x
         self.accessory_boundary = self.optimal_y
-        if indiv_refine:
+        if indiv_refine is not None:
             try:
-                sys.stderr.write("Refining core and accessory separately\n")
-                # optimise core distance boundary
-                start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
-                  refineFit(X/self.scale,
-                            sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 0, score_idx = score_idx, no_local = no_local, num_processes = self.threads)
-                # optimise accessory distance boundary
-                start_point, acc_core, self.accessory_boundary, self.min_move, self.max_move = \
-                  refineFit(X/self.scale,
-                            sample_names, self.start_s,self.mean0, self.mean1, self.max_move, self.min_move,
-                            slope = 1, score_idx = score_idx, no_local = no_local, num_processes = self.threads,
-                            use_gpu = use_gpu)
+                for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
+                    if indiv_refine == 'both' or indiv_refine == dist_type:
+                        sys.stderr.write("Refining " + dist_type + " distances separately\n")
+                        # optimise core distance boundary
+                        start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
+                          refineFit(X/self.scale,
+                                    sample_names,
+                                    self.start_s,
+                                    self.mean0,
+                                    self.mean1,
+                                    self.max_move,
+                                    self.min_move,
+                                    slope = slope,
+                                    score_idx = score_idx,
+                                    no_local = no_local,
+                                    num_processes = self.threads,
+                                    betweenness_sample = betweenness_sample,
+                                    use_gpu = use_gpu)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)
@@ -964,7 +991,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks):
+    def __init__(self, outPrefix, ranks, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -975,7 +1002,7 @@ class LineageFit(ClusterFit):
                 sys.exit(0)
             else:
                 self.ranks.append(int(rank))
-
+        self.use_gpu = use_gpu
 
     def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
@@ -1013,9 +1040,14 @@ class LineageFit(ClusterFit):
                     rank
                 )
             data = [epsilon if d < epsilon else d for d in data]
-            self.nn_dists[rank] = coo_matrix((data, (row, col)),
-                                             shape=(sample_size, sample_size),
-                                             dtype = X.dtype)
+            if self.use_gpu:
+                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((cp.array(data),(cp.array(row),cp.array(col))),
+                                                    shape=(sample_size, sample_size),
+                                                    dtype = X.dtype)
+            else:
+                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                                    shape=(sample_size, sample_size),
+                                                    dtype = X.dtype)
 
         self.fitted = True
 
@@ -1028,10 +1060,16 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to save unfitted model")
         else:
             for rank in self.ranks:
-                scipy.sparse.save_npz(
-                    self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                    rankFile(rank),
-                    self.nn_dists[rank])
+                if self.use_gpu:
+                    cupyx.scipy.sparse.save_npz(
+                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                        rankFile(rank),
+                        self.nn_dists[rank])
+                else:
+                    scipy.sparse.save_npz(
+                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                        rankFile(rank),
+                        self.nn_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks, self.dist_col], self.type], pickle_file)
@@ -1064,9 +1102,13 @@ class LineageFit(ClusterFit):
         '''
         ClusterFit.plot(self, X)
         for rank in self.ranks:
-            distHistogram(self.nn_dists[rank].data,
-                          rank,
-                          self.outPrefix + "/" + os.path.basename(self.outPrefix))
+            if self.use_gpu:
+                hist_data = self.nn_dists[rank].get().data
+            else:
+                hist_data = self.nn_dists[rank].data
+            distHistogram(hist_data,
+                              rank,
+                              self.outPrefix + "/" + os.path.basename(self.outPrefix))
 
     def assign(self, rank):
         '''Get the edges for the network. A little different from other methods,
@@ -1116,10 +1158,18 @@ class LineageFit(ClusterFit):
 
         for rank in self.ranks:
             # Add the matrices together to make a large square matrix
-            full_mat = bmat([[self.nn_dists[rank], qrRect.transpose()],
-                             [qrRect,              qqSquare]],
-                            format = 'csr',
-                            dtype = self.nn_dists[rank].dtype)
+            if self.use_gpu:
+                full_mat = cupyx.scipy.sparse.bmat([[self.nn_dists[rank],
+                                                    qrRect.transpose()],
+                                                    [qrRect,qqSquare]],
+                                                    format = 'csr',
+                                                    dtype = self.nn_dists[rank].dtype)
+            else:
+                full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
+                                            qrRect.transpose()],
+                                            [qrRect,qqSquare]],
+                                            format = 'csr',
+                                            dtype = self.nn_dists[rank].dtype)
 
             # Reapply the rank to each row, using sparse matrix functions
             data = []
@@ -1127,7 +1177,10 @@ class LineageFit(ClusterFit):
             col = []
             for row_idx in range(full_mat.shape[0]):
                 sample_row = full_mat.getrow(row_idx)
-                dist_row, dist_col, dist = find(sample_row)
+                if self.use_gpu:
+                    dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
+                else:
+                    dist_row, dist_col, dist = scipy.sparse.find(sample_row)
                 dist = [epsilon if d < epsilon else d for d in dist]
                 dist_idx_sort = np.argsort(dist)
 
@@ -1149,10 +1202,15 @@ class LineageFit(ClusterFit):
                     else:
                         break
 
-            self.nn_dists[rank] = coo_matrix((data, (row, col)),
-                                    shape=(full_mat.shape[0], full_mat.shape[0]),
-                                    dtype = self.nn_dists[rank].dtype)
+            if self.use_gpu:
+                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix(
+                                        (cp.array(data), (cp.array(row), cp.array(col))),
+                                        shape=(full_mat.shape[0], full_mat.shape[0]),
+                                        dtype = self.nn_dists[rank].dtype)
+            else:
+                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                                    shape=(full_mat.shape[0], full_mat.shape[0]),
+                                                    dtype = self.nn_dists[rank].dtype)
 
         y = self.assign(min(self.ranks))
         return y
-

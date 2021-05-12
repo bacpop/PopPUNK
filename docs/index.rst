@@ -41,6 +41,7 @@ by reading the :doc:`best_practises`.
    visualisation.rst
    mst.rst
    subclustering.rst
+   gpu.rst
    troubleshooting.rst
    options.rst
    scripts.rst

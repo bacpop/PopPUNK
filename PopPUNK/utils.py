@@ -14,10 +14,17 @@ from itertools import chain
 from tempfile import mkstemp
 from functools import partial
 import contextlib
+import poppunk_refine
 
 import numpy as np
 import pandas as pd
 import h5py
+
+try:
+    import cudf
+    gpu_lib = True
+except ImportError as e:
+    gpu_lib = False
 
 import pp_sketchlib
 
@@ -191,6 +198,7 @@ def iterDistRows(refSeqs, querySeqs, self=True):
             for ref in refSeqs:
                 yield(ref, query)
 
+
 def listDistInts(refSeqs, querySeqs, self=True):
     """Gets the ref and query ID for each row of the distance matrix
 
@@ -278,15 +286,16 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
-    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
-    if len(long_distance_rows) > 0:
-        names = list(iterDistRows(refList, queryList, refList == queryList))
+    #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
+    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
+    long_edges = poppunk_refine.generateTuples(long_distance_rows, 0)
+    if len(long_edges) > 0:
         # Prune sequences based on reference sequence
-        for i in long_distance_rows:
-            if names[i][0] == qc_dict['type_isolate']:
-                to_prune.append(names[i][1])
-            elif names[i][1] == qc_dict['type_isolate']:
-                to_prune.append(names[i][0])
+        for (s,t) in long_edges:
+            if seq_names_passing[s] == qc_dict['type_isolate']:
+                to_prune.append(seq_names_passing[t])
+            elif seq_names_passing[t] == qc_dict['type_isolate']:
+                to_prune.append(seq_names_passing[s])
 
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
@@ -525,7 +534,7 @@ def isolateNameToLabel(names):
     """
     # useful to have as a function in case we
     # want to remove certain characters
-    labels = [name.split('/')[-1].split('.')[0] for name in names]
+    labels = [name.split('/')[-1].split('.')[0].replace(':','') for name in names]
     return labels
 
 
@@ -590,3 +599,31 @@ def decisionBoundary(intercept, gradient):
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)
+
+def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
+    """Check GPU libraries can be loaded and set managed memory.
+
+    Args:
+        use_gpu (bool)
+            Whether GPU packages have been requested
+        gpu_lib (bool)
+            Whether GPU packages are available
+    Returns:
+        use_gpu (bool)
+            Whether GPU packages can be used
+    """
+    # load CUDA libraries
+    if use_gpu and not gpu_lib:
+        if quit_on_fail:
+            sys.stderr.write('Unable to load GPU libraries; exiting\n')
+            sys.exit(1)
+        else:
+            sys.stderr.write('Unable to load GPU libraries; using CPU libraries '
+            'instead\n')
+            use_gpu = False
+
+    # Set memory management for large networks
+    if use_gpu:
+        cudf.set_allocator("managed")
+        
+    return use_gpu

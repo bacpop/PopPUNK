@@ -22,16 +22,21 @@ from multiprocessing import Pool
 import pickle
 import graph_tool.all as gt
 import dendropy
+import poppunk_refine
 
-# GPU support
+# Load GPU libraries
 try:
+    import cupyx
     import cugraph
     import cudf
+    import cupy as cp
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
 
 from .__main__ import accepted_weights_types
+from .__main__ import betweenness_sample_default
 
 from .sketchlib import addRandom
 
@@ -41,6 +46,7 @@ from .utils import readIsolateTypeFromCsv
 from .utils import readRfile
 from .utils import setupDBFuncs
 from .utils import isolateNameToLabel
+from .utils import check_and_set_gpu
 
 from .unwords import gen_unword
 
@@ -53,7 +59,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
 
        Args:
             network_dir (str)
-                A network used to define clusters from :func:`~constructNetwork`
+                A network used to define clusters
             model (ClusterFit)
                 A fitted model object
             refList (list)
@@ -79,10 +85,9 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
 
-    # load CUDA libraries
-    if use_gpu and not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
+    # load CUDA libraries - here exit without switching to CPU libraries
+    # to avoid loading an unexpected file
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     if use_gpu:
         graph_suffix = '.csv.gz'
@@ -217,7 +222,7 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
 
        Args:
            G (graph)
-               A network used to define clusters from :func:`~constructNetwork`
+               A network used to define clusters
            dbOrder (list)
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
@@ -253,9 +258,6 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
             sys.exit(1)
 
     if use_gpu:
-        if not gpu_lib:
-            sys.stderr.write('Unable to load GPU libraries; exiting\n')
-            sys.exit(1)
 
         # For large network, use more approximate method for extracting references
         reference = {}
@@ -503,11 +505,421 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
     else:
         return source_ids, target_ids
 
-def constructNetwork(rlist, qlist, assignments, within_label,
-                     summarise = True, edge_list = False, weights = None,
-                     weights_type = 'euclidean', sparse_input = None,
-                     previous_network = None, previous_pkl = None, use_gpu = False):
-    """Construct an unweighted, undirected network without self-loops.
+def print_network_summary(G, betweenness_sample = betweenness_sample_default, use_gpu = False):
+    """Wrapper function for printing network information
+
+    Args:
+        G (graph)
+            List of reference sequence labels
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+    """
+    # print some summaries
+    (metrics, scores) = networkSummary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
+                                                   "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
+                                                   "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
+                                                   "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
+                                                   "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
+                                                   "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
+                                                   "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
+                                                   "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
+                                                   + "\n")
+
+def initial_graph_properties(rlist, qlist):
+    """Initial processing of sequence names for
+    network construction.
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+
+    Returns:
+        vertex_labels (list)
+            Ordered list of sequences in network
+        self_comparison (bool)
+            Whether the network is being constructed from all-v-all distances or
+            reference-v-query information
+    """
+    self_comparison = True
+    vertex_labels = rlist
+    if rlist != qlist:
+        self_comparison = False
+        vertex_labels.append(qlist)
+    return vertex_labels, self_comparison
+
+def process_weights(distMat, weights_type):
+    """Calculate edge weights from the distance matrix
+    Args:
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+
+    Returns:
+        processed_weights (list)
+            Edge weights
+    """
+    processed_weights = []
+    if weights_type is not None and distMat is not None:
+        # Check weights type is valid
+        if weights_type not in accepted_weights_types:
+            sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
+                             "accepted types are " + str(accepted_weights_types) + "\n")
+        if weights_type == 'euclidean':
+            processed_weights = np.linalg.norm(distMat, axis = 1)
+        elif weights_type == 'core':
+            processed_weights = distMat[:, 0]
+        elif weights_type == 'accessory':
+            processed_weights = distMat[:, 1]
+    else:
+        sys.stderr.write('Require distance matrix to calculate distances\n')
+    return processed_weights
+    
+def process_previous_network(previous_network = None, previous_pkl = None, vertex_labels = None,
+                            weights = False, use_gpu = False):
+    """Extract edge types from an existing network
+
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        G_df (cudf or pandas data frame)
+            Data frame in which the first two columns are the nodes linked by edges
+        weights (bool)
+            Whether weights in the G_df data frame should be included in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+            ordered based on the original network construction
+        vertex_labels (list)
+            Ordered list of sequence labels
+        weights (bool)
+            Whether weights should be extracted from the previous network
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        extra_sources (list)
+            List of source node identifiers
+        extra_targets (list)
+            List of destination node identifiers
+        extra_weights (list or None)
+            List of edge weights
+    """
+    if previous_pkl is not None:
+        if weights is not None:
+            # Extract from network
+            extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
+                                                                            vertex_labels,
+                                                                            previous_pkl = previous_pkl,
+                                                                            weights = True,
+                                                                            use_gpu = use_gpu)
+        else:
+            # Extract from network
+            extra_sources, extra_targets = network_to_edges(previous_network,
+                                                            vertex_labels,
+                                                            previous_pkl = previous_pkl,
+                                                            weights = False,
+                                                            use_gpu = use_gpu)
+            extra_weights = None
+    else:
+        sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
+        sys.exit(1)
+    
+    return extra_sources, extra_targets, extra_weights
+
+def construct_network_from_edge_list(rlist, qlist, edge_list,
+    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using a data frame of edges. Nodes are samples and
+    edges where samples are within the same cluster
+
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        G_df (cudf or pandas data frame)
+            Data frame in which the first two columns are the nodes linked by edges
+        weights (bool)
+            Whether weights in the G_df data frame should be included in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
+    # data structures
+    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    if weights_type is not None:
+        weights = process_weights(distMat, weights_type)
+    
+    # Load previous network
+    if previous_network is not None:
+        extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
+                                                                                previous_pkl = previous_pkl,
+                                                                                vertex_labels = vertex_labels,
+                                                                                weights = (weights is not None),
+                                                                                use_gpu = use_gpu)
+
+    # Create new network
+    if use_gpu:
+        # Add extra information from previous network
+        if previous_network is not None:
+            for (src, dest) in zip(extra_sources, extra_targets):
+                edge_list.append((src, dest))
+            if weights is not None:
+                weights.extend(extra_weights)
+        # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
+        edge_array = cp.array(edge_list, dtype = np.int32)
+        edge_gpu_matrix = cuda.to_device(edge_array)
+        G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
+        if weights is not None:
+            G_df['weights'] = weights
+        G = construct_network_from_df(rlist, qlist, G_df,
+                                        weights = (weights is not None),
+                                        distMat = distMat,
+                                        weights_type = weights_type,
+                                        previous_network = previous_network,
+                                        previous_pkl = previous_pkl,
+                                        summarise = False,
+                                        use_gpu = use_gpu)
+    else:
+        # Construct list of tuples for graph-tool
+        # Include information from previous graph if supplied
+        if weights is not None:
+            for ((src, dest), weight) in zip(edge_list, weights):
+                edge_list.append((src, dest, weight))
+            if previous_network is not None:
+                for ((src, dest), weight) in zip(extra_sources, extra_targets, extra_weights):
+                    edge_list.append((src, dest, weight))
+        else:
+            if previous_network is not None:
+                for (src, dest) in zip(extra_sources, extra_targets):
+                    edge_list.append((src, dest))
+        # build the graph
+        G = gt.Graph(directed = False)
+        G.add_vertex(len(vertex_labels))
+        if weights is not None:
+            eweight = G.new_ep("float")
+            G.add_edge_list(edge_list, eprops = [eweight])
+            G.edge_properties["weight"] = eweight
+        else:
+            G.add_edge_list(edge_list)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
+
+def construct_network_from_df(rlist, qlist, G_df,
+    weights = False, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using a data frame of edges. Nodes are samples and
+    edges where samples are within the same cluster
+
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        G_df (cudf or pandas data frame)
+            Data frame in which the first two columns are the nodes linked by edges
+        weights (bool)
+            Whether weights in the G_df data frame should be included in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
+    # data structures
+    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    if weights_type is not None:
+        G_df['weights'] = process_weights(distMat, weights_type)
+
+    # Check df format is correct
+    if weights:
+        G_df.columns = ['source','destination','weights']
+    else:
+        G_df.columns = ['source','destination']
+
+    # Load previous network
+    if previous_network is not None:
+        extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
+                                                                                previous_pkl = previous_pkl,
+                                                                                vertex_labels = vertex_labels,
+                                                                                weights = weights,
+                                                                                use_gpu = use_gpu)
+        if use_gpu:
+            G_extra_df = cudf.DataFrame()
+        else:
+            G_extra_df = pd.DataFrame()
+        G_extra_df['source'] = extra_sources
+        G_extra_df['destination'] = extra_targets
+        if extra_weights is not None:
+            G_extra_df['weights'] = extra_weights
+        G_df = cudf.concat([G_df,G_extra_df], ignore_index = True)
+
+    if use_gpu:
+        # direct conversion
+        # ensure the highest-integer node is included in the edge list
+        # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = len(vertex_labels)-1
+        use_weights = False
+        if weights:
+            use_weights = True
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
+    else:
+        # Convert bool to list of weights or None
+        if weights:
+            weights = G_df['weights']
+        else:
+            weights = None
+        # Convert data frame to list of tuples
+        connections = list(zip(*[G_df[c].values.tolist() for c in G_df[['source','destination']]]))
+        G = construct_network_from_edge_list(rlist, qlist, connections,
+                                            weights = weights,
+                                            distMat = distMat,
+                                            weights_type = weights_type,
+                                            previous_network = previous_network,
+                                            previous_pkl = previous_pkl,
+                                            summarise = False,
+                                            use_gpu = use_gpu)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
+
+def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
+    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using a sparse matrix. Nodes are samples and
+    edges where samples are within the same cluster
+
+    Will print summary statistics about the network to ``STDERR``
+
+    Args:
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        sparse_input (numpy.array)
+            Sparse distance matrix from lineage fit
+        weights (list)
+            List of weights for each edge in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
+        previous_network (str)
+            Name of file containing a previous network to be integrated into this new
+            network
+        previous_pkl (str)
+            Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+    """
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
+    if use_gpu:
+        G_df = cudf.DataFrame()
+    else:
+        G_df = pd.DataFrame()
+    G_df['source'] = sparse_input.row
+    G_df['destination'] =  sparse_input.col
+    G_df['weights'] = sparse_input.data
+    G = construct_network_from_df(rlist, qlist, G_df,
+                                    weights = True,
+                                    weights_type = weights_type,
+                                    previous_network = previous_network,
+                                    previous_pkl = previous_pkl,
+                                    betweenness_sample = betweenness_sample,
+                                    summarise = False,
+                                    use_gpu = use_gpu)
+    if summarise:
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    return G
+
+def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1,
+    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
+    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    """Construct an undirected network using sequence lists, assignments of pairwise distances
+    to clusters, and the identifier of the cluster assigned to within-strain distances.
     Nodes are samples and edges where samples are within the same cluster
 
     Will print summary statistics about the network to ``STDERR``
@@ -517,29 +929,28 @@ def constructNetwork(rlist, qlist, assignments, within_label,
             List of reference sequence labels
         qlist (list)
             List of query sequence labels
-        assignments (numpy.array)
-            Labels of most likely cluster assignment from :func:`~PopPUNK.bgmm.assign_samples`
+        assignments (numpy.array or int)
+            Labels of most likely cluster assignment
         within_label (int)
             The label for the cluster representing within-strain distances
-            from :func:`~PopPUNK.bgmm.findWithinLabel`
-        summarise (bool)
-            Whether to calculate and print network summaries with :func:`~networkSummary`
-            (default = True)
-        edge_list (bool)
-            Whether input is edges, tuples of (v1, v2). Used with lineage assignment
-        weights (numpy.array)
-            If passed, the core,accessory distances for each assignment, which will
-            be annotated as an edge attribute
+        weights (list)
+            List of weights for each edge in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
         weights_type (str)
-            Specifies the type of weight to be annotated on the graph - options are core,
-            accessory or euclidean distance
-        sparse_input (numpy.array)
-            Sparse distance matrix from lineage fit
+            Measure to calculate from the distMat to use as edge weights in network
+            - options are core, accessory or euclidean distance
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        summarise (bool)
+            Whether to calculate and print network summaries with :func:`~networkSummary`
+            (default = True)
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -547,141 +958,57 @@ def constructNetwork(rlist, qlist, assignments, within_label,
         G (graph)
             The resulting network
     """
-    # data structures
-    connections = []
-    self_comparison = True
-    vertex_labels = rlist
-
-    # check if self comparison
-    if rlist != qlist:
-        self_comparison = False
-        vertex_labels.append(qlist)
-
-    # Check weights type is valid
-    if weights_type not in accepted_weights_types:
-        sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
-                         "accepted types are " + str(accepted_weights_types) + "\n")
-        sys.exit(1)
-    if edge_list and sparse_input:
-        raise RuntimeError("Cannot construct network from edge list and sparse matrix")
-
-    # identify edges
-    connections = []
-    if edge_list:
-        if weights is not None:
-            for weight, (ref, query) in zip(weights, assignments):
-                connections.append((ref, query, weight))
-        else:
-            connections = assignments
-    elif sparse_input is not None:
-        for ref, query, weight in zip(sparse_input.row, sparse_input.col, sparse_input.data):
-            connections.append((ref, query, weight))
-    else:
-        for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments,
-                                                                 listDistInts(rlist, qlist,
-                                                                              self = self_comparison))):
-            if assignment == within_label:
-                if weights is not None:
-                    if weights_type == 'euclidean':
-                        dist = np.linalg.norm(weights[row_idx, :])
-                    elif weights_type == 'core':
-                        dist = weights[row_idx, 0]
-                    elif weights_type == 'accessory':
-                        dist = weights[row_idx, 1]
-                    edge_tuple = (ref, query, dist)
-                else:
-                    edge_tuple = (ref, query)
-                connections.append(edge_tuple)
-
-    # read previous graph
-    if previous_network is not None:
-        if previous_pkl is not None:
-            if weights is not None or sparse_input is not None:
-                extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
-                                                                                    rlist,
-                                                                                    previous_pkl = previous_pkl,
-                                                                                    weights = True,
-                                                                                    use_gpu = use_gpu)
-                for (ref, query, weight) in zip(extra_sources, extra_targets, extra_weights):
-                    edge_tuple = (ref, query, weight)
-                    connections.append(edge_tuple)
-            else:
-                extra_sources, extra_targets = network_to_edges(prev_G,
-                                                                rlist,
-                                                                previous_pkl = previous_pkl,
-                                                                weights = False,
-                                                                use_gpu = use_gpu)
-                for (ref, query) in zip(extra_sources, extra_targets):
-                    edge_tuple = (ref, query)
-                    connections.append(edge_tuple)
-        else:
-            sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
-            sys.exit(1)
-
-    # load GPU libraries if necessary
-    if use_gpu:
-
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
-
-        # Set memory management for large networks
-        cudf.set_allocator("managed")
-
-        # create DataFrame using edge tuples
-        if weights is not None or sparse_input is not None:
-            G_df = cudf.DataFrame(connections, columns =['source', 'destination', 'weights'])
-        else:
-            G_df = cudf.DataFrame(connections, columns =['source', 'destination'])
-
-        # ensure the highest-integer node is included in the edge list
-        # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
-        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
-        max_in_vertex_labels = len(vertex_labels)-1
-        use_weights = False
-        if weights is not None:
-            use_weights = True
-        G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
-
-    else:
-
-        # build the graph
-        G = gt.Graph(directed = False)
-        G.add_vertex(len(vertex_labels))
-
-        if weights is not None or sparse_input is not None:
-            eweight = G.new_ep("float")
-            G.add_edge_list(connections, eprops = [eweight])
-            G.edge_properties["weight"] = eweight
-        else:
-            G.add_edge_list(connections)
-
-        # add isolate ID to network
-        vid = G.new_vertex_property('string',
-                                    vals = vertex_labels)
-        G.vp.id = vid
-
-    # print some summaries
+    
+    # Check GPU library use
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
+    
+    # Convert edge indices to tuples
+    connections = poppunk_refine.generateTuples(assignments, within_label)
+    # Filter weights to only the relevant edges
+    if weights is not None:
+        weights = weights[assignments == within_label]
+    elif distMat is not None:
+        distMat = distMat[assignments == within_label,:]
+    G = construct_network_from_edge_list(rlist, qlist, connections,
+                                            weights = weights,
+                                            distMat = distMat,
+                                            weights_type = weights_type,
+                                            previous_network = previous_network,
+                                            previous_pkl = previous_pkl,
+                                            summarise = False,
+                                            use_gpu = use_gpu)
     if summarise:
-        (metrics, scores) = networkSummary(G, use_gpu = use_gpu)
-        sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
-                                                       "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
-                                                       "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
-                                                       "\tMean betweenness\t\t\t" + "{:.4f}".format(metrics[3]),
-                                                       "\tWeighted-mean betweenness\t\t" + "{:.4f}".format(metrics[4]),
-                                                       "\tScore\t\t\t\t\t" + "{:.4f}".format(scores[0]),
-                                                       "\tScore (w/ betweenness)\t\t\t" + "{:.4f}".format(scores[1]),
-                                                       "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
-                                                       + "\n")
-
+        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     return G
 
-def networkSummary(G, calc_betweenness=True, use_gpu = False):
+def get_cugraph_triangles(G):
+    """Counts the number of triangles in a cugraph
+    network. Can be removed when the cugraph issue
+    https://github.com/rapidsai/cugraph/issues/1043 is fixed.
+
+    Args:
+        G (cugraph network)
+            Network to be analysed
+    
+    Returns:
+        triangle_count (int)
+            Count of triangles in graph
+    """
+    nlen = G.number_of_vertices()
+    df = G.view_edge_list()
+    A = cp.full((nlen, nlen), 0, dtype = cp.int32)
+    A[df.src.values, df.dst.values] = 1
+    A = cp.maximum( A, A.transpose() )
+    triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
+    return triangle_count
+
+def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sample_default,
+                    use_gpu = False):
     """Provides summary values about the network
 
     Args:
         G (graph)
-            The network of strains from :func:`~constructNetwork`
+            The network of strains
         calc_betweenness (bool)
             Whether to calculate betweenness stats
         use_gpu (bool)
@@ -696,18 +1023,24 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
     """
     if use_gpu:
 
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
-        triangle_count = cugraph.community.triangle_count.triangles(G)
+        # consistent with graph-tool for small graphs - triangle counts differ for large graphs
+        # could reflect issue https://github.com/rapidsai/cugraph/issues/1043
+        # this command can be restored once the above issue is fixed - scheduled for cugraph 0.20
+#        triangle_count = cugraph.community.triangle_count.triangles(G)/3
+        triangle_count = 3*get_cugraph_triangles(G)
         degree_df = G.in_degree()
-        triad_count = sum([d * (d - 1) for d in degree_df['degree'].to_pandas()])
-        transitivity = 2 * triangle_count/triad_count
+        # consistent with graph-tool
+        triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
+        if triad_count > 0:
+            transitivity = triangle_count/triad_count
+        else:
+            transitivity = 0.0
     else:
         component_assignments, component_frequencies = gt.label_components(G)
         components = len(component_frequencies)
@@ -727,11 +1060,13 @@ def networkSummary(G, calc_betweenness=True, use_gpu = False):
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
                     subgraph = cugraph.subgraph(G, component_vertices)
-                    max_betweeness_k = 1000
-                    if len(component_vertices) >= max_betweeness_k:
-                        component_betweenness = cugraph.betweenness_centrality(subgraph, k = max_betweeness_k)
+                    if len(component_vertices) >= betweenness_sample:
+                        component_betweenness = cugraph.betweenness_centrality(subgraph,
+                                                                                k = betweenness_sample,
+                                                                                normalized = True)
                     else:
-                        component_betweenness = cugraph.betweenness_centrality(subgraph)
+                        component_betweenness = cugraph.betweenness_centrality(subgraph,
+                                                                                normalized = True)
                     betweenness.append(component_betweenness['betweenness_centrality'].max())
                     sizes.append(size)
         else:
@@ -885,19 +1220,17 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # finish by updating the network
     if use_gpu:
 
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
         # construct updated graph
         G_current_df = G.view_edge_list()
         if weights is not None:
             G_current_df.columns = ['source','destination','weights']
-            G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination','weights'])
+            G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination','weights'])
             G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
         else:
             G_current_df.columns = ['source','destination']
-            G_extra_df = cudf.DataFrame(new_edges, columns =['source','destination'])
+            G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination'])
             G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
 
         # use self-loop to ensure all nodes are present
@@ -916,10 +1249,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             G.edge_properties["weight"] = eweight
         else:
             G.add_edge_list(new_edges)
-
-        # including the vertex ID property map
-        for i, q in enumerate(qList):
-            G.vp.id[i + len(rList)] = q
 
     return G, qqDistMat
 
@@ -958,7 +1287,10 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
         G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
     # Construct graph
     G_new = cugraph.Graph()
-    G_new.from_cudf_edgelist(G_df, renumber = renumber)
+    if weights:
+        G_new.from_cudf_edgelist(G_df, edge_attr = 'weights', renumber = renumber)
+    else:
+        G_new.from_cudf_edgelist(G_df, renumber = renumber)
     return G_new
 
 
@@ -972,8 +1304,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
     Args:
         G (graph)
-            Network used to define clusters (from :func:`~constructNetwork` or
-            :func:`~addQueryToNetwork`)
+            Network used to define clusters
         outPrefix (str)
             Prefix for output CSV
             Default = None
@@ -1011,10 +1342,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
     # get a sorted list of component assignments
     if use_gpu:
-        if not gpu_lib:
-           sys.stderr.write('Unable to load GPU libraries; exiting\n')
-           sys.exit(1)
-
+        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
@@ -1194,9 +1522,12 @@ def printExternalClusters(newClusters, extClusterFile, outPrefix,
                     else:
                         d[extCluster].append("NA")
 
-    pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
-                                columns = ["sample"] + list(extClusters.keys()),
-                                index = False)
+    if "sample" not in d:
+        sys.stderr.write("WARNING: No new samples found, cannot write external clusters\n")
+    else:
+        pd.DataFrame(data=d).to_csv(outPrefix + "_external_clusters.csv",
+                                    columns = ["sample"] + list(extClusters.keys()),
+                                    index = False)
 
 def generate_minimum_spanning_tree(G, from_cugraph = False):
     """Generate a minimum spanning tree from a network
@@ -1215,7 +1546,9 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
     #
     # Create MST
     #
-    if not from_cugraph:
+    if from_cugraph:
+        mst_network = G
+    else:
         sys.stderr.write("Starting calculation of minimum-spanning tree\n")
 
         # Test if weighted network and calculate minimum spanning tree
@@ -1226,49 +1559,83 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
         else:
             sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
             raise RuntimeError("MST passed unweighted graph")
-    else:
-        mst_network = G
 
     # Find seed nodes as those with greatest outdegree in each component
+    num_components = 1
     seed_vertices = set()
-    component_assignments, component_frequencies = gt.label_components(mst_network)
-    for component_index in range(len(component_frequencies)):
-        component_members = component_assignments.a == component_index
-        component = gt.GraphView(mst_network, vfilt = component_members)
-        component_vertices = component.get_vertices()
-        out_degrees = component.get_out_degrees(component_vertices)
-        seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
-        seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+    if from_cugraph:
+        mst_df = cugraph.components.connectivity.connected_components(mst_network)
+        num_components_idx = mst_df['labels'].max()
+        num_components = mst_df.iloc[num_components_idx]['labels']
+        if num_components > 1:
+            mst_df['degree'] = mst_network.in_degree()['degree']
+            # idxmax only returns first occurrence of maximum so should maintain
+            # MST - check cuDF implementation is the same
+            max_indices = mst_df.groupby(['labels'])['degree'].idxmax()
+            seed_vertices = mst_df.iloc[max_indices]['vertex']
+            num_components = seed_vertices.size()
+    else:
+        component_assignments, component_frequencies = gt.label_components(mst_network)
+        num_components = len(component_frequencies)
+        if num_components > 1:
+            for component_index in range(len(component_frequencies)):
+                component_members = component_assignments.a == component_index
+                component = gt.GraphView(mst_network, vfilt = component_members)
+                component_vertices = component.get_vertices()
+                out_degrees = component.get_out_degrees(component_vertices)
+                seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
+                seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
+            
 
-    # If multiple components, calculate distances between seed nodes
-    if len(component_frequencies) > 1:
-        # Extract distances
-        connections = []
-        max_weight = float(np.max(G.edge_properties["weight"].a))
-        for ref in seed_vertices:
-            seed_edges = G.get_all_edges(ref, [G.ep['weight']])
-            found = False  # Not all edges may be in graph
-            for seed_edge in seed_edges:
-                if seed_edge[1] in seed_vertices:
-                    found = True
-                    connections.append((seed_edge))
-            # TODO: alternative would be to requery the DB (likely quick)
-            if found == False:
-                for query in seed_vertices:
-                    if query != ref:
-                        connections.append((ref, query, max_weight))
+    # If multiple components, add distances between seed nodes
+    if num_components > 1:
+        
+        # Extract edges and maximum edge length - as DF for cugraph
+        # list of tuples for graph-tool
+        if from_cugraph:
+            # With cugraph the MST is already calculated
+            # so no extra edges can be retrieved from the graph
+            G_df = G.view_edge_list()
+            max_weight = G_df['weights'].max()
+            first_seed = seed_vertices[0]
+            G_seed_link_df = cudf.DataFrame()
+            G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.size()]
+            G_seed_link_df['src'] = seed_vertices.iloc[0]
+            G_seed_link_df['weights'] = seed_vertices.iloc[0]
+            G_df = G_df.append(G_seed_link_df)
+        else:
+            # With graph-tool look to retrieve edges in larger graph
+            connections = []
+            max_weight = float(np.max(G.edge_properties["weight"].a))
+
+            # Identify edges between seeds to link components together
+            for ref in seed_vertices:
+                seed_edges = G.get_all_edges(ref, [G.ep['weight']])
+                found = False  # Not all edges may be in graph
+                for seed_edge in seed_edges:
+                    if seed_edge[1] in seed_vertices:
+                        found = True
+                        connections.append((seed_edge))
+                # TODO: alternative would be to requery the DB (likely quick)
+                if found == False:
+                    for query in seed_vertices:
+                        if query != ref:
+                            connections.append((ref, query, max_weight))
 
         # Construct graph
-        seed_G = gt.Graph(directed = False)
-        seed_G.add_vertex(len(seed_vertex))
-        eweight = seed_G.new_ep("float")
-        seed_G.add_edge_list(connections, eprops = [eweight])
-        seed_G.edge_properties["weight"] = eweight
-        seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
-        seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
-        # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
-        deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
-        mst_network.add_edge_list(deep_edges)
+        if from_cugraph:
+            mst_network = G_df.from_cudf_edgelist(edge_attr='weights', renumber=False)
+        else:
+            seed_G = gt.Graph(directed = False)
+            seed_G.add_vertex(len(seed_vertex))
+            eweight = seed_G.new_ep("float")
+            seed_G.add_edge_list(connections, eprops = [eweight])
+            seed_G.edge_properties["weight"] = eweight
+            seed_mst_edge_prop_map = gt.min_spanning_tree(seed_G, weights = seed_G.ep["weight"])
+            seed_mst_network = gt.GraphView(seed_G, efilt = seed_mst_edge_prop_map)
+            # Insert seed MST into original MST - may be possible to use graph_union with include=True & intersection
+            deep_edges = seed_mst_network.get_edges([seed_mst_network.ep["weight"]])
+            mst_network.add_edge_list(deep_edges)
 
     sys.stderr.write("Completed calculation of minimum-spanning tree\n")
     return mst_network
@@ -1295,14 +1662,18 @@ def get_vertex_list(G, use_gpu = False):
 
     return vlist
 
-def save_network(G, prefix = None, suffix = None, use_gpu = False):
-    """Save a network to disc
+def save_network(G, prefix = None, suffix = None, use_graphml = False,
+                use_gpu = False):
+    """Save a network to disk
 
     Args:
        G (network)
            Graph tool network
        prefix (str)
            Prefix for output file
+       use_graphml (bool)
+           Whether to output a graph-tool file
+           in graphml format
        use_gpu (bool)
            Whether graph is a cugraph or not
            [default = False]
@@ -1315,5 +1686,36 @@ def save_network(G, prefix = None, suffix = None, use_gpu = False):
         G.to_pandas_edgelist().to_csv(file_name + '.csv.gz',
                 compression='gzip', index = False)
     else:
-        G.save(file_name + '.gt',
-                fmt = 'gt')
+        if use_graphml:
+            G.save(file_name + '.graphml',
+                    fmt = 'graphml')
+        else:
+            G.save(file_name + '.gt',
+                    fmt = 'gt')
+
+def cugraph_to_graph_tool(G, rlist):
+    """Save a network to disk
+
+    Args:
+       G (cugraph network)
+         Cugraph network
+       rlist (list)
+         List of sequence names
+           
+    Returns:
+      G (graph-tool network)
+          Graph tool network
+    """
+    edge_df = G.view_edge_list()
+    edge_tuple = edge_df[['src', 'dst']].values
+    edge_weights = None
+    if 'weights' in edge_df.columns:
+        edge_weights = edge_df['weights'].values_host
+    G = construct_network_from_edge_list(rlist, rlist,
+                                           edge_tuple,
+                                           weights = edge_weights,
+                                           summarise=False)
+    vid = G.new_vertex_property('string',
+                                vals = rlist)
+    G.vp.id = vid
+    return G
