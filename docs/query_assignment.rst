@@ -5,8 +5,8 @@ your species. If there is no database available, you can fit your own (:doc:`mod
 
 Briefly, `download your reference database <https://poppunk.net/pages/databases.html>`__ and run::
 
-    poppunk_assign --ref-db database --distances database/database.dists \
-    --q-files qfile.txt --output poppunk_clusters --threads 8
+    poppunk_assign --db database --query qfile.txt \
+    --output poppunk_clusters --threads 8
 
 .. contents::
    :local:
@@ -35,8 +35,8 @@ You can use the following arguments to individually target these items if necess
 for example when using an alternative fit, or if split across different directories. The
 examples below refer to the default database name:
 
-- (required) ``--ref-db database`` -- the name of directory containing the .h5 file.
-- (required) ``--distances database/database.dists`` -- prefix of the distances.
+- (required) ``--db database`` -- the name of directory containing the .h5 file.
+- ``--distances database/database.dists`` -- prefix of the distances.
 - ``--model-dir database`` -- directory containing the model fit and network (dists + fit define the network).
 - ``--previous-clustering database`` -- directory containing the PopPUNK clusters for the references.
 
@@ -54,8 +54,8 @@ be inferred by checking for the presence of quality scores). Data may be gzipped
 Save this as ``qfile.txt``. You're now ready to cluster them!
 Run the following command::
 
-    poppunk_assign --ref-db database --distances database/database.dists \
-    --q-files qfile.txt --output poppunk_clusters --threads 8
+    poppunk_assign --db database --query qfile.txt \
+    --output poppunk_clusters --threads 8
 
 This will first of all sketch your input genomes, saving them in ``poppunk_clusters/poppunk_clusters.h5``.
 If you need to rerun part of the analysis with different options this will automatically be picked up
@@ -184,8 +184,8 @@ can be used to inform future cluster assignment, this is as simple as adding the
 ``--update-db`` option to the command above. This is particularly useful when novel
 query clusters have been found -- they will then be the consistent name for future assignments::
 
-    poppunk_assign --ref-db database --distances database/database.dists \
-    --q-files qfile.txt --output poppunk_clusters --threads 8 --update-db
+    poppunk_assign --db database --query qfile.txt \
+    --output poppunk_clusters --threads 8 --update-db
 
     Graph-tools OpenMP parallelisation enabled: with 4 threads
     PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
