@@ -331,11 +331,12 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                     G.add_edge_list(edge_list)
                     edge_list = []
             # Add score into vector for any offsets passed (should usually just be one)
+            latest_score = -networkSummary(G,
+                                score_idx > 0,
+                                betweenness_sample = betweenness_sample,
+                                use_gpu = use_gpu)[1][score_idx]
             for s in range(prev_idx, idx):
-                scores.append(-networkSummary(G,
-                                                score_idx > 0,
-                                                betweenness_sample = betweenness_sample,
-                                                use_gpu = use_gpu)[1][score_idx])
+                scores.append(latest_score)
                 pbar.update(1)
             prev_idx = idx
 
