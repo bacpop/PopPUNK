@@ -293,9 +293,9 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         # Prune sequences based on reference sequence
         for (s,t) in long_edges:
             if seq_names_passing[s] == qc_dict['type_isolate']:
-                to_prune.append(names[t])
+                to_prune.append(seq_names_passing[t])
             elif seq_names_passing[t] == qc_dict['type_isolate']:
-                to_prune.append(names[s])
+                to_prune.append(seq_names_passing[s])
 
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
@@ -534,7 +534,7 @@ def isolateNameToLabel(names):
     """
     # useful to have as a function in case we
     # want to remove certain characters
-    labels = [name.split('/')[-1].split('.')[0] for name in names]
+    labels = [name.split('/')[-1].split('.')[0].replace(':','') for name in names]
     return labels
 
 
