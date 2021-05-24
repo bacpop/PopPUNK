@@ -40,6 +40,7 @@ try:
     import cudf
     import cupy as cp
     from numba import cuda
+    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -810,24 +811,40 @@ class RefineFit(ClusterFit):
         self.accessory_boundary = self.optimal_y
         if indiv_refine is not None:
             try:
-                for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
-                    if indiv_refine == 'both' or indiv_refine == dist_type:
-                        sys.stderr.write("Refining " + dist_type + " distances separately\n")
-                        # optimise core distance boundary
-                        start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
-                          refineFit(X/self.scale,
-                                    sample_names,
-                                    self.start_s,
-                                    self.mean0,
-                                    self.mean1,
-                                    self.max_move,
-                                    self.min_move,
-                                    slope = slope,
-                                    score_idx = score_idx,
-                                    no_local = no_local,
-                                    num_processes = self.threads,
-                                    betweenness_sample = betweenness_sample,
-                                    use_gpu = use_gpu)
+                if indiv_refine == 'both' or indiv_refine == 'core':
+                    sys.stderr.write("Refining core distances separately\n")
+                    # optimise core distance boundary
+                    start_point, self.core_boundary, unused_accessory_boundary, self.min_move, self.max_move = \
+                      refineFit(X/self.scale,
+                                sample_names,
+                                self.start_s,
+                                self.mean0,
+                                self.mean1,
+                                self.max_move,
+                                self.min_move,
+                                slope = 0,
+                                score_idx = score_idx,
+                                no_local = no_local,
+                                num_processes = self.threads,
+                                betweenness_sample = betweenness_sample,
+                                use_gpu = use_gpu)
+                if indiv_refine == 'both' or indiv_refine == 'accessory':
+                    sys.stderr.write("Refining accessory distances separately\n")
+                    # optimise core distance boundary
+                    start_point, unused_core_boundary, self.accessory_boundary, self.min_move, self.max_move = \
+                      refineFit(X/self.scale,
+                                sample_names,
+                                self.start_s,
+                                self.mean0,
+                                self.mean1,
+                                self.max_move,
+                                self.min_move,
+                                slope = 1,
+                                score_idx = score_idx,
+                                no_local = no_local,
+                                num_processes = self.threads,
+                                betweenness_sample = betweenness_sample,
+                                use_gpu = use_gpu)
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)
