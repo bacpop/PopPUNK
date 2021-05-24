@@ -22,6 +22,9 @@ import h5py
 
 try:
     import cudf
+    import rmm
+    import cupy
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -624,6 +627,12 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
 
     # Set memory management for large networks
     if use_gpu:
+        rmm.reinitialize(managed_memory=True)
         cudf.set_allocator("managed")
-        
+        if "cupy" in sys.modules:
+            cupy.cuda.set_allocator(rmm.rmm_cupy_allocator)
+        if "cuda" in sys.modules:
+            cuda.set_memory_manager(rmm.RMMNumbaManager)
+        assert(rmm.is_initialized())
+
     return use_gpu
