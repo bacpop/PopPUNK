@@ -973,11 +973,8 @@ class RefineFit(ClusterFit):
                 Core and accessory distances
             slope (int)
                 Override self.slope. Default - use self.slope
-
                 Set to 0 for a vertical line, 1 for a horizontal line, or
                 2 to use a slope
-            cpus (int)
-                Number of threads to use
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -985,11 +982,13 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            if slope == 2 or (slope == None and self.slope == 2):
+            if slope == None:
+                slope = self.slope
+            if slope == 2:
                 y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, self.threads)
-            elif slope == 0 or (slope == None and self.slope == 0):
+            elif slope == 0:
                 y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, self.threads)
-            elif slope == 1 or (slope == None and self.slope == 1):
+            elif slope == 1:
                 y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, self.threads)
 
         return y
