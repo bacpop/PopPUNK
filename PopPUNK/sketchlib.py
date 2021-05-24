@@ -634,6 +634,7 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
         retained (list)
             List of sequences passing QC filters
     """
+    sys.stderr.write("Running QC on sketches\n")
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
