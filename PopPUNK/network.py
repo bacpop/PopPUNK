@@ -31,6 +31,7 @@ try:
     import cudf
     import cupy as cp
     from numba import cuda
+    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
