@@ -948,6 +948,8 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
     if weights is not None:
         weights = weights[assignments == within_label]
     elif distMat is not None and weights_type is not None:
+        if type(assignments) == 'list':
+            assignments = np.array(assignments)
         distMat = distMat[assignments == within_label,:]
         weights = process_weights(distMat, weights_type)
     
