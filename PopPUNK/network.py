@@ -600,9 +600,6 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
             Whether weights in the G_df data frame should be included in the network
         distMat (2 column ndarray)
             Numpy array of pairwise distances
-        weights_type (str)
-            Measure to calculate from the distMat to use as edge weights in network
-            - options are core, accessory or euclidean distance
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
@@ -647,7 +644,7 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
     return extra_sources, extra_targets, extra_weights
 
 def construct_network_from_edge_list(rlist, qlist, edge_list,
-    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = None, distMat = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
@@ -665,9 +662,6 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
             Whether weights in the G_df data frame should be included in the network
         distMat (2 column ndarray)
             Numpy array of pairwise distances
-        weights_type (str)
-            Measure to calculate from the distMat to use as edge weights in network
-            - options are core, accessory or euclidean distance
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
@@ -692,8 +686,6 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
-    if weights_type is not None:
-        weights = process_weights(distMat, weights_type)
     
     # Load previous network
     if previous_network is not None:
@@ -720,7 +712,6 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         G = construct_network_from_df(rlist, qlist, G_df,
                                         weights = (weights is not None),
                                         distMat = distMat,
-                                        weights_type = weights_type,
                                         previous_network = previous_network,
                                         previous_pkl = previous_pkl,
                                         summarise = False,
@@ -752,7 +743,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     return G
 
 def construct_network_from_df(rlist, qlist, G_df,
-    weights = False, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = False, distMat = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
@@ -770,9 +761,6 @@ def construct_network_from_df(rlist, qlist, G_df,
             Whether weights in the G_df data frame should be included in the network
         distMat (2 column ndarray)
             Numpy array of pairwise distances
-        weights_type (str)
-            Measure to calculate from the distMat to use as edge weights in network
-            - options are core, accessory or euclidean distance
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
@@ -797,8 +785,6 @@ def construct_network_from_df(rlist, qlist, G_df,
     
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
-    if weights_type is not None:
-        G_df['weights'] = process_weights(distMat, weights_type)
 
     # Check df format is correct
     if weights:
@@ -844,7 +830,6 @@ def construct_network_from_df(rlist, qlist, G_df,
         G = construct_network_from_edge_list(rlist, qlist, connections,
                                             weights = weights,
                                             distMat = distMat,
-                                            weights_type = weights_type,
                                             previous_network = previous_network,
                                             previous_pkl = previous_pkl,
                                             summarise = False,
@@ -854,7 +839,7 @@ def construct_network_from_df(rlist, qlist, G_df,
     return G
 
 def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
-    weights = None, weights_type = None, previous_network = None, previous_pkl = None,
+    weights = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
     """Construct an undirected network using a sparse matrix. Nodes are samples and
     edges where samples are within the same cluster
@@ -872,9 +857,6 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
             List of weights for each edge in the network
         distMat (2 column ndarray)
             Numpy array of pairwise distances
-        weights_type (str)
-            Measure to calculate from the distMat to use as edge weights in network
-            - options are core, accessory or euclidean distance
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
@@ -906,7 +888,6 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
     G_df['weights'] = sparse_input.data
     G = construct_network_from_df(rlist, qlist, G_df,
                                     weights = True,
-                                    weights_type = weights_type,
                                     previous_network = previous_network,
                                     previous_pkl = previous_pkl,
                                     betweenness_sample = betweenness_sample,
@@ -962,18 +943,21 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
     
     # Check GPU library use
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-    
-    # Convert edge indices to tuples
-    connections = poppunk_refine.generateTuples(assignments, within_label)
+        
     # Filter weights to only the relevant edges
     if weights is not None:
         weights = weights[assignments == within_label]
-    elif distMat is not None:
+    elif distMat is not None and weights_type is not None:
         distMat = distMat[assignments == within_label,:]
+        weights = process_weights(distMat, weights_type)
+    
+    # Convert edge indices to tuples
+    connections = poppunk_refine.generateTuples(assignments, within_label)
+    
+    # Construct network using edge list
     G = construct_network_from_edge_list(rlist, qlist, connections,
                                             weights = weights,
                                             distMat = distMat,
-                                            weights_type = weights_type,
                                             previous_network = previous_network,
                                             previous_pkl = previous_pkl,
                                             summarise = False,
