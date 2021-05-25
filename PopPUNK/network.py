@@ -1694,7 +1694,7 @@ def cugraph_to_graph_tool(G, rlist):
           Graph tool network
     """
     edge_df = G.view_edge_list()
-    edge_tuple = edge_df[['src', 'dst']].values.to_list()
+    edge_tuple = edge_df[['src', 'dst']].values.tolist()
     edge_weights = None
     if 'weights' in edge_df.columns:
         edge_weights = edge_df['weights'].values_host
