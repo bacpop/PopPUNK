@@ -13,6 +13,7 @@ try:
     import cudf
     import rmm
     import cupy
+    import cugraph
     from numba import cuda
     gpu_lib = True
 except ImportError as e:
