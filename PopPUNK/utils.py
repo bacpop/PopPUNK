@@ -498,7 +498,7 @@ def readRfile(rFile, oneSeq=False):
             for sequence in rFields[1:]:
                 sample_files.append(sequence)
 
-            # Take first of sequence list if using mash
+            # Take first of sequence list
             if oneSeq:
                 if len(sample_files) > 1:
                     sys.stderr.write("Multiple sequence found for " + rFields[0] +
@@ -506,6 +506,9 @@ def readRfile(rFile, oneSeq=False):
                 sequences.append(sample_files[0])
             else:
                 sequences.append(sample_files)
+
+    # Process names to ensure compatibility with downstream software
+    names = isolateNameToLabel(names)
 
     if len(set(names)) != len(names):
         seen = set()

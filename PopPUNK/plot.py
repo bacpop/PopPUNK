@@ -594,7 +594,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         if queryNames is not None:
             colnames.append('Status')
     else:
-        sys.stderr.write("Do not recognise format for CSV writing")
+        sys.stderr.write("Do not recognise format for CSV writing\n")
         exit(1)
 
     # process epidemiological data
