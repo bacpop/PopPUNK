@@ -332,13 +332,27 @@ def generate_visualisations(query_db,
         if model.type == "lineage":
             mode = "lineages"
             suffix = "_lineages.csv"
-        if model.indiv_fitted:
-            sys.stderr.write("Note: Individual (core/accessory) fits found, but "
-                             "visualisation only supports combined boundary fit\n")
         prev_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + suffix
     isolateClustering = readIsolateTypeFromCsv(prev_clustering,
                                                mode = mode,
                                                return_dict = True)
+
+    # Add individual refinement clusters if they exist
+    if model.indiv_fitted:
+        core_suffix = '_core_clusters.csv'
+        core_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + core_suffix
+        if os.path.isfile(core_clustering):
+            core_isolateClustering = readIsolateTypeFromCsv(core_clustering,
+                                                               mode = mode,
+                                                               return_dict = True)
+            isolateClustering['Core'] = core_isolateClustering['Cluster']
+        acc_suffix = '_accessory_clusters.csv'
+        accessory_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + acc_suffix
+        if os.path.isfile(accessory_clustering):
+            accessory_isolateClustering = readIsolateTypeFromCsv(accessory_clustering,
+                                                                   mode = mode,
+                                                                   return_dict = True)
+            isolateClustering['Accessory'] = accessory_isolateClustering['Cluster']
 
     # Join clusters with query clusters if required
     if not self:
