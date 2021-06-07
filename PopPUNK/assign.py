@@ -238,9 +238,17 @@ def assign_query(dbFuncs,
                                 strand_preserved,
                                 weights = weights, threads = threads, use_gpu = gpu_graph)
 
+        if core_only:
+            output_fn = output + "/" + os.path.basename(output) + '_core'
+        elif accessory_only:
+            output_fn = output + "/" + os.path.basename(output) + '_accessory'
+        else:
+            output_fn = output + "/" + os.path.basename(output)
+
         isolateClustering = \
-            {'combined': printClusters(genomeNetwork, rNames + qNames,
-                                        output + "/" + os.path.basename(output),
+            {'combined': printClusters(genomeNetwork,
+                                        rNames + qNames,
+                                        output_fn,
                                         old_cluster_file,
                                         external_clustering,
                                         write_references or update_db,
@@ -265,7 +273,16 @@ def assign_query(dbFuncs,
             model.outPrefix = os.path.basename(output)
             model.save()
         else:
-            save_network(genomeNetwork, prefix = output, suffix = '_graph', use_gpu = gpu_graph)
+            if core_only:
+                graph_suffix = '_core_graph'
+            elif accessory_only:
+                graph_suffix = '_accessory_graph'
+            else:
+                graph_suffix = '_graph'
+            save_network(genomeNetwork,
+                            prefix = output,
+                            suffix = graph_suffix,
+                            use_gpu = gpu_graph)
 
         # Load the previous distances
         refList_loaded, refList_copy, self, rrDistMat = \
@@ -313,11 +330,32 @@ def assign_query(dbFuncs,
 
             if (len(names_to_remove) > 0):
                 # This function also writes out the new ref distance matrix
+                if core_only:
+                  db_suffix = "_core.refs.dists"
+                elif accessory_only:
+                  db_suffix = "_accessory.refs.dists"
+                else:
+                  graph_suffix = ".refs.dists"
                 postpruning_combined_seq, newDistMat = \
                     prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                           output + "/" + os.path.basename(output) + ".refs.dists")
-                save_network(genomeNetwork, prefix = output, suffix = 'refs_graph', use_gpu = gpu_graph)
+                if core_only:
+                  graph_suffix = '_core_refs_graph'
+                elif accessory_only:
+                  graph_suffix = '_accessory_refs_graph'
+                else:
+                  graph_suffix = '_refs_graph'
+                save_network(genomeNetwork,
+                                prefix = output,
+                                suffix = graph_suffix,
+                                use_gpu = gpu_graph)
                 removeFromDB(output, output, names_to_remove)
+                if core_only:
+                  db_suffix = "_core.refs.h5"
+                elif accessory_only:
+                  db_suffix = "_accessory.refs.h5"
+                else:
+                  graph_suffix = ".refs.h5"
                 os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
                           output + "/" + os.path.basename(output) + ".refs.h5")
 
@@ -329,7 +367,13 @@ def assign_query(dbFuncs,
             if model.type == 'lineage':
                 save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
             else:
-                save_network(genomeNetwork, prefix = output, suffix = '_graph', use_gpu = gpu_graph)
+                if core_only:
+                    graph_suffix = '_core_graph'
+                elif accessory_only:
+                    graph_suffix = '_accessory_graph'
+                else:
+                    graph_suffix = '_graph'
+                save_network(genomeNetwork, prefix = output, suffix = graph_suffix, use_gpu = gpu_graph)
 
     return(isolateClustering)
 
