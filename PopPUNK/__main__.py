@@ -542,7 +542,7 @@ def main():
                                       use_gpu = args.gpu_graph)
                     save_network(indivNetworks[dist_type],
                                     prefix = output,
-                                    suffix = '_graph',
+                                    suffix = '_' + dist_type + '_graph',
                                     use_gpu = args.gpu_graph)
 
         #******************************#
