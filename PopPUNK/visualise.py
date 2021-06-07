@@ -339,20 +339,13 @@ def generate_visualisations(query_db,
 
     # Add individual refinement clusters if they exist
     if model.indiv_fitted:
-        core_suffix = '_core_clusters.csv'
-        core_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + core_suffix
-        if os.path.isfile(core_clustering):
-            core_isolateClustering = readIsolateTypeFromCsv(core_clustering,
-                                                               mode = mode,
-                                                               return_dict = True)
-            isolateClustering['Core'] = core_isolateClustering['Cluster']
-        acc_suffix = '_accessory_clusters.csv'
-        accessory_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + acc_suffix
-        if os.path.isfile(accessory_clustering):
-            accessory_isolateClustering = readIsolateTypeFromCsv(accessory_clustering,
+        for type, suffix in zip(['Core','Accessory'],['_core_clusters.csv','_accessory_clusters.csv']):
+            indiv_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + suffix
+            if os.path.isfile(indiv_clustering):
+                indiv_isolateClustering = readIsolateTypeFromCsv(indiv_clustering,
                                                                    mode = mode,
                                                                    return_dict = True)
-            isolateClustering['Accessory'] = accessory_isolateClustering['Cluster']
+                isolateClustering[type] = indiv_isolateClustering['Cluster']
 
     # Join clusters with query clusters if required
     if not self:
