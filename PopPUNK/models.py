@@ -845,12 +845,11 @@ class RefineFit(ClusterFit):
                                 num_processes = self.threads,
                                 betweenness_sample = betweenness_sample,
                                 use_gpu = use_gpu)
-                self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
-
+            self.indiv_fitted = True
         y = self.assign(X)
         return y
 
