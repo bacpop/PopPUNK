@@ -96,12 +96,16 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
         graph_suffix = '.gt'
 
     if core_only and model.type == 'refine':
-        model.slope = 0
-        network_file = dir_prefix + '_core_graph' + graph_suffix
+        if ref_graph:
+            network_file = dir_prefix + '_core.refs_graph' + graph_suffix
+        else:
+            network_file = dir_prefix + '_core_graph' + graph_suffix
         cluster_file = dir_prefix + '_core_clusters.csv'
     elif accessory_only and model.type == 'refine':
-        model.slope = 1
-        network_file = dir_prefix + '_accessory_graph' + graph_suffix
+        if ref_graph:
+            network_file = dir_prefix + '_accessory.refs_graph' + graph_suffix
+        else:
+            network_file = dir_prefix + '_accessory_graph' + graph_suffix
         cluster_file = dir_prefix + '_accessory_clusters.csv'
     else:
         if ref_graph and os.path.isfile(dir_prefix + '.refs_graph' + graph_suffix):
@@ -114,6 +118,7 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
                              "a refined fit. Using the combined distances.\n")
 
     # Load network file
+    print("Loading network from file " + network_file)
     genomeNetwork = load_network_file(network_file, use_gpu = use_gpu)
 
     # Ensure all in dists are in final network
@@ -434,7 +439,6 @@ def writeReferences(refList, outPrefix, outSuffix = ""):
     with open(refFileName, 'w') as rFile:
         for ref in refList:
             rFile.write(ref + '\n')
-
     return refFileName
 
 def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,

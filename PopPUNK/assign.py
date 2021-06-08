@@ -132,10 +132,10 @@ def assign_query(dbFuncs,
         # Find distances vs ref seqs
         rNames = []
         use_ref_graph = \
-            os.path.isfile(ref_db + "/" + os.path.basename(ref_db) + fit_string + ".refs") \
+            os.path.isfile(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") \
             and not update_db and model.type != 'lineage'
         if use_ref_graph:
-            with open(ref_db + "/" + os.path.basename(ref_db) + fit_string + ".refs") as refFile:
+            with open(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") as refFile:
                 for reference in refFile:
                     rNames.append(reference.rstrip())
         else:
@@ -337,7 +337,10 @@ def assign_query(dbFuncs,
 
             # Clique pruning
             if model.type != 'lineage':
+
                 dbOrder = rNames + qNames
+                
+                # Extract references from graph
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \
                         extractReferences(genomeNetwork,
@@ -348,6 +351,7 @@ def assign_query(dbFuncs,
                                             type_isolate = qc_dict['type_isolate'],
                                             threads = threads,
                                             use_gpu = gpu_graph)
+
                 # intersection that maintains order
                 newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
 
