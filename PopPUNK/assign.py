@@ -340,6 +340,11 @@ def assign_query(dbFuncs,
 
                 dbOrder = rNames + qNames
                 
+                existing_ref_list = []
+                with open(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") as refFile:
+                    for reference in refFile:
+                        existing_ref_list.append(reference.rstrip())
+                
                 # Extract references from graph
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \
@@ -347,7 +352,7 @@ def assign_query(dbFuncs,
                                             dbOrder,
                                             output,
                                             outSuffix = fit_string,
-                                            existingRefs = rNames,
+                                            existingRefs = existing_ref_list,
                                             type_isolate = qc_dict['type_isolate'],
                                             threads = threads,
                                             use_gpu = gpu_graph)
@@ -377,7 +382,7 @@ def assign_query(dbFuncs,
                               output + "/" + os.path.basename(output) + db_suffix)
 
                     # ensure sketch and distMat order match
-                    assert postpruning_combined_seq == rNames + newQueries
+                    assert postpruning_combined_seq == existing_ref_list + newQueries
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
             if save_partial_query_graph:
