@@ -215,7 +215,7 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
-def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
+def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None,
                         existingRefs = None, threads = 1, use_gpu = False):
     """Extract references for each cluster based on cliques
 
@@ -227,7 +227,9 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
            dbOrder (list)
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
-               Prefix for output file (.refs will be appended)
+               Prefix for output file
+           outSuffix (str)
+               Suffix for output file  (.refs will be appended)
            type_isolate (str)
                Isolate to be included in set of references
            existingRefs (list)
@@ -409,24 +411,26 @@ def extractReferences(G, dbOrder, outPrefix, type_isolate = None,
 
     # Order found references as in sketch files
     reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
-    refFileName = writeReferences(reference_names, outPrefix)
+    refFileName = writeReferences(reference_names, outPrefix, outSuffix = outSuffix)
     return reference_indices, reference_names, refFileName, G_ref
 
-def writeReferences(refList, outPrefix):
+def writeReferences(refList, outPrefix, outSuffix = ""):
     """Writes chosen references to file
 
     Args:
         refList (list)
             Reference names to write
         outPrefix (str)
-            Prefix for output file (.refs will be appended)
+            Prefix for output file
+        outSuffix (str)
+            Suffix for output file (.refs will be appended)
 
     Returns:
         refFileName (str)
             The name of the file references were written to
     """
     # write references to file
-    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + ".refs"
+    refFileName = outPrefix + "/" + os.path.basename(outPrefix) + outSuffix + ".refs"
     with open(refFileName, 'w') as rFile:
         for ref in refList:
             rFile.write(ref + '\n')
@@ -1078,8 +1082,8 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     return(metrics, scores)
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
-                      assignments, model, queryDB, queryQuery = False,
-                      strand_preserved = False, weights = None, threads = 1,
+                      assignments, model, queryDB, distance_type = 'euclidean',
+                      queryQuery = False, strand_preserved = False, weights = None, threads = 1,
                       use_gpu = False):
     """Finds edges between queries and items in the reference database,
     and modifies the network to include them.
@@ -1101,6 +1105,8 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             Model fitted to reference database
         queryDB (str)
             Query database location
+        distance_type (str)
+            Distance type to use as weights in network
         queryQuery (bool)
             Add in all query-query distances
             (default = False)
@@ -1137,7 +1143,12 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
         if assignment == model.within_label:
             # query index needs to be adjusted for existing vertices in network
             if weights is not None:
-                dist = np.linalg.norm(weights[row_idx, :])
+                if distance_type == 'core':
+                    dist = weights[row_idx, 0]
+                elif distance_type == 'accessory':
+                    dist = weights[row_idx, 1]
+                else:
+                    dist = np.linalg.norm(weights[row_idx, :])
                 edge_tuple = (ref, query + ref_count, dist)
             else:
                 edge_tuple = (ref, query + ref_count)
@@ -1160,11 +1171,21 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                       number_plot_fits = 0,
                                       threads = threads)
 
-            queryAssignation = model.assign(qqDistMat)
+            if distance_type == 'core':
+                queryAssignation = model.assign(qqDistMat, slope = 0)
+            elif distance_type == 'accessory':
+                queryAssignation = model.assign(qqDistMat, slope = 1)
+            else:
+                queryAssignation = model.assign(qqDistMat)
             for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
                 if assignment == model.within_label:
                     if weights is not None:
-                        dist = np.linalg.norm(qqDistMat[row_idx, :])
+                        if distance_type == 'core':
+                            dist = weights[row_idx, 0]
+                        elif distance_type == 'accessory':
+                            dist = weights[row_idx, 1]
+                        else:
+                            dist = np.linalg.norm(weights[row_idx, :])
                         edge_tuple = (ref + ref_count, query + ref_count, dist)
                     else:
                         edge_tuple = (ref + ref_count, query + ref_count)
@@ -1189,8 +1210,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                       self = True,
                                       number_plot_fits = 0,
                                       threads = threads)
-
-            queryAssignation = model.assign(qqDistMat)
+                                      
+            if distance_type == 'core':
+                queryAssignation = model.assign(qqDistMat, slope = 0)
+            elif distance_type == 'accessory':
+                queryAssignation = model.assign(qqDistMat, slope = 1)
+            else:
+                queryAssignation = model.assign(qqDistMat)
 
             # identify any links between queries and store in the same links dict
             # links dict now contains lists of links both to original database and new queries
@@ -1198,7 +1224,12 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qList, self = True))):
                 if assignment == model.within_label:
                     if weights is not None:
-                        dist = np.linalg.norm(qqDistMat[row_idx, :])
+                        if distance_type == 'core':
+                            dist = weights[row_idx, 0]
+                        elif distance_type == 'accessory':
+                            dist = weights[row_idx, 1]
+                        else:
+                            dist = np.linalg.norm(weights[row_idx, :])
                         edge_tuple = (query_indices[query1], query_indices[query2], dist)
                     else:
                         edge_tuple = (query_indices[query1], query_indices[query2])
