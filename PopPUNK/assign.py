@@ -337,8 +337,6 @@ def assign_query(dbFuncs,
 
             # Clique pruning
             if model.type != 'lineage':
-
-                dbOrder = rNames + qNames
                 
                 existing_ref_list = []
                 with open(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") as refFile:
@@ -349,7 +347,7 @@ def assign_query(dbFuncs,
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \
                         extractReferences(genomeNetwork,
-                                            dbOrder,
+                                            combined_seq,
                                             output,
                                             outSuffix = fit_string,
                                             existingRefs = existing_ref_list,
@@ -362,8 +360,8 @@ def assign_query(dbFuncs,
 
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs
-                nodes_to_remove = set(range(len(dbOrder))).difference(newRepresentativesIndices)
-                names_to_remove = [dbOrder[n] for n in nodes_to_remove]
+                nodes_to_remove = set(range(len(combined_seq))).difference(newRepresentativesIndices)
+                names_to_remove = [combined_seq[n] for n in nodes_to_remove]
 
                 if (len(names_to_remove) > 0):
                     # This function also writes out the new ref distance matrix
