@@ -381,8 +381,10 @@ def assign_query(dbFuncs,
                     os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
                               output + "/" + os.path.basename(output) + db_suffix)
 
-                    # ensure sketch and distMat order match
-                    assert postpruning_combined_seq == existing_ref_list + newQueries
+                    # Check that the updated set of references includes all old references, and references added from
+                    # queries; there may be further new references, even from the original database, where paths are
+                    # added between reference isolates in the same component, or new cliques formed
+                    assert set(postpruning_combined_seq).issuperset(set(existing_ref_list).union(set(newQueries)))
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
             if save_partial_query_graph:
