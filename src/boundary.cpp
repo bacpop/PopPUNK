@@ -109,14 +109,16 @@ edge_tuple edge_iterate(const NumpyMatrix &distMat, const int slope,
   return edge_vec;
 }
 
-edge_tuple generate_tuples(const std::vector<int> &assignments, const int within_label) {
+edge_tuple generate_tuples(const std::vector<int> &assignments,
+                           const int within_label,
+                           const int int_offset) {
     const size_t n_rows = assignments.size();
     const size_t n_samples = 0.5 * (1 + sqrt(1 + 8 * (n_rows)));
     edge_tuple edge_vec;
     for (long row_idx = 0; row_idx < n_rows; row_idx++) {
         if (assignments[row_idx] == within_label) {
-            long i = calc_row_idx(row_idx, n_samples);
-            long j = calc_col_idx(row_idx, i, n_samples);
+            long i = calc_row_idx(row_idx, n_samples) + int_offset;
+            long j = calc_col_idx(row_idx, i, n_samples) + int_offset;
             edge_vec.push_back(std::make_tuple(i, j));
         }
     }

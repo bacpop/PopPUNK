@@ -31,8 +31,9 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
 }
 
 edge_tuple generateTuples(const std::vector<int> &assignments,
-                            const int within_label) {
-  edge_tuple edges = generate_tuples(assignments, within_label);
+                            const int within_label,
+                            const int int_offset = 0) {
+  edge_tuple edges = generate_tuples(assignments, within_label, int_offset);
   return (edges);
 }
 
@@ -40,7 +41,7 @@ network_coo thresholdIterate1D(const Eigen::Ref<NumpyMatrix> &distMat,
                                const std::vector<double> &offsets,
                                const int slope, const double x0,
                                const double y0, const double x1,
-                               const double y1, const int num_threads) {
+                               const double y1, const int num_threads = 1) {
   if (!std::is_sorted(offsets.begin(), offsets.end())) {
     throw std::runtime_error("Offsets to thresholdIterate1D must be sorted");
   }
@@ -82,7 +83,8 @@ PYBIND11_MODULE(poppunk_refine, m) {
   m.def("generateTuples", &generateTuples,
           py::return_value_policy::reference_internal,
           "Return edge tuples based on assigned groups",
-          py::arg("assignments"), py::arg("within_label"));
+          py::arg("assignments"), py::arg("within_label"),
+          py::arg("int_offset") = 0);
 
   m.def("thresholdIterate1D", &thresholdIterate1D,
         py::return_value_policy::reference_internal,

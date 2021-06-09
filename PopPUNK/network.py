@@ -905,7 +905,7 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     return G
 
-def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1,
+def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1, int_offset = 0,
     weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
     """Construct an undirected network using sequence lists, assignments of pairwise distances
@@ -923,6 +923,8 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
             Labels of most likely cluster assignment
         within_label (int)
             The label for the cluster representing within-strain distances
+        int_offset (int)
+            Constant integer to add to each node index
         weights (list)
             List of weights for each edge in the network
         distMat (2 column ndarray)
@@ -1143,21 +1145,17 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
 
     # store links for each query in a list of edge tuples
     ref_count = len(rList)
-    for row_idx, (assignment, (ref, query)) in enumerate(zip(assignments, listDistInts(rList, qList, self = False))):
-        if assignment == model.within_label:
-            # query index needs to be adjusted for existing vertices in network
-            if weights is not None:
-                if distance_type == 'core':
-                    dist = weights[row_idx, 0]
-                elif distance_type == 'accessory':
-                    dist = weights[row_idx, 1]
-                else:
-                    dist = np.linalg.norm(weights[row_idx, :])
-                edge_tuple = (ref, query + ref_count, dist)
-            else:
-                edge_tuple = (ref, query + ref_count)
-            new_edges.append(edge_tuple)
-            assigned.add(qList[query])
+
+    # Add queries to network
+    G = construct_network_from_assignments(rList,
+                                            qList,
+                                            assignments,
+                                            within_label = model.within_label,
+                                            previous_network = G,
+                                            distMat = weights,
+                                            weights_type = distance_type,
+                                            summarise = False,
+                                            use_gpu = use_gpu)
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
@@ -1181,19 +1179,18 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                 queryAssignation = model.assign(qqDistMat, slope = 1)
             else:
                 queryAssignation = model.assign(qqDistMat)
-            for row_idx, (assignment, (ref, query)) in enumerate(zip(queryAssignation, listDistInts(qList, qList, self = True))):
-                if assignment == model.within_label:
-                    if weights is not None:
-                        if distance_type == 'core':
-                            dist = weights[row_idx, 0]
-                        elif distance_type == 'accessory':
-                            dist = weights[row_idx, 1]
-                        else:
-                            dist = np.linalg.norm(weights[row_idx, :])
-                        edge_tuple = (ref + ref_count, query + ref_count, dist)
-                    else:
-                        edge_tuple = (ref + ref_count, query + ref_count)
-                    new_edges.append(edge_tuple)
+                
+            # Add queries to network
+            G = construct_network_from_assignments(qList,
+                                                    qList,
+                                                    queryAssignation,
+                                                    int_offset = ref_count,
+                                                    within_label = model.within_label,
+                                                    previous_network = G,
+                                                    distMat = weights,
+                                                    weights_type = distance_type,
+                                                    summarise = False,
+                                                    use_gpu = use_gpu)
 
     # Otherwise only calculate query-query distances for new clusters
     else:
@@ -1238,39 +1235,17 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                     else:
                         edge_tuple = (query_indices[query1], query_indices[query2])
                     new_edges.append(edge_tuple)
-
-    # finish by updating the network
-    if use_gpu:
-
-        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
-        # construct updated graph
-        G_current_df = G.view_edge_list()
-        if weights is not None:
-            G_current_df.columns = ['source','destination','weights']
-            G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination','weights'])
-            G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
-        else:
-            G_current_df.columns = ['source','destination']
-            G_extra_df = cudf.DataFrame(new_edges, columns = ['source','destination'])
-            G_df = cudf.concat([G_current_df,G_extra_df], ignore_index = True)
-
-        # use self-loop to ensure all nodes are present
-        max_in_vertex_labels = ref_count + len(qList) - 1
-        include_weights = False
-        if weights is not None:
-            include_weights = True
-        G = add_self_loop(G_df, max_in_vertex_labels, weights = include_weights)
-
-    else:
-        G.add_vertex(len(qList))
-
-        if weights is not None:
-            eweight = G.new_ep("float")
-            G.add_edge_list(new_edges, eprops = [eweight])
-            G.edge_properties["weight"] = eweight
-        else:
-            G.add_edge_list(new_edges)
+            
+            G = construct_network_from_assignments(qList,
+                                                    qList,
+                                                    queryAssignation,
+                                                    int_offset = ref_count,
+                                                    within_label = model.within_label,
+                                                    previous_network = G,
+                                                    distMat = weights,
+                                                    weights_type = distance_type,
+                                                    summarise = False,
+                                                    use_gpu = use_gpu)
 
     return G, qqDistMat
 
