@@ -290,8 +290,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
         # Add self-loop if needed
-        max_in_vertex_labels = max(reference_indices)
-        G_ref = add_self_loop(G_ref_df,max_in_vertex_labels, renumber = False)
+        G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
 
         # Check references in same component in overall graph are connected in the reference graph
         # First get components of original reference graph
@@ -333,7 +332,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                     reference_indices = list(reference_index_set)
             # Create new reference graph
             G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-            G_ref = add_self_loop(G_ref_df, max_in_vertex_labels, renumber = False)
+            G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
 
     else:
         # Each component is independent, so can be multithreaded
