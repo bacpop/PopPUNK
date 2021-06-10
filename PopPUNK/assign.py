@@ -203,7 +203,7 @@ def assign_query(dbFuncs,
                          use_gpu = gpu_graph)
         
         if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
-            sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = use_gpu)) + 1) + \
+            sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
                                 " vertices in the network but " + str(len(rNames)) + "reference names supplied; " + \
                                 "please check the '--model-dir' variable is pointing to the correct directory\n")
 
