@@ -118,7 +118,6 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
                              "a refined fit. Using the combined distances.\n")
 
     # Load network file
-    print("Loading network from file " + network_file)
     genomeNetwork = load_network_file(network_file, use_gpu = use_gpu)
 
     # Ensure all in dists are in final network
@@ -441,16 +440,22 @@ def writeReferences(refList, outPrefix, outSuffix = ""):
             rFile.write(ref + '\n')
     return refFileName
 
-def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
-                    use_gpu = False):
+def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
+                        old_ids = None, previous_pkl = None, weights = False,
+                        use_gpu = False):
     """Load previous network, extract the edges to match the
     vertex order specified in rlist, and also return weights if specified.
 
     Args:
-        prev_G_fn (str)
-            Path of file containing existing network.
+        prev_G_fn (str or graph object)
+            Path of file containing existing network, or already-loaded
+            graph object
+        adding_queries_to_network (bool)
+            False
         rlist (list)
             List of reference sequence labels in new network
+        old_ids (list)
+            List of IDs of vertices in existing network
         previous_pkl (str)
             Path of pkl file containing names of sequences in
             previous network
@@ -468,10 +473,14 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
         edge_weights (list)
             Weights for each new edge
     """
-    # get list for translating node IDs to rlist
-    prev_G = load_network_file(prev_G_fn, use_gpu = use_gpu)
+    # Load graph from file if passed string; else use graph object passed in
+    # as argument
+    if isinstance(prev_G_fn, str):
+        prev_G = load_network_file(prev_G_fn, use_gpu = use_gpu)
+    else:
+        prev_G = prev_G_fn
 
-    # load list of names in previous network
+    # load list of names in previous network if pkl name supplied
     if previous_pkl is not None:
         with open(previous_pkl, 'rb') as pickle_file:
             old_rlist, old_qlist, self = pickle.load(pickle_file)
@@ -479,7 +488,7 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
             old_ids = old_rlist
         else:
             old_ids = old_rlist + old_qlist
-    else:
+    elif old_ids is None:
         sys.stderr.write('Missing .pkl file containing names of sequences in '
                          'previous network\n')
         sys.exit(1)
@@ -502,11 +511,18 @@ def network_to_edges(prev_G_fn, rlist, previous_pkl = None, weights = False,
         if weights:
             edge_weights = list(prev_G.ep['weight'])
 
-    # Update IDs to new versions
-    old_id_indices = [rlist.index(x) for x in old_ids]
-    # translate to indices
-    source_ids = [old_id_indices[x] for x in old_source_ids]
-    target_ids = [old_id_indices[x] for x in old_target_ids]
+    # If appending queries to an existing network, then the recovered links can be left
+    # unchanged, as the new IDs are the queries, and the existing sequences will not be found
+    # in the list of IDs
+    if adding_queries_to_network:
+        source_ids = old_source_ids
+        target_ids = old_target_ids
+    else:
+        # Update IDs to new versions
+        old_id_indices = [rlist.index(x) for x in old_ids]
+        # translate to indices
+        source_ids = [old_id_indices[x] for x in old_source_ids]
+        target_ids = [old_id_indices[x] for x in old_target_ids]
 
     # return values
     if weights:
@@ -555,11 +571,12 @@ def initial_graph_properties(rlist, qlist):
             Whether the network is being constructed from all-v-all distances or
             reference-v-query information
     """
-    self_comparison = True
-    vertex_labels = rlist
-    if rlist != qlist:
+    if rlist == qlist:
+        self_comparison = True
+        vertex_labels = rlist
+    else:
         self_comparison = False
-        vertex_labels.append(qlist)
+        vertex_labels = rlist +  qlist
     return vertex_labels, self_comparison
 
 def process_weights(distMat, weights_type):
@@ -591,26 +608,18 @@ def process_weights(distMat, weights_type):
         sys.stderr.write('Require distance matrix to calculate distances\n')
     return processed_weights
     
-def process_previous_network(previous_network = None, previous_pkl = None, vertex_labels = None,
-                            weights = False, use_gpu = False):
+def process_previous_network(previous_network = None, adding_queries_to_network = False, old_ids = None,
+                                previous_pkl = None, vertex_labels = None, weights = False, use_gpu = False):
     """Extract edge types from an existing network
 
-    Will print summary statistics about the network to ``STDERR``
-
     Args:
-        rlist (list)
-            List of reference sequence labels
-        qlist (list)
-            List of query sequence labels
-        G_df (cudf or pandas data frame)
-            Data frame in which the first two columns are the nodes linked by edges
-        weights (bool)
-            Whether weights in the G_df data frame should be included in the network
-        distMat (2 column ndarray)
-            Numpy array of pairwise distances
-        previous_network (str)
+        previous_network (str or graph object)
             Name of file containing a previous network to be integrated into this new
-            network
+            network, or already-loaded graph object
+        adding_queries_to_network (bool)
+            Blah
+        old_ids (list)
+            Ordered list of vertex names in previous network
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
             ordered based on the original network construction
@@ -629,11 +638,13 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
         extra_weights (list or None)
             List of edge weights
     """
-    if previous_pkl is not None:
-        if weights is not None:
+    if previous_pkl is not None or old_ids is not None:
+        if weights:
             # Extract from network
             extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
                                                                             vertex_labels,
+                                                                            adding_queries_to_network = adding_queries_to_network,
+                                                                            old_ids = old_ids,
                                                                             previous_pkl = previous_pkl,
                                                                             weights = True,
                                                                             use_gpu = use_gpu)
@@ -641,6 +652,8 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
             # Extract from network
             extra_sources, extra_targets = network_to_edges(previous_network,
                                                             vertex_labels,
+                                                            adding_queries_to_network = adding_queries_to_network,
+                                                            old_ids = old_ids,
                                                             previous_pkl = previous_pkl,
                                                             weights = False,
                                                             use_gpu = use_gpu)
@@ -652,8 +665,9 @@ def process_previous_network(previous_network = None, previous_pkl = None, verte
     return extra_sources, extra_targets, extra_weights
 
 def construct_network_from_edge_list(rlist, qlist, edge_list,
-    weights = None, distMat = None, previous_network = None, previous_pkl = None,
-    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    weights = None, distMat = None, previous_network = None, adding_queries_to_network = False,
+    old_ids = None, previous_pkl = None, betweenness_sample = betweenness_sample_default,
+    summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
 
@@ -670,9 +684,13 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
             Whether weights in the G_df data frame should be included in the network
         distMat (2 column ndarray)
             Numpy array of pairwise distances
-        previous_network (str)
+        previous_network (str or graph object)
             Name of file containing a previous network to be integrated into this new
-            network
+            network, or the already-loaded graph object
+        adding_queries_to_network (bool)
+            Blah
+        old_ids (list)
+            Ordered list
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
         betweenness_sample (int)
@@ -694,10 +712,12 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
-    
+
     # Load previous network
     if previous_network is not None:
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
+                                                                                adding_queries_to_network = adding_queries_to_network,
+                                                                                old_ids = old_ids,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
                                                                                 weights = (weights is not None),
@@ -748,10 +768,11 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
             G.add_edge_list(edge_list)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+
     return G
 
 def construct_network_from_df(rlist, qlist, G_df,
-    weights = False, distMat = None, previous_network = None, previous_pkl = None,
+    weights = False, distMat = None, previous_network = None, old_ids = None, previous_pkl = None,
     betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
@@ -769,9 +790,13 @@ def construct_network_from_df(rlist, qlist, G_df,
             Whether weights in the G_df data frame should be included in the network
         distMat (2 column ndarray)
             Numpy array of pairwise distances
-        previous_network (str)
+        previous_network (str or graph object)
             Name of file containing a previous network to be integrated into this new
-            network
+            network, or the already-loaded graph object
+        adding_queries_to_network (bool)
+            Blah
+        old_ids (list)
+            Blah
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
         betweenness_sample (int)
@@ -803,9 +828,11 @@ def construct_network_from_df(rlist, qlist, G_df,
     # Load previous network
     if previous_network is not None:
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
+                                                                                adding_queries_to_network = adding_queries_to_network,
+                                                                                old_ids = old_ids,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
-                                                                                weights = weights,
+                                                                                weights = (weights is not None),
                                                                                 use_gpu = use_gpu)
         if use_gpu:
             G_extra_df = cudf.DataFrame()
@@ -839,6 +866,7 @@ def construct_network_from_df(rlist, qlist, G_df,
                                             weights = weights,
                                             distMat = distMat,
                                             previous_network = previous_network,
+                                            old_ids = old_ids,
                                             previous_pkl = previous_pkl,
                                             summarise = False,
                                             use_gpu = use_gpu)
@@ -906,8 +934,9 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
     return G
 
 def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1, int_offset = 0,
-    weights = None, distMat = None, weights_type = None, previous_network = None, previous_pkl = None,
-    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    weights = None, distMat = None, weights_type = None, previous_network = None, old_ids = None,
+    adding_queries_to_network = False, previous_pkl = None, betweenness_sample = betweenness_sample_default,
+    summarise = True, use_gpu = False):
     """Construct an undirected network using sequence lists, assignments of pairwise distances
     to clusters, and the identifier of the cluster assigned to within-strain distances.
     Nodes are samples and edges where samples are within the same cluster
@@ -935,6 +964,10 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
         previous_network (str)
             Name of file containing a previous network to be integrated into this new
             network
+        old_ids (list)
+            Blah
+        adding_queries_to_network (bool)
+            Blah
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
         betweenness_sample (int)
@@ -953,7 +986,7 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
     
     # Check GPU library use
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-        
+
     # Filter weights to only the relevant edges
     if weights is not None:
         weights = weights[assignments == within_label]
@@ -962,20 +995,27 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
             assignments = np.array(assignments)
         distMat = distMat[assignments == within_label,:]
         weights = process_weights(distMat, weights_type)
-    
+
     # Convert edge indices to tuples
-    connections = poppunk_refine.generateTuples(assignments, within_label)
-    
+    connections = poppunk_refine.generateTuples(assignments,
+                                                within_label,
+                                                self = (rlist == qlist),
+                                                num_ref = len(rlist),
+                                                int_offset = int_offset)
+
     # Construct network using edge list
     G = construct_network_from_edge_list(rlist, qlist, connections,
                                             weights = weights,
                                             distMat = distMat,
                                             previous_network = previous_network,
+                                            adding_queries_to_network = adding_queries_to_network,
+                                            old_ids = old_ids,
                                             previous_pkl = previous_pkl,
                                             summarise = False,
                                             use_gpu = use_gpu)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+
     return G
 
 def get_cugraph_triangles(G):
@@ -1088,7 +1128,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     return(metrics, scores)
 
 def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
-                      assignments, model, queryDB, distance_type = 'euclidean',
+                      assignments, model, queryDB, distances = None, distance_type = 'euclidean',
                       queryQuery = False, strand_preserved = False, weights = None, threads = 1,
                       use_gpu = False):
     """Finds edges between queries and items in the reference database,
@@ -1111,6 +1151,8 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             Model fitted to reference database
         queryDB (str)
             Query database location
+        distances (str)
+            Prefix of distance files for extending network
         distance_type (str)
             Distance type to use as weights in network
         queryQuery (bool)
@@ -1135,6 +1177,10 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     """
     # initalise functions
     queryDatabase = dbFuncs['queryDatabase']
+    
+    # do not calculate weights unless specified
+    if weights is None:
+        distance_type = None
 
     # initialise links data structure
     new_edges = []
@@ -1152,6 +1198,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                             assignments,
                                             within_label = model.within_label,
                                             previous_network = G,
+                                            old_ids = rList,
                                             distMat = weights,
                                             weights_type = distance_type,
                                             summarise = False,
@@ -1179,7 +1226,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                 queryAssignation = model.assign(qqDistMat, slope = 1)
             else:
                 queryAssignation = model.assign(qqDistMat)
-                
             # Add queries to network
             G = construct_network_from_assignments(qList,
                                                     qList,
@@ -1187,6 +1233,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     int_offset = ref_count,
                                                     within_label = model.within_label,
                                                     previous_network = G,
+                                                    weights = weights,
+                                                    old_ids = rList,
+                                                    adding_queries_to_network = True,
                                                     distMat = weights,
                                                     weights_type = distance_type,
                                                     summarise = False,
@@ -1242,6 +1291,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     int_offset = ref_count,
                                                     within_label = model.within_label,
                                                     previous_network = G,
+                                                    weights = weights,
+                                                    old_ids = rList + qList,
+                                                    adding_queries_to_network = True,
                                                     distMat = weights,
                                                     weights_type = distance_type,
                                                     summarise = False,

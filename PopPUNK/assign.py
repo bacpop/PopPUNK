@@ -66,6 +66,7 @@ def assign_query(dbFuncs,
     from .network import addQueryToNetwork
     from .network import printClusters
     from .network import save_network
+    from .network import get_vertex_list
 
     from .plot import writeClusterCsv
 
@@ -200,6 +201,11 @@ def assign_query(dbFuncs,
                          core_only = (fit_type == 'core'),
                          accessory_only = (fit_type == 'accessory'),
                          use_gpu = gpu_graph)
+        
+        if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
+            sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = use_gpu)) + 1) + \
+                                " vertices in the network but " + str(len(rNames)) + "reference names supplied; " + \
+                                "please check the '--model-dir' variable is pointing to the correct directory\n")
 
         if model.type == 'lineage':
             # Assign lineages by calculating query-query information
@@ -264,6 +270,7 @@ def assign_query(dbFuncs,
                 weights = qrDistMat
             else:
                 weights = None
+
             genomeNetwork, qqDistMat = \
                 addQueryToNetwork(dbFuncs,
                                     rNames,
@@ -273,12 +280,14 @@ def assign_query(dbFuncs,
                                     queryAssignments,
                                     model,
                                     output,
+                                    distances = distances,
                                     distance_type = dist_type,
                                     queryQuery = update_db,
                                     strand_preserved = strand_preserved,
                                     weights = weights,
                                     threads = threads,
                                     use_gpu = gpu_graph)
+
             output_fn = output + "/" + os.path.basename(output) + fit_string
             isolateClustering = \
                 {'combined': printClusters(genomeNetwork,

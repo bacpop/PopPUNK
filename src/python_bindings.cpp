@@ -32,8 +32,11 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
 
 edge_tuple generateTuples(const std::vector<int> &assignments,
                             const int within_label,
+                            bool self = true,
+                            const int num_ref = 0,
                             const int int_offset = 0) {
-  edge_tuple edges = generate_tuples(assignments, within_label, int_offset);
+  edge_tuple edges = generate_tuples(assignments, within_label, self, num_ref,
+                                     int_offset);
   return (edges);
 }
 
@@ -84,6 +87,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
           py::return_value_policy::reference_internal,
           "Return edge tuples based on assigned groups",
           py::arg("assignments"), py::arg("within_label"),
+          py::arg("self") = true, py::arg("num_ref") = 0,
           py::arg("int_offset") = 0);
 
   m.def("thresholdIterate1D", &thresholdIterate1D,

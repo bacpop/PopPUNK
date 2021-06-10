@@ -28,6 +28,8 @@ edge_tuple edge_iterate(const NumpyMatrix &distMat, const int slope,
 
 edge_tuple generate_tuples(const std::vector<int> &assignments,
                            const int within_label,
+                           bool self = true,
+                           const int num_ref = 0,
                            const int int_offset = 0);
 
 network_coo threshold_iterate_1D(const NumpyMatrix &distMat,
