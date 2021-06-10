@@ -497,6 +497,10 @@ def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
     if use_gpu:
         G_df = prev_G.view_edge_list()
         if weights:
+            if len(G_df.columns) < 3:
+                sys.stderr.write('Loaded network does not have edge weights; try a different '
+                                    'network or turn off graph weights\n')
+                exit(1)
             G_df.columns = ['source','destination','weight']
             edge_weights = G_df['weight'].to_arrow().to_pylist()
         else:
@@ -509,6 +513,10 @@ def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
         old_target_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "target")
         # get the weights
         if weights:
+            if prev_G.edge_properties.keys() is None or 'weight' not in prev_G.edge_properties.keys():
+                sys.stderr.write('Loaded network does not have edge weights; try a different '
+                                    'network or turn off graph weights\n')
+                exit(1)
             edge_weights = list(prev_G.ep['weight'])
 
     # If appending queries to an existing network, then the recovered links can be left
