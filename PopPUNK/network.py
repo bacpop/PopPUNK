@@ -751,7 +751,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
             for ((src, dest), weight) in zip(edge_list, weights):
                 edge_list.append((src, dest, weight))
             if previous_network is not None:
-                for ((src, dest), weight) in zip(extra_sources, extra_targets, extra_weights):
+                for (src, dest, weight) in zip(extra_sources, extra_targets, extra_weights):
                     edge_list.append((src, dest, weight))
         else:
             if previous_network is not None:
@@ -989,6 +989,8 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
 
     # Filter weights to only the relevant edges
     if weights is not None:
+        print("Weights: " + str(weights))
+        print("Assignments: " + str(assignments))
         weights = weights[assignments == within_label]
     elif distMat is not None and weights_type is not None:
         if isinstance(assignments, list):
@@ -1234,10 +1236,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     int_offset = ref_count,
                                                     within_label = model.within_label,
                                                     previous_network = G,
-                                                    weights = weights,
                                                     old_ids = rList,
                                                     adding_queries_to_network = True,
-                                                    distMat = weights,
+                                                    distMat = qqDistMat,
                                                     weights_type = distance_type,
                                                     summarise = False,
                                                     use_gpu = use_gpu)
@@ -1292,10 +1293,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     int_offset = ref_count,
                                                     within_label = model.within_label,
                                                     previous_network = G,
-                                                    weights = weights,
                                                     old_ids = rList + qList,
                                                     adding_queries_to_network = True,
-                                                    distMat = weights,
+                                                    distMat = qqDistMat,
                                                     weights_type = distance_type,
                                                     summarise = False,
                                                     use_gpu = use_gpu)

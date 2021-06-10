@@ -61,9 +61,9 @@ subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)
 
 #assign query
 sys.stderr.write("Running query assignment\n")
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query --overwrite --gpu-dist --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query_update --update-db --graph-weights --overwrite --gpu-dist  --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --output example_single_query --update-db --overwrite --gpu-dist  --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --gpu-dist --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_dbscan --output example_query_update --update-db --graph-weights --overwrite --gpu-dist  --gpu-graph", shell=True, check=True) # uses graph weights
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --model-dir example_refine --output example_single_query --update-db --overwrite --gpu-dist  --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_lineages --output example_lineage_query --overwrite --gpu-graph --gpu-dist", shell=True, check=True)
 
 # viz
