@@ -1075,16 +1075,10 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to save unfitted model")
         else:
             for rank in self.ranks:
-                if self.use_gpu:
-                    cupyx.scipy.sparse.save_npz(
-                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                        rankFile(rank),
-                        self.nn_dists[rank])
-                else:
-                    scipy.sparse.save_npz(
-                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                        rankFile(rank),
-                        self.nn_dists[rank])
+                scipy.sparse.save_npz(
+                    self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                    rankFile(rank),
+                    self.nn_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks, self.dist_col], self.type], pickle_file)
