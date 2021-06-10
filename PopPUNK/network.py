@@ -1226,6 +1226,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                 queryAssignation = model.assign(qqDistMat, slope = 1)
             else:
                 queryAssignation = model.assign(qqDistMat)
+
             # Add queries to network
             G = construct_network_from_assignments(qList,
                                                     qList,
