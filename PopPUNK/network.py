@@ -304,7 +304,6 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
 
         # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
-        refFileName = writeReferences(reference_names, outPrefix)
 
         # Extract reference edges
         G_df = G.view_edge_list()
