@@ -226,14 +226,14 @@ def translate_network_indices(G_ref_df, reference_indices):
        Writes chosen references to file by calling :func:`~writeReferences`
 
        Args:
-           G_ref_df (graph)
-               A network used to define clusters
+           G_ref_df (cudf data frame)
+               List of edges in reference network
            reference_indices (list)
-               The order of files in the sketches, so returned references are in the same order
+               The ordered list of reference indices in the original network
 
        Returns:
-           G_ref (str)
-               The name of the file references were written tos
+           G_ref (cugraph network)
+               Network of reference sequences
     """
     # Translate network indices to match name order
     G_ref_df['source'] = [reference_indices.index(x) for x in G_ref_df['old_source'].to_arrow().to_pylist()]
@@ -771,6 +771,8 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         G = construct_network_from_df(rlist, qlist, G_df,
                                         weights = (weights is not None),
                                         distMat = distMat,
+                                        adding_queries_to_network = adding_queries_to_network,
+                                        old_ids = old_ids,
                                         previous_network = previous_network,
                                         previous_pkl = previous_pkl,
                                         summarise = False,
