@@ -463,7 +463,7 @@ def writeReferences(refList, outPrefix, outSuffix = ""):
             rFile.write(ref + '\n')
     return refFileName
 
-def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
+def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
                         old_ids = None, previous_pkl = None, weights = False,
                         use_gpu = False):
     """Load previous network, extract the edges to match the
@@ -473,7 +473,7 @@ def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
         prev_G_fn (str or graph object)
             Path of file containing existing network, or already-loaded
             graph object
-        adding_queries_to_network (bool)
+        adding_qq_dists (bool)
             Boolean specifying whether query-query edges are being added
             to an existing network, such that not all the sequence IDs will
             be found in the old IDs, which should already be correctly ordered
@@ -547,7 +547,7 @@ def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
     # If appending queries to an existing network, then the recovered links can be left
     # unchanged, as the new IDs are the queries, and the existing sequences will not be found
     # in the list of IDs
-    if adding_queries_to_network:
+    if adding_qq_dists:
         source_ids = old_source_ids
         target_ids = old_target_ids
     else:
@@ -641,7 +641,7 @@ def process_weights(distMat, weights_type):
         sys.stderr.write('Require distance matrix to calculate distances\n')
     return processed_weights
     
-def process_previous_network(previous_network = None, adding_queries_to_network = False, old_ids = None,
+def process_previous_network(previous_network = None, adding_qq_dists = False, old_ids = None,
                                 previous_pkl = None, vertex_labels = None, weights = False, use_gpu = False):
     """Extract edge types from an existing network
 
@@ -649,8 +649,10 @@ def process_previous_network(previous_network = None, adding_queries_to_network 
         previous_network (str or graph object)
             Name of file containing a previous network to be integrated into this new
             network, or already-loaded graph object
-        adding_queries_to_network (bool)
-            Blah
+        adding_qq_dists (bool)
+            Boolean specifying whether query-query edges are being added
+            to an existing network, such that not all the sequence IDs will
+            be found in the old IDs, which should already be correctly ordered
         old_ids (list)
             Ordered list of vertex names in previous network
         previous_pkl (str)
@@ -676,7 +678,7 @@ def process_previous_network(previous_network = None, adding_queries_to_network 
             # Extract from network
             extra_sources, extra_targets, extra_weights = network_to_edges(previous_network,
                                                                             vertex_labels,
-                                                                            adding_queries_to_network = adding_queries_to_network,
+                                                                            adding_qq_dists = adding_qq_dists,
                                                                             old_ids = old_ids,
                                                                             previous_pkl = previous_pkl,
                                                                             weights = True,
@@ -685,7 +687,7 @@ def process_previous_network(previous_network = None, adding_queries_to_network 
             # Extract from network
             extra_sources, extra_targets = network_to_edges(previous_network,
                                                             vertex_labels,
-                                                            adding_queries_to_network = adding_queries_to_network,
+                                                            adding_qq_dists = adding_qq_dists,
                                                             old_ids = old_ids,
                                                             previous_pkl = previous_pkl,
                                                             weights = False,
@@ -698,7 +700,7 @@ def process_previous_network(previous_network = None, adding_queries_to_network 
     return extra_sources, extra_targets, extra_weights
 
 def construct_network_from_edge_list(rlist, qlist, edge_list,
-    weights = None, distMat = None, previous_network = None, adding_queries_to_network = False,
+    weights = None, distMat = None, previous_network = None, adding_qq_dists = False,
     old_ids = None, previous_pkl = None, betweenness_sample = betweenness_sample_default,
     summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
@@ -720,10 +722,12 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         previous_network (str or graph object)
             Name of file containing a previous network to be integrated into this new
             network, or the already-loaded graph object
-        adding_queries_to_network (bool)
-            Blah
+        adding_qq_dists (bool)
+            Boolean specifying whether query-query edges are being added
+            to an existing network, such that not all the sequence IDs will
+            be found in the old IDs, which should already be correctly ordered
         old_ids (list)
-            Ordered list
+            Ordered list of vertex names in previous network
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
         betweenness_sample (int)
@@ -749,7 +753,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     # Load previous network
     if previous_network is not None:
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
-                                                                                adding_queries_to_network = adding_queries_to_network,
+                                                                                adding_qq_dists = adding_qq_dists,
                                                                                 old_ids = old_ids,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
@@ -773,7 +777,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
         G = construct_network_from_df(rlist, qlist, G_df,
                                         weights = (weights is not None),
                                         distMat = distMat,
-                                        adding_queries_to_network = adding_queries_to_network,
+                                        adding_qq_dists = adding_qq_dists,
                                         old_ids = old_ids,
                                         previous_network = previous_network,
                                         previous_pkl = previous_pkl,
@@ -807,7 +811,7 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     return G
 
 def construct_network_from_df(rlist, qlist, G_df,
-    weights = False, distMat = None, previous_network = None, adding_queries_to_network = False,
+    weights = False, distMat = None, previous_network = None, adding_qq_dists = False,
     old_ids = None, previous_pkl = None, betweenness_sample = betweenness_sample_default,
     summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
@@ -829,10 +833,12 @@ def construct_network_from_df(rlist, qlist, G_df,
         previous_network (str or graph object)
             Name of file containing a previous network to be integrated into this new
             network, or the already-loaded graph object
-        adding_queries_to_network (bool)
-            Blah
+        adding_qq_dists (bool)
+            Boolean specifying whether query-query edges are being added
+            to an existing network, such that not all the sequence IDs will
+            be found in the old IDs, which should already be correctly ordered
         old_ids (list)
-            Blah
+            Ordered list of vertex names in previous network
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
         betweenness_sample (int)
@@ -864,7 +870,7 @@ def construct_network_from_df(rlist, qlist, G_df,
     # Load previous network
     if previous_network is not None:
         extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
-                                                                                adding_queries_to_network = adding_queries_to_network,
+                                                                                adding_qq_dists = adding_qq_dists,
                                                                                 old_ids = old_ids,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
@@ -971,7 +977,7 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
 
 def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1, int_offset = 0,
     weights = None, distMat = None, weights_type = None, previous_network = None, old_ids = None,
-    adding_queries_to_network = False, previous_pkl = None, betweenness_sample = betweenness_sample_default,
+    adding_qq_dists = False, previous_pkl = None, betweenness_sample = betweenness_sample_default,
     summarise = True, use_gpu = False):
     """Construct an undirected network using sequence lists, assignments of pairwise distances
     to clusters, and the identifier of the cluster assigned to within-strain distances.
@@ -1001,9 +1007,11 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
             Name of file containing a previous network to be integrated into this new
             network
         old_ids (list)
-            Blah
-        adding_queries_to_network (bool)
-            Blah
+            Ordered list of vertex names in previous network
+        adding_qq_dists (bool)
+            Boolean specifying whether query-query edges are being added
+            to an existing network, such that not all the sequence IDs will
+            be found in the old IDs, which should already be correctly ordered
         previous_pkl (str)
             Name of file containing the names of the sequences in the previous_network
         betweenness_sample (int)
@@ -1046,7 +1054,7 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
                                             weights = weights,
                                             distMat = distMat,
                                             previous_network = previous_network,
-                                            adding_queries_to_network = adding_queries_to_network,
+                                            adding_qq_dists = adding_qq_dists,
                                             old_ids = old_ids,
                                             previous_pkl = previous_pkl,
                                             summarise = False,
@@ -1273,7 +1281,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     within_label = model.within_label,
                                                     previous_network = G,
                                                     old_ids = rList,
-                                                    adding_queries_to_network = True,
+                                                    adding_qq_dists = True,
                                                     distMat = qqDistMat,
                                                     weights_type = distance_type,
                                                     summarise = False,
@@ -1330,7 +1338,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                                     within_label = model.within_label,
                                                     previous_network = G,
                                                     old_ids = rList + qList,
-                                                    adding_queries_to_network = True,
+                                                    adding_qq_dists = True,
                                                     distMat = qqDistMat,
                                                     weights_type = distance_type,
                                                     summarise = False,
