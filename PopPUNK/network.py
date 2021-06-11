@@ -474,7 +474,9 @@ def network_to_edges(prev_G_fn, rlist, adding_queries_to_network = False,
             Path of file containing existing network, or already-loaded
             graph object
         adding_queries_to_network (bool)
-            False
+            Boolean specifying whether query-query edges are being added
+            to an existing network, such that not all the sequence IDs will
+            be found in the old IDs, which should already be correctly ordered
         rlist (list)
             List of reference sequence labels in new network
         old_ids (list)
@@ -866,7 +868,7 @@ def construct_network_from_df(rlist, qlist, G_df,
                                                                                 old_ids = old_ids,
                                                                                 previous_pkl = previous_pkl,
                                                                                 vertex_labels = vertex_labels,
-                                                                                weights = (weights is not None),
+                                                                                weights = weights,
                                                                                 use_gpu = use_gpu)
         if use_gpu:
             G_extra_df = cudf.DataFrame()
