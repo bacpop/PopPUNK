@@ -631,11 +631,11 @@ def process_weights(distMat, weights_type):
             sys.stderr.write("Unable to calculate distance type " + str(weights_type) + "; "
                              "accepted types are " + str(accepted_weights_types) + "\n")
         if weights_type == 'euclidean':
-            processed_weights = np.linalg.norm(distMat, axis = 1)
+            processed_weights = np.linalg.norm(distMat, axis = 1).tolist()
         elif weights_type == 'core':
-            processed_weights = distMat[:, 0]
+            processed_weights = distMat[:, 0].tolist()
         elif weights_type == 'accessory':
-            processed_weights = distMat[:, 1]
+            processed_weights = distMat[:, 1].tolist()
     else:
         sys.stderr.write('Require distance matrix to calculate distances\n')
     return processed_weights
@@ -714,8 +714,8 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
             List of query sequence labels
         G_df (cudf or pandas data frame)
             Data frame in which the first two columns are the nodes linked by edges
-        weights (bool)
-            Whether weights in the G_df data frame should be included in the network
+        weights (list)
+            List of edge weights
         distMat (2 column ndarray)
             Numpy array of pairwise distances
         previous_network (str or graph object)
