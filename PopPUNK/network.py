@@ -114,10 +114,11 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
             network_file = dir_prefix + '_graph' + graph_suffix
         cluster_file = dir_prefix + '_clusters.csv'
         if core_only or accessory_only:
-            sys.stderr.write("Can only do --core-only or --accessory-only fits from "
+            sys.stderr.write("Can only do --core or --accessory fits from "
                              "a refined fit. Using the combined distances.\n")
 
     # Load network file
+    sys.stderr.write("Loading network from " + network_file + "\n")
     genomeNetwork = load_network_file(network_file, use_gpu = use_gpu)
 
     # Ensure all in dists are in final network
