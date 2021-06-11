@@ -713,7 +713,7 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
                              failed,
                              full_names = True)
                 os.rename(filtered_db_name, db_name)
-
+        hdf_in.close()
     # if failure still close files to avoid corruption
     except:
         hdf_in.close()
@@ -738,10 +738,9 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
 
     # remove random matches if already present
     if 'random' in hdf_in:
-        hdf_in.close()
         hdf_in = h5py.File(db_name, 'r+')
         del hdf_in['random']
-    hdf_in.close()
+        hdf_in.close()
 
     # This gives back retained in the same order as names
     retained = [x for x in names if x in frozenset(retained)]
