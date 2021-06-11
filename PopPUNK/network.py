@@ -288,10 +288,10 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         # Extract reference edges
         G_df = G.view_edge_list()
         if 'src' in G_df.columns:
-            G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
-        G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-        # Add self-loop if needed
-        G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
+            G_df.rename(columns={'src': 'old_source','dst': 'old_destination'}, inplace=True)
+        else:
+            G_df.rename(columns={'source': 'old_source','destination': 'old_destination'}, inplace=True)
+        G_ref_df = G_df[G_df['old_source'].isin(reference_indices) & G_df['old_destination'].isin(reference_indices)]
 
         # Check references in same component in overall graph are connected in the reference graph
         # First get components of original reference graph
@@ -332,8 +332,12 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                     # Add expanded reference set to the overall list
                     reference_indices = list(reference_index_set)
             # Create new reference graph
-            G_ref_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-            G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
+            G_ref_df = G_df[G_df['old_source'].isin(reference_indices) & G_df['old_destination'].isin(reference_indices)]
+        
+        # Translate network indices to match name order
+        G_ref_df['source'] = [reference_indices.index(x) for x in G_ref_df['old_source'].to_arrow().to_pylist()]
+        G_ref_df['destination'] = [reference_indices.index(x) for x in G_ref_df['old_destination'].to_arrow().to_pylist()]
+        G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
 
     else:
         # Each component is independent, so can be multithreaded
@@ -780,8 +784,9 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     return G
 
 def construct_network_from_df(rlist, qlist, G_df,
-    weights = False, distMat = None, previous_network = None, old_ids = None, previous_pkl = None,
-    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+    weights = False, distMat = None, previous_network = None, adding_queries_to_network = False,
+    old_ids = None, previous_pkl = None, betweenness_sample = betweenness_sample_default,
+    summarise = True, use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
 
