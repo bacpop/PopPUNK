@@ -220,6 +220,27 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
+def translate_network_indices(G_ref_df, reference_indices):
+    """Extract references for each cluster based on cliques
+
+       Writes chosen references to file by calling :func:`~writeReferences`
+
+       Args:
+           G_ref_df (graph)
+               A network used to define clusters
+           reference_indices (list)
+               The order of files in the sketches, so returned references are in the same order
+
+       Returns:
+           G_ref (str)
+               The name of the file references were written tos
+    """
+    # Translate network indices to match name order
+    G_ref_df['source'] = [reference_indices.index(x) for x in G_ref_df['old_source'].to_arrow().to_pylist()]
+    G_ref_df['destination'] = [reference_indices.index(x) for x in G_ref_df['old_destination'].to_arrow().to_pylist()]
+    G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
+    return(G_ref)
+
 def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None,
                         existingRefs = None, threads = 1, use_gpu = False):
     """Extract references for each cluster based on cliques
@@ -292,6 +313,8 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         else:
             G_df.rename(columns={'source': 'old_source','destination': 'old_destination'}, inplace=True)
         G_ref_df = G_df[G_df['old_source'].isin(reference_indices) & G_df['old_destination'].isin(reference_indices)]
+        # Translate network indices to match name order
+        G_ref = translate_network_indices(G_ref_df, reference_indices)
 
         # Check references in same component in overall graph are connected in the reference graph
         # First get components of original reference graph
@@ -333,11 +356,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                     reference_indices = list(reference_index_set)
             # Create new reference graph
             G_ref_df = G_df[G_df['old_source'].isin(reference_indices) & G_df['old_destination'].isin(reference_indices)]
-        
-        # Translate network indices to match name order
-        G_ref_df['source'] = [reference_indices.index(x) for x in G_ref_df['old_source'].to_arrow().to_pylist()]
-        G_ref_df['destination'] = [reference_indices.index(x) for x in G_ref_df['old_destination'].to_arrow().to_pylist()]
-        G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
+            G_ref = translate_network_indices(G_ref_df, reference_indices)
 
     else:
         # Each component is independent, so can be multithreaded
