@@ -123,7 +123,9 @@ edge_tuple generate_tuples(const std::vector<int> &assignments,
                 long i = calc_row_idx(row_idx, n_samples);
                 long j = calc_col_idx(row_idx, i, n_samples) + int_offset;
                 i = i + int_offset;
-                edge_vec.push_back(std::make_tuple(i, j));
+                long min_node = std::min(i,j);
+                long max_node = std::max(i,j);
+                edge_vec.push_back(std::make_tuple(min_node, max_node));
             }
         }
     } else {
@@ -131,7 +133,9 @@ edge_tuple generate_tuples(const std::vector<int> &assignments,
             if (assignments[row_idx] == within_label) {
                 unsigned long i = row_idx % num_ref + int_offset;
                 unsigned long j = static_cast<size_t>(row_idx / (float)num_ref + 0.001f) + num_ref + int_offset;
-                edge_vec.push_back(std::make_tuple(i, j));
+                long min_node = std::min(i,j);
+                long max_node = std::max(i,j);
+                edge_vec.push_back(std::make_tuple(min_node, max_node));
             }
         }
     }
