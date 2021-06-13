@@ -749,24 +749,8 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
 
-    # Load previous network
-    if previous_network is not None:
-        extra_sources, extra_targets, extra_weights = process_previous_network(previous_network = previous_network,
-                                                                                adding_qq_dists = adding_qq_dists,
-                                                                                old_ids = old_ids,
-                                                                                previous_pkl = previous_pkl,
-                                                                                vertex_labels = vertex_labels,
-                                                                                weights = (weights is not None),
-                                                                                use_gpu = use_gpu)
-
     # Create new network
     if use_gpu:
-        # Add extra information from previous network
-        if previous_network is not None:
-            for (src, dest) in zip(extra_sources, extra_targets):
-                edge_list.append((src, dest))
-            if weights is not None:
-                weights.extend(extra_weights)
         # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
         edge_array = cp.array(edge_list, dtype = np.int32)
         edge_gpu_matrix = cuda.to_device(edge_array)
@@ -783,6 +767,16 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
                                         summarise = False,
                                         use_gpu = use_gpu)
     else:
+        # Load previous network
+        if previous_network is not None:
+            extra_sources, extra_targets, extra_weights = \
+                process_previous_network(previous_network = previous_network,
+                                            adding_qq_dists = adding_qq_dists,
+                                            old_ids = old_ids,
+                                            previous_pkl = previous_pkl,
+                                            vertex_labels = vertex_labels,
+                                            weights = (weights is not None),
+                                            use_gpu = use_gpu)
         # Construct list of tuples for graph-tool
         # Include information from previous graph if supplied
         if weights is not None:
