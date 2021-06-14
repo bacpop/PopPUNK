@@ -752,9 +752,15 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
     # Create new network
     if use_gpu:
         # benchmarking concurs with https://stackoverflow.com/questions/55922162/recommended-cudf-dataframe-construction
-        edge_array = cp.array(edge_list, dtype = np.int32)
-        edge_gpu_matrix = cuda.to_device(edge_array)
-        G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
+        if len(edge_list) > 1:
+            edge_array = cp.array(edge_list, dtype = np.int32)
+            edge_gpu_matrix = cuda.to_device(edge_array)
+            G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
+        else:
+            # Cannot generate an array when one edge
+            G_df = cudf.DataFrame(columns = ['source','destination'])
+            G_df['source'] = [edge_list[0][0]]
+            G_df['destination'] = [edge_list[0][1]]
         if weights is not None:
             G_df['weights'] = weights
         G = construct_network_from_df(rlist, qlist, G_df,
