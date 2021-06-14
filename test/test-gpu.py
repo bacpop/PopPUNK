@@ -27,7 +27,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files referen
 
 # test updating order is correct
 sys.stderr.write("Running distance matrix order check (--update-db)\n")
-subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
+subprocess.run(python_cmd + " test-update-gpu.py", shell=True, check=True)
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
