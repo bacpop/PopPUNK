@@ -35,7 +35,7 @@ except ImportError as e:
 
 # Load GPU libraries
 try:
-    import cupyx.scipy.sparse
+    import cupyx
     import cugraph
     import cudf
     import cupy as cp
@@ -117,7 +117,7 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
             rank_file = os.path.dirname(pkl_file) + "/" + \
                         prefix.group(1) + rankFile(rank)
             if use_gpu:
-                fit_data[rank] = cupyx.scipy.sparse.load_npz(rank_file)
+                fit_data[rank] = scipy.sparse.load_npz(rank_file)
             else:
                 fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
@@ -1035,6 +1035,9 @@ class LineageFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments of samples in X
         '''
+        # Check if model requires GPU
+        check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
+        
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
         if (max(self.ranks) >= sample_size):
@@ -1168,7 +1171,7 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             # Add the matrices together to make a large square matrix
             if self.use_gpu:
-                full_mat = cupyx.scipy.sparse.bmat([[self.nn_dists[rank],
+                full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
                                                     qrRect.transpose()],
                                                     [qrRect,qqSquare]],
                                                     format = 'csr',
@@ -1187,7 +1190,7 @@ class LineageFit(ClusterFit):
             for row_idx in range(full_mat.shape[0]):
                 sample_row = full_mat.getrow(row_idx)
                 if self.use_gpu:
-                    dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
+                    dist_row, dist_col, dist = scipy.sparse.find(sample_row)
                 else:
                     dist_row, dist_col, dist = scipy.sparse.find(sample_row)
                 dist = [epsilon if d < epsilon else d for d in dist]
