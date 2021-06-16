@@ -45,10 +45,9 @@ from .network import add_self_loop
 
 from .utils import transformLine
 from .utils import decisionBoundary
-from .utils import listDistInts
 from .utils import check_and_set_gpu
 
-def refineFit(distMat, sample_names, start_s, mean0, mean1,
+def refineFit(distMat, sample_names, mean0, mean1,
               max_move, min_move, slope = 2, score_idx = 0,
               unconstrained = False, no_local = False, num_processes = 1,
               betweenness_sample = betweenness_sample_default, use_gpu = False):
@@ -61,8 +60,6 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             n x 2 array of core and accessory distances for n samples
         sample_names (list)
             List of query sequence labels
-        start_s (float)
-            Point along line to start search
         mean0 (numpy.array)
             Start point to define search line
         mean1 (numpy.array)
@@ -92,34 +89,20 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             Whether to use cugraph for graph analyses
 
     Returns:
-        start_point (tuple)
-            (x, y) co-ordinates of starting point
         optimal_x (float)
             x-coordinate of refined fit
         optimal_y (float)
             y-coordinate of refined fit
     """
-    sys.stderr.write("Initial boundary based network construction\n")
-    start_point = transformLine(start_s, mean0, mean1)
-    sys.stderr.write("Decision boundary starts at (" + "{:.2f}".format(start_point[0])
-                      + "," + "{:.2f}".format(start_point[1]) + ")\n")
+    # Optimize boundary - grid search for global minimum
+    sys.stderr.write("Trying to optimise score globally\n")
 
     # load CUDA libraries
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
 
-    # calculate distance between start point and means if none is supplied
-    if min_move is None:
-        min_move = ((mean0[0] - start_point[0])**2 + (mean0[1] - start_point[1])**2)**0.5
-    if max_move is None:
-        max_move = ((mean1[0] - start_point[0])**2 + (mean1[1] - start_point[1])**2)**0.5
-
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
 
-    # Optimize boundary - grid search for global minimum
-    sys.stderr.write("Trying to optimise score globally\n")
-
-    # Generate sample combinations
     if unconstrained:
         if slope != 2:
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
@@ -127,6 +110,10 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
         global_grid_resolution = 20
         x_max_start, y_max_start = decisionBoundary(mean0, gradient)
         x_max_end, y_max_end = decisionBoundary(mean1, gradient)
+
+        if x_max_start < 0 or y_max_start < 0:
+            raise RuntimeError("Boundary range below zero")
+
         x_max = np.linspace(x_max_start, x_max_end, global_grid_resolution, dtype=np.float32)
         y_max = np.linspace(y_max_start, y_max_end, global_grid_resolution, dtype=np.float32)
 
@@ -180,24 +167,29 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
             gradient = optimal_x / optimal_y # of 1D search
             delta = x_max[1] - x_max[0]
             bounds = [-delta, delta]
-            start_point = (optimal_x, 0)
             mean1 = (optimal_x + delta, delta * gradient)
 
     else:
+        # Set the range of points to search
+        search_length = min_move + max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
         global_grid_resolution = 40 # Seems to work
-        s_range = np.linspace(-min_move, max_move, num = global_grid_resolution)
+        s_range = np.linspace(-min_move, search_length, num = global_grid_resolution)
+        min_x, min_y = decisionBoundary(transformLine(s_range[0], mean0, mean1), gradient)
+        if min_x < 0 or min_y < 0:
+            raise RuntimeError("Boundary range below zero")
+
         i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
-                                                  start_point[0], start_point[1],
-                                                  mean1[0], mean1[1], num_processes)
+                                              mean0[0], mean0[1],
+                                              mean1[0], mean1[1], num_processes)
         global_s = np.array(growNetwork(sample_names,
-                                            i_vec,
-                                            j_vec,
-                                            idx_vec,
-                                            s_range,
-                                            score_idx,
-                                            betweenness_sample = betweenness_sample,
-                                            use_gpu = use_gpu))
+                                        i_vec,
+                                        j_vec,
+                                        idx_vec,
+                                        s_range,
+                                        score_idx,
+                                        betweenness_sample = betweenness_sample,
+                                        use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
         if min_idx > 0 and min_idx < len(s_range) - 1:
@@ -210,18 +202,19 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     # Local optimisation around global optimum
     if not no_local:
         sys.stderr.write("Trying to optimise score locally\n")
-        local_s = scipy.optimize.minimize_scalar(newNetwork,
-                        bounds = bounds,
-                        method = 'Bounded', options={'disp': True},
-                        args = (sample_names, distMat, start_point, mean1, gradient,
-                                slope, score_idx, num_processes,
-                                betweenness_sample, use_gpu),
-                        )
+        local_s = scipy.optimize.minimize_scalar(
+                    newNetwork,
+                    bounds = bounds,
+                    method = 'Bounded', options={'disp': True},
+                    args = (sample_names, distMat, mean0, mean1, gradient,
+                            slope, score_idx, num_processes,
+                            betweenness_sample, use_gpu)
+                )
         optimised_s = local_s.x
 
     # Convert to x_max, y_max if needed
     if not unconstrained or not no_local:
-        optimised_coor = transformLine(optimised_s, start_point, mean1)
+        optimised_coor = transformLine(optimised_s, mean0, mean1)
         if slope == 2:
             optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
         else:
@@ -231,11 +224,11 @@ def refineFit(distMat, sample_names, start_s, mean0, mean1,
     if optimal_x < 0 or optimal_y < 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
-    return start_point, optimal_x, optimal_y, min_move, max_move
+    return optimal_x, optimal_y
 
 def expand_cugraph_network(G, G_extra_df):
     """Reconstruct a cugraph network with additional edges.
-    
+
     Args:
         G (cugraph network)
             Original cugraph network
@@ -309,8 +302,11 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
     else:
         idx_values = edge_list_df.idx_list.unique()
 
+    if len(idx_values) < 2:
+        raise RuntimeError("Refine boundary range incorrectly set")
+
     # Grow a network
-    with tqdm(total = idx_values[-1] + 1,
+    with tqdm(total = max(idx_values) + 1,
               bar_format = "{bar}| {n_fmt}/{total_fmt}",
               ncols = 40,
               position = thread_idx) as pbar:
@@ -342,7 +338,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
 
     return(scores)
 
-def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
+def newNetwork(s, sample_names, distMat, mean0, mean1, gradient,
                slope=2, score_idx=0, cpus=1, betweenness_sample = betweenness_sample_default,
                use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.construct_network_from_edge_list` which is called
@@ -358,10 +354,10 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
             Sample names corresponding to distMat (accessed by iterator)
         distMat (numpy.array or NumpyShared)
             Core and accessory distances or NumpyShared describing these in sharedmem
-        start_point (numpy.array)
-            Initial boundary cutoff
+        mean0 (numpy.array)
+            Start point
         mean1 (numpy.array)
-            Defines line direction from start_point
+            End point
         gradient (float)
             Gradient of line to move along
         slope (int)
@@ -388,7 +384,7 @@ def newNetwork(s, sample_names, distMat, start_point, mean1, gradient,
         distMat = np.ndarray(distMat.shape, dtype = distMat.dtype, buffer = distMat_shm.buf)
 
     # Set up boundary
-    new_intercept = transformLine(s, start_point, mean1)
+    new_intercept = transformLine(s, mean0, mean1)
     if slope == 2:
         x_max, y_max = decisionBoundary(new_intercept, gradient)
     elif slope == 0:
@@ -478,34 +474,29 @@ def readManualStart(startFile):
             Centre of within-strain distribution
         mean1 (numpy.array)
             Centre of between-strain distribution
-        start_s (float)
-            Distance along line between mean0 and mean1 to start at
     """
-    start_s = None
     mean0 = None
     mean1 = None
 
     with open(startFile, 'r') as start:
         for line in start:
             (param, value) = line.rstrip().split()
-            if param == 'mean0':
+            if param == 'start':
                 mean_read = []
                 for mean_val in value.split(','):
                     mean_read.append(float(mean_val))
                 mean0 = np.array(mean_read)
-            elif param == 'mean1':
+            elif param == 'end':
                 mean_read = []
                 for mean_val in value.split(','):
                     mean_read.append(float(mean_val))
                 mean1 = np.array(mean_read)
-            elif param == 'start_point':
-                start_s = float(value)
     try:
-        if not isinstance(mean0, np.ndarray) or not isinstance(mean1, np.ndarray) or start_s == None:
-            raise RuntimeError('All of mean0, mean1 and start_s must all be set')
+        if not isinstance(mean0, np.ndarray) or not isinstance(mean1, np.ndarray):
+            raise RuntimeError('Must set both start and end')
         if mean0.shape != (2,) or mean1.shape != (2,):
             raise RuntimeError('Wrong size for values')
-        check_vals = np.hstack([mean0, mean1, start_s])
+        check_vals = np.hstack([mean0, mean1])
         for val in np.nditer(check_vals):
             if val > 1 or val < 0:
                 raise RuntimeError('Value out of range (between 0 and 1)')
@@ -514,8 +505,7 @@ def readManualStart(startFile):
         sys.stderr.write(e)
         sys.exit(1)
 
-    return mean0, mean1, start_s
-
+    return mean0, mean1
 
 def likelihoodBoundary(s, model, start, end, within, between):
     """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
