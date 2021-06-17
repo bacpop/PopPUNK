@@ -502,7 +502,7 @@ def readManualStart(startFile):
                 raise RuntimeError('Value out of range (between 0 and 1)')
     except RuntimeError as e:
         sys.stderr.write("Could not read manual start file " + startFile + "\n")
-        sys.stderr.write(e)
+        sys.stderr.write(str(e) + "\n")
         sys.exit(1)
 
     return mean0, mean1
