@@ -293,8 +293,9 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
                          fill=True, facecolor='lightcoral', alpha = 0.2,
                          label='Search range')
             else:
+                search_length = max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
                 minimum_xy = transformLine(-min_move, mean0, mean1) * scale
-                maximum_xy = transformLine(max_move, mean0, mean1) * scale
+                maximum_xy = transformLine(search_length, mean0, mean1) * scale
                 plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
                          color='k', linewidth=1, linestyle=':', label='Search range')
 

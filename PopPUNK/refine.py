@@ -171,7 +171,7 @@ def refineFit(distMat, sample_names, mean0, mean1,
 
     else:
         # Set the range of points to search
-        search_length = min_move + max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
+        search_length = max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
         global_grid_resolution = 40 # Seems to work
         s_range = np.linspace(-min_move, search_length, num = global_grid_resolution)
         min_x, min_y = decisionBoundary(transformLine(s_range[0], mean0, mean1), gradient)

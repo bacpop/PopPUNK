@@ -573,9 +573,9 @@ def transformLine(s, mean0, mean1):
         y (float)
             The Cartesian y-coordinate
     """
-    tan_theta = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    x = mean0[0] + s * (1/np.sqrt(1+tan_theta))
-    y = mean0[1] + s * (tan_theta/np.sqrt(1+tan_theta))
+    tan_theta_squared = ((mean1[1] - mean0[1]) / (mean1[0] - mean0[0]))**2
+    x = mean0[0] + s * (1/np.sqrt(1+tan_theta_squared))
+    y = mean0[1] + s * np.sqrt(tan_theta_squared/(1+tan_theta_squared))
 
     return np.array([x, y])
 
