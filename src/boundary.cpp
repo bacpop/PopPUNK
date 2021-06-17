@@ -62,7 +62,11 @@ inline float line_dist(const float x0, const float y0, const float x_max,
                        const float y_max, const int slope) {
   float boundary_side = 0;
   if (slope == 2) {
-    boundary_side = y0 * x_max + x0 * y_max - x_max * y_max;
+    if (x_max == 0 || y_max == 0) {
+      boundary_side = std::sqrt(x0 * x0 + y0 * y0);
+    } else {
+      boundary_side = y0 * x_max + x0 * y_max - x_max * y_max;
+    }
   } else if (slope == 0) {
     boundary_side = x0 - x_max;
   } else if (slope == 1) {
