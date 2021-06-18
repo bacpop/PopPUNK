@@ -782,9 +782,18 @@ class RefineFit(ClusterFit):
         # Main refinement in 2D
         self.optimal_x, self.optimal_y = \
           refineFit(X/self.scale,
-                    sample_names, self.mean0, self.mean1, self.max_move, self.min_move,
-                    slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = self.threads, betweenness_sample = betweenness_sample,
+                    sample_names,
+                    self.mean0,
+                    self.mean1,
+                    self.scale,
+                    self.max_move,
+                    self.min_move,
+                    slope = 2,
+                    score_idx = score_idx,
+                    unconstrained = unconstrained,
+                    no_local = no_local,
+                    num_processes = self.threads,
+                    betweenness_sample = betweenness_sample,
                     use_gpu = use_gpu)
         self.fitted = True
 
@@ -802,6 +811,7 @@ class RefineFit(ClusterFit):
                                     sample_names,
                                     self.mean0,
                                     self.mean1,
+                                    self.scale,
                                     self.max_move,
                                     self.min_move,
                                     slope = slope,
