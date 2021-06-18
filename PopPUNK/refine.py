@@ -182,6 +182,8 @@ def refineFit(distMat, sample_names, mean0, mean1,
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
                                               mean0[0], mean0[1],
                                               mean1[0], mean1[1], num_processes)
+        if len(idx_vec) == distMat.shape[0]:
+            raise RuntimeError("Boundary range includes all points")
         global_s = np.array(growNetwork(sample_names,
                                         i_vec,
                                         j_vec,
@@ -301,9 +303,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
         idx_values = edge_list_df.to_pandas().idx_list.unique()
     else:
         idx_values = edge_list_df.idx_list.unique()
-
-    if len(idx_values) < 2:
-        raise RuntimeError("Refine boundary range incorrectly set")
 
     # Grow a network
     with tqdm(total = max(idx_values) + 1,
@@ -450,15 +449,21 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
     y_max = y_range[y_idx]
     i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate2D(distMat, x_range, y_max)
-    scores = growNetwork(sample_names,
-                            i_vec,
-                            j_vec,
-                            idx_vec,
-                            x_range,
-                            score_idx,
-                            y_idx,
-                            betweenness_sample,
-                            use_gpu = use_gpu)
+
+    # If everything is in the network, skip this boundary
+    if len(idx_vec) == distMat.shape[0]:
+        scores = [0] * len(x_range)
+    else:
+        scores = growNetwork(sample_names,
+                                i_vec,
+                                j_vec,
+                                idx_vec,
+                                x_range,
+                                score_idx,
+                                y_idx,
+                                betweenness_sample,
+                                use_gpu = use_gpu)
+
     return(scores)
 
 def readManualStart(startFile):
