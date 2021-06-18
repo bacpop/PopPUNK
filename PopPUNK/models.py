@@ -97,11 +97,11 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
         use_gpu (bool)
             Whether to load npz file with GPU libraries
             for lineage models
-    
+
     Returns:
         load_obj (model)
             Loaded model
-            
+
     '''
     with open(pkl_file, 'rb') as pickle_obj:
         fit_object, fit_type = pickle.load(pickle_obj)
@@ -278,7 +278,7 @@ class ClusterFit:
         is done in the scaled space).
         '''
         self.scale = np.array([1, 1], dtype = self.default_dtype)
-        
+
     def copy(self, prefix):
         """Copy the model to a new directory
         """
@@ -750,7 +750,7 @@ class RefineFit(ClusterFit):
                 a GPU. Smaller numbers are faster but less precise [default = 100]
             use_gpu (bool)
                 Whether to use cugraph for graph analyses
-                
+
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -767,41 +767,33 @@ class RefineFit(ClusterFit):
         # Get starting point
         model.no_scale()
         if startFile:
-            self.mean0, self.mean1, self.start_s = readManualStart(startFile)
+            self.mean0, self.mean1 = readManualStart(startFile)
         elif model.type == 'dbscan':
             sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
-
             self.mean0 = model.cluster_means[model.within_label, :]
             self.mean1 = model.cluster_means[model.between_label, :]
-            max0 = model.cluster_maxs[model.within_label, :]
-            min1 = model.cluster_mins[model.between_label, :]
-            core_s = (max(max0[0],min1[0]) - self.mean0[0]) / self.mean1[0]
-            acc_s = (max(max0[1],min1[1]) - self.mean0[1]) / self.mean1[1]
-            self.start_s = 0.5*(core_s+acc_s)
-
         elif model.type == 'bgmm':
             sys.stderr.write("Initial model-based network construction based on Gaussian fit\n")
-
-            # Straight line between dist 0 centre and dist 1 centre
-            # Optimize to find point of decision boundary along this line as starting point
             self.mean0 = model.means[model.within_label, :]
             self.mean1 = model.means[model.between_label, :]
-            try:
-                self.start_s = scipy.optimize.brentq(likelihoodBoundary, 0, euclidean(self.mean0, self.mean1),
-                             args = (model, self.mean0, self.mean1, model.within_label, model.between_label))
-            except ValueError:
-                sys.stderr.write("Could not find start point for refinement; intial model fit likely bad\n"
-                                 "Try using --manual-start\n")
-                sys.exit(1)
         else:
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
-        self.start_point, self.optimal_x, self.optimal_y, self.min_move, self.max_move = \
+        self.optimal_x, self.optimal_y = \
           refineFit(X/self.scale,
-                    sample_names, self.start_s, self.mean0, self.mean1, self.max_move, self.min_move,
-                    slope = 2, score_idx = score_idx, unconstrained = unconstrained,
-                    no_local = no_local, num_processes = self.threads, betweenness_sample = betweenness_sample,
+                    sample_names,
+                    self.mean0,
+                    self.mean1,
+                    self.scale,
+                    self.max_move,
+                    self.min_move,
+                    slope = 2,
+                    score_idx = score_idx,
+                    unconstrained = unconstrained,
+                    no_local = no_local,
+                    num_processes = self.threads,
+                    betweenness_sample = betweenness_sample,
                     use_gpu = use_gpu)
         self.fitted = True
 
@@ -814,12 +806,12 @@ class RefineFit(ClusterFit):
                     if indiv_refine == 'both' or indiv_refine == dist_type:
                         sys.stderr.write("Refining " + dist_type + " distances separately\n")
                         # optimise core distance boundary
-                        start_point, self.core_boundary, core_acc, self.min_move, self.max_move = \
+                        core_boundary, accessory_boundary = \
                           refineFit(X/self.scale,
                                     sample_names,
-                                    self.start_s,
                                     self.mean0,
                                     self.mean1,
+                                    self.scale,
                                     self.max_move,
                                     self.min_move,
                                     slope = slope,
@@ -828,6 +820,10 @@ class RefineFit(ClusterFit):
                                     num_processes = self.threads,
                                     betweenness_sample = betweenness_sample,
                                     use_gpu = use_gpu)
+                        if dist_type == "core":
+                          self.core_boundary = core_boundary
+                        if dist_type == "accessory":
+                          self.accessory_boundary = accessory_boundary
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)
@@ -858,7 +854,6 @@ class RefineFit(ClusterFit):
         # Blank values to pass to plot
         self.mean0 = None
         self.mean1 = None
-        self.start_point = None
         self.min_move = None
         self.max_move = None
 
@@ -917,7 +912,6 @@ class RefineFit(ClusterFit):
         # blank values to pass to plot (used in --use-model)
         self.mean0 = None
         self.mean1 = None
-        self.start_point = None
         self.min_move = None
         self.max_move = None
 
@@ -943,7 +937,7 @@ class RefineFit(ClusterFit):
             plot_X = X
 
         plot_refined_results(plot_X, self.assign(plot_X), self.optimal_x, self.optimal_y, self.core_boundary,
-            self.accessory_boundary, self.mean0, self.mean1, self.start_point, self.min_move,
+            self.accessory_boundary, self.mean0, self.mean1, self.min_move,
             self.max_move, self.scale, self.threshold, self.indiv_fitted, self.unconstrained,
             "Refined fit boundary", self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_refined_fit")
 
