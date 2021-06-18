@@ -47,7 +47,7 @@ from .utils import transformLine
 from .utils import decisionBoundary
 from .utils import check_and_set_gpu
 
-def refineFit(distMat, sample_names, mean0, mean1,
+def refineFit(distMat, sample_names, mean0, mean1, scale,
               max_move, min_move, slope = 2, score_idx = 0,
               unconstrained = False, no_local = False, num_processes = 1,
               betweenness_sample = betweenness_sample_default, use_gpu = False):
@@ -64,6 +64,8 @@ def refineFit(distMat, sample_names, mean0, mean1,
             Start point to define search line
         mean1 (numpy.array)
             End point to define search line
+        scale (numpy.array)
+            Scaling factor of distMat
         max_move (float)
             Maximum distance to move away from start point
         min_move (float)
@@ -116,6 +118,12 @@ def refineFit(distMat, sample_names, mean0, mean1,
 
         x_max = np.linspace(x_max_start, x_max_end, global_grid_resolution, dtype=np.float32)
         y_max = np.linspace(y_max_start, y_max_end, global_grid_resolution, dtype=np.float32)
+        sys.stderr.write("Searching core intercept from " +
+                         "{:.3f}".format(x_max_start * scale[0]) +
+                         " to " + "{:.3f}".format(x_max_end * scale[0]) + "\n")
+        sys.stderr.write("Searching accessory intercept from " +
+                         "{:.3f}".format(y_max_start * scale[1]) +
+                         " to " + "{:.3f}".format(y_max_end * scale[1]) + "\n")
 
         if use_gpu:
             global_s = map(partial(newNetwork2D,
@@ -174,9 +182,23 @@ def refineFit(distMat, sample_names, mean0, mean1,
         search_length = max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
         global_grid_resolution = 40 # Seems to work
         s_range = np.linspace(-min_move, search_length, num = global_grid_resolution)
-        min_x, min_y = decisionBoundary(transformLine(s_range[0], mean0, mean1), gradient)
+        bottom_end = transformLine(s_range[0], mean0, mean1)
+        top_end = transformLine(s_range[-1], mean0, mean1)
+        min_x, min_y = decisionBoundary(bottom_end, gradient)
+        max_x, max_y = decisionBoundary(top_end, gradient)
+
         if min_x < 0 or min_y < 0:
             raise RuntimeError("Boundary range below zero")
+        sys.stderr.write("Search range (" +
+                         ",".join(["{:.3f}".format(x) for x in bottom_end * scale]) +
+                         ") to (" +
+                         ",".join(["{:.3f}".format(x) for x in top_end * scale]) + ")\n")
+        sys.stderr.write("Searching core intercept from " +
+                         "{:.3f}".format(min_x * scale[0]) +
+                         " to " + "{:.3f}".format(max_x * scale[0]) + "\n")
+        sys.stderr.write("Searching accessory intercept from " +
+                         "{:.3f}".format(min_y * scale[1]) +
+                         " to " + "{:.3f}".format(max_y * scale[1]) + "\n")
 
         i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
