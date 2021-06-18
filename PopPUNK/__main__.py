@@ -122,7 +122,7 @@ def get_options():
     refinementGroup = parser.add_argument_group('Refine model options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary right past between-strain mean',
             type=float, default = 0)
-    refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary left paste within-strain mean]',
+    refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary left past within-strain mean]',
             type=float, default = 0)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
