@@ -137,17 +137,18 @@ network_coo threshold_iterate_1D(const NumpyMatrix &distMat,
   std::vector<long> i_vec;
   std::vector<long> j_vec;
   std::vector<long> offset_idx;
-  const float gradient = (y1 - y0) / (x1 - x0); // == tan(theta)
-  const float gradient_squared = gradient * gradient;
+  const float dx = x1 - x0;
+  const float dy = y1 - y0;
+  const float ds = std::sqrt(dx * dx + dy * dy);
+  const float gradient = dy / dx;
   const size_t n_samples = rows_to_samples(distMat);
 
   std::vector<float> boundary_dist(distMat.rows());
   std::vector<long> boundary_order;
   long sorted_idx = 0;
   for (int offset_nr = 0; offset_nr < offsets.size(); ++offset_nr) {
-    float x_intercept = x0 + offsets[offset_nr] * (1 / std::sqrt(1 + gradient_squared));
-    float y_intercept =
-        y0 + offsets[offset_nr] * std::sqrt(gradient_squared / (1 + gradient_squared));
+    float x_intercept = x0 + offsets[offset_nr] * (dx / ds);
+    float y_intercept = y0 + offsets[offset_nr] * (dy / ds);
     float x_max, y_max;
     if (slope == 2) {
       x_max = x_intercept + y_intercept * gradient;
