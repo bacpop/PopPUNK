@@ -225,7 +225,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
     plt.close()
 
 def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_boundary,
-        mean0, mean1, start_point, min_move, max_move, scale, threshold, indiv_boundaries,
+        mean0, mean1, min_move, max_move, scale, threshold, indiv_boundaries,
         unconstrained, title, out_prefix):
     """Draw a scatter plot (png) to show the refined model fit
 
@@ -249,8 +249,6 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
             Centre of within-strain distribution
         mean1 (numpy.array)
             Centre of between-strain distribution
-        start_point (numpy.array)
-            Start point of optimisation
         min_move (float)
             Minimum s range
         max_move (float)
@@ -285,7 +283,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
                     linestyle='-.')
 
         # Draw boundary search range
-        if mean0 is not None and mean1 is not None and min_move is not None and max_move is not None and start_point is not None:
+        if mean0 is not None and mean1 is not None and min_move is not None and max_move is not None:
             if unconstrained:
                 gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
                 opt_start = decisionBoundary(mean0, gradient) * scale
@@ -295,12 +293,11 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
                          fill=True, facecolor='lightcoral', alpha = 0.2,
                          label='Search range')
             else:
-                minimum_xy = transformLine(-min_move, start_point, mean1) * scale
-                maximum_xy = transformLine(max_move, start_point, mean1) * scale
+                search_length = max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
+                minimum_xy = transformLine(-min_move, mean0, mean1) * scale
+                maximum_xy = transformLine(search_length, mean0, mean1) * scale
                 plt.plot([minimum_xy[0], maximum_xy[0]], [minimum_xy[1], maximum_xy[1]],
-                        color='k', linewidth=1, linestyle=':', label='Search range')
-                start_point *= scale
-                plt.plot(start_point[0], start_point[1], 'ro', label='Initial boundary')
+                         color='k', linewidth=1, linestyle=':', label='Search range')
 
             mean0 *= scale
             mean1 *= scale

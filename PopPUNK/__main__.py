@@ -120,10 +120,10 @@ def get_options():
 
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
-    refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary away from origin [default = to between-strain mean]',
-            type=float, default = None)
-    refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary towards the origin [default = to within-strain mean]',
-            type=float, default = None)
+    refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary right past between-strain mean',
+            type=float, default = 0)
+    refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary left past within-strain mean]',
+            type=float, default = 0)
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '

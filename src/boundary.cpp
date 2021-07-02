@@ -62,7 +62,11 @@ inline float line_dist(const float x0, const float y0, const float x_max,
                        const float y_max, const int slope) {
   float boundary_side = 0;
   if (slope == 2) {
-    boundary_side = y0 * x_max + x0 * y_max - x_max * y_max;
+    if (x_max == 0 || y_max == 0) {
+      boundary_side = std::sqrt(x0 * x0 + y0 * y0);
+    } else {
+      boundary_side = y0 * x_max + x0 * y_max - x_max * y_max;
+    }
   } else if (slope == 0) {
     boundary_side = x0 - x_max;
   } else if (slope == 1) {
@@ -152,16 +156,18 @@ network_coo threshold_iterate_1D(const NumpyMatrix &distMat,
   std::vector<long> i_vec;
   std::vector<long> j_vec;
   std::vector<long> offset_idx;
-  const float gradient = (y1 - y0) / (x1 - x0); // == tan(theta)
+  const float dx = x1 - x0;
+  const float dy = y1 - y0;
+  const float ds = std::sqrt(dx * dx + dy * dy);
+  const float gradient = dy / dx;
   const size_t n_samples = rows_to_samples(distMat);
 
   std::vector<float> boundary_dist(distMat.rows());
   std::vector<long> boundary_order;
   long sorted_idx = 0;
   for (int offset_nr = 0; offset_nr < offsets.size(); ++offset_nr) {
-    float x_intercept = x0 + offsets[offset_nr] * (1 / std::sqrt(1 + gradient));
-    float y_intercept =
-        y0 + offsets[offset_nr] * (gradient / std::sqrt(1 + gradient));
+    float x_intercept = x0 + offsets[offset_nr] * (dx / ds);
+    float y_intercept = y0 + offsets[offset_nr] * (dy / ds);
     float x_max, y_max;
     if (slope == 2) {
       x_max = x_intercept + y_intercept * gradient;
