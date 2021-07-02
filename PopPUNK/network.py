@@ -366,12 +366,14 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             gt.openmp_set_num_threads(1)
 
         # Cliques are pruned, taking one reference from each, until none remain
+        sys.setrecursionlimit = 5000
         with Pool(processes=threads) as pool:
             ref_lists = pool.map(partial(cliquePrune,
                                             graph=G,
                                             reference_indices=reference_indices,
                                             components_list=components),
                                  set(components))
+        sys.setrecursionlimit = 1000
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
