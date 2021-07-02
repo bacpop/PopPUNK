@@ -307,7 +307,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
         plt.plot([core_boundary*scale[0], core_boundary*scale[0]], [0, np.amax(X[:,1])], color='red', linewidth=2, linestyle='--',
                 label='Threshold boundary')
 
-    plt.legend()
+    plt.legend(loc='lower right')
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
