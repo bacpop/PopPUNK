@@ -39,13 +39,14 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db e
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both --no-local --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --unconstrained --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --score-idx 1 --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --score-idx 2 --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --manual-start manual.txt --overwrite --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --indiv-refine both --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --indiv-refine both --no-local --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --unconstrained --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 1 --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 2 --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both --gpu-graph", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
