@@ -14,6 +14,8 @@ from .__init__ import __version__
 from .sketchlib import removeFromDB
 
 from .network import extractReferences
+from .network import load_network_file
+from .network import save_network
 
 from .prune_db import prune_distance_matrix
 
@@ -71,8 +73,11 @@ def main():
     refList, queryList, self, distMat = readPickle(args.distances, enforce_self=True)
 
     # Read in full network
-    genomeNetwork = load_network_file(args.network, use_gpu = use_gpu)
-    sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
+    genomeNetwork = load_network_file(args.network, use_gpu = args.use_gpu)
+    if args.use_gpu:
+        sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_vertices()) + " samples\n")
+    else:
+        sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
