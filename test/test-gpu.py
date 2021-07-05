@@ -93,7 +93,7 @@ subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/
 
 # references
 sys.stderr.write("Running poppunk_references\n")
-subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db --use-gpu", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.csv.gz --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db --use-gpu", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")
