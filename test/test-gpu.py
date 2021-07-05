@@ -70,7 +70,7 @@ subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.t
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --microreact --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape --network-file example_db/example_db_graph.gt --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape --network-file example_db/example_db_graph.csv.gz --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --phandango --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --grapetree --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz_subset --microreact --include-files subset.txt --gpu-graph", shell=True, check=True)
@@ -85,11 +85,11 @@ subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db
 
 # t-sne
 sys.stderr.write("Running tsne viz\n")
-subprocess.run(python_cmd + " ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1 --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1 --use-gpu", shell=True, check=True)
 
 # prune
 sys.stderr.write("Running poppunk_prune\n")
-subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_prune --gpu-dist", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_prune", shell=True, check=True)
 
 # references
 sys.stderr.write("Running poppunk_references\n")
