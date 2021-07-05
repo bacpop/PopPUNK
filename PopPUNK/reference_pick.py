@@ -44,6 +44,7 @@ def get_options():
     # processing
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
+    other.add_argument('--use-gpu', default=False, action='store_true', help='Whether to use GPUs')
 
     other.add_argument('--version', action='version',
                        version='%(prog)s '+__version__)
@@ -70,14 +71,21 @@ def main():
     refList, queryList, self, distMat = readPickle(args.distances, enforce_self=True)
 
     # Read in full network
-    genomeNetwork = gt.load_graph(args.network)
+    genomeNetwork = load_network_file(args.network, use_gpu = use_gpu)
     sys.stderr.write("Network loaded: " + str(len(list(genomeNetwork.vertices()))) + " samples\n")
 
     # This is the same set of function calls for --fit-model when no --full-db in __main__.py
     # Find refs and prune network
     reference_indices, reference_names, refFileName, G_ref = \
-        extractReferences(genomeNetwork, refList, args.output, threads = args.threads)
-    G_ref.save(args.output + "/" + os.path.basename(args.output) + '_graph.gt', fmt = 'gt')
+        extractReferences(genomeNetwork,
+                            refList,
+                            args.output,
+                            threads = args.threads,
+                            use_gpu = args.use_gpu)
+    save_network(G_ref,
+                    prefix = args.output,
+                    suffix = ".refs_graph",
+                    use_gpu = args.use_gpu)
 
     # Prune distances
     nodes_to_remove = set(range(len(refList))).difference(reference_indices)
