@@ -179,6 +179,7 @@ def generate_visualisations(query_db,
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
     from .network import cugraph_to_graph_tool
+    from .network import save_network
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -410,6 +411,11 @@ def generate_visualisations(query_db,
                                                 vals = isolateNameToLabel(combined_seq))
                     mst_graph.vp.id = vid
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
+                save_network(mst_graph,
+                                prefix = output,
+                                suffix = '_mst',
+                                use_graphml = False,
+                                use_gpu = gpu_graph)
             else:
                 mst_tree = existing_tree
 
