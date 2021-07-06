@@ -401,6 +401,12 @@ def generate_visualisations(query_db,
                     G = cugraph.minimum_spanning_tree(G, weight='weights')
                 mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
                 del G
+                # save outputs
+                save_network(mst_graph,
+                                prefix = output,
+                                suffix = '_mst',
+                                use_graphml = False,
+                                use_gpu = gpu_graph)
                 mst_as_tree = mst_to_phylogeny(mst_graph,
                                                 isolateNameToLabel(combined_seq),
                                                 use_gpu = gpu_graph)
@@ -411,11 +417,6 @@ def generate_visualisations(query_db,
                                                 vals = isolateNameToLabel(combined_seq))
                     mst_graph.vp.id = vid
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
-                save_network(mst_graph,
-                                prefix = output,
-                                suffix = '_mst',
-                                use_graphml = False,
-                                use_gpu = gpu_graph)
             else:
                 mst_tree = existing_tree
 
