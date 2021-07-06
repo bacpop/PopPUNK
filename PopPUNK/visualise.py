@@ -416,7 +416,7 @@ def generate_visualisations(query_db,
                 mst_as_tree = mst_to_phylogeny(mst_graph,
                                                 isolateNameToLabel(combined_seq),
                                                 use_gpu = False)
-                with open(os.path.join(output,os.path.basename(output) + '_mst.nwk')) as tree_out:
+                with open(os.path.join(output,os.path.basename(output) + '_mst.nwk'),'w') as tree_out:
                     tree_out.write(mst_as_tree)
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
             else:
