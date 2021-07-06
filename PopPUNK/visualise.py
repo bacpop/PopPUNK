@@ -407,15 +407,17 @@ def generate_visualisations(query_db,
                                 suffix = '_mst',
                                 use_graphml = False,
                                 use_gpu = gpu_graph)
-                mst_as_tree = mst_to_phylogeny(mst_graph,
-                                                isolateNameToLabel(combined_seq),
-                                                use_gpu = gpu_graph)
                 if gpu_graph:
                     mst_graph = cugraph_to_graph_tool(mst_graph, isolateNameToLabel(combined_seq))
                 else:
                     vid = mst_graph.new_vertex_property('string',
                                                 vals = isolateNameToLabel(combined_seq))
                     mst_graph.vp.id = vid
+                mst_as_tree = mst_to_phylogeny(mst_graph,
+                                                isolateNameToLabel(combined_seq),
+                                                use_gpu = False)
+                with open(os.path.join(output,os.path.basename(output) + '_mst.nwk')) as tree_out:
+                    tree_out.write(mst_as_tree)
                 drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
             else:
                 mst_tree = existing_tree
