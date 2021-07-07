@@ -267,7 +267,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     from .sketchlib import pickTypeIsolate
 
     # Create overall list of sequences
-    if refList == refList:
+    if refList == queryList:
         seq_names_passing = refList
     else:
         seq_names_passing = refList + queryList
