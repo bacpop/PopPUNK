@@ -291,7 +291,11 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     # First check with numpy, which is quicker than iterating over everything
     #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
-    long_edges = poppunk_refine.generateTuples(long_distance_rows, 0)
+    long_edges = poppunk_refine.generateTuples(long_distance_rows,
+                                                0,
+                                                self = False,
+                                                num_ref = len(refList),
+                                                int_offset = 0)
     if len(long_edges) > 0:
         # Prune sequences based on reference sequence
         for (s,t) in long_edges:

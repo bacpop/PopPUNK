@@ -1172,7 +1172,7 @@ class LineageFit(ClusterFit):
                     dist_row, dist_col, dist = scipy.sparse.find(sample_row)
                 else:
                     dist_row, dist_col, dist = scipy.sparse.find(sample_row)
-                dist = [epsilon if d < epsilon else d for d in dist]
+                dist[dist < epsilon] = epsilon
                 dist_idx_sort = np.argsort(dist)
 
                 # Identical to C++ code in matrix_ops.cpp:sparsify_dists
