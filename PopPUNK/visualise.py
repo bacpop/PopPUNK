@@ -174,7 +174,7 @@ def generate_visualisations(query_db,
 
     from .models import loadClusterFit
 
-    from .network import construct_dense_weighted_network
+    from .network import construct_network_from_assignments
     from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
@@ -389,10 +389,14 @@ def generate_visualisations(query_db,
                             pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
                 # Dense network may be slow
                 sys.stderr.write("Generating MST from dense distances (may be slow)\n")
-                G = construct_dense_weighted_network(combined_seq,
+                G = construct_network_from_assignments(combined_seq,
+                                                        combined_seq,
+                                                        [0]*complete_distMat.shape[0],
+                                                        within_label = 0,
                                                         distMat = complete_distMat,
                                                         weights_type = mst_distances,
-                                                        use_gpu = gpu_graph)
+                                                        use_gpu = gpu_graph,
+                                                        summarise = False)
                 if gpu_graph:
                     G = cugraph.minimum_spanning_tree(G, weight='weights')
                 mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
