@@ -787,16 +787,18 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
                                             use_gpu = use_gpu)
         # Construct list of tuples for graph-tool
         # Include information from previous graph if supplied
+        weighted_edges = []
         if weights is not None:
             for ((src, dest), weight) in zip(edge_list, weights):
                 edge_list.append((src, dest, weight))
             if previous_network is not None:
                 for (src, dest, weight) in zip(extra_sources, extra_targets, extra_weights):
-                    edge_list.append((src, dest, weight))
+                    weighted_edges.append((src, dest, weight))
         else:
             if previous_network is not None:
                 for (src, dest) in zip(extra_sources, extra_targets):
-                    edge_list.append((src, dest))
+                    weighted_edges.append((src, dest))
+        edge_list = weighted_edges
         # build the graph
         G = gt.Graph(directed = False)
         G.add_vertex(len(vertex_labels))
