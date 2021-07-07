@@ -390,7 +390,8 @@ def generate_visualisations(query_db,
                 # Dense network may be slow
                 sys.stderr.write("Generating MST from dense distances (may be slow)\n")
                 G = construct_dense_weighted_network(combined_seq,
-                                                        weights = mst_distances,
+                                                        distMat = distMat,
+                                                        weights_type = mst_distances,
                                                         use_gpu = gpu_graph)
                 if gpu_graph:
                     G = cugraph.minimum_spanning_tree(G, weight='weights')

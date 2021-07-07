@@ -978,7 +978,7 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     return G
 
-def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
+def construct_dense_weighted_network(rlist, distMat = None, weights_type = None, use_gpu = False):
     """Construct an undirected network using sequence lists, assignments of pairwise distances
     to clusters, and the identifier of the cluster assigned to within-strain distances.
     Nodes are samples and edges where samples are within the same cluster
@@ -988,8 +988,10 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
     Args:
         rlist (list)
             List of reference sequence labels
-        weights (list)
-            List of weights for each edge in the network
+        distMat (2 column ndarray)
+            Numpy array of pairwise distances
+        weights_type (str)
+            Type of weight to use for network
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -1007,6 +1009,9 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
     if weights is None:
         sys.stderr.write("Need weights to construct weighted network\n")
         sys.exit(1)
+
+    # Process weights
+    weights = process_weights(distMat, weights_type)
 
     # Convert edge indices to tuples
     edge_list = poppunk_refine.generateTuples([0] * len(weights),
