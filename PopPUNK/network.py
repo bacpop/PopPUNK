@@ -1011,7 +1011,7 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
     # Convert edge indices to tuples
     edge_list = poppunk_refine.generateTuples([0] * len(weights),
                                                 0,
-                                                self = (rlist == qlist),
+                                                self = True,
                                                 num_ref = len(rlist),
                                                 int_offset = int_offset)
 
