@@ -1013,7 +1013,7 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
                                                 0,
                                                 self = True,
                                                 num_ref = len(rlist),
-                                                int_offset = int_offset)
+                                                int_offset = 0)
 
     if use_gpu:
         # Construct network with GPU via data frame
