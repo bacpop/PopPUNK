@@ -1017,7 +1017,7 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
 
     if use_gpu:
         # Construct network with GPU via data frame
-        G_df = cudf.DataFrame(columns = ['source','destination','weights'])
+        G_df = cudf.DataFrame(columns = ['source','destination'])
         G_df['source'] = [edge_list[0][0]]
         G_df['destination'] = [edge_list[0][1]]
         G_df['weights'] = weights
