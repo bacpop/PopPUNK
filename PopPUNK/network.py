@@ -1022,9 +1022,9 @@ def construct_dense_weighted_network(rlist, distMat = None, weights_type = None,
 
     if use_gpu:
         # Construct network with GPU via data frame
-        G_df = cudf.DataFrame(columns = ['source','destination'])
-        G_df['source'] = [edge_list[0][0]]
-        G_df['destination'] = [edge_list[0][1]]
+        edge_array = cp.array(edge_list, dtype = np.int32)
+        edge_gpu_matrix = cuda.to_device(edge_array)
+        G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
         G_df['weights'] = weights
         max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(vertex_labels)-1
