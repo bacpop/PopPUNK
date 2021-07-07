@@ -1001,7 +1001,7 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    vertex_labels, self_comparison = initial_graph_properties(rlist, rlist)
 
     # Filter weights to only the relevant edges
     if weights is None:
@@ -1009,8 +1009,8 @@ def construct_dense_weighted_network(rlist, weights = None, use_gpu = False):
         sys.exit(1)
 
     # Convert edge indices to tuples
-    edge_list = poppunk_refine.generateTuples(assignments,
-                                                within_label,
+    edge_list = poppunk_refine.generateTuples([0] * len(weights),
+                                                0,
                                                 self = (rlist == qlist),
                                                 num_ref = len(rlist),
                                                 int_offset = int_offset)
