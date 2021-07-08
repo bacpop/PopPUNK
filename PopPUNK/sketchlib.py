@@ -544,15 +544,30 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 example = sample(rNames, k=2)
                 raw = np.zeros(len(klist))
                 corrected = np.zeros(len(klist))
-                for kidx, kmer in enumerate(klist):
-                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, False)
-                    corrected[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, True)
-                raw_fit = fitKmerCurve(raw, klist, jacobian)
-                corrected_fit = fitKmerCurve(corrected, klist, jacobian)
+                raw = pp_sketchlib.queryDatabase(ref_db,
+                                                    query_db,
+                                                    example[0],
+                                                    example[1],
+                                                    klist,
+                                                    random_correct = False,
+                                                    jaccard = True,
+                                                    num_threads = threads,
+                                                    use_gpu = False)
+                corrected = pp_sketchlib.queryDatabase(ref_db,
+                                                        query_db,
+                                                        example[0],
+                                                        example[1],
+                                                        klist,
+                                                        random_correct = True,
+                                                        jaccard = True,
+                                                        num_threads = threads,
+                                                        use_gpu = False)
+                raw_fit = fitKmerCurve(raw[0], klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
                 plot_fit(klist,
-                         raw,
+                         raw[0],
                          raw_fit,
-                         corrected,
+                         corrected[0],
                          corrected_fit,
                          dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
                          "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
@@ -572,36 +587,37 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
             jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
-            for plot_idx in range(number_plot_fits):
-                ref_example = sample(rNames, k=1)
-                query_example = sample(qNames, k=1)
-                raw = pp_sketchlib.queryDatabase(ref_db,
+            ref_examples = sample(rNames, k = number_plot_fits)
+            query_examples = sample(qNames, k = number_plot_fits)
+            raw = pp_sketchlib.queryDatabase(ref_db,
+                                                query_db,
+                                                ref_examples,
+                                                query_examples,
+                                                klist,
+                                                random_correct = False,
+                                                jaccard = True,
+                                                num_threads = threads,
+                                                use_gpu = False)
+            corrected = pp_sketchlib.queryDatabase(ref_db,
                                                     query_db,
-                                                    ref_example,
-                                                    query_example,
+                                                    ref_examples,
+                                                    query_examples,
                                                     klist,
-                                                    random_correct = False,
+                                                    random_correct = True,
                                                     jaccard = True,
                                                     num_threads = threads,
                                                     use_gpu = False)
-                corrected = pp_sketchlib.queryDatabase(ref_db,
-                                                        query_db,
-                                                        ref_example,
-                                                        query_example,
-                                                        klist,
-                                                        random_correct = True,
-                                                        jaccard = True,
-                                                        num_threads = threads,
-                                                        use_gpu = False)
-                raw_fit = fitKmerCurve(raw[0], klist, jacobian)
-                corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
+            for plot_idx in range(number_plot_fits):
+                raw_fit = fitKmerCurve(raw[plot_idx], klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected[plot_idx], klist, jacobian)
                 plot_fit(klist,
-                          raw[0],
+                          raw[plot_idx],
                           raw_fit,
-                          corrected[0],
+                          corrected[plot_idx],
                           corrected_fit,
                           queryPrefix + "/" + queryPrefix + "_fit_example_" + str(plot_idx + 1),
-                          "Example fit " + str(plot_idx + 1) + " - " +  ref_example[0] + " vs. " + query_example[0])
+                          "Example fit " + str(plot_idx + 1) + " - " +  ref_examples[plot_idx] + \
+                          " vs. " + query_examples[plot_idx])
 
     return distMat
 
