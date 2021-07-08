@@ -1137,7 +1137,27 @@ class LineageFit(ClusterFit):
         else:
             return (self.nn_dists[rank].data)
 
-    def extend(self, qqDists, qrDists):
+    def extend(self, qqDists, qrDists)
+        '''Update the sparse distance matrix of nearest neighbours after querying
+
+        Args:
+            qqDists (numpy or cupy ndarray)
+                Two column array of query-query distances
+            qqDists (numpy or cupy ndarray)
+                Two column array of reference-query distances
+        Returns:
+            y (list of tuples)
+                Edges to include in network
+        '''
+
+        # Check if model requires GPU
+        check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
+
+        # Convert data structures if using GPU
+        if self.use_gpu:
+            qqDists = cp.array(qqDists)
+            qrDists = cp.array(qrDists)
+    
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
