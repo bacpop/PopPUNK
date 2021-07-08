@@ -586,7 +586,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                                     jaccard = True,
                                                     num_threads = threads,
                                                     use_gpu = False)
-                corrected = pp_sketchlib.jaccardDist(ref_db,
+                corrected = pp_sketchlib.queryDatabase(ref_db,
                                                         query_db,
                                                         ref_example,
                                                         query_example,
