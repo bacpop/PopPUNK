@@ -1036,7 +1036,7 @@ class LineageFit(ClusterFit):
                     0,
                     rank
                 )
-            data = [epsilon if d < epsilon else d for d in data]
+            data[data < epsilon] = epsilon
             if self.use_gpu:
                 self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((cp.array(data),(cp.array(row),cp.array(col))),
                                                     shape=(sample_size, sample_size),
@@ -1150,7 +1150,7 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             # Add the matrices together to make a large square matrix
             if self.use_gpu:
-                full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
+                full_mat = cupyx.scipy.sparse.bmat([[self.nn_dists[rank],
                                                     qrRect.transpose()],
                                                     [qrRect,qqSquare]],
                                                     format = 'csr',
@@ -1169,7 +1169,7 @@ class LineageFit(ClusterFit):
             for row_idx in range(full_mat.shape[0]):
                 sample_row = full_mat.getrow(row_idx)
                 if self.use_gpu:
-                    dist_row, dist_col, dist = scipy.sparse.find(sample_row)
+                    dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
                 else:
                     dist_row, dist_col, dist = scipy.sparse.find(sample_row)
                 dist[dist < epsilon] = epsilon
