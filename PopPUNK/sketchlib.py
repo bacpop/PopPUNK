@@ -575,8 +575,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             for plot_idx in range(number_plot_fits):
                 ref_example = sample(rNames, k=1)
                 query_example = sample(qNames, k=1)
-                raw = np.zeros(len(klist))
-                corrected = np.zeros(len(klist))
                 raw = pp_sketchlib.queryDatabase(ref_db,
                                                     query_db,
                                                     ref_example,
@@ -595,15 +593,15 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                                         jaccard = True,
                                                         num_threads = threads,
                                                         use_gpu = False)
-                raw_fit = fitKmerCurve(raw, klist, jacobian)
-                corrected_fit = fitKmerCurve(corrected, klist, jacobian)
+                raw_fit = fitKmerCurve(raw[0], klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
                 plot_fit(klist,
-                          raw,
+                          raw[0],
                           raw_fit,
-                          corrected,
+                          corrected[0],
                           corrected_fit,
-                          dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
-                          "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
+                          queryPrefix + "/" + queryPrefix + "_fit_example_" + str(plot_idx + 1),
+                          "Example fit " + str(plot_idx + 1) + " - " +  ref_example[0] + " vs. " + query_example[0])
 
     return distMat
 
