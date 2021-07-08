@@ -234,7 +234,8 @@ def assign_query(dbFuncs,
                                                                        rNames + qNames,
                                                                        edge_list = assignment,
                                                                        weights = weights,
-                                                                       use_gpu = gpu_graph)
+                                                                       use_gpu = gpu_graph,
+                                                                       summarise = False)
 
                 isolateClustering[rank] = \
                     printClusters(genomeNetwork[rank],
