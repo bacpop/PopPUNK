@@ -585,7 +585,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                                     random_correct = False,
                                                     jaccard = True,
                                                     num_threads = threads,
-                                                    use_gpu = use_gpu)
+                                                    use_gpu = False)
                 corrected = pp_sketchlib.jaccardDist(ref_db,
                                                         query_db,
                                                         ref_example,
@@ -594,7 +594,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                                         random_correct = True,
                                                         jaccard = True,
                                                         num_threads = threads,
-                                                        use_gpu = use_gpu)
+                                                        use_gpu = False)
                 raw_fit = fitKmerCurve(raw, klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected, klist, jacobian)
                 plot_fit(klist,
