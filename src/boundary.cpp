@@ -136,7 +136,7 @@ edge_tuple generate_tuples(const std::vector<int> &assignments,
         for (long row_idx = 0; row_idx < n_rows; row_idx++) {
             if (assignments[row_idx] == within_label) {
                 unsigned long i = row_idx % num_ref + int_offset;
-                unsigned long j = static_cast<size_t>(row_idx / (float)num_ref + 0.001f) + num_ref + int_offset;
+                unsigned long j = row_idx / num_ref + num_ref + int_offset;
                 long min_node = std::min(i,j);
                 long max_node = std::max(i,j);
                 edge_vec.push_back(std::make_tuple(min_node, max_node));
