@@ -580,8 +580,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 for kidx, kmer in enumerate(klist):
                     raw[kidx] = pp_sketchlib.queryDatabase(ref_db,
                                                             query_db,
-                                                            ref_example[0],
-                                                            query_example[0],
+                                                            ref_example,
+                                                            query_example,
                                                             kmer,
                                                             random_correct = False,
                                                             jaccard = True,
@@ -589,8 +589,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                                             use_gpu = use_gpu)
                     corrected[kidx] = pp_sketchlib.jaccardDist(ref_db,
                                                                 query_db,
-                                                                ref_example[0],
-                                                                query_example[0],
+                                                                ref_example,
+                                                                query_example,
                                                                 kmer,
                                                                 random_correct = True,
                                                                 jaccard = True,
