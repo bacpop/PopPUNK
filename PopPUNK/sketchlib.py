@@ -578,8 +578,24 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 raw = np.zeros(len(klist))
                 corrected = np.zeros(len(klist))
                 for kidx, kmer in enumerate(klist):
-                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, ref_example, query_example, kmer, False)
-                    corrected[kidx] = pp_sketchlib.jaccardDist(ref_db, ref_example, query_example, kmer, True)
+                    raw[kidx] = pp_sketchlib.queryDatabase(ref_db,
+                                                            query_db,
+                                                            ref_example[0],
+                                                            query_example[0],
+                                                            kmer,
+                                                            random_correct = False,
+                                                            jaccard = True,
+                                                            num_threads = threads,
+                                                            use_gpu = use_gpu)
+                    corrected[kidx] = pp_sketchlib.jaccardDist(ref_db,
+                                                                query_db,
+                                                                ref_example[0],
+                                                                query_example[0],
+                                                                kmer,
+                                                                random_correct = True,
+                                                                jaccard = True,
+                                                                num_threads = threads,
+                                                                use_gpu = use_gpu)
                 raw_fit = fitKmerCurve(raw, klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected, klist, jacobian)
                 plot_fit(klist,
