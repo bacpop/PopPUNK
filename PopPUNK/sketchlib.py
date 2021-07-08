@@ -568,6 +568,27 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
         distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
                                              True, False, threads, use_gpu, deviceid)
+                                             
+        # option to plot core/accessory fits. Choose a random number from cmd line option
+        if number_plot_fits > 0:
+            jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+            for plot_idx in range(number_plot_fits):
+                ref_example = sample(rNames, k=1)
+                query_example = sample(qNames, k=1)
+                raw = np.zeros(len(klist))
+                corrected = np.zeros(len(klist))
+                for kidx, kmer in enumerate(klist):
+                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, ref_example, query_example, kmer, False)
+                    corrected[kidx] = pp_sketchlib.jaccardDist(ref_db, ref_example, query_example, kmer, True)
+                raw_fit = fitKmerCurve(raw, klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected, klist, jacobian)
+                plot_fit(klist,
+                          raw,
+                          raw_fit,
+                          corrected,
+                          corrected_fit,
+                          dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
+                          "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
 
     return distMat
 
