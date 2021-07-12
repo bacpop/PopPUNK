@@ -179,7 +179,7 @@ def generate_visualisations(query_db,
                             previous_clustering,
                             previous_query_clustering,
                             previous_mst,
-                            previous_distances
+                            previous_distances,
                             network_file,
                             gpu_graph,
                             info_csv,
@@ -268,11 +268,16 @@ def generate_visualisations(query_db,
     if tree == 'mst' and rank_fit is not None:
         # Set flag
         use_sparse = True
-        # Process recent and old distance matrix
+        # Read list of sequence names and sparse distance matrix
         rlist = read_rlist_from_distance_file(distances + '.pkl')
-        old_rlist = read_rlist_from_distance_file(previous_distances + '.pkl')
         sparse_mat = sparse.load_npz(rank_fit)
         combined_seq = rlist
+        # Check previous distances have been supplied if building on a previous MST
+        if args.previous_distances is not None:
+            old_rlist = read_rlist_from_distance_file(previous_distances + '.pkl')
+        elif args.previous_mst is not None:
+            sys.stderr.write('The prefix of the distance files used to create the previous MST'
+                             ' is needed to use the network')
     if tree == 'nj' or tree == 'both':
         use_dense = True
         # Process dense distance matrix
