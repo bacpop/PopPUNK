@@ -1036,12 +1036,15 @@ class LineageFit(ClusterFit):
                     0,
                     rank
                 )
-            data[data < epsilon] = epsilon
             if self.use_gpu:
-                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((cp.array(data),(cp.array(row),cp.array(col))),
+                data = cp.array(data)
+                data[data < epsilon] = epsilon
+                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data,(cp.array(row),cp.array(col))),
                                                     shape=(sample_size, sample_size),
                                                     dtype = X.dtype)
             else:
+                data = np.array(data)
+                data[data < epsilon] = epsilon
                 self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
                                                     shape=(sample_size, sample_size),
                                                     dtype = X.dtype)
