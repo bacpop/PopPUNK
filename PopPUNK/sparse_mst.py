@@ -73,6 +73,50 @@ def get_options():
 
     return parser.parse_args()
 
+def generate_mst_from_sparse_input(sparse_mat, distance_pkl, previous_mst = None, gpu_graph = False):
+    if gpu_graph:
+        # Load previous MST if specified
+        if previous_mst is not None:
+            extra_sources, extra_targets, extra_weights = network_to_edges(previous_mst,
+                                                                                  rlist,
+                                                                                  previous_pkl = distance_pkl,
+                                                                                  weights = True,
+                                                                                  use_gpu = use_gpu)
+            sources = np.append(sparse_mat.row, np.asarray(extra_sources))
+            targets = np.append(sparse_mat.col, np.asarray(extra_targets))
+            weights = np.append(sparse_mat.data, np.asarray(extra_weights))
+        else:
+            sources = sparse_mat.row
+            targets = sparse_mat.col
+            weights = sparse_mat.data
+        G_df = cudf.DataFrame({'source': sources,
+                               'destination': targets,
+                               'weights': weights})
+        G_cu = cugraph.Graph()
+        G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
+
+        # Generate minimum spanning tree
+        G = cugraph.minimum_spanning_tree(G_cu, weight='weights')
+    else:
+        # Load previous MST if specified
+        if previous_mst is not None:
+            G = construct_network_from_sparse_matrix(rlist,
+                                                        rlist,
+                                                        sparse_mat,
+                                                        summarise=False,
+                                                        previous_network = args.previous_mst)
+        else:
+            G = construct_network_from_sparse_matrix(rlist,
+                                                        rlist,
+                                                        sparse_mat,
+                                                        summarise=False)
+        sys.stderr.write("Calculating MST (CPU)\n")
+
+    G = generate_minimum_spanning_tree(G, args.gpu_graph)
+    
+    return(G)
+
+
 def main():
 
     # Check input args ok
@@ -109,46 +153,10 @@ def main():
     # Create network with sparse dists
     sys.stderr.write("Loading distances into graph\n")
     sparse_mat = sparse.load_npz(args.rank_fit)
-    if args.gpu_graph:
-        # Load previous MST if specified
-        if args.previous_mst is not None:
-            print("Previous: " + str(args.previous_mst))
-            extra_sources, extra_targets, extra_weights = network_to_edges(args.previous_mst,
-                                                                                  rlist,
-                                                                                  previous_pkl = args.distance_pkl,
-                                                                                  weights = True,
-                                                                                  use_gpu = use_gpu)
-            sources = np.append(sparse_mat.row, np.asarray(extra_sources))
-            targets = np.append(sparse_mat.col, np.asarray(extra_targets))
-            weights = np.append(sparse_mat.data, np.asarray(extra_weights))
-        else:
-            sources = sparse_mat.row
-            targets = sparse_mat.col
-            weights = sparse_mat.data
-        G_df = cudf.DataFrame({'source': sources,
-                               'destination': targets,
-                               'weights': weights})
-        G_cu = cugraph.Graph()
-        G_cu.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
-
-        # Generate minimum spanning tree
-        G = cugraph.minimum_spanning_tree(G_cu, weight='weights')
-    else:
-        # Load previous MST if specified
-        if args.previous_mst is not None:
-            G = construct_network_from_sparse_matrix(rlist,
-                                                        rlist,
-                                                        sparse_mat,
-                                                        summarise=False,
-                                                        previous_network = args.previous_mst)
-        else:
-            G = construct_network_from_sparse_matrix(rlist,
-                                                        rlist,
-                                                        sparse_mat,
-                                                        summarise=False)
-        sys.stderr.write("Calculating MST (CPU)\n")
-
-    G = generate_minimum_spanning_tree(G, args.gpu_graph)
+    G = generate_mst_from_sparse_input(sparse_mat,
+                                        distance_pkl,
+                                        previous_mst = args.previous_mst,
+                                        gpu_graph = args.gpu_graph)
 
     # Save output
     sys.stderr.write("Generating output\n")
