@@ -155,15 +155,6 @@ def get_options():
 
     return args
 
-def read_rlist_from_distance_pickle(fn):
-    with open(fn, 'rb') as pickle_file:
-        rlist, qlist, self = pickle.load(pickle_file)
-        if not self:
-            sys.stderr.write("Visualisation with a sparse matrix requires an all-v-all"
-                             " dataset\n")
-            sys.exit(1)
-    return rlist
-
 def generate_visualisations(query_db,
                             ref_db,
                             distances,
@@ -230,6 +221,7 @@ def generate_visualisations(query_db,
     from .utils import readIsolateTypeFromCsv
     from .utils import joinClusterDicts
     from .utils import listDistInts
+    from .utils import read_rlist_from_distance_pickle
 
     #******************************#
     #*                            *#
@@ -465,8 +457,8 @@ def generate_visualisations(query_db,
                     clustering_name = list(isolateClustering.keys())[0]
                 if use_sparse:
                     G = generate_mst_from_sparse_input(sparse_mat,
-                                                        old_rlist,
-                                                        distances + '.pkl',
+                                                        rlist,
+                                                        old_ids = old_rlist,
                                                         previous_mst = previous_mst,
                                                         gpu_graph = gpu_graph)
                 elif use_dense:

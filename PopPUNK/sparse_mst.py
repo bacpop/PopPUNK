@@ -53,6 +53,7 @@ def get_options():
     iGroup.add_argument('--previous-mst', help='Graph tool file from which previous MST can be loaded',
                                             default=None)
     iGroup.add_argument('--distance-pkl', help='Input pickle from distances, which contains sample names')
+    iGroup.add_argument('--previous-distance-pkl', help='Input pickle from distances, which contains sample names')
     iGroup.add_argument('--display-cluster', default=None, help='Column of clustering CSV to use for plotting')
 
     # output options
@@ -73,13 +74,13 @@ def get_options():
 
     return parser.parse_args()
 
-def generate_mst_from_sparse_input(sparse_mat, rlist, distance_pkl, previous_mst = None, gpu_graph = False):
+def generate_mst_from_sparse_input(sparse_mat, rlist, old_rlist = None, previous_mst = None, gpu_graph = False):
     if gpu_graph:
         # Load previous MST if specified
         if previous_mst is not None:
             extra_sources, extra_targets, extra_weights = network_to_edges(previous_mst,
                                                                                   rlist,
-                                                                                  previous_pkl = distance_pkl,
+                                                                                  old_ids = old_rlist,
                                                                                   weights = True,
                                                                                   use_gpu = gpu_graph)
             sources = np.append(sparse_mat.row, np.asarray(extra_sources))
@@ -132,14 +133,16 @@ def main():
                          " must be provided\n")
         sys.exit(1)
     elif os.path.exists(args.distance_pkl):
-        with open(args.distance_pkl, 'rb') as pickle_file:
-            rlist, qlist, self = pickle.load(pickle_file)
-            if not self:
-                sys.stderr.write("This script must be run on a full all-v-all model\n")
-                sys.exit(1)
+        rlist = read_rlist_from_distance_pickle(args.distance_pkl,
+                                                allow_non_self = False)
     else:
         sys.stderr.write("Cannot find file " + args.distance_pkl + "\n")
         sys.exit(1)
+
+    # Read in old sequence names
+    if args.previous_distance_pkl is not None and os.path.exists(args.previous_distance_pkl):
+        old_rlist = read_rlist_from_distance_pickle(args.previous_distance_pkl,
+                                                    allow_non_self = False)
 
     # Check output path ok
     if not os.path.isdir(args.output):
@@ -155,7 +158,7 @@ def main():
     sparse_mat = sparse.load_npz(args.rank_fit)
     G = generate_mst_from_sparse_input(sparse_mat,
                                         rlist,
-                                        distance_pkl,
+                                        old_rlist = old_rlist,
                                         previous_mst = args.previous_mst,
                                         gpu_graph = args.gpu_graph)
 

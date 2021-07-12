@@ -645,3 +645,23 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
         assert(rmm.is_initialized())
 
     return use_gpu
+
+def read_rlist_from_distance_pickle(fn, allow_non_self = True):
+    """Return the list of reference sequences from a distance pickle.
+
+    Args:
+        fn (str)
+            Name of distance pickle
+        allow_non_self (bool)
+            Whether non-self distance datasets are permissible
+    Returns:
+        rlist (list)
+            List of reference sequence names
+    """
+    with open(fn, 'rb') as pickle_file:
+        rlist, qlist, self = pickle.load(pickle_file)
+        if not allow_non_self and not self:
+            sys.stderr.write("Thi analysis requires an all-v-all"
+                             " distance dataset\n")
+            sys.exit(1)
+    return rlist
