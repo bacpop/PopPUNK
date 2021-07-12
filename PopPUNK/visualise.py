@@ -275,7 +275,7 @@ def generate_visualisations(query_db,
         elif previous_mst is not None:
             sys.stderr.write('The prefix of the distance files used to create the previous MST'
                              ' is needed to use the network')
-    if tree == 'nj' or tree == 'both':
+    if tree == 'nj' or tree == 'both' or microreact:
         use_dense = True
         # Process dense distance matrix
         rlist, qlist, self, complete_distMat = readPickle(distances)
