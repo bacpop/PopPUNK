@@ -546,8 +546,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 corrected = np.zeros(len(klist))
                 raw = pp_sketchlib.queryDatabase(ref_db,
                                                     ref_db,
-                                                    example[0],
-                                                    example[1],
+                                                    [example[0]],
+                                                    [example[1]],
                                                     klist,
                                                     random_correct = False,
                                                     jaccard = True,
@@ -555,8 +555,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                                                     use_gpu = False)
                 corrected = pp_sketchlib.queryDatabase(ref_db,
                                                         ref_db,
-                                                        example[0],
-                                                        example[1],
+                                                        [example[0]],
+                                                        [example[1]],
                                                         klist,
                                                         random_correct = True,
                                                         jaccard = True,
