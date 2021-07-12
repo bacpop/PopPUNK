@@ -81,7 +81,7 @@ def generate_mst_from_sparse_input(sparse_mat, rlist, distance_pkl, previous_mst
                                                                                   rlist,
                                                                                   previous_pkl = distance_pkl,
                                                                                   weights = True,
-                                                                                  use_gpu = use_gpu)
+                                                                                  use_gpu = gpu_graph)
             sources = np.append(sparse_mat.row, np.asarray(extra_sources))
             targets = np.append(sparse_mat.col, np.asarray(extra_targets))
             weights = np.append(sparse_mat.data, np.asarray(extra_weights))
@@ -104,7 +104,7 @@ def generate_mst_from_sparse_input(sparse_mat, rlist, distance_pkl, previous_mst
                                                         rlist,
                                                         sparse_mat,
                                                         summarise=False,
-                                                        previous_network = args.previous_mst)
+                                                        previous_network = previous_mst)
         else:
             G = construct_network_from_sparse_matrix(rlist,
                                                         rlist,
