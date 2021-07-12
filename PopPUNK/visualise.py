@@ -80,6 +80,11 @@ def get_options():
                         help='File containing previous minimum spanning tree',
                         default=None,
                         type = str)
+    iGroup.add_argument('--previous-distances',
+                        help='Prefix of distance files used to generate the previous '
+                        'minimum spanning tree',
+                        default=None,
+                        type = str)
     iGroup.add_argument('--network-file',
                         help='Specify a file to use for any graph visualisations',
                         type = str)
