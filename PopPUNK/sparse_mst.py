@@ -73,7 +73,7 @@ def get_options():
 
     return parser.parse_args()
 
-def generate_mst_from_sparse_input(sparse_mat, distance_pkl, previous_mst = None, gpu_graph = False):
+def generate_mst_from_sparse_input(sparse_mat, rlist, distance_pkl, previous_mst = None, gpu_graph = False):
     if gpu_graph:
         # Load previous MST if specified
         if previous_mst is not None:
@@ -154,6 +154,7 @@ def main():
     sys.stderr.write("Loading distances into graph\n")
     sparse_mat = sparse.load_npz(args.rank_fit)
     G = generate_mst_from_sparse_input(sparse_mat,
+                                        rlist,
                                         distance_pkl,
                                         previous_mst = args.previous_mst,
                                         gpu_graph = args.gpu_graph)

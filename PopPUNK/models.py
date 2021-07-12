@@ -1137,7 +1137,7 @@ class LineageFit(ClusterFit):
         else:
             return (self.nn_dists[rank].data)
 
-    def extend(self, qqDists, qrDists)
+    def extend(self, qqDists, qrDists):
         '''Update the sparse distance matrix of nearest neighbours after querying
 
         Args:

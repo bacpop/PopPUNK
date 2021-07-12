@@ -5,9 +5,10 @@
 # universal
 import os
 import sys
+import pickle
 # additional
 import numpy as np
-import scipy.sparse
+from scipy import sparse
 
 try:
     import cudf
@@ -254,7 +255,7 @@ def generate_visualisations(query_db,
     # Determine whether to use sparse distances
     use_sparse = False
     use_dense = False
-    if args.tree == 'mst' and args.rank_fit is not None:
+    if tree == 'mst' and rank_fit is not None:
         # Set flag
         use_sparse = True
         # Process only sparse distances
@@ -264,9 +265,9 @@ def generate_visualisations(query_db,
                 sys.stderr.write("Visualisation with a sparse matrix requires an all-v-all"
                                  " dataset\n")
                 sys.exit(1)
-        sparse_mat = sparse.load_npz(args.rank_fit)
+        sparse_mat = sparse.load_npz(rank_fit)
         combined_seq = rlist
-    if args.tree == 'nj' or args.tree == 'both':
+    if tree == 'nj' or tree == 'both':
         use_dense = True
         # Process dense distance matrix
         rlist, qlist, self, complete_distMat = readPickle(distances)
@@ -447,6 +448,7 @@ def generate_visualisations(query_db,
                     clustering_name = list(isolateClustering.keys())[0]
                 if use_sparse:
                     G = generate_mst_from_sparse_input(sparse_mat,
+                                                        rlist,
                                                         distances + '.pkl',
                                                         previous_mst = previous_mst,
                                                         gpu_graph = gpu_graph)
@@ -598,6 +600,7 @@ def main():
                             args.previous_clustering,
                             args.previous_query_clustering,
                             args.previous_mst,
+                            args.previous_distances,
                             args.network_file,
                             args.gpu_graph,
                             args.info_csv,
