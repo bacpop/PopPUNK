@@ -113,7 +113,7 @@ def generate_mst_from_sparse_input(sparse_mat, rlist, old_rlist = None, previous
                                                         summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
 
-    G = generate_minimum_spanning_tree(G, args.gpu_graph)
+    G = generate_minimum_spanning_tree(G, gpu_graph)
     
     return(G)
 
