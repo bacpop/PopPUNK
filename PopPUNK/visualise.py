@@ -150,6 +150,15 @@ def get_options():
 
     return args
 
+def read_rlist_from_distance_pickle(fn):
+    with open(fn, 'rb') as pickle_file:
+        rlist, qlist, self = pickle.load(pickle_file)
+        if not self:
+            sys.stderr.write("Visualisation with a sparse matrix requires an all-v-all"
+                             " dataset\n")
+            sys.exit(1)
+    return rlist
+
 def generate_visualisations(query_db,
                             ref_db,
                             distances,
@@ -170,6 +179,7 @@ def generate_visualisations(query_db,
                             previous_clustering,
                             previous_query_clustering,
                             previous_mst,
+                            previous_distances
                             network_file,
                             gpu_graph,
                             info_csv,
@@ -258,13 +268,9 @@ def generate_visualisations(query_db,
     if tree == 'mst' and rank_fit is not None:
         # Set flag
         use_sparse = True
-        # Process only sparse distances
-        with open(distances + '.pkl', 'rb') as pickle_file:
-            rlist, qlist, self = pickle.load(pickle_file)
-            if not self:
-                sys.stderr.write("Visualisation with a sparse matrix requires an all-v-all"
-                                 " dataset\n")
-                sys.exit(1)
+        # Process recent and old distance matrix
+        rlist = read_rlist_from_distance_file(distances + '.pkl')
+        old_rlist = read_rlist_from_distance_file(previous_distances + '.pkl')
         sparse_mat = sparse.load_npz(rank_fit)
         combined_seq = rlist
     if tree == 'nj' or tree == 'both':
@@ -448,7 +454,7 @@ def generate_visualisations(query_db,
                     clustering_name = list(isolateClustering.keys())[0]
                 if use_sparse:
                     G = generate_mst_from_sparse_input(sparse_mat,
-                                                        rlist,
+                                                        old_rlist,
                                                         distances + '.pkl',
                                                         previous_mst = previous_mst,
                                                         gpu_graph = gpu_graph)
