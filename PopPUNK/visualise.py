@@ -458,7 +458,7 @@ def generate_visualisations(query_db,
                 if use_sparse:
                     G = generate_mst_from_sparse_input(sparse_mat,
                                                         rlist,
-                                                        old_ids = old_rlist,
+                                                        old_rlist = old_rlist,
                                                         previous_mst = previous_mst,
                                                         gpu_graph = gpu_graph)
                 elif use_dense:
