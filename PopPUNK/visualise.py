@@ -278,9 +278,9 @@ def generate_visualisations(query_db,
         sparse_mat = sparse.load_npz(rank_fit)
         combined_seq = rlist
         # Check previous distances have been supplied if building on a previous MST
-        if args.previous_distances is not None:
+        if previous_distances is not None:
             old_rlist = read_rlist_from_distance_pickle(previous_distances + '.pkl')
-        elif args.previous_mst is not None:
+        elif previous_mst is not None:
             sys.stderr.write('The prefix of the distance files used to create the previous MST'
                              ' is needed to use the network')
     if tree == 'nj' or tree == 'both':
