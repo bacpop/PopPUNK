@@ -527,7 +527,8 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
                 sys.stderr.write('Loaded network does not have edge weights; try a different '
                                     'network or turn off graph weights\n')
                 exit(1)
-            edge_weights = G_df['weight'].to_arrow().to_pylist()
+            G_df.columns = ['weights','src','dst'] # This appears to be a bug in cugraph v0.19
+            edge_weights = G_df['weights'].to_arrow().to_pylist()
         G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         old_source_ids = G_df['source'].to_arrow().to_pylist()
         old_target_ids = G_df['destination'].to_arrow().to_pylist()
