@@ -145,12 +145,12 @@ def load_network_file(fn, use_gpu = False):
     # Load the network from the specified file
     if use_gpu:
         G_df = cudf.read_csv(fn, compression = 'gzip')
+        if 'src' in G_df.columns:
+            G_df.rename(columns={'source': 'src','destination': 'dst'}, inplace=True)
         genomeNetwork = cugraph.Graph()
         if 'weights' in G_df.columns:
-            G_df.columns = ['source','destination','weights']
             genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
-            G_df.columns = ['source','destination']
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
         sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_vertices()) + " samples\n")
     else:
@@ -527,7 +527,8 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
                 sys.stderr.write('Loaded network does not have edge weights; try a different '
                                     'network or turn off graph weights\n')
                 exit(1)
-            G_df.columns = ['weights','src','dst'] # This appears to be a bug in cugraph v0.19
+            if 'src' in G_df.columns:
+                G_df.rename(columns={'source': 'src','destination': 'dst'}, inplace=True)
             edge_weights = G_df['weights'].to_arrow().to_pylist()
         G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         old_source_ids = G_df['source'].astype('int32').to_arrow().to_pylist()
