@@ -34,9 +34,12 @@ from .network import generate_minimum_spanning_tree
 from .network import construct_network_from_sparse_matrix
 
 from .plot import drawMST
+
 from .trees import mst_to_phylogeny, write_tree
+
 from .utils import setGtThreads, readIsolateTypeFromCsv
 from .utils import check_and_set_gpu
+from .utils import read_rlist_from_distance_pickle
 
 # command line parsing
 def get_options():
