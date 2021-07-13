@@ -267,7 +267,7 @@ if __name__ == "__main__":
             exit(1)
     elif args.network.endswith('.npz'):
         sparse_mat = sparse.load_npz(args.network)
-        G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
+        G = sparse_mat_to_network(sparse_mat, rlist, use_gpu = use_gpu)
     else:
         sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
         exit(1)
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     # Analyse network
     if use_gpu:
         component_assignments_df = cugraph.components.connectivity.connected_components(G)
-        component_counts_df = component_assignments_df.groupby('labels')['labels'].count()
+        component_counts_df = component_assignments_df.groupby('labels')['vertex'].count()
         component_counts_df.name = 'component_count'
         component_information_df = component_assignments_df.merge(component_counts_df, on = ['labels'], how = 'left')
         outdegree_df = G.out_degree()
