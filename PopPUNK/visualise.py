@@ -263,7 +263,7 @@ def generate_visualisations(query_db,
     # Determine whether to use sparse distances
     use_sparse = False
     use_dense = False
-    if (tree == 'mst' or cytoscape) and rank_fit is not None:
+    if (tree == 'mst' or tree == 'both' or cytoscape) and rank_fit is not None:
         # Set flag
         use_sparse = True
         # Read list of sequence names and sparse distance matrix
@@ -271,6 +271,7 @@ def generate_visualisations(query_db,
         sparse_mat = sparse.load_npz(rank_fit)
         combined_seq = rlist
         # Check previous distances have been supplied if building on a previous MST
+        old_rlist = None
         if previous_distances is not None:
             old_rlist = read_rlist_from_distance_pickle(previous_distances + '.pkl')
         elif previous_mst is not None:
