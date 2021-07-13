@@ -28,6 +28,26 @@ def setGtThreads(threads):
         sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
         sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
 
+def read_rlist_from_distance_pickle(fn, allow_non_self = True):
+    """Return the list of reference sequences from a distance pickle.
+
+    Args:
+        fn (str)
+            Name of distance pickle
+        allow_non_self (bool)
+            Whether non-self distance datasets are permissible
+    Returns:
+        rlist (list)
+            List of reference sequence names
+    """
+    with open(fn, 'rb') as pickle_file:
+        rlist, qlist, self = pickle.load(pickle_file)
+        if not allow_non_self and not self:
+            sys.stderr.write("Thi analysis requires an all-v-all"
+                             " distance dataset\n")
+            sys.exit(1)
+    return rlist
+
 def load_network_file(fn, use_gpu = False):
     """Load the network based on input options
 
@@ -136,12 +156,15 @@ def get_options():
                                      prog='poppunk_db_info')
 
     # input options
-    parser.add_argument('--db',
+    parser.add_argument('--ref-db',
                         required = True,
-                        help='Database file (.h5)')
+                        help='PopPUNK database directory')
     parser.add_argument('--network',
                         required = True,
                         help='Network or lineage fit file for analysis')
+    parser.add_argument('--distances',
+                        default = None,
+                        help='Prefix of distance files')
     parser.add_argument('--threads',
                         default = 1,
                         help='Number of cores to use in analysis')
@@ -168,7 +191,8 @@ if __name__ == "__main__":
     setGtThreads(args.threads)
 
     # Open and process sequence database
-    ref_db = h5py.File(args.db, 'r')
+    h5_fn = os.join(args.ref_db,os.path.basename(args.ref_db) + '.h5')
+    ref_db = h5py.File(h5_fn, 'r')
     sample_names = list(ref_db['sketches'].keys())
     
     sample_sequence_length = {}
@@ -179,7 +203,13 @@ if __name__ == "__main__":
         sample_base_frequencies[sample_name] = ref_db['sketches/' + sample_name].attrs['base_freq']
         sample_sequence_length[sample_name] = ref_db['sketches/' + sample_name].attrs['length']
         sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
-        
+    
+    # Process distance file
+    distance_pkl = os.join(args.ref_db,os.path.basename(args.ref_db) + '.dists.pkl')
+    if args.distances is not None:
+        distance_pkl = args.distances + '.dists.pkl'
+    rlist = read_rlist_from_distance_pickle(distance_pkl)
+    
     # Open network file
     if args.network.endswith('.gt'):
         G = load_network_file(args.network, use_gpu = False)
@@ -210,7 +240,7 @@ if __name__ == "__main__":
         graph_properties_df['labels'] = gt.label_components(G)[0].a
         graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
         graph_properties_df['component_count'] = component_assignments.groupby('partition')['vertex'].transform('count')
-    graph_properties_df['vertex'] = sample_names
+    graph_properties_df['vertex'] = rlist
     
     # Merge data and print output
     with open(args.output,'w') as out_file:
