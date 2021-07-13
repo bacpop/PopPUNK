@@ -146,7 +146,7 @@ def load_network_file(fn, use_gpu = False):
     if use_gpu:
         G_df = cudf.read_csv(fn, compression = 'gzip')
         if 'src' in G_df.columns:
-            G_df.rename(columns={'source': 'src','destination': 'dst'}, inplace=True)
+            G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         genomeNetwork = cugraph.Graph()
         if 'weights' in G_df.columns:
             G_df = G_df['source','destination','weights']
