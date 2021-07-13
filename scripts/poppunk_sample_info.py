@@ -30,6 +30,48 @@ def setGtThreads(threads):
         sys.stderr.write('\nGraph-tools OpenMP parallelisation enabled:')
         sys.stderr.write(' with ' + str(gt.openmp_get_num_threads()) + ' threads\n')
 
+def add_self_loop(G_df, seq_num, weights = False, renumber = True):
+    """Adds self-loop to cugraph graph to ensure all nodes are included in
+    the graph, even if singletons.
+
+    Args:
+        G_df (cudf)
+            cudf data frame containing edge list
+        seq_num (int)
+            The expected number of nodes in the graph
+        renumber (bool)
+            Whether to renumber the vertices when added to the graph
+
+    Returns:
+        G_new (graph)
+            Dictionary of cluster assignments (keys are sequence names)
+    """
+    # use self-loop to ensure all nodes are present
+    min_in_df = np.amin([G_df['source'].min(), G_df['destination'].min()])
+    if min_in_df.item() > 0:
+        G_self_loop = cudf.DataFrame()
+        G_self_loop['source'] = [0]
+        G_self_loop['destination'] = [0]
+        if weights:
+            G_self_loop['weights'] = 0.0
+        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+    max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+    if max_in_df.item() != seq_num:
+        G_self_loop = cudf.DataFrame()
+        G_self_loop['source'] = [seq_num]
+        G_self_loop['destination'] = [seq_num]
+        if weights:
+            G_self_loop['weights'] = 0.0
+        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+    # Construct graph
+    G_new = cugraph.Graph()
+    if weights:
+        G_new.from_cudf_edgelist(G_df, edge_attr = 'weights', renumber = renumber)
+    else:
+        G_new.from_cudf_edgelist(G_df, renumber = renumber)
+    return G_new
+
+
 def read_rlist_from_distance_pickle(fn, allow_non_self = True):
     """Return the list of reference sequences from a distance pickle.
 
