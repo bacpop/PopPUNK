@@ -1881,7 +1881,20 @@ def cugraph_to_graph_tool(G, rlist):
     return G
 
 def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
+    """Generate a network from a lineage rank fit
 
+    Args:
+       sparse_mat (scipy or cupyx sparse matrix)
+         Sparse matrix of kNN from lineage fit
+       rlist (list)
+         List of sequence names
+       use_gpu (bool)
+         Whether GPU libraries should be used
+
+    Returns:
+      G (network)
+          Graph tool or cugraph network
+    """
     if use_gpu:
         G_df = cudf.DataFrame(columns = ['source','destination','weights'])
         G_df['source'] = sparse_mat.row
