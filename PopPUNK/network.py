@@ -892,7 +892,6 @@ def construct_network_from_df(rlist, qlist, G_df,
         # direct conversion
         # ensure the highest-integer node is included in the edge list
         # by adding a self-loop if necessary; see https://github.com/rapidsai/cugraph/issues/1206
-        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(vertex_labels)-1
         use_weights = False
         if weights:
@@ -1025,7 +1024,6 @@ def construct_dense_weighted_network(rlist, distMat = None, weights_type = None,
         G_df['source'] = [edge_list[0][0]]
         G_df['destination'] = [edge_list[0][1]]
         G_df['weights'] = weights
-        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
         max_in_vertex_labels = len(vertex_labels)-1
         G = add_self_loop(G_df, max_in_vertex_labels, weights = True, renumber = False)
     else:
@@ -1734,7 +1732,6 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             # MST - check cuDF implementation is the same
             max_indices = mst_df.groupby(['labels'])['degree'].idxmax()
             seed_vertices = mst_df.iloc[max_indices]['vertex']
-            num_components = seed_vertices.size()
     else:
         component_assignments, component_frequencies = gt.label_components(mst_network)
         num_components = len(component_frequencies)
@@ -1758,9 +1755,9 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             # so no extra edges can be retrieved from the graph
             G_df = G.view_edge_list()
             max_weight = G_df['weights'].max()
-            first_seed = seed_vertices[0]
+            first_seed = seed_vertices.iloc[0]
             G_seed_link_df = cudf.DataFrame()
-            G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.size()]
+            G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.size]
             G_seed_link_df['src'] = seed_vertices.iloc[0]
             G_seed_link_df['weights'] = seed_vertices.iloc[0]
             G_df = G_df.append(G_seed_link_df)
@@ -1785,7 +1782,9 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
 
         # Construct graph
         if from_cugraph:
-            mst_network = G_df.from_cudf_edgelist(edge_attr='weights', renumber=False)
+            mst_network = cugraph.Graph()
+            G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
+            mst_network.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
             seed_G = gt.Graph(directed = False)
             seed_G.add_vertex(len(seed_vertex))
@@ -1888,8 +1887,7 @@ def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
         G_df['source'] = sparse_mat.row
         G_df['destination'] = sparse_mat.col
         G_df['weights'] = sparse_mat.data
-        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
-        max_in_vertex_labels = len(vertex_labels)-1
+        max_in_vertex_labels = len(rlist)-1
         G = add_self_loop(G_df, max_in_vertex_labels, weights = True, renumber = False)
     else:
         connections = []
