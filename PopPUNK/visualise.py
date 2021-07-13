@@ -196,6 +196,7 @@ def generate_visualisations(query_db,
     from .network import load_network_file
     from .network import cugraph_to_graph_tool
     from .network import save_network
+    from .network import sparse_mat_to_network
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -262,7 +263,7 @@ def generate_visualisations(query_db,
     # Determine whether to use sparse distances
     use_sparse = False
     use_dense = False
-    if tree == 'mst' and rank_fit is not None:
+    if (tree == 'mst' or cytoscape) and rank_fit is not None:
         # Set flag
         use_sparse = True
         # Read list of sequence names and sparse distance matrix
@@ -566,10 +567,13 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
-        if network_file is None:
-            sys.stderr.write('Cytoscape output requires a network file is provided\n')
+        if network_file is not None:
+            genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
+        elif:
+            genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
+        else:
+            sys.stderr.write('Cytoscape output requires a network file or lineage rank fit is provided\n')
             sys.exit(1)
-        genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
         if gpu_graph:
             genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(combined_seq))
         outputsForCytoscape(genomeNetwork,

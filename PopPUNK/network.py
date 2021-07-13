@@ -1880,3 +1880,25 @@ def cugraph_to_graph_tool(G, rlist):
                                 vals = rlist)
     G.vp.id = vid
     return G
+
+def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
+
+    if use_gpu:
+        G_df = cudf.DataFrame(columns = ['source','destination','weights'])
+        G_df['source'] = sparse_mat.row
+        G_df['destination'] = sparse_mat.col
+        G_df['weights'] = sparse_mat.data
+        max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
+        max_in_vertex_labels = len(vertex_labels)-1
+        G = add_self_loop(G_df, max_in_vertex_labels, weights = True, renumber = False)
+    else:
+        connections = []
+        for (src,dst) in zip(sparse_mat.row,sparse_mat.col):
+            connections.append(src,dst)
+        G = construct_network_from_edge_list(rlist,
+                                               rlist,
+                                               connections,
+                                               weights = sparse_mat.data,
+                                               summarise=False)
+
+    return G
