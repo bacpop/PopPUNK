@@ -149,6 +149,7 @@ def load_network_file(fn, use_gpu = False):
             G_df.rename(columns={'source': 'src','destination': 'dst'}, inplace=True)
         genomeNetwork = cugraph.Graph()
         if 'weights' in G_df.columns:
+            G_df = G_df['source','destination','weights']
             genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
