@@ -13,7 +13,7 @@ try:
     import cupyx
     import cugraph
     import cudf
-    import cupy as cp
+    import cupy
     from numba import cuda
     import rmm
     gpu_lib = True
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     args = get_options()
 
     # Check whether GPU libraries can be loaded
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False)
+    use_gpu = check_and_set_gpu(args.use_gpu, gpu_lib, quit_on_fail = False)
 
     # Set threads for graph-tool
     setGtThreads(args.threads)
@@ -199,14 +199,16 @@ if __name__ == "__main__":
     # Analyse network
     if use_gpu:
         component_assignments_df = cugraph.components.connectivity.connected_components(G)
-        component_assignments_df['component_count'] = component_assignments.groupby('partition')['vertex'].transform('count')
-        outdegree_df = cugraph.out_degree(G)
-        graph_properties_df = component_assignments_df.merge(outdegree_df, on = ['vertex'])
+        component_counts_df = component_assignments_df.groupby('labels')['labels'].count()
+        component_counts_df.name = 'component_count'
+        component_information_df = component_assignments_df.merge(component_counts_df, on = ['labels'], how = 'left')
+        outdegree_df = G.out_degree()
+        graph_properties_df = component_information_df.merge(outdegree_df, on = ['vertex'])
     else:
         graph_properties_df = pd.DataFrame()
         graph_properties_df['vertex'] = np.arange(len(rlist))
-        graph_properties_df['partition'] = gt.label_components(G)[0].a
-        graph_properties_df['outdegree'] = G.get_out_degrees(G.get_vertices())
+        graph_properties_df['labels'] = gt.label_components(G)[0].a
+        graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
         graph_properties_df['component_count'] = component_assignments.groupby('partition')['vertex'].transform('count')
     graph_properties_df['vertex'] = sample_names
     
@@ -214,12 +216,13 @@ if __name__ == "__main__":
     with open(args.output,'w') as out_file:
         out_file.write('Sample,Length,Missing_bases,Frequency_A,Frequency_C,Frequency_G,Frequency_T,Component,Component_size,Node_degree\n')
         for i,sample_name in enumerate(sample_names):
-            out_file.write(sample_name + ',' + str(sample_sequence_length[sample_name]) + ',' + str(sample_missing_bases[sample_name]) + ','
+            out_file.write(sample_name + ',' + str(sample_sequence_length[sample_name]) + ',' + str(sample_missing_bases[sample_name]) + ',')
             for frequency in sample_base_frequencies[sample_name]:
-                out_file.write(str(frequency) + ','
-            out_file.write(str(graph_properties_df['partition'].where(graph_properties_df['vertex']==sample_name)))
-            out_file.write(str(graph_properties_df['partition'].where(graph_properties_df['vertex']==sample_name)))
-            out_file.write(str(graph_properties_df['outdegree'].where(graph_properties_df['vertex']==sample_name)))
+                out_file.write(str(frequency) + ',')
+            graph_properties_row = graph_properties_df.iloc[graph_properties_df['vertex']==sample_name,:]
+            out_file.write(str(graph_properties_row['labels'].values[0]) + ',')
+            out_file.write(str(graph_properties_row['component_count'].values[0]) + ',')
+            out_file.write(str(graph_properties_row['degree'].values[0]))
             out_file.write("\n")
 
     sys.exit(0)
