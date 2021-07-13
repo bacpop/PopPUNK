@@ -502,19 +502,16 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
 
     # write graph file
     if suffix is None:
-        graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
+        suffix = '_cytoscape'
     else:
-        graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
-    G.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
+        suffix = suffix + '_cytoscape'
+    save_network(G, prefix = outPrefix, suffix = suffix + '_cytoscape', use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
         for n,v in enumerate(G_mst.vertices()):
             G_mst.vp.id[v] = isolate_labels[n]
-        if suffix is not None:
-            graph_suffix = '_' + suffix + '_cytoscape_mst'
-        else:
-            graph_suffix = '_cytoscape_mst'
+        suffix = suffix + '_mst'
         save_network(G_mst, prefix = outPrefix, suffix = graph_suffix, use_graphml = True)
 
     # Write CSV of metadata
