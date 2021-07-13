@@ -2,8 +2,10 @@
 # vim: set fileencoding=<utf-8> :
 # Copyright 2018-2020 John Lees and Nick Croucher
 
+import os
 import sys
 import argparse
+import pickle
 import h5py
 import pandas as pd
 from scipy import sparse
@@ -191,7 +193,7 @@ if __name__ == "__main__":
     setGtThreads(args.threads)
 
     # Open and process sequence database
-    h5_fn = os.join(args.ref_db,os.path.basename(args.ref_db) + '.h5')
+    h5_fn = os.path.join(args.ref_db,os.path.basename(args.ref_db) + '.h5')
     ref_db = h5py.File(h5_fn, 'r')
     sample_names = list(ref_db['sketches'].keys())
     
@@ -205,7 +207,7 @@ if __name__ == "__main__":
         sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
     
     # Process distance file
-    distance_pkl = os.join(args.ref_db,os.path.basename(args.ref_db) + '.dists.pkl')
+    distance_pkl = os.path.join(args.ref_db,os.path.basename(args.ref_db) + '.dists.pkl')
     if args.distances is not None:
         distance_pkl = args.distances + '.dists.pkl'
     rlist = read_rlist_from_distance_pickle(distance_pkl)
