@@ -478,11 +478,11 @@ def generate_visualisations(query_db,
                                                             weights_type = mst_distances,
                                                             use_gpu = gpu_graph,
                                                             summarise = False)
+                    if gpu_graph:
+                        G = cugraph.minimum_spanning_tree(G, weight='weights')
                 else:
                     sys.stderr.write("Need either sparse or dense distances matrix to construct MST\n")
                     exit(1)
-                if gpu_graph:
-                    G = cugraph.minimum_spanning_tree(G, weight='weights')
                 mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
                 del G
                 # save outputs
