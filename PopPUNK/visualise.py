@@ -570,7 +570,7 @@ def generate_visualisations(query_db,
         sys.stderr.write("Writing cytoscape output\n")
         if network_file is not None:
             genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
-        elif:
+        elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit is provided\n')
