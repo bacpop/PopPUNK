@@ -143,6 +143,7 @@ def main():
         sys.exit(1)
 
     # Read in old sequence names
+    old_rlist = None
     if args.previous_distance_pkl is not None and os.path.exists(args.previous_distance_pkl):
         old_rlist = read_rlist_from_distance_pickle(args.previous_distance_pkl,
                                                     allow_non_self = False)
