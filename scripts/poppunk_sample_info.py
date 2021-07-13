@@ -111,12 +111,12 @@ def load_network_file(fn, use_gpu = False):
     # Load the network from the specified file
     if use_gpu:
         G_df = cudf.read_csv(fn, compression = 'gzip')
+        if 'src' in G_df.columns:
+            G_df.rename(columns={'source': 'src','destination': 'dst'}, inplace=True)
         genomeNetwork = cugraph.Graph()
         if 'weights' in G_df.columns:
-            G_df.columns = ['source','destination','weights']
             genomeNetwork.from_cudf_edgelist(G_df, edge_attr='weights', renumber=False)
         else:
-            G_df.columns = ['source','destination']
             genomeNetwork.from_cudf_edgelist(G_df,renumber=False)
         sys.stderr.write("Network loaded: " + str(genomeNetwork.number_of_vertices()) + " samples\n")
     else:
