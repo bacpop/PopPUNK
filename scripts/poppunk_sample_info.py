@@ -73,26 +73,6 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
     return G_new
 
 
-def read_rlist_from_distance_pickle(fn, allow_non_self = True):
-    """Return the list of reference sequences from a distance pickle.
-
-    Args:
-        fn (str)
-            Name of distance pickle
-        allow_non_self (bool)
-            Whether non-self distance datasets are permissible
-    Returns:
-        rlist (list)
-            List of reference sequence names
-    """
-    with open(fn, 'rb') as pickle_file:
-        rlist, qlist, self = pickle.load(pickle_file)
-        if not allow_non_self and not self:
-            sys.stderr.write("Thi analysis requires an all-v-all"
-                             " distance dataset\n")
-            sys.exit(1)
-    return rlist
-
 def load_network_file(fn, use_gpu = False):
     """Load the network based on input options
 
@@ -208,9 +188,6 @@ def get_options():
     parser.add_argument('--network',
                         required = True,
                         help='Network or lineage fit file for analysis')
-    parser.add_argument('--distances',
-                        default = None,
-                        help='Prefix of distance files')
     parser.add_argument('--threads',
                         default = 1,
                         help='Number of cores to use in analysis')
@@ -250,12 +227,6 @@ if __name__ == "__main__":
         sample_sequence_length[sample_name] = ref_db['sketches/' + sample_name].attrs['length']
         sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
     
-    # Process distance file
-    distance_pkl = os.path.join(args.ref_db,os.path.basename(args.ref_db) + '.dists.pkl')
-    if args.distances is not None:
-        distance_pkl = args.distances + '.dists.pkl'
-    rlist = read_rlist_from_distance_pickle(distance_pkl)
-    
     # Open network file
     if args.network.endswith('.gt'):
         G = load_network_file(args.network, use_gpu = False)
@@ -267,7 +238,7 @@ if __name__ == "__main__":
             exit(1)
     elif args.network.endswith('.npz'):
         sparse_mat = sparse.load_npz(args.network)
-        G = sparse_mat_to_network(sparse_mat, rlist, use_gpu = use_gpu)
+        G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
     else:
         sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
         exit(1)
@@ -282,12 +253,12 @@ if __name__ == "__main__":
         graph_properties_df = component_information_df.merge(outdegree_df, on = ['vertex'])
     else:
         graph_properties_df = pd.DataFrame()
-        graph_properties_df['vertex'] = np.arange(len(rlist))
+        graph_properties_df['vertex'] = np.arange(len(sample_names))
         graph_properties_df['labels'] = gt.label_components(G)[0].a
         graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
         graph_properties_df['component_count'] = component_assignments.groupby('partition')['vertex'].transform('count')
     graph_properties_df = graph_properties_df.sort_values('vertex', axis = 0) # inplace not implemented for cudf
-    graph_properties_df['vertex'] = rlist
+    graph_properties_df['vertex'] = sample_names
     
     # Merge data and print output
     with open(args.output,'w') as out_file:
