@@ -286,11 +286,12 @@ if __name__ == "__main__":
         graph_properties_df['labels'] = gt.label_components(G)[0].a
         graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
         graph_properties_df['component_count'] = component_assignments.groupby('partition')['vertex'].transform('count')
+    graph_properties_df = graph_properties_df.sort_values('vertex', axis = 0) # inplace not implemented for cudf
     graph_properties_df['vertex'] = rlist
     
     # Merge data and print output
     with open(args.output,'w') as out_file:
-        out_file.write('Sample,Length,Missing_bases,Frequency_A,Frequency_C,Frequency_G,Frequency_T,Component,Component_size,Node_degree\n')
+        out_file.write('Sample,Length,Missing_bases,Frequency_A,Frequency_C,Frequency_G,Frequency_T,Component_label,Component_size,Node_degree\n')
         for i,sample_name in enumerate(sample_names):
             out_file.write(sample_name + ',' + str(sample_sequence_length[sample_name]) + ',' + str(sample_missing_bases[sample_name]) + ',')
             for frequency in sample_base_frequencies[sample_name]:
