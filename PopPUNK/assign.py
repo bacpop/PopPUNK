@@ -308,7 +308,7 @@ def assign_query(dbFuncs,
             else:
                 sys.stderr.write("Updating reference database to " + output + "\n")
             # Update the network + ref list (everything) - no need to duplicate for core/accessory
-            if fit_type == 'original':
+            if fit_type not in ['core','accessory']:
                 joinDBs(ref_db, output, output,
                         {"threads": threads, "strand_preserved": strand_preserved})
             if model.type == 'lineage':
