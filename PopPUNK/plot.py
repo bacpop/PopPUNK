@@ -512,7 +512,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         for n,v in enumerate(G_mst.vertices()):
             G_mst.vp.id[v] = isolate_labels[n]
         suffix = suffix + '_mst'
-        save_network(G_mst, prefix = outPrefix, suffix = graph_suffix, use_graphml = True)
+        save_network(G_mst, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Write CSV of metadata
     if writeCsv:
