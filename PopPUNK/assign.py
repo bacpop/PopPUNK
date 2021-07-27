@@ -122,12 +122,13 @@ def assign_query(dbFuncs,
     # but have different networks, references, reference distances and assignments
     fit_type_list = ['original']
     fit_string_list = ['']
-    if core:
-        fit_type_list.append('core')
-        fit_string_list.append('_core')
-    if accessory:
-        fit_type_list.append('accessory')
-        fit_string_list.append('_accessory')
+    if model.type == 'refine' and self.indiv_fitted:
+        if core:
+            fit_type_list.append('core')
+            fit_string_list.append('_core')
+        if accessory:
+            fit_type_list.append('accessory')
+            fit_string_list.append('_accessory')
     
     for fit_type, fit_string in zip(fit_type_list, fit_string_list):
         # Find distances vs ref seqs
@@ -276,7 +277,7 @@ def assign_query(dbFuncs,
                                                     (fit_type == 'original' or
                                                     (fit_type != 'original' and use_ref_graph)
                                                     )
-                                                 ),
+                                                  ),
                                     strand_preserved = strand_preserved,
                                     weights = weights,
                                     threads = threads,
