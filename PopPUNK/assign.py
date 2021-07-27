@@ -391,7 +391,8 @@ def assign_query(dbFuncs,
                     # Check that the updated set of references includes all old references, and references added from
                     # queries; there may be further new references, even from the original database, where paths are
                     # added between reference isolates in the same component, or new cliques formed
-                    assert set(postpruning_combined_seq).issuperset(set(existing_ref_list).union(set(newQueries)))
+                    added_references = set(existing_ref_list).union(set(newQueries))
+                    assert set(postpruning_combined_seq).issuperset(added_references), "Error identifying references"
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
             if save_partial_query_graph:
