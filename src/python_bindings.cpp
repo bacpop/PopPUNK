@@ -32,7 +32,7 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
 
 edge_tuple generateTuples(const std::vector<int> &assignments,
                             const int within_label,
-                            bool self = true,
+                            bool self,
                             const int num_ref,
                             const int int_offset) {
     edge_tuple edges = generate_tuples(assignments,
@@ -47,10 +47,10 @@ edge_tuple generateAllTuples(const int num_ref,
                                 const int num_queries,
                                 bool self = true,
                                 const int int_offset = 0) {
-    edge_tuple edges = generate_all_tuples(const int num_ref,
-                                            const int num_queries,
-                                            bool self = true,
-                                            const int int_offset = 0);
+    edge_tuple edges = generate_all_tuples(num_ref,
+                                            num_queries,
+                                            self,
+                                            int_offset);
     return (edges);
 }
 
@@ -104,7 +104,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("self") = true, py::arg("num_ref"),
         py::arg("int_offset"));
 
-  m.def("generateTuples", &generateTuples,
+  m.def("generateAllTuples", &generateAllTuples,
         py::return_value_policy::reference_internal,
         "Return all edge tuples",
         py::arg("num_ref"),

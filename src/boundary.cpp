@@ -152,10 +152,10 @@ edge_tuple generate_all_tuples(const int num_ref,
                                const int int_offset) {
     edge_tuple edge_vec;
     if (self) {
-        const size_t n_rows = ((2 * num_ref - 1)**2 - 1) / 8;
+        const size_t n_rows = (pow(2 * num_ref - 1, 2) - 1) / 8;
         for (long row_idx = 0; row_idx < n_rows; row_idx++) {
-            long i = calc_row_idx(row_idx, n_samples);
-            long j = calc_col_idx(row_idx, i, n_samples) + int_offset;
+            long i = calc_row_idx(row_idx, num_ref);
+            long j = calc_col_idx(row_idx, i, num_ref) + int_offset;
             i = i + int_offset;
             long min_node = std::min(i,j);
             long max_node = std::max(i,j);
