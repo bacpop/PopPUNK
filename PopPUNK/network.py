@@ -977,7 +977,7 @@ def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     return G
 
-def construct_dense_weighted_network(rlist, distMat = None, weights_type = None, use_gpu = False):
+def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gpu = False):
     """Construct an undirected network using sequence lists, assignments of pairwise distances
     to clusters, and the identifier of the cluster assigned to within-strain distances.
     Nodes are samples and edges where samples are within the same cluster
