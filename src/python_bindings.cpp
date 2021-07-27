@@ -88,7 +88,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::return_value_policy::reference_internal,
         "Assign samples based on their relation to a 2D boundary",
         py::arg("distMat").noconvert(), py::arg("slope"), py::arg("x_max"),
-        py::arg("y_max"), py::arg("num_threads") = 1);
+        py::arg("y_max"), py::arg("num_threads"));
 
   m.def("edgeThreshold", &edgeThreshold,
         py::return_value_policy::reference_internal,
@@ -101,7 +101,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::return_value_policy::reference_internal,
         "Return edge tuples based on assigned groups",
         py::arg("assignments"), py::arg("within_label"),
-        py::arg("self") = true, py::arg("num_ref"),
+        py::arg("self"), py::arg("num_ref"),
         py::arg("int_offset"));
 
   m.def("generateAllTuples", &generateAllTuples,
@@ -109,7 +109,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
         "Return all edge tuples",
         py::arg("num_ref"),
         py::arg("num_queries"),
-        py::arg("self") = true,
+        py::arg("self"),
         py::arg("int_offset"));
     
   m.def("thresholdIterate1D", &thresholdIterate1D,
