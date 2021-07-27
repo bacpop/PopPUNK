@@ -1051,7 +1051,7 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
         G = add_self_loop(G_df, max_in_vertex_labels, weights = True, renumber = False)
     else:
         # Construct network with CPU via edge list
-        #weighted_edges = []
+        weighted_edges = []
         for ((src, dest), weight) in zip(edge_list, weights):
             weighted_edges.append((src, dest, weight))
         # build the graph
