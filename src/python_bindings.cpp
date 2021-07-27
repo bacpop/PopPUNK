@@ -33,8 +33,8 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
 edge_tuple generateTuples(const std::vector<int> &assignments,
                             const int within_label,
                             bool self = true,
-                            const int num_ref = 0,
-                            const int int_offset = 0) {
+                            const int num_ref,
+                            const int int_offset) {
   edge_tuple edges = generate_tuples(assignments, within_label, self, num_ref,
                                      int_offset);
   return (edges);
@@ -44,7 +44,7 @@ network_coo thresholdIterate1D(const Eigen::Ref<NumpyMatrix> &distMat,
                                const std::vector<double> &offsets,
                                const int slope, const double x0,
                                const double y0, const double x1,
-                               const double y1, const int num_threads = 1) {
+                               const double y1, const int num_threads) {
   if (!std::is_sorted(offsets.begin(), offsets.end())) {
     throw std::runtime_error("Offsets to thresholdIterate1D must be sorted");
   }
