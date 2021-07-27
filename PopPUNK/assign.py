@@ -121,23 +121,25 @@ def assign_query(dbFuncs,
     # Core and accessory assignments use the same model and same overall set of distances
     # but have different networks, references, reference distances and assignments
     fit_type_list = ['original']
-    fit_string_list = ['']
     if model.type == 'refine' and self.indiv_fitted:
         if core:
             fit_type_list.append('core')
-            fit_string_list.append('_core')
         if accessory:
             fit_type_list.append('accessory')
-            fit_string_list.append('_accessory')
     
-    for fit_type, fit_string in zip(fit_type_list, fit_string_list):
+    for fit_type in fit_type_list:
+        # Define file name extension
+        file_extension_string = ''
+        if fit_type != 'original':
+            file_extension_string = '_' + fit_type
         # Find distances vs ref seqs
         rNames = []
+        ref_file_name = os.path.join(model_prefix,
+                        os.path.basename(model_prefix) + file_extension_string + ".refs")
         use_ref_graph = \
-            os.path.isfile(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") \
-            and not update_db and model.type != 'lineage'
+            os.path.isfile(ref_file_name) and not update_db and model.type != 'lineage'
         if use_ref_graph:
-            with open(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") as refFile:
+            with open(ref_file_name) as refFile:
                 for reference in refFile:
                     rNames.append(reference.rstrip())
         else:
@@ -147,7 +149,7 @@ def assign_query(dbFuncs,
                 sys.stderr.write("Reference distances missing, cannot use --update-db\n")
                 sys.exit(1)
             else:
-                rNames = getSeqsInDb(ref_db + "/" + os.path.basename(ref_db) + ".h5")
+                rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5")
         # construct database - use a single database directory for all query outputs
         if (web and json_sketch):
             qNames = sketch_to_hdf5(json_sketch, output)
@@ -283,7 +285,7 @@ def assign_query(dbFuncs,
                                     threads = threads,
                                     use_gpu = gpu_graph)
 
-            output_fn = output + "/" + os.path.basename(output) + fit_string
+            output_fn = os.path.join(output, os.path.basename(output) + file_extension_string)
             isolateClustering = \
                 {'combined': printClusters(genomeNetwork,
                                             rNames + qNames,
@@ -306,12 +308,15 @@ def assign_query(dbFuncs,
                 joinDBs(ref_db, output, output,
                         {"threads": threads, "strand_preserved": strand_preserved})
             if model.type == 'lineage':
-                save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
+                save_network(genomeNetwork[min(model.ranks)],
+                                prefix = output,
+                                suffix = '_graph',
+                                use_gpu = gpu_graph)
                 # Save sparse distance matrices and updated model
                 model.outPrefix = os.path.basename(output)
                 model.save()
             else:
-                graph_suffix = fit_string + '_graph'
+                graph_suffix = file_extension_string + '_graph'
                 save_network(genomeNetwork,
                                 prefix = output,
                                 suffix = graph_suffix,
@@ -343,7 +348,7 @@ def assign_query(dbFuncs,
             if model.type != 'lineage':
                 
                 existing_ref_list = []
-                with open(model_prefix + "/" + os.path.basename(model_prefix) + fit_string + ".refs") as refFile:
+                with open(ref_file_name) as refFile:
                     for reference in refFile:
                         existing_ref_list.append(reference.rstrip())
                 
@@ -353,7 +358,7 @@ def assign_query(dbFuncs,
                         extractReferences(genomeNetwork,
                                             combined_seq,
                                             output,
-                                            outSuffix = fit_string,
+                                            outSuffix = file_extension_string,
                                             existingRefs = existing_ref_list,
                                             type_isolate = qc_dict['type_isolate'],
                                             threads = threads,
@@ -369,17 +374,17 @@ def assign_query(dbFuncs,
 
                 if (len(names_to_remove) > 0):
                     # This function also writes out the new ref distance matrix
-                    dists_suffix = fit_string + '.refs.dists'
+                    dists_suffix = file_extension_string + '.refs.dists'
                     postpruning_combined_seq, newDistMat = \
                         prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                               output + "/" + os.path.basename(output) + dists_suffix)
-                    graph_suffix = fit_string + '_refs_graph'
+                    graph_suffix = file_extension_string + '_refs_graph'
                     save_network(genomeNetwork,
                                     prefix = output,
                                     suffix = graph_suffix,
                                     use_gpu = gpu_graph)
                     removeFromDB(output, output, names_to_remove)
-                    db_suffix = fit_string + '.refs.h5'
+                    db_suffix = file_extension_string + '.refs.h5'
                     os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
                               output + "/" + os.path.basename(output) + db_suffix)
 
@@ -393,7 +398,7 @@ def assign_query(dbFuncs,
                 if model.type == 'lineage':
                     save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
                 else:
-                    graph_suffix = fit_string + '_graph'
+                    graph_suffix = file_extension_string + '_graph'
                     save_network(genomeNetwork, prefix = output, suffix = graph_suffix, use_gpu = gpu_graph)
 
     return(isolateClustering)
