@@ -52,7 +52,7 @@ def get_options():
     return parser.parse_args()
 
 # main code
-if __name__ == "__main__":
+def main():
 
     # Import functions
     from .network import add_self_loop
@@ -161,5 +161,10 @@ if __name__ == "__main__":
             out_file.write(str(graph_properties_row['component_count'].values[0]) + ',')
             out_file.write(str(graph_properties_row['degree'].values[0]))
             out_file.write("\n")
+
+    sys.exit(0)
+
+if __name__ == '__main__':
+    main()
 
     sys.exit(0)
