@@ -222,9 +222,8 @@ def cliquePrune(component, graph, reference_indices, components_list):
     return(list(ref_list))
 
 def translate_network_indices(G_ref_df, reference_indices):
-    """Extract references for each cluster based on cliques
-
-       Writes chosen references to file by calling :func:`~writeReferences`
+    """Function for ensuring an updated reference network retains
+    numbering consistent with sample names
 
        Args:
            G_ref_df (cudf data frame)
