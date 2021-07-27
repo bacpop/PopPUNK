@@ -163,19 +163,8 @@ def assign_query(dbFuncs,
                                             calc_random = False,
                                             use_gpu = gpu_sketch,
                                             deviceid = deviceid)
-        if (fit_type == 'original'):
+        if (fit_type == 'original' or (fit_type != 'original' and use_ref_graph)):
             # run query
-            qrDistMat = queryDatabase(rNames = rNames,
-                                      qNames = qNames,
-                                      dbPrefix = ref_db,
-                                      queryPrefix = output,
-                                      klist = kmers,
-                                      self = False,
-                                      number_plot_fits = plot_fit,
-                                      threads = threads,
-                                      use_gpu = gpu_dist)
-        elif (fit_type != 'original' and use_ref_graph == False):
-            # Only re-run query if references are being used
             qrDistMat = queryDatabase(rNames = rNames,
                                       qNames = qNames,
                                       dbPrefix = ref_db,
@@ -283,7 +272,11 @@ def assign_query(dbFuncs,
                                     output,
                                     distances = distances,
                                     distance_type = dist_type,
-                                    queryQuery = update_db,
+                                    queryQuery = (update_db and
+                                                    (fit_type == 'original' or
+                                                    (fit_type != 'original' and use_ref_graph)
+                                                    )
+                                                 ),
                                     strand_preserved = strand_preserved,
                                     weights = weights,
                                     threads = threads,
