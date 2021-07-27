@@ -35,9 +35,23 @@ edge_tuple generateTuples(const std::vector<int> &assignments,
                             bool self = true,
                             const int num_ref,
                             const int int_offset) {
-  edge_tuple edges = generate_tuples(assignments, within_label, self, num_ref,
-                                     int_offset);
-  return (edges);
+    edge_tuple edges = generate_tuples(assignments,
+                                        within_label,
+                                        self,
+                                        num_ref,
+                                        int_offset);
+    return (edges);
+}
+
+edge_tuple generateAllTuples(const int num_ref,
+                                const int num_queries,
+                                bool self = true,
+                                const int int_offset = 0) {
+    edge_tuple edges = generate_all_tuples(const int num_ref,
+                                            const int num_queries,
+                                            bool self = true,
+                                            const int int_offset = 0);
+    return (edges);
 }
 
 network_coo thresholdIterate1D(const Eigen::Ref<NumpyMatrix> &distMat,
@@ -84,18 +98,26 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("y_max"));
 
   m.def("generateTuples", &generateTuples,
-          py::return_value_policy::reference_internal,
-          "Return edge tuples based on assigned groups",
-          py::arg("assignments"), py::arg("within_label"),
-          py::arg("self") = true, py::arg("num_ref") = 0,
-          py::arg("int_offset") = 0);
+        py::return_value_policy::reference_internal,
+        "Return edge tuples based on assigned groups",
+        py::arg("assignments"), py::arg("within_label"),
+        py::arg("self") = true, py::arg("num_ref"),
+        py::arg("int_offset"));
 
+  m.def("generateTuples", &generateTuples,
+        py::return_value_policy::reference_internal,
+        "Return all edge tuples",
+        py::arg("num_ref"),
+        py::arg("num_queries"),
+        py::arg("self") = true,
+        py::arg("int_offset"));
+    
   m.def("thresholdIterate1D", &thresholdIterate1D,
         py::return_value_policy::reference_internal,
         "Move a 2D boundary to grow a network by adding edges at each offset",
         py::arg("distMat").noconvert(), py::arg("offsets"), py::arg("slope"),
         py::arg("x0"), py::arg("y0"), py::arg("x1"), py::arg("y1"),
-        py::arg("num_threads") = 1);
+        py::arg("num_threads"));
 
   m.def("thresholdIterate2D", &thresholdIterate2D,
         py::return_value_policy::reference_internal,

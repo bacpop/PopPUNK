@@ -32,6 +32,11 @@ edge_tuple generate_tuples(const std::vector<int> &assignments,
                            const int num_ref = 0,
                            const int int_offset = 0);
 
+edge_tuple generate_all_tuples(const int num_ref,
+                    const int num_queries,
+                    bool self = true,
+                    const int int_offset = 0)
+
 network_coo threshold_iterate_1D(const NumpyMatrix &distMat,
                                  const std::vector<double> &offsets,
                                  const int slope, const float x0,
