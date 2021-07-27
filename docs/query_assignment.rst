@@ -3,6 +3,12 @@ Query assignment
 This is the recommended mode to use PopPUNK, as long as a database is available for
 your species. If there is no database available, you can fit your own (:doc:`model_fitting`).
 
+.. danger::
+    Most reference databases available below are for a previous version of PopPUNK.
+    Please bear with us as we update this, more reference databases which work
+    with version 2 of PopPUNK will be released shortly. You can still fit your
+    own model to your data.
+
 Briefly, `download your reference database <https://poppunk.net/pages/databases.html>`__ and run::
 
     poppunk_assign --db database --query qfile.txt \
