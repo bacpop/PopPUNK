@@ -277,7 +277,6 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         references = set(existingRefs)
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
-    
     # Add type isolate, if necessary
     type_isolate_index = None
     if type_isolate is not None:
