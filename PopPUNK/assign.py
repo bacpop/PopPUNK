@@ -149,23 +149,23 @@ def assign_query(dbFuncs,
                 sys.stderr.write("Reference distances missing, cannot use --update-db\n")
                 sys.exit(1)
             else:
-                rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5")
+                rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
         # construct database - use a single database directory for all query outputs
-        if (web and json_sketch):
+        if (web and json_sketch is not None):
             qNames = sketch_to_hdf5(json_sketch, output)
         elif (fit_type == 'original'):
-                # construct database
-                createDatabaseDir(output, kmers)
-                qNames = constructDatabase(q_files,
-                                            kmers,
-                                            sketch_sizes,
-                                            output,
-                                            threads,
-                                            overwrite,
-                                            codon_phased = codon_phased,
-                                            calc_random = False,
-                                            use_gpu = gpu_sketch,
-                                            deviceid = deviceid)
+            # construct database
+            createDatabaseDir(output, kmers)
+            qNames = constructDatabase(q_files,
+                                        kmers,
+                                        sketch_sizes,
+                                        output,
+                                        threads,
+                                        overwrite,
+                                        codon_phased = codon_phased,
+                                        calc_random = False,
+                                        use_gpu = gpu_sketch,
+                                        deviceid = deviceid)
         if (fit_type == 'original' or (fit_type != 'original' and use_ref_graph)):
             # run query
             qrDistMat = queryDatabase(rNames = rNames,
