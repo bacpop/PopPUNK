@@ -248,7 +248,8 @@ def generate_visualisations(query_db,
 
     #******************************#
     #*                            *#
-    #* Process dense or sparse distances     *#
+    #* Process dense or sparse    *#
+    #* distances                  *#
     #*                            *#
     #******************************#
 
