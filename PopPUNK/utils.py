@@ -544,7 +544,8 @@ def isolateNameToLabel(names):
     """
     # useful to have as a function in case we
     # want to remove certain characters
-    labels = [name.split('/')[-1].replace('.','_').replace(':','') for name in names]
+    labels = [name.split('/')[-1].replace('.','_').replace(':','').replace('(','_').replace(')','_') \
+                        for name in names]
     return labels
 
 
