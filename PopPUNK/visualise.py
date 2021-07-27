@@ -226,7 +226,7 @@ def generate_visualisations(query_db,
 
     #******************************#
     #*                            *#
-    #* Initial checks and set up      *#
+    #* Initial checks and set up  *#
     #*                            *#
     #******************************#
 
