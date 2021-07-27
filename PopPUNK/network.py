@@ -1034,10 +1034,8 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
     weights = process_weights(distMat, weights_type)
 
     # Convert edge indices to tuples
-    edge_list = poppunk_refine.generateTuples([0] * len(weights),
-                                                0,
+    edge_list = poppunk_refine.generateAllTuples(num_ref = len(rlist),
                                                 self = True,
-                                                num_ref = len(rlist),
                                                 int_offset = 0)
 
     if use_gpu:
