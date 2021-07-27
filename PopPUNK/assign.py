@@ -121,7 +121,7 @@ def assign_query(dbFuncs,
     # Core and accessory assignments use the same model and same overall set of distances
     # but have different networks, references, reference distances and assignments
     fit_type_list = ['original']
-    if model.type == 'refine' and self.indiv_fitted:
+    if model.type == 'refine' and model.indiv_fitted:
         if core:
             fit_type_list.append('core')
         if accessory:
