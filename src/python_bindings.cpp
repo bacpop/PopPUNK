@@ -88,7 +88,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::return_value_policy::reference_internal,
         "Assign samples based on their relation to a 2D boundary",
         py::arg("distMat").noconvert(), py::arg("slope"), py::arg("x_max"),
-        py::arg("y_max"), py::arg("num_threads"));
+        py::arg("y_max"), py::arg("num_threads") = 1);
 
   m.def("edgeThreshold", &edgeThreshold,
         py::return_value_policy::reference_internal,
@@ -100,24 +100,26 @@ PYBIND11_MODULE(poppunk_refine, m) {
   m.def("generateTuples", &generateTuples,
         py::return_value_policy::reference_internal,
         "Return edge tuples based on assigned groups",
-        py::arg("assignments"), py::arg("within_label"),
-        py::arg("self"), py::arg("num_ref"),
-        py::arg("int_offset"));
+        py::arg("assignments"),
+        py::arg("within_label"),
+        py::arg("self") = true,
+        py::arg("num_ref") = 0,
+        py::arg("int_offset") = 0);
 
   m.def("generateAllTuples", &generateAllTuples,
         py::return_value_policy::reference_internal,
         "Return all edge tuples",
         py::arg("num_ref"),
-        py::arg("num_queries"),
-        py::arg("self"),
-        py::arg("int_offset"));
+        py::arg("num_queries") = 0,
+        py::arg("self") = true,
+        py::arg("int_offset") = 0);
     
   m.def("thresholdIterate1D", &thresholdIterate1D,
         py::return_value_policy::reference_internal,
         "Move a 2D boundary to grow a network by adding edges at each offset",
         py::arg("distMat").noconvert(), py::arg("offsets"), py::arg("slope"),
         py::arg("x0"), py::arg("y0"), py::arg("x1"), py::arg("y1"),
-        py::arg("num_threads"));
+        py::arg("num_threads") = 1);
 
   m.def("thresholdIterate2D", &thresholdIterate2D,
         py::return_value_policy::reference_internal,
