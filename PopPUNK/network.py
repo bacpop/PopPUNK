@@ -700,10 +700,18 @@ def process_previous_network(previous_network = None, adding_qq_dists = False, o
     
     return extra_sources, extra_targets, extra_weights
 
-def construct_network_from_edge_list(rlist, qlist, edge_list,
-    weights = None, distMat = None, previous_network = None, adding_qq_dists = False,
-    old_ids = None, previous_pkl = None, betweenness_sample = betweenness_sample_default,
-    summarise = True, use_gpu = False):
+def construct_network_from_edge_list(rlist,
+                                        qlist,
+                                        edge_list,
+                                        weights = None,
+                                        distMat = None,
+                                        previous_network = None,
+                                        adding_qq_dists = False,
+                                        old_ids = None,
+                                        previous_pkl = None,
+                                        betweenness_sample = betweenness_sample_default,
+                                        summarise = True,
+                                        use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
 
@@ -813,10 +821,18 @@ def construct_network_from_edge_list(rlist, qlist, edge_list,
 
     return G
 
-def construct_network_from_df(rlist, qlist, G_df,
-    weights = False, distMat = None, previous_network = None, adding_qq_dists = False,
-    old_ids = None, previous_pkl = None, betweenness_sample = betweenness_sample_default,
-    summarise = True, use_gpu = False):
+def construct_network_from_df(rlist,
+                                qlist,
+                                G_df,
+                                weights = False,
+                                distMat = None,
+                                previous_network = None,
+                                adding_qq_dists = False,
+                                old_ids = None,
+                                previous_pkl = None,
+                                betweenness_sample = betweenness_sample_default,
+                                summarise = True,
+                                use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
 
@@ -918,9 +934,15 @@ def construct_network_from_df(rlist, qlist, G_df,
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
     return G
 
-def construct_network_from_sparse_matrix(rlist, qlist, sparse_input,
-    weights = None, previous_network = None, previous_pkl = None,
-    betweenness_sample = betweenness_sample_default, summarise = True, use_gpu = False):
+def construct_network_from_sparse_matrix(rlist,
+                                            qlist,
+                                            sparse_input,
+                                            weights = None,
+                                            previous_network = None,
+                                            previous_pkl = None,
+                                            betweenness_sample = betweenness_sample_default,
+                                            summarise = True,
+                                            use_gpu = False):
     """Construct an undirected network using a sparse matrix. Nodes are samples and
     edges where samples are within the same cluster
 
