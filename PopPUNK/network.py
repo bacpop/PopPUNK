@@ -1910,7 +1910,7 @@ def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
         G = construct_network_from_edge_list(rlist,
                                                rlist,
                                                connections,
-                                               weights = sparse_mat.data,
+                                               weights=sparse_mat.data,
                                                summarise=False)
 
     return G
