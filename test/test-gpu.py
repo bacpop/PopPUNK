@@ -80,7 +80,7 @@ subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --distances example
 
 # MST
 sys.stderr.write("Running MST\n")
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree mst --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot --gpu-graph", shell=True, check=True)
 
 # t-sne
@@ -94,6 +94,10 @@ subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/
 # references
 sys.stderr.write("Running poppunk_references\n")
 subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.csv.gz --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db --use-gpu", shell=True, check=True)
+
+# info
+sys.stderr.write("Running poppunk_info\n")
+subprocess.run(python_cmd + "../poppunk_info-runner.py --db example_db --output example_db.info.csv", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")
