@@ -159,8 +159,8 @@ edge_tuple generate_all_tuples(const int num_ref,
             edge_vec.push_back(std::make_tuple(i, j));
         }
     } else {
-        for (unsigned long i = 0; i < num_ref; i++) {
-            for (unsigned long j = 0; j < num_queries; j++) {
+        for (unsigned long j = 0; j < num_ref; j++) {
+            for (unsigned long i = 0; i < num_queries; i++) {
                 edge_vec.push_back(std::make_tuple(i, j + num_ref));
             }
         }
