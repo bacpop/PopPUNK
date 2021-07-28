@@ -32,7 +32,7 @@ def get_options():
                                      prog='poppunk_db_info')
 
     # input options
-    parser.add_argument('--ref-db',
+    parser.add_argument('--db',
                         required = True,
                         help='PopPUNK database directory')
     parser.add_argument('--network',
@@ -71,7 +71,7 @@ def main():
     setGtThreads(args.threads)
 
     # Open and process sequence database
-    h5_fn = os.path.join(args.ref_db,os.path.basename(args.ref_db) + '.h5')
+    h5_fn = os.path.join(args.db,os.path.basename(args.db) + '.h5')
     ref_db = h5py.File(h5_fn, 'r')
     
     # Print overall database information
