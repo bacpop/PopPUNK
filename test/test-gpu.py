@@ -97,7 +97,7 @@ subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_
 
 # info
 sys.stderr.write("Running poppunk_info\n")
-subprocess.run(python_cmd + "../poppunk_info-runner.py --db example_db --output example_db.info.csv", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output example_db.info.csv --use-gpu", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")
