@@ -12,6 +12,7 @@ import argparse
 import numpy as np
 import pandas as pd
 from scipy import sparse
+import graph_tool.all as gt
 
 # Load GPU libraries
 try:
@@ -159,7 +160,7 @@ def main():
         graph_properties_df['vertex'] = np.arange(len(sample_names))
         graph_properties_df['labels'] = gt.label_components(G)[0].a
         graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
-        graph_properties_df['component_count'] = component_assignments.groupby('partition')['vertex'].transform('count')
+        graph_properties_df['component_count'] = graph_properties_df.groupby('labels')['vertex'].transform('count')
     graph_properties_df = graph_properties_df.sort_values('vertex', axis = 0) # inplace not implemented for cudf
     graph_properties_df['vertex'] = sample_names
     
@@ -172,7 +173,7 @@ def main():
             out_file.write(sample_name + ',' + str(sample_sequence_length[sample_name]) + ',' + str(sample_missing_bases[sample_name]) + ',')
             for frequency in sample_base_frequencies[sample_name]:
                 out_file.write(str(frequency) + ',')
-            graph_properties_row = graph_properties_df.iloc[graph_properties_df['vertex']==sample_name,:]
+            graph_properties_row = graph_properties_df.loc[graph_properties_df['vertex']==sample_name,:]
             out_file.write(str(graph_properties_row['labels'].values[0]) + ',')
             out_file.write(str(graph_properties_row['component_count'].values[0]) + ',')
             out_file.write(str(graph_properties_row['degree'].values[0]))
