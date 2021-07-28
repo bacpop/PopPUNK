@@ -36,7 +36,8 @@ def get_options():
                         required = True,
                         help='PopPUNK database directory')
     parser.add_argument('--network',
-                        required = True,
+                        required = False,
+                        default = None,
                         help='Network or lineage fit file for analysis')
     parser.add_argument('--threads',
                         default = 1,
@@ -48,6 +49,10 @@ def get_options():
     parser.add_argument('--output',
                         required = True,
                         help='Prefix for output files')
+    parser.add_argument('--simple',
+                        default = False,
+                        action = 'store_true',
+                        help='Do not print per sample information')
 
     return parser.parse_args()
 
@@ -71,11 +76,10 @@ def main():
     setGtThreads(args.threads)
 
     # Open and process sequence database
-    h5_fn = os.path.join(args.db,os.path.basename(args.db) + '.h5')
+    h5_fn = os.path.join(args.db, os.path.basename(args.db) + '.h5')
     ref_db = h5py.File(h5_fn, 'r')
     
     # Print overall database information
-    ref_db = h5py.File(args.db, 'r')
     print("PopPUNK database:\t\t" + args.db)
 
     sketch_version = ref_db['sketches'].attrs['sketch_version']
@@ -103,6 +107,10 @@ def main():
         codon_phased = False
     print("Codon phased seeds:\t\t" + str(codon_phased))
     
+    # Stop if requested
+    if args.simple:
+        sys.exit(0)
+    
     # Print sample information
     sample_names = list(ref_db['sketches'].keys())
     sample_sequence_length = {}
@@ -113,6 +121,14 @@ def main():
         sample_base_frequencies[sample_name] = ref_db['sketches/' + sample_name].attrs['base_freq']
         sample_sequence_length[sample_name] = ref_db['sketches/' + sample_name].attrs['length']
         sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
+    
+    # Select network file name
+    network_fn = args.network
+    if network_fn is None:
+        if use_gpu:
+            network_fn = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
+        else:
+            network_fn = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
     
     # Open network file
     if args.network.endswith('.gt'):
