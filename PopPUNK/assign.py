@@ -120,17 +120,17 @@ def assign_query(dbFuncs,
     # Iterate through different types of model fit with a refined model when specified
     # Core and accessory assignments use the same model and same overall set of distances
     # but have different networks, references, reference distances and assignments
-    fit_type_list = ['original']
+    fit_type_list = ['default']
     if model.type == 'refine' and model.indiv_fitted:
         if core:
-            fit_type_list.append('core')
+            fit_type_list.append('core_refined')
         if accessory:
-            fit_type_list.append('accessory')
+            fit_type_list.append('accessory_refined')
     
     for fit_type in fit_type_list:
         # Define file name extension
         file_extension_string = ''
-        if fit_type != 'original':
+        if fit_type != 'default':
             file_extension_string = '_' + fit_type
         # Find distances vs ref seqs
         rNames = []
@@ -153,7 +153,7 @@ def assign_query(dbFuncs,
         # construct database - use a single database directory for all query outputs
         if (web and json_sketch is not None):
             qNames = sketch_to_hdf5(json_sketch, output)
-        elif (fit_type == 'original'):
+        elif (fit_type == 'default'):
             # construct database
             createDatabaseDir(output, kmers)
             qNames = constructDatabase(q_files,
@@ -166,7 +166,7 @@ def assign_query(dbFuncs,
                                         calc_random = False,
                                         use_gpu = gpu_sketch,
                                         deviceid = deviceid)
-        if (fit_type == 'original' or (fit_type != 'original' and use_ref_graph)):
+        if (fit_type == 'default' or (fit_type != 'default' and use_ref_graph)):
             # run query
             qrDistMat = queryDatabase(rNames = rNames,
                                       qNames = qNames,
@@ -190,8 +190,8 @@ def assign_query(dbFuncs,
                          model,
                          rNames,
                          ref_graph = use_ref_graph,
-                         core_only = (fit_type == 'core'),
-                         accessory_only = (fit_type == 'accessory'),
+                         core_only = (fit_type == 'core_refined'),
+                         accessory_only = (fit_type == 'accessory_refined'),
                          use_gpu = gpu_graph)
         
         if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
@@ -248,13 +248,13 @@ def assign_query(dbFuncs,
 
         else:
             # Assign these distances as within or between strain
-            if fit_type == 'original':
+            if fit_type == 'default':
                 queryAssignments = model.assign(qrDistMat)
                 dist_type = 'euclidean'
-            elif fit_type == 'core':
+            elif fit_type == 'core_refined':
                 queryAssignments = model.assign(qrDistMat, slope = 0)
                 dist_type = 'core'
-            elif fit_type == 'accessory':
+            elif fit_type == 'accessory_refined':
                 queryAssignments = model.assign(qrDistMat, slope = 1)
                 dist_type = 'accessory'
 
@@ -276,8 +276,8 @@ def assign_query(dbFuncs,
                                     distances = distances,
                                     distance_type = dist_type,
                                     queryQuery = (update_db and
-                                                    (fit_type == 'original' or
-                                                    (fit_type != 'original' and use_ref_graph)
+                                                    (fit_type == 'default' or
+                                                    (fit_type != 'default' and use_ref_graph)
                                                     )
                                                   ),
                                     strand_preserved = strand_preserved,
@@ -304,7 +304,7 @@ def assign_query(dbFuncs,
             else:
                 sys.stderr.write("Updating reference database to " + output + "\n")
             # Update the network + ref list (everything) - no need to duplicate for core/accessory
-            if fit_type == 'original':
+            if fit_type == 'default':
                 joinDBs(ref_db, output, output,
                         {"threads": threads, "strand_preserved": strand_preserved})
             if model.type == 'lineage':
@@ -341,7 +341,7 @@ def assign_query(dbFuncs,
             storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
             # Copy model if needed
-            if output != model.outPrefix and fit_type == 'original':
+            if output != model.outPrefix and fit_type == 'default':
                 model.copy(output)
 
             # Clique pruning
