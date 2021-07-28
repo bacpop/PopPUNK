@@ -329,11 +329,11 @@ def generate_visualisations(query_db,
                                          qlist, qr_distMat, qq_distMat,
                                          threads = threads)
 
-    #******************************#
-    #*                            *#
-    #* Extract subset of sequences      *#
-    #*                            *#
-    #******************************#
+    #*******************************#
+    #*                             *#
+    #* Extract subset of sequences *#
+    #*                             *#
+    #*******************************#
 
     # extract subset of distances if requested
     if include_files is not None:
@@ -357,11 +357,11 @@ def generate_visualisations(query_db,
     else:
         viz_subset = None
 
-    #******************************#
-    #*                            *#
-    #* Process clustering information      *#
-    #*                            *#
-    #******************************#
+    #**********************************#
+    #*                                *#
+    #* Process clustering information *#
+    #*                                *#
+    #**********************************#
 
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}
@@ -430,11 +430,11 @@ def generate_visualisations(query_db,
                     return_dict = True)
             isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
 
-    #******************************#
-    #*                            *#
-    #* Generate trees      *#
-    #*                            *#
-    #******************************#
+    #*******************#
+    #*                 *#
+    #* Generate trees  *#
+    #*                 *#
+    #*******************#
 
     # Generate trees
     mst_tree = None
@@ -524,11 +524,11 @@ def generate_visualisations(query_db,
     else:
         sys.stderr.write("Fewer than three sequences, not drawing trees\n")
 
-    #******************************#
-    #*                            *#
-    #* Write output      *#
-    #*                            *#
-    #******************************#
+    #****************#
+    #*              *#
+    #* Write output *#
+    #*              *#
+    #****************#
 
     # Now have all the objects needed to generate selected visualisations
     if microreact:
