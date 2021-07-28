@@ -131,16 +131,16 @@ def main():
             network_fn = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
     
     # Open network file
-    if args.network.endswith('.gt'):
-        G = load_network_file(args.network, use_gpu = False)
-    elif args.network.endswith('.csv.gz'):
+    if network_fn.endswith('.gt'):
+        G = load_network_file(network_fn, use_gpu = False)
+    elif network_fn.endswith('.csv.gz'):
         if use_gpu:
-            G = load_network_file(args.network, use_gpu = True)
+            G = load_network_file(network_fn, use_gpu = True)
         else:
             sys.stderr.write('Unable to load necessary GPU libraries\n')
             exit(1)
-    elif args.network.endswith('.npz'):
-        sparse_mat = sparse.load_npz(args.network)
+    elif network_fn.endswith('.npz'):
+        sparse_mat = sparse.load_npz(network_fn)
         G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
     else:
         sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
