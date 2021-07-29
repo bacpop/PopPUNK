@@ -68,7 +68,7 @@ def main():
         args.visualise.microreact = False
     generate_visualisations(outdir,
                             species_db,
-                            os.path.join(species_db, species_db + '.dists'), # distances,
+                            os.path.join(outdir, outdir + '.dists'), # distances,
                             None,
                             args.visualise.threads,
                             outdir,
@@ -87,7 +87,7 @@ def main():
                             args.visualise.previous_query_clustering,
                             None, # previous MST
                             None, # previous distances,
-                            species_db + "/" + os.path.basename(species_db) + "_graph.gt",
+                            outdir + "/" + os.path.basename(outdir) + "_graph.gt",
                             args.visualise.gpu_graph,
                             args.visualise.info_csv,
                             args.visualise.rapidnj,
