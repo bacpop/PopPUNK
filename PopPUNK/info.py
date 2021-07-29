@@ -108,6 +108,10 @@ def main():
         codon_phased = False
     print("Codon phased seeds:\t\t" + str(codon_phased))
     
+    if 'use_rc' in ref_db.keys():
+        use_rc = ref_db['sketches'].attrs['use_rc'] == 1
+        print("Uses canonical k-mers:\t" + str(use_rc))
+    
     # Stop if requested
     if args.simple:
         sys.exit(0)
