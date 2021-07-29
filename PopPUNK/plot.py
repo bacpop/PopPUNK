@@ -505,7 +505,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         suffix = '_cytoscape'
     else:
         suffix = suffix + '_cytoscape'
-    save_network(G, prefix = outPrefix, suffix = suffix + '_cytoscape', use_graphml = True)
+    save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
