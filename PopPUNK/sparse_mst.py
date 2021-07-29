@@ -19,6 +19,7 @@ try:
     import cudf
     import cupy as cp
     from numba import cuda
+    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -33,9 +34,12 @@ from .network import generate_minimum_spanning_tree
 from .network import construct_network_from_sparse_matrix
 
 from .plot import drawMST
+
 from .trees import mst_to_phylogeny, write_tree
+
 from .utils import setGtThreads, readIsolateTypeFromCsv
 from .utils import check_and_set_gpu
+from .utils import read_rlist_from_distance_pickle
 
 # command line parsing
 def get_options():
@@ -52,6 +56,7 @@ def get_options():
     iGroup.add_argument('--previous-mst', help='Graph tool file from which previous MST can be loaded',
                                             default=None)
     iGroup.add_argument('--distance-pkl', help='Input pickle from distances, which contains sample names')
+    iGroup.add_argument('--previous-distance-pkl', help='Input pickle from distances, which contains sample names')
     iGroup.add_argument('--display-cluster', default=None, help='Column of clustering CSV to use for plotting')
 
     # output options
@@ -72,51 +77,15 @@ def get_options():
 
     return parser.parse_args()
 
-def main():
-
-    # Check input args ok
-    args = get_options()
-
-    import graph_tool.all as gt
-    # load CUDA libraries
-    args.gpu_graph = check_and_set_gpu(args.gpu_graph, gpu_lib)
-
-    # Read in sample names
-    if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):
-        sys.stderr.write("To label strains, both --distance-pkl and --previous-clustering"
-                         " must be provided\n")
-        sys.exit(1)
-    elif os.path.exists(args.distance_pkl):
-        with open(args.distance_pkl, 'rb') as pickle_file:
-            rlist, qlist, self = pickle.load(pickle_file)
-            if not self:
-                sys.stderr.write("This script must be run on a full all-v-all model\n")
-                sys.exit(1)
-    else:
-        sys.stderr.write("Cannot find file " + args.distance_pkl + "\n")
-        sys.exit(1)
-
-    # Check output path ok
-    if not os.path.isdir(args.output):
-        try:
-            os.makedirs(args.output)
-        except OSError:
-            sys.stderr.write("Cannot create output directory\n")
-            sys.exit(1)
-    setGtThreads(args.threads)
-
-    # Create network with sparse dists
-    sys.stderr.write("Loading distances into graph\n")
-    sparse_mat = sparse.load_npz(args.rank_fit)
-    if args.gpu_graph:
+def generate_mst_from_sparse_input(sparse_mat, rlist, old_rlist = None, previous_mst = None, gpu_graph = False):
+    if gpu_graph:
         # Load previous MST if specified
-        if args.previous_mst is not None:
-            print("Previous: " + str(args.previous_mst))
-            extra_sources, extra_targets, extra_weights = network_to_edges(args.previous_mst,
+        if previous_mst is not None:
+            extra_sources, extra_targets, extra_weights = network_to_edges(previous_mst,
                                                                                   rlist,
-                                                                                  previous_pkl = args.distance_pkl,
+                                                                                  old_ids = old_rlist,
                                                                                   weights = True,
-                                                                                  use_gpu = use_gpu)
+                                                                                  use_gpu = gpu_graph)
             sources = np.append(sparse_mat.row, np.asarray(extra_sources))
             targets = np.append(sparse_mat.col, np.asarray(extra_targets))
             weights = np.append(sparse_mat.data, np.asarray(extra_weights))
@@ -134,12 +103,12 @@ def main():
         G = cugraph.minimum_spanning_tree(G_cu, weight='weights')
     else:
         # Load previous MST if specified
-        if args.previous_mst is not None:
+        if previous_mst is not None:
             G = construct_network_from_sparse_matrix(rlist,
                                                         rlist,
                                                         sparse_mat,
                                                         summarise=False,
-                                                        previous_network = args.previous_mst)
+                                                        previous_network = previous_mst)
         else:
             G = construct_network_from_sparse_matrix(rlist,
                                                         rlist,
@@ -147,7 +116,55 @@ def main():
                                                         summarise=False)
         sys.stderr.write("Calculating MST (CPU)\n")
 
-    G = generate_minimum_spanning_tree(G, args.gpu_graph)
+    G = generate_minimum_spanning_tree(G, gpu_graph)
+    
+    return(G)
+
+
+def main():
+
+    # Check input args ok
+    args = get_options()
+
+    import graph_tool.all as gt
+    # load CUDA libraries
+    args.gpu_graph = check_and_set_gpu(args.gpu_graph, gpu_lib)
+
+    # Read in sample names
+    if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):
+        sys.stderr.write("To label strains, both --distance-pkl and --previous-clustering"
+                         " must be provided\n")
+        sys.exit(1)
+    elif os.path.exists(args.distance_pkl):
+        rlist = read_rlist_from_distance_pickle(args.distance_pkl,
+                                                allow_non_self = False)
+    else:
+        sys.stderr.write("Cannot find file " + args.distance_pkl + "\n")
+        sys.exit(1)
+
+    # Read in old sequence names
+    old_rlist = None
+    if args.previous_distance_pkl is not None and os.path.exists(args.previous_distance_pkl):
+        old_rlist = read_rlist_from_distance_pickle(args.previous_distance_pkl,
+                                                    allow_non_self = False)
+
+    # Check output path ok
+    if not os.path.isdir(args.output):
+        try:
+            os.makedirs(args.output)
+        except OSError:
+            sys.stderr.write("Cannot create output directory\n")
+            sys.exit(1)
+    setGtThreads(args.threads)
+
+    # Create network with sparse dists
+    sys.stderr.write("Loading distances into graph\n")
+    sparse_mat = sparse.load_npz(args.rank_fit)
+    G = generate_mst_from_sparse_input(sparse_mat,
+                                        rlist,
+                                        old_rlist = old_rlist,
+                                        previous_mst = args.previous_mst,
+                                        gpu_graph = args.gpu_graph)
 
     # Save output
     sys.stderr.write("Generating output\n")

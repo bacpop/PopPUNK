@@ -27,7 +27,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files referen
 
 # test updating order is correct
 sys.stderr.write("Running distance matrix order check (--update-db)\n")
-subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
+subprocess.run(python_cmd + " test-update-gpu.py", shell=True, check=True)
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
@@ -39,12 +39,13 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db e
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --indiv-refine both --no-local --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --unconstrained --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --score-idx 1 --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.8 --overwrite --score-idx 2 --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --manual-start manual.txt --overwrite --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --indiv-refine both --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --indiv-refine both --no-local --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --unconstrained --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 1 --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 2 --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold --gpu-graph", shell=True, check=True)
 
 # lineage clustering
@@ -61,15 +62,15 @@ subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)
 
 #assign query
 sys.stderr.write("Running query assignment\n")
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query --overwrite --gpu-dist --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query_update --update-db --graph-weights --overwrite --gpu-dist  --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --output example_single_query --update-db --overwrite --gpu-dist  --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --gpu-dist --gpu-graph --core --accessory", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_dbscan --output example_query_update --update-db --graph-weights --overwrite --gpu-dist  --gpu-graph", shell=True, check=True) # uses graph weights
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --model-dir example_refine --output example_single_query --update-db --overwrite --gpu-dist  --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_lineages --output example_lineage_query --overwrite --gpu-graph --gpu-dist", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --microreact --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape --network-file example_db/example_db_graph.gt --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --cytoscape --network-file example_db/example_db_graph.csv.gz --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --phandango --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz --grapetree --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_viz_subset --microreact --include-files subset.txt --gpu-graph", shell=True, check=True)
@@ -79,20 +80,24 @@ subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --distances example
 
 # MST
 sys.stderr.write("Running MST\n")
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree mst --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot --gpu-graph", shell=True, check=True)
 
 # t-sne
 sys.stderr.write("Running tsne viz\n")
-subprocess.run(python_cmd + " ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1 --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1 --use-gpu", shell=True, check=True)
 
 # prune
 sys.stderr.write("Running poppunk_prune\n")
-subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_prune --gpu-dist", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_prune", shell=True, check=True)
 
 # references
 sys.stderr.write("Running poppunk_references\n")
-subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.csv.gz --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db --use-gpu", shell=True, check=True)
+
+# info
+sys.stderr.write("Running poppunk_info\n")
+subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output example_db.info.csv --use-gpu", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")

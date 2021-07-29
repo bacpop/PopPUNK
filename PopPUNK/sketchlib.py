@@ -544,15 +544,30 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 example = sample(rNames, k=2)
                 raw = np.zeros(len(klist))
                 corrected = np.zeros(len(klist))
-                for kidx, kmer in enumerate(klist):
-                    raw[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, False)
-                    corrected[kidx] = pp_sketchlib.jaccardDist(ref_db, example[0], example[1], kmer, True)
-                raw_fit = fitKmerCurve(raw, klist, jacobian)
-                corrected_fit = fitKmerCurve(corrected, klist, jacobian)
+                raw = pp_sketchlib.queryDatabase(ref_db,
+                                                    ref_db,
+                                                    [example[0]],
+                                                    [example[1]],
+                                                    klist,
+                                                    random_correct = False,
+                                                    jaccard = True,
+                                                    num_threads = threads,
+                                                    use_gpu = False)
+                corrected = pp_sketchlib.queryDatabase(ref_db,
+                                                        ref_db,
+                                                        [example[0]],
+                                                        [example[1]],
+                                                        klist,
+                                                        random_correct = True,
+                                                        jaccard = True,
+                                                        num_threads = threads,
+                                                        use_gpu = False)
+                raw_fit = fitKmerCurve(raw[0], klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
                 plot_fit(klist,
-                         raw,
+                         raw[0],
                          raw_fit,
-                         corrected,
+                         corrected[0],
                          corrected_fit,
                          dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
                          "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
@@ -568,6 +583,41 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
         distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
                                              True, False, threads, use_gpu, deviceid)
+                                             
+        # option to plot core/accessory fits. Choose a random number from cmd line option
+        if number_plot_fits > 0:
+            jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
+            ref_examples = sample(rNames, k = number_plot_fits)
+            query_examples = sample(qNames, k = number_plot_fits)
+            raw = pp_sketchlib.queryDatabase(ref_db,
+                                                query_db,
+                                                ref_examples,
+                                                query_examples,
+                                                klist,
+                                                random_correct = False,
+                                                jaccard = True,
+                                                num_threads = threads,
+                                                use_gpu = False)
+            corrected = pp_sketchlib.queryDatabase(ref_db,
+                                                    query_db,
+                                                    ref_examples,
+                                                    query_examples,
+                                                    klist,
+                                                    random_correct = True,
+                                                    jaccard = True,
+                                                    num_threads = threads,
+                                                    use_gpu = False)
+            for plot_idx in range(number_plot_fits):
+                raw_fit = fitKmerCurve(raw[plot_idx], klist, jacobian)
+                corrected_fit = fitKmerCurve(corrected[plot_idx], klist, jacobian)
+                plot_fit(klist,
+                          raw[plot_idx],
+                          raw_fit,
+                          corrected[plot_idx],
+                          corrected_fit,
+                          queryPrefix + "/" + queryPrefix + "_fit_example_" + str(plot_idx + 1),
+                          "Example fit " + str(plot_idx + 1) + " - " +  ref_examples[plot_idx] + \
+                          " vs. " + query_examples[plot_idx])
 
     return distMat
 
@@ -713,7 +763,7 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
                              failed,
                              full_names = True)
                 os.rename(filtered_db_name, db_name)
-
+        hdf_in.close()
     # if failure still close files to avoid corruption
     except:
         hdf_in.close()
@@ -738,6 +788,8 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
 
     # remove random matches if already present
     if 'random' in hdf_in:
+        hdf_in.close()
+        hdf_in = h5py.File(db_name, 'r+')
         del hdf_in['random']
     hdf_in.close()
 

@@ -113,7 +113,8 @@ setup(
             'poppunk_mst = PopPUNK.sparse_mst:main',
             'poppunk_prune = PopPUNK.prune_db:main',
             'poppunk_references = PopPUNK.reference_pick:main',
-            'poppunk_tsne = PopPUNK.tsne:main'
+            'poppunk_tsne = PopPUNK.tsne:main',
+            'poppunk_info = PopPUNK.info:main'
             ]
     },
     scripts=['scripts/poppunk_calculate_rand_indices.py',
@@ -122,7 +123,6 @@ setup(
              'scripts/poppunk_batch_mst.py',
              'scripts/poppunk_extract_distances.py',
              'scripts/poppunk_add_weights.py',
-             'scripts/poppunk_db_info.py',
              'scripts/poppunk_easy_run.py',
              'scripts/poppunk_pickle_fix.py'],
     ext_modules=[CMakeExtension('poppunk_refine')],

@@ -26,6 +26,7 @@ def main():
         os.mkdir(outdir)
     args = default_options(species_db)
     qc_dict = {'run_qc': False }
+    print("Weights: " + str(args.assign.graph_weights))
     dbFuncs = setupDBFuncs(args.assign, args.assign.min_kmer_count, qc_dict)
     ClusterResult = assign_query(dbFuncs,
                                 args.assign.ref_db,
@@ -38,7 +39,7 @@ def main():
                                 args.assign.threads,
                                 args.assign.overwrite,
                                 args.assign.plot_fit,
-                                args.assign.graph_weights,
+                                False, #args.assign.graph_weights,
                                 args.assign.max_a_dist,
                                 args.assign.max_pi_dist,
                                 args.assign.type_isolate,
@@ -60,13 +61,14 @@ def main():
     colours = get_colours(query, clusters)
     url = api(query, "example_viz")
     sys.stderr.write('PopPUNK-web assign test successful\n')
-
+    print("Done clustering")
     # Test generate_visualisations() for PopPUNK-web
     sys.stderr.write('\nTesting visualisations for PopPUNK-web\n')
     if len(to_include) < 3:
         args.visualise.microreact = False
     generate_visualisations(outdir,
                             species_db,
+                            os.path.join(outdir, outdir + '.dists'), # distances,
                             None,
                             args.visualise.threads,
                             outdir,
@@ -83,6 +85,8 @@ def main():
                             species_db,
                             species_db + "/" + os.path.basename(species_db) + "_clusters.csv",
                             args.visualise.previous_query_clustering,
+                            None, # previous MST
+                            None, # previous distances,
                             outdir + "/" + os.path.basename(outdir) + "_graph.gt",
                             args.visualise.gpu_graph,
                             args.visualise.info_csv,

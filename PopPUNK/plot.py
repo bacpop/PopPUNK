@@ -307,7 +307,7 @@ def plot_refined_results(X, Y, x_boundary, y_boundary, core_boundary, accessory_
         plt.plot([core_boundary*scale[0], core_boundary*scale[0]], [0, np.amax(X[:,1])], color='red', linewidth=2, linestyle='--',
                 label='Threshold boundary')
 
-    plt.legend()
+    plt.legend(loc='lower right')
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
@@ -502,20 +502,17 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
 
     # write graph file
     if suffix is None:
-        graph_file_name = os.path.basename(outPrefix) + "_cytoscape.graphml"
+        suffix = '_cytoscape'
     else:
-        graph_file_name = os.path.basename(outPrefix) + "_" + suffix + "_cytoscape.graphml"
-    G.save(outPrefix + "/" + graph_file_name, fmt = 'graphml')
+        suffix = suffix + '_cytoscape'
+    save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
         for n,v in enumerate(G_mst.vertices()):
             G_mst.vp.id[v] = isolate_labels[n]
-        if suffix is not None:
-            graph_suffix = '_' + suffix + '_cytoscape_mst'
-        else:
-            graph_suffix = '_cytoscape_mst'
-        save_network(G_mst, prefix = outPrefix, suffix = graph_suffix, use_graphml = True)
+        suffix = suffix + '_mst'
+        save_network(G_mst, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Write CSV of metadata
     if writeCsv:
@@ -591,7 +588,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         if queryNames is not None:
             colnames.append('Status')
     else:
-        sys.stderr.write("Do not recognise format for CSV writing")
+        sys.stderr.write("Do not recognise format for CSV writing\n")
         exit(1)
 
     # process epidemiological data

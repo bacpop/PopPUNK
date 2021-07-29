@@ -526,7 +526,7 @@ def main():
             indivNetworks = {}
             for dist_type, slope in zip(['core', 'accessory'], [0, 1]):
                 if args.indiv_refine == 'both' or args.indiv_refine == dist_type:
-                    indivAssignments = model.assign(distMat, slope)
+                    indivAssignments = model.assign(distMat, slope = slope)
                     indivNetworks[dist_type] = \
                         construct_network_from_assignments(refList,
                                                              queryList,
@@ -542,7 +542,7 @@ def main():
                                       use_gpu = args.gpu_graph)
                     save_network(indivNetworks[dist_type],
                                     prefix = output,
-                                    suffix = '_graph',
+                                    suffix = '_' + dist_type + '_graph',
                                     use_gpu = args.gpu_graph)
 
         #******************************#
@@ -553,26 +553,48 @@ def main():
         # extract limited references from clique by default
         # (this no longer loses information and should generally be kept on)
         if model.type != "lineage":
-            newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
-                extractReferences(genomeNetwork,
-                                    refList,
-                                    output,
-                                    type_isolate = qc_dict['type_isolate'],
-                                    threads = args.threads,
-                                    use_gpu = args.gpu_graph)
-            nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
-            names_to_remove = [refList[n] for n in nodes_to_remove]
+            dist_type_list = ['original']
+            dist_string_list = ['']
+            if args.indiv_refine == 'both' or args.indiv_refine == 'core':
+                dist_type_list.append('core')
+                dist_string_list.append('_core')
+            if args.indiv_refine == 'both' or args.indiv_refine == 'accessory':
+                dist_type_list.append('accessory')
+                dist_string_list.append('_accessory')
+            # Iterate through different network types
+            for dist_type, dist_string in zip(dist_type_list, dist_string_list):
+                if dist_type == 'original':
+                    network_for_refs = genomeNetwork
+                elif dist_type == 'core':
+                    network_for_refs = indivNetworks[dist_type]
+                elif dist_type == 'accessory':
+                    network_for_refs = indivNetworks[dist_type]
+                newReferencesIndices, newReferencesNames, newReferencesFile, genomeNetwork = \
+                    extractReferences(network_for_refs,
+                                        refList,
+                                        output,
+                                        outSuffix = dist_string,
+                                        type_isolate = qc_dict['type_isolate'],
+                                        threads = args.threads,
+                                        use_gpu = args.gpu_graph)
+                nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)
+                names_to_remove = [refList[n] for n in nodes_to_remove]
 
-            if (len(names_to_remove) > 0):
-                # Save reference distances
-                prune_distance_matrix(refList, names_to_remove, distMat,
-                                      output + "/" + os.path.basename(output) + ".refs.dists")
-                # Save reference network
-                save_network(genomeNetwork, prefix = output, suffix = ".refs_graph",
-                            use_gpu = args.gpu_graph)
-                removeFromDB(args.ref_db, output, names_to_remove)
-                os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                          output + "/" + os.path.basename(output) + ".refs.h5")
+                if (len(names_to_remove) > 0):
+                    # Save reference distances
+                    dists_suffix = dist_string + '.refs.dists'
+                    prune_distance_matrix(refList, names_to_remove, distMat,
+                                          output + "/" + os.path.basename(output) + dists_suffix)
+                    # Save reference network
+                    graphs_suffix = dist_string + '.refs_graph'
+                    save_network(genomeNetwork,
+                                    prefix = output,
+                                    suffix = graphs_suffix,
+                                    use_gpu = args.gpu_graph)
+                    db_suffix = dist_string + '.refs.h5'
+                    removeFromDB(args.ref_db, output, names_to_remove)
+                    os.rename(output + "/" + os.path.basename(output) + '.tmp.h5',
+                              output + "/" + os.path.basename(output) + db_suffix)
 
     sys.stderr.write("\nDone\n")
 

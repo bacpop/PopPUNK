@@ -62,10 +62,10 @@ subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)
 
 #assign query
 sys.stderr.write("Running query assignment\n")
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --output example_single_query --update-db --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --core --accessory", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_dbscan --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True) # uses graph weights
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --model-dir example_refine --output example_single_query --update-db --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
@@ -80,7 +80,7 @@ subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --distances example
 
 # MST
 sys.stderr.write("Running MST\n")
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree mst", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot", shell=True, check=True)
 
 # t-sne
@@ -94,6 +94,10 @@ subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/
 # references
 sys.stderr.write("Running poppunk_references\n")
 subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db", shell=True, check=True)
+
+# info
+sys.stderr.write("Running poppunk_info\n")
+subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output example_db.info.csv", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")

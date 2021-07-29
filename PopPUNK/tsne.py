@@ -16,7 +16,9 @@ try:
     import cugraph
     import cudf
     import cupy as cp
+    from cuml import manifold as manifold_gpu
     from numba import cuda
+    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -80,6 +82,7 @@ def get_options():
     parser.add_argument('--output', required=True, help='Name of output file')
     parser.add_argument('--perplexity', help='Perplexity used to generate t-SNE projection [default = 30]', type=int, default=30)
     parser.add_argument('--verbosity', help='Verbosity level for t-SNE (0-3) [default = 0]', type=int, default=0)
+    parser.add_argument('--use-gpu', help='Whether to use GPU libraries for t-SNE calculation', default = False, action='store_true')
 
     return parser.parse_args()
 
@@ -125,7 +128,7 @@ def main():
             j += 1
 
     # generate accessory genome distance representation
-    generate_tsne(seqLabels, accMat, args.perplexity, args.output, overwrite = True, verbosity = verbosity)
+    generate_tsne(seqLabels, accMat, args.perplexity, args.output, overwrite = True, use_gpu = args.use_gpu, verbosity = verbosity)
 
 
 if __name__ == "__main__":

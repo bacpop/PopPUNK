@@ -35,11 +35,12 @@ except ImportError as e:
 
 # Load GPU libraries
 try:
-    import cupyx.scipy.sparse
+    import cupyx
     import cugraph
     import cudf
     import cupy as cp
     from numba import cuda
+    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -116,7 +117,7 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
             rank_file = os.path.dirname(pkl_file) + "/" + \
                         prefix.group(1) + rankFile(rank)
             if use_gpu:
-                fit_data[rank] = cupyx.scipy.sparse.load_npz(rank_file)
+                fit_data[rank] = scipy.sparse.load_npz(rank_file)
             else:
                 fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
@@ -829,7 +830,7 @@ class RefineFit(ClusterFit):
                 print(e)
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
-
+            self.indiv_fitted = True
         y = self.assign(X)
         return y
 
@@ -950,11 +951,8 @@ class RefineFit(ClusterFit):
                 Core and accessory distances
             slope (int)
                 Override self.slope. Default - use self.slope
-
                 Set to 0 for a vertical line, 1 for a horizontal line, or
                 2 to use a slope
-            cpus (int)
-                Number of threads to use
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -962,11 +960,13 @@ class RefineFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
-            if slope == 2 or (slope == None and self.slope == 2):
+            if slope == None:
+                slope = self.slope
+            if slope == 2:
                 y = poppunk_refine.assignThreshold(X/self.scale, 2, self.optimal_x, self.optimal_y, self.threads)
-            elif slope == 0 or (slope == None and self.slope == 0):
+            elif slope == 0:
                 y = poppunk_refine.assignThreshold(X/self.scale, 0, self.core_boundary, 0, self.threads)
-            elif slope == 1 or (slope == None and self.slope == 1):
+            elif slope == 1:
                 y = poppunk_refine.assignThreshold(X/self.scale, 1, 0, self.accessory_boundary, self.threads)
 
         return y
@@ -1014,6 +1014,9 @@ class LineageFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments of samples in X
         '''
+        # Check if model requires GPU
+        check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
+        
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
         if (max(self.ranks) >= sample_size):
@@ -1033,12 +1036,15 @@ class LineageFit(ClusterFit):
                     0,
                     rank
                 )
-            data = [epsilon if d < epsilon else d for d in data]
             if self.use_gpu:
-                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((cp.array(data),(cp.array(row),cp.array(col))),
+                data = cp.array(data)
+                data[data < epsilon] = epsilon
+                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data,(cp.array(row),cp.array(col))),
                                                     shape=(sample_size, sample_size),
                                                     dtype = X.dtype)
             else:
+                data = np.array(data)
+                data[data < epsilon] = epsilon
                 self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
                                                     shape=(sample_size, sample_size),
                                                     dtype = X.dtype)
@@ -1054,16 +1060,10 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to save unfitted model")
         else:
             for rank in self.ranks:
-                if self.use_gpu:
-                    cupyx.scipy.sparse.save_npz(
-                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                        rankFile(rank),
-                        self.nn_dists[rank])
-                else:
-                    scipy.sparse.save_npz(
-                        self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
-                        rankFile(rank),
-                        self.nn_dists[rank])
+                scipy.sparse.save_npz(
+                    self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                    rankFile(rank),
+                    self.nn_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks, self.dist_col], self.type], pickle_file)
@@ -1141,6 +1141,26 @@ class LineageFit(ClusterFit):
             return (self.nn_dists[rank].data)
 
     def extend(self, qqDists, qrDists):
+        '''Update the sparse distance matrix of nearest neighbours after querying
+
+        Args:
+            qqDists (numpy or cupy ndarray)
+                Two column array of query-query distances
+            qqDists (numpy or cupy ndarray)
+                Two column array of reference-query distances
+        Returns:
+            y (list of tuples)
+                Edges to include in network
+        '''
+
+        # Check if model requires GPU
+        check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
+
+        # Convert data structures if using GPU
+        if self.use_gpu:
+            qqDists = cp.array(qqDists)
+            qrDists = cp.array(qrDists)
+    
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
@@ -1175,7 +1195,7 @@ class LineageFit(ClusterFit):
                     dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
                 else:
                     dist_row, dist_col, dist = scipy.sparse.find(sample_row)
-                dist = [epsilon if d < epsilon else d for d in dist]
+                dist[dist < epsilon] = epsilon
                 dist_idx_sort = np.argsort(dist)
 
                 # Identical to C++ code in matrix_ops.cpp:sparsify_dists

@@ -59,8 +59,11 @@ and run::
 
    poppunk_prune --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db
 
-This will remove the samples from the ``strain_db.dists`` files, from which
-``--model-fit`` can be run again.
+This will remove the samples from the ``strain_db.dists`` files. This can instead be done
+simultaneously as the model is fitted - problematic sequences can be pruned, and the model fitted
+to the remaining high-quality samples by modifying the model fitting command to include QC options:
+
+  poppunk --fit-model dbscan --ref-db example_db --output example_dbscan --max-a-dist 0.4 --max-pi-dist 0.2
 
 Dealing with poor quality data
 ------------------------------
@@ -123,4 +126,3 @@ cytoscape directly, though removal from the PopPUNK database is best.
 The second largest cluster is also suspicious, where there are few triangles
 (low transitivity) and the nodes involved have high Stress. This is indicative
 of a bad fit overall, rather than a single problem sample.
-

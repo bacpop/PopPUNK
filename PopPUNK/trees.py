@@ -19,6 +19,7 @@ try:
     import cudf
     import cupy as cp
     from numba import cuda
+    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -173,6 +174,8 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
     tree_string = tree.as_string(schema="newick",
                                  suppress_rooting=True,
                                  unquoted_underscores=True)
+    tree_string = tree_string.replace("'","")
+    
     return tree_string
 
 def mst_to_phylogeny(mst_network, names, use_gpu = False):

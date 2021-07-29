@@ -22,6 +22,9 @@ import h5py
 
 try:
     import cudf
+    import rmm
+    import cupy
+    from numba import cuda
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -264,7 +267,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     from .sketchlib import pickTypeIsolate
 
     # Create overall list of sequences
-    if refList == refList:
+    if refList == queryList:
         seq_names_passing = refList
     else:
         seq_names_passing = refList + queryList
@@ -288,7 +291,11 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
     # First check with numpy, which is quicker than iterating over everything
     #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
-    long_edges = poppunk_refine.generateTuples(long_distance_rows, 0)
+    long_edges = poppunk_refine.generateTuples(long_distance_rows,
+                                                0,
+                                                self = (refList == queryList),
+                                                num_ref = len(refList),
+                                                int_offset = 0)
     if len(long_edges) > 0:
         # Prune sequences based on reference sequence
         for (s,t) in long_edges:
@@ -495,7 +502,7 @@ def readRfile(rFile, oneSeq=False):
             for sequence in rFields[1:]:
                 sample_files.append(sequence)
 
-            # Take first of sequence list if using mash
+            # Take first of sequence list
             if oneSeq:
                 if len(sample_files) > 1:
                     sys.stderr.write("Multiple sequence found for " + rFields[0] +
@@ -503,6 +510,9 @@ def readRfile(rFile, oneSeq=False):
                 sequences.append(sample_files[0])
             else:
                 sequences.append(sample_files)
+
+    # Process names to ensure compatibility with downstream software
+    names = isolateNameToLabel(names)
 
     if len(set(names)) != len(names):
         seen = set()
@@ -534,7 +544,8 @@ def isolateNameToLabel(names):
     """
     # useful to have as a function in case we
     # want to remove certain characters
-    labels = [name.split('/')[-1].split('.')[0].replace(':','') for name in names]
+    labels = [name.split('/')[-1].replace('.','_').replace(':','').replace('(','_').replace(')','_') \
+                        for name in names]
     return labels
 
 
@@ -626,6 +637,32 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
 
     # Set memory management for large networks
     if use_gpu:
+        rmm.reinitialize(managed_memory=True)
         cudf.set_allocator("managed")
-        
+        if "cupy" in sys.modules:
+            cupy.cuda.set_allocator(rmm.rmm_cupy_allocator)
+        if "cuda" in sys.modules:
+            cuda.set_memory_manager(rmm.RMMNumbaManager)
+        assert(rmm.is_initialized())
+
     return use_gpu
+
+def read_rlist_from_distance_pickle(fn, allow_non_self = True):
+    """Return the list of reference sequences from a distance pickle.
+
+    Args:
+        fn (str)
+            Name of distance pickle
+        allow_non_self (bool)
+            Whether non-self distance datasets are permissible
+    Returns:
+        rlist (list)
+            List of reference sequence names
+    """
+    with open(fn, 'rb') as pickle_file:
+        rlist, qlist, self = pickle.load(pickle_file)
+        if not allow_non_self and not self:
+            sys.stderr.write("Thi analysis requires an all-v-all"
+                             " distance dataset\n")
+            sys.exit(1)
+    return rlist

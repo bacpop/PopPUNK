@@ -113,15 +113,56 @@ edge_tuple edge_iterate(const NumpyMatrix &distMat, const int slope,
   return edge_vec;
 }
 
-edge_tuple generate_tuples(const std::vector<int> &assignments, const int within_label) {
+edge_tuple generate_tuples(const std::vector<int> &assignments,
+                           const int within_label,
+                           bool self,
+                           const int num_ref,
+                           const int int_offset) {
     const size_t n_rows = assignments.size();
     const size_t n_samples = 0.5 * (1 + sqrt(1 + 8 * (n_rows)));
     edge_tuple edge_vec;
     for (long row_idx = 0; row_idx < n_rows; row_idx++) {
+        unsigned long i, j;
         if (assignments[row_idx] == within_label) {
-            long i = calc_row_idx(row_idx, n_samples);
-            long j = calc_col_idx(row_idx, i, n_samples);
+            if (self) {
+                i = calc_row_idx(row_idx, n_samples);
+                j = calc_col_idx(row_idx, i, n_samples) + int_offset;
+                i = i + int_offset;
+            } else {
+                i = row_idx % num_ref + int_offset;
+                j = row_idx / num_ref + num_ref + int_offset;
+            }
+            if (i > j) {
+                std::swap(i, j);
+            }
             edge_vec.push_back(std::make_tuple(i, j));
+        }
+    }
+    return edge_vec;
+}
+
+edge_tuple generate_all_tuples(const int num_ref,
+                               const int num_queries,
+                               bool self,
+                               const int int_offset) {
+    edge_tuple edge_vec;
+    if (self) {
+        const size_t n_rows = (pow(2 * num_ref - 1, 2) - 1) / 8;
+        for (long row_idx = 0; row_idx < n_rows; row_idx++) {
+            unsigned long i, j;
+            i = calc_row_idx(row_idx, num_ref);
+            j = calc_col_idx(row_idx, i, num_ref) + int_offset;
+            i = i + int_offset;
+            if (i > j) {
+                std::swap(i, j);
+            }
+            edge_vec.push_back(std::make_tuple(i, j));
+        }
+    } else {
+        for (unsigned long j = 0; j < num_ref; j++) {
+            for (unsigned long i = 0; i < num_queries; i++) {
+                edge_vec.push_back(std::make_tuple(i, j + num_ref));
+            }
         }
     }
     return edge_vec;
