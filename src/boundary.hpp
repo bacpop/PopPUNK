@@ -1,7 +1,7 @@
 /*
  *
- * matrix.hpp
- * functions in matrix_ops.cpp
+ * boundary.hpp
+ * prototypes for boundary fns
  *
  */
 #pragma once

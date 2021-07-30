@@ -1016,7 +1016,7 @@ class LineageFit(ClusterFit):
         '''
         # Check if model requires GPU
         check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
-        
+
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
         if (max(self.ranks) >= sample_size):
@@ -1160,7 +1160,7 @@ class LineageFit(ClusterFit):
         if self.use_gpu:
             qqDists = cp.array(qqDists)
             qrDists = cp.array(qrDists)
-    
+
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
