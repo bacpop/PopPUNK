@@ -17,7 +17,12 @@ typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
     NumpyMatrix;
 typedef std::tuple<std::vector<long>, std::vector<long>, std::vector<long>>
     network_coo;
+typedef std::tuple<std::vector<long>, std::vector<long>, std::vector<float>>
+    sparse_coo;
 typedef std::vector<std::tuple<long, long>> edge_tuple;
+
+template <typename T>
+std::vector<long> sort_indexes(const T &v, const uint32_t n_threads)
 
 Eigen::VectorXf assign_threshold(const NumpyMatrix &distMat, const int slope,
                                  const float x_max, const float y_max,
