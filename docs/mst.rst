@@ -32,7 +32,7 @@ In this case you can use :doc:`visualisation` with the ``--tree`` option:
 use ``--tree both`` to make both a MST and NJ tree, or ``--tree mst`` to just make
 the MST::
 
-    poppunk_visualise --ref-db listeria --tree both --microreact
+    poppunk_visualise --ref-db listeria --tree both --microreact --output dense_mst_viz
 
     Graph-tools OpenMP parallelisation enabled: with 1 threads
     PopPUNK: visualise
@@ -94,10 +94,8 @@ As an example, two commands might be::
 
     poppunk --fit-model lineage --ref-db listeria_all --ranks 50 --threads 4 --output sparse_mst
 
-    poppunk_mst --distances listeria_all/listeria_all.dists \
-    --rank-fit sparse_mst/sparse_mst_rank50_fit.npz \
-    --previous-clustering listeria_all/listeria_all_clusters.csv
-    --output sparse_mst --threads 4
+    poppunk_visualise --ref-db listeria --tree both --microreact  \
+    --rank-fit sparse_mst/sparse_mst_rank50_fit.npz --output sparse_mst_viz --threads 4
 
 Ideally you should pick a rank which is large enough to join all of the components together.
 If you don't, components will be artificially connected by nodes with the largest degree, at the
@@ -111,7 +109,7 @@ largest included distance. Look for components to be one::
             Score   0.3873
 
 This will produce a ``<name>_rank100_fit.npz`` file, which is the sparse matrix to load. You will
-also need to point to your dense distances, but only the ``.pkl`` file is loaded to label the samples.
+also need your dense distances, but only the ``.pkl`` file is loaded to label the samples.
 ``--previous-clustering`` is optional, and points to any .csv output from PopPUNK.
 Note that the clusters produced from your high rank fit are likely to be meaningless, so use clusters
 from a fit you are happy with. These are combined to give samples coloured by strain in the first plot:
@@ -150,7 +148,7 @@ distances can be stored (each distance uses four bytes). The final distance matr
 will contain :math:`Nk` distances, so you can choose a rank such that this will fit in
 memory.
 
-You may then follow the process described above to use ``poppunk_mst`` to generate an MST
+You may then follow the process described above to use ``poppunk_visualise`` to generate an MST
 from your ``.npz`` file after updating the database multiple times.
 
 Using GPU acceleration for the graph
@@ -158,10 +156,8 @@ Using GPU acceleration for the graph
 As an extra optimisation, you may add ``--gpu-graph`` to use `cuGraph <https://docs.rapids.ai/api>`__
 from the RAPIDS library to calculate the MST on a GPU::
 
-    python poppunk_mst --distances sketchlib/sketchlib.dists \
-    --rank-fit sparse_mst/sparse_mst_rank500_fit.npz \
-    --previous-clustering sketchlib/refine_clusters.csv \
-    --output sparse_mst --threads 8 --gpu-graph
+    poppunk_visualise --ref-db listeria --tree both --rank-fit sparse_mst/sparse_mst_rank50_fit.npz\
+    --microreact --output sparse_mst_viz --threads 4 --gpu-graph
 
     Graph-tools OpenMP parallelisation enabled: with 1 threads
     Loading distances into graph
@@ -179,10 +175,10 @@ from the RAPIDS library to calculate the MST on a GPU::
     Drawing MST
 
 This uses `cuDF <https://docs.rapids.ai/api/cudf/stable/>`__ to load the sparse matrix
-(network edges) into the device, and cuGraph
-to do the MST calculation. At the end, this is converted back into graph-tool format
-for drawing and output. Note that this process incurs some overhead, so will likely
-only be faster for very large graphs where calculating the MST on a CPU is slow.
+(network edges) into the device, and cuGraph to do the MST calculation. At the end, this
+is converted back into graph-tool format for drawing and output. Note that this process
+incurs some overhead, so will likely only be faster for very large graphs where calculating
+the MST on a CPU is slow.
 
 To turn off the graph layout and drawing for massive networks, you can use ``--no-plot``.
 
