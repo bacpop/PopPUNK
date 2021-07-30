@@ -998,6 +998,20 @@ class LineageFit(ClusterFit):
                 self.ranks.append(int(rank))
         self.use_gpu = use_gpu
 
+    def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
+      if self.use_gpu:
+          data = cp.array(data)
+          data[data < epsilon] = epsilon
+          self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
+                                              shape=(n_samples, n_samples),
+                                              dtype = dtype)
+      else:
+          data = np.array(data)
+          data[data < epsilon] = epsilon
+          self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                              shape=(n_samples, n_samples),
+                                              dtype = dtype)
+
     def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
 
@@ -1036,18 +1050,7 @@ class LineageFit(ClusterFit):
                     0,
                     rank
                 )
-            if self.use_gpu:
-                data = cp.array(data)
-                data[data < epsilon] = epsilon
-                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data,(cp.array(row),cp.array(col))),
-                                                    shape=(sample_size, sample_size),
-                                                    dtype = X.dtype)
-            else:
-                data = np.array(data)
-                data[data < epsilon] = epsilon
-                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                                    shape=(sample_size, sample_size),
-                                                    dtype = X.dtype)
+            self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
         self.fitted = True
 
@@ -1162,28 +1165,33 @@ class LineageFit(ClusterFit):
 
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
+        qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]
         n_query = qqSquare.shape[1]
         qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref)
+        qrRect[qrRect < epsilon] = epsilon
 
         max_rank = max(self.ranks)
         rrSparse = self.nn_dists[max_rank]
-        self.nn_dists[max_rank] = \
+        higher_rank = \
           poppunk_refine.extend(
             (rrSparse.row, rrSparse.col, rrSparse.data),
             qqSquare,
             qrRect,
             max_rank)
+        self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
+                             max_rank, n_ref + n_query, rrSparse.dtype)
 
-        higher_rank = self.nn_dists[max_rank]
         for rank in sorted(self.ranks, reverse=True)[1:]:
-            self.nn_dists[rank] = \
-              poppunk_refine.lower_rank(
-                (higher_rank.row, higher_rank.col, higher_rank.data),
+            higher_rank = \
+              poppunk_refine.lowerRank(
+                higher_rank,
                 n_ref + n_query,
                 rank)
-            higher_rank = self.nn_dists[rank]
+            self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
+                                 rank, n_ref + n_query, rrSparse.dtype)
 
         y = self.assign(min(self.ranks))
         return y
+

@@ -122,3 +122,8 @@ S3 = scipy.sparse.load_npz("batch123/batch123_rank2_fit.npz")
 S4 = scipy.sparse.load_npz("batch3/batch3_rank2_fit.npz")
 
 compare_sparse_matrices(S3,S4,rlist3,rlist4)
+
+# Check rank 1
+S5 = scipy.sparse.load_npz("batch123/batch123_rank1_fit.npz")
+S6 = scipy.sparse.load_npz("batch3/batch3_rank1_fit.npz")
+compare_sparse_matrices(S5,S6,rlist3,rlist4)
