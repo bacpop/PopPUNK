@@ -1152,7 +1152,6 @@ class LineageFit(ClusterFit):
             y (list of tuples)
                 Edges to include in network
         '''
-
         # Check if model requires GPU
         check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
 
@@ -1163,68 +1162,28 @@ class LineageFit(ClusterFit):
 
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
-        qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]
         n_query = qqSquare.shape[1]
         qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref)
-        qrRect[qrRect < epsilon] = epsilon
 
-        for rank in self.ranks:
-            # Add the matrices together to make a large square matrix
-            if self.use_gpu:
-                full_mat = cupyx.scipy.sparse.bmat([[self.nn_dists[rank],
-                                                    qrRect.transpose()],
-                                                    [qrRect,qqSquare]],
-                                                    format = 'csr',
-                                                    dtype = self.nn_dists[rank].dtype)
-            else:
-                full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
-                                            qrRect.transpose()],
-                                            [qrRect,qqSquare]],
-                                            format = 'csr',
-                                            dtype = self.nn_dists[rank].dtype)
+        max_rank = max(self.ranks)
+        rrSparse = self.nn_dists[max_rank]
+        self.nn_dists[max_rank] = \
+          poppunk_refine.extend(
+            (rrSparse.row, rrSparse.col, rrSparse.data),
+            qqSquare,
+            qrRect,
+            max_rank)
 
-            # Reapply the rank to each row, using sparse matrix functions
-            data = []
-            row = []
-            col = []
-            for row_idx in range(full_mat.shape[0]):
-                sample_row = full_mat.getrow(row_idx)
-                if self.use_gpu:
-                    dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
-                else:
-                    dist_row, dist_col, dist = scipy.sparse.find(sample_row)
-                dist[dist < epsilon] = epsilon
-                dist_idx_sort = np.argsort(dist)
-
-                # Identical to C++ code in matrix_ops.cpp:sparsify_dists
-                neighbours = 0
-                prev_val = -1
-                for sort_idx in dist_idx_sort:
-                    if row_idx == dist_col[sort_idx]:
-                        continue
-                    new_val = abs(dist[sort_idx] - prev_val) < epsilon
-                    if (neighbours < rank or new_val):
-                        data.append(dist[sort_idx])
-                        row.append(row_idx)
-                        col.append(dist_col[sort_idx])
-
-                        if not new_val:
-                            neighbours += 1
-                            prev_val = data[-1]
-                    else:
-                        break
-
-            if self.use_gpu:
-                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix(
-                                        (cp.array(data), (cp.array(row), cp.array(col))),
-                                        shape=(full_mat.shape[0], full_mat.shape[0]),
-                                        dtype = self.nn_dists[rank].dtype)
-            else:
-                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                                    shape=(full_mat.shape[0], full_mat.shape[0]),
-                                                    dtype = self.nn_dists[rank].dtype)
+        higher_rank = self.nn_dists[max_rank]
+        for rank in sorted(self.ranks, reverse=True)[1:]:
+            self.nn_dists[rank] = \
+              poppunk_refine.lower_rank(
+                (higher_rank.row, higher_rank.col, higher_rank.data),
+                n_ref + n_query,
+                rank)
+            higher_rank = self.nn_dists[rank]
 
         y = self.assign(min(self.ranks))
         return y

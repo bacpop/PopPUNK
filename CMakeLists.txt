@@ -35,7 +35,8 @@ add_library("${TARGET_NAME}" MODULE)
 
 # Compile CPU library
 target_sources("${TARGET_NAME}" PRIVATE src/python_bindings.cpp
-                                        src/boundary.cpp)
+                                        src/boundary.cpp
+                                        src/extend.cpp)
 
 set_target_properties("${TARGET_NAME}" PROPERTIES
     CXX_VISIBILITY_PRESET "hidden"
