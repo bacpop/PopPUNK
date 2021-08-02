@@ -87,7 +87,11 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_squ
         dist = qr_dists[*qr_it];
         ++qr_it;
       } else {
-        j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
+        if (i < nr_samples) {
+          j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
+        } else {
+          j = *rr_it;
+        }
         dist = rr_dists[*rr_it];
         ++rr_it;
       }
