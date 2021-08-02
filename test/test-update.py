@@ -24,15 +24,20 @@ else:
 def run_regression(x, y, threshold = 0.99):
     res = stats.linregress(x, y)
     print("R^2: " + str(res.rvalue**2))
-    if res.rvalue**2 < threshold:
-        sys.stderr.write("Distance matrix order failed!\n")
-        sys.exit(1)
+    #if res.rvalue**2 < threshold:
+    #    sys.stderr.write("Distance matrix order failed!\n")
+    #    sys.exit(1)
 
 def compare_sparse_matrices(d1,d2,r1,r2):
+    print(d1.todense())
+    print(d2.todense())
     d1_pairs = get_seq_tuples(d1.row,d1.col,r1)
     d2_pairs = get_seq_tuples(d2.row,d2.col,r2)
     d1_dists = []
     d2_dists = []
+    #if (len(d1_pairs) != len(d2_pairs)):
+    #    sys.stderr.write("Distance matrix number of entries differ!\n")
+    #    sys.exit(1)
 
     for (pair1,dist1) in zip(d1_pairs,d1.data):
         for (pair2,dist2) in zip(d2_pairs,d2.data):
@@ -41,6 +46,8 @@ def compare_sparse_matrices(d1,d2,r1,r2):
                 d2_dists.append(dist2)
                 break
 
+    print(len(d1_pairs))
+    print(len(d2_pairs))
     run_regression(np.asarray(d1_dists),np.asarray(d2_dists))
 
 def get_seq_tuples(rows,cols,names):
@@ -91,6 +98,11 @@ S1 = scipy.sparse.load_npz("batch12/batch12_rank2_fit.npz")
 S2 = scipy.sparse.load_npz("batch2/batch2_rank2_fit.npz")
 compare_sparse_matrices(S1,S2,rlist1,rlist2)
 
+# Check rank 1
+S3 = scipy.sparse.load_npz("batch12/batch12_rank1_fit.npz")
+S4 = scipy.sparse.load_npz("batch2/batch2_rank1_fit.npz")
+compare_sparse_matrices(S3,S4,rlist1,rlist2)
+
 # Check distances after second query
 
 # Check that order is the same after doing 1 + 2 + 3 with --update-db, as doing all of 1 + 2 + 3 together
@@ -118,12 +130,12 @@ run_regression(X1[:, 1], X2[:, 1])
 # Check sparse distances after second query
 with open("batch123/batch123.dists.pkl", 'rb') as pickle_file:
     rlist3, qlist, self = pickle.load(pickle_file)
-S3 = scipy.sparse.load_npz("batch123/batch123_rank2_fit.npz")
-S4 = scipy.sparse.load_npz("batch3/batch3_rank2_fit.npz")
+S5 = scipy.sparse.load_npz("batch123/batch123_rank2_fit.npz")
+S6 = scipy.sparse.load_npz("batch3/batch3_rank2_fit.npz")
 
-compare_sparse_matrices(S3,S4,rlist3,rlist4)
+compare_sparse_matrices(S5,S6,rlist3,rlist4)
 
 # Check rank 1
-S5 = scipy.sparse.load_npz("batch123/batch123_rank1_fit.npz")
-S6 = scipy.sparse.load_npz("batch3/batch3_rank1_fit.npz")
-compare_sparse_matrices(S5,S6,rlist3,rlist4)
+S7 = scipy.sparse.load_npz("batch123/batch123_rank1_fit.npz")
+S8 = scipy.sparse.load_npz("batch3/batch3_rank1_fit.npz")
+compare_sparse_matrices(S7,S8,rlist3,rlist4)
