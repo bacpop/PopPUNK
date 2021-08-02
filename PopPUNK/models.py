@@ -1203,9 +1203,10 @@ class LineageFit(ClusterFit):
 
         with Pool(processes=self.threads) as pool:
             pool.map(partial(self.__reduce_rank__,
-                             higher_rank_sparse_mat = higher_rank,
-                             n_samples = n_ref + n_query,
-                             dtype = rrSparse.dtype),
+                             self=self,
+                             higher_rank_sparse_mat=higher_rank,
+                             n_samples=n_ref + n_query,
+                             dtype=rrSparse.dtype),
                      sorted(self.ranks, reverse=True)[1:])
 
         y = self.assign(min(self.ranks))
