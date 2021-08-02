@@ -35,6 +35,8 @@ def compare_sparse_matrices(d1,d2,r1,r2):
     d2_dists = []
     if (len(d1_pairs) != len(d2_pairs)):
         sys.stderr.write("Distance matrix number of entries differ!\n")
+        print(d1_pairs)
+        print(d2_pairs)
         sys.exit(1)
 
     for (pair1,dist1) in zip(d1_pairs,d1.data):

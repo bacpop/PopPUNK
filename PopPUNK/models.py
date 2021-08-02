@@ -971,6 +971,10 @@ class RefineFit(ClusterFit):
 
         return y
 
+# Wrapper function for LineageFit.__reduce_rank__ to be called by
+# multiprocessing threads
+def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
+    fit.__reduce_rank__(higher_rank_sparse_mat, lower_rank, n_samples, dtype)
 
 class LineageFit(ClusterFit):
     '''Class for fits using the lineage assignment model. Inherits from :class:`ClusterFit`.
@@ -1201,13 +1205,15 @@ class LineageFit(ClusterFit):
         self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
                              max_rank, n_ref + n_query, rrSparse.dtype)
 
-        with Pool(processes=self.threads) as pool:
-            pool.map(partial(self.__reduce_rank__,
-                             self=self,
+        # Apply lower ranks
+        thread_map(partial(reduce_rank,
+                             fit=self,
                              higher_rank_sparse_mat=higher_rank,
                              n_samples=n_ref + n_query,
                              dtype=rrSparse.dtype),
-                     sorted(self.ranks, reverse=True)[1:])
+                     sorted(self.ranks, reverse=True)[1:],
+                     max_workers=self.threads,
+                     disable=True)
 
         y = self.assign(min(self.ranks))
         return y
