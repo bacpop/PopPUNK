@@ -29,8 +29,22 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
   return row_start_idx;
 }
 
-sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_square,
-                  const NumpyMatrix &qr_mat_rect, const size_t kNN) {
+template <typename T>
+std::vector<T> combine_vectors(const std::vector<std::vector<T>> &vec,
+                               const size_t len) {
+  std::vector<T> all(len);
+  auto all_it = all.begin();
+  for (size_t i = 0; i < vec.size(); ++i) {
+    std::copy(vec[i].cbegin(), vec[i].cend(); all_it);
+    all_it += vec[i].size();
+  }
+  return all;
+}
+
+sparse_coo extend(const sparse_coo &sparse_rr_mat,
+                  const NumpyMatrix &qq_mat_square,
+                  const NumpyMatrix &qr_mat_rect, const size_t kNN,
+                  const size_t num_threads) {
   const size_t nr_samples = qr_mat_rect.rows();
   const size_t nq_samples = qr_mat_rect.cols();
 
@@ -38,10 +52,13 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_squ
       row_start_indices(sparse_rr_mat, nr_samples);
 
   // ijv vectors
-  std::vector<float> dists;
-  std::vector<long> i_vec;
-  std::vector<long> j_vec;
+  std::vector<std::vector<float>> dists(nr_samples + nq_samples);
+  std::vector<std::vector<long>> i_vec(nr_samples + nq_samples);
+  std::vector<std::vector<long>> j_vec(nr_samples + nq_samples);
+  size_t len = 0;
+
   std::vector<float> dist_vec = std::get<2>(sparse_rr_mat);
+#pragma omp parallel for schedule(static) num_threads(num_threads) reduction(+:len)
   for (long i = 0; i < nr_samples + nq_samples; ++i) {
     // Extract the dists for the row from the qr (dense) and rr (sparse)
     // matrices
@@ -92,9 +109,9 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_squ
       }
       bool new_val = abs(dist - prev_value) < epsilon;
       if (unique_neighbors < kNN || new_val) {
-        dists.push_back(dist);
-        i_vec.push_back(i);
-        j_vec.push_back(j);
+        dists[i].push_back(dist);
+        i_vec[i].push_back(i);
+        j_vec[i].push_back(j);
         if (!new_val) {
           unique_neighbors++;
           prev_value = dist;
@@ -103,14 +120,20 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_squ
         break; // next i
       }
     }
+    len = dists.size();
   }
-  return (std::make_tuple(i_vec, j_vec, dists));
+
+  // Combine the lists from each thread
+  std::vector<float> dists_all = combine_vectors(dists, len);
+  std::vector<long> i_vec_all = combine_vectors(i_vec, len);
+  std::vector<long> j_vec_all = combine_vectors(j_vec, len);
+
+  return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
                       const size_t kNN) {
-  std::vector<long> row_start_idx =
-      row_start_indices(sparse_rr_mat, n_samples);
+  std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
 
   // ijv vectors
   std::vector<float> dists;

@@ -999,6 +999,8 @@ class LineageFit(ClusterFit):
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
+      '''Save a sparse matrix in coo format
+      '''
       if self.use_gpu:
           data = cp.array(data)
           data[data < epsilon] = epsilon
@@ -1011,6 +1013,21 @@ class LineageFit(ClusterFit):
           self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
                                               shape=(n_samples, n_samples),
                                               dtype = dtype)
+
+    def __reduce_rank__(self, higher_rank_sparse_mat, lower_rank, n_samples, dtype):
+        '''Lowers the rank of a fit and saves it
+        '''
+        lower_rank_sparse_mat = \
+            poppunk_refine.lowerRank(
+                higher_rank_sparse_mat,
+                n_samples,
+                lower_rank)
+        self.__save_sparse__(lower_rank_sparse_mat[2],
+                             lower_rank_sparse_mat[0],
+                             lower_rank_sparse_mat[1],
+                             lower_rank,
+                             n_samples,
+                             dtype)
 
     def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
@@ -1179,18 +1196,17 @@ class LineageFit(ClusterFit):
             (rrSparse.row, rrSparse.col, rrSparse.data),
             qqSquare,
             qrRect,
-            max_rank)
+            max_rank,
+            self.threads)
         self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
                              max_rank, n_ref + n_query, rrSparse.dtype)
 
-        for rank in sorted(self.ranks, reverse=True)[1:]:
-            higher_rank = \
-              poppunk_refine.lowerRank(
-                higher_rank,
-                n_ref + n_query,
-                rank)
-            self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
-                                 rank, n_ref + n_query, rrSparse.dtype)
+        with Pool(processes=self.threads) as pool:
+            pool.map(partial(self.__reduce_rank__,
+                             higher_rank_sparse_mat = higher_rank,
+                             n_samples = n_ref + n_query,
+                             dtype = rrSparse.dtype),
+                     sorted(self.ranks, reverse=True)[1:])
 
         y = self.assign(min(self.ranks))
         return y
