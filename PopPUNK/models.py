@@ -1169,7 +1169,7 @@ class LineageFit(ClusterFit):
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]
         n_query = qqSquare.shape[1]
-        qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref)
+        qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref).T
         qrRect[qrRect < epsilon] = epsilon
 
         max_rank = max(self.ranks)
