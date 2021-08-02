@@ -120,8 +120,9 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         break; // next i
       }
     }
-    len = dists.size();
+    len += dists.size();
   }
+  std::cout << len << std::endl;
 
   // Combine the lists from each thread
   std::vector<float> dists_all = combine_vectors(dists, len);
