@@ -113,6 +113,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
   std::vector<long> i_vec;
   std::vector<long> j_vec;
   std::vector<float> dist_vec = std::get<2>(sparse_rr_mat);
+  const std::vector<long> j_sparse = std::get<1>(sparse_rr_mat);
   for (long i = 0; i < n_samples; ++i) {
     Eigen::Map<Eigen::VectorXf> rr_dists(dist_vec.data() + row_start_idx[i],
                                          row_start_idx[i + 1] -
@@ -123,7 +124,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
     float prev_value = -1;
     for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
          ++rr_it) {
-      long j = *rr_it;
+      long j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
       float dist = rr_dists[*rr_it];
       if (j == i) {
         continue;
