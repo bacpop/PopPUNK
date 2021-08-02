@@ -35,7 +35,7 @@ std::vector<T> combine_vectors(const std::vector<std::vector<T>> &vec,
   std::vector<T> all(len);
   auto all_it = all.begin();
   for (size_t i = 0; i < vec.size(); ++i) {
-    std::copy(vec[i].cbegin(), vec[i].cend(); all_it);
+    std::copy(vec[i].cbegin(), vec[i].cend(), all_it);
     all_it += vec[i].size();
   }
   return all;
