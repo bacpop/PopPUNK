@@ -24,20 +24,18 @@ else:
 def run_regression(x, y, threshold = 0.99):
     res = stats.linregress(x, y)
     print("R^2: " + str(res.rvalue**2))
-    #if res.rvalue**2 < threshold:
-    #    sys.stderr.write("Distance matrix order failed!\n")
-    #    sys.exit(1)
+    if res.rvalue**2 < threshold:
+        sys.stderr.write("Distance matrix order failed!\n")
+        sys.exit(1)
 
 def compare_sparse_matrices(d1,d2,r1,r2):
-    print(d1.todense())
-    print(d2.todense())
     d1_pairs = get_seq_tuples(d1.row,d1.col,r1)
     d2_pairs = get_seq_tuples(d2.row,d2.col,r2)
     d1_dists = []
     d2_dists = []
-    #if (len(d1_pairs) != len(d2_pairs)):
-    #    sys.stderr.write("Distance matrix number of entries differ!\n")
-    #    sys.exit(1)
+    if (len(d1_pairs) != len(d2_pairs)):
+        sys.stderr.write("Distance matrix number of entries differ!\n")
+        sys.exit(1)
 
     for (pair1,dist1) in zip(d1_pairs,d1.data):
         for (pair2,dist2) in zip(d2_pairs,d2.data):
@@ -46,8 +44,6 @@ def compare_sparse_matrices(d1,d2,r1,r2):
                 d2_dists.append(dist2)
                 break
 
-    print(len(d1_pairs))
-    print(len(d2_pairs))
     run_regression(np.asarray(d1_dists),np.asarray(d2_dists))
 
 def get_seq_tuples(rows,cols,names):

@@ -37,9 +37,6 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_squ
   std::vector<long> row_start_idx =
       row_start_indices(sparse_rr_mat, nr_samples);
 
-  std::cout << qq_mat_square << std::endl;
-  std::cout << qr_mat_rect << std::endl;
-
   // ijv vectors
   std::vector<float> dists;
   std::vector<long> i_vec;
@@ -63,12 +60,6 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat, const NumpyMatrix &qq_mat_squ
     // Sort these. Then do a merge below
     std::vector<long> qr_ordered_idx = sort_indexes(qr_dists, 1);
     std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
-    for (int z = 0; z < qr_ordered_idx.size(); ++z) {
-      std::cout << z << "\t" << qr_ordered_idx[z] << "\t" << qr_dists[qr_ordered_idx[z]] << std::endl;
-    }
-    for (int z = 0; z < rr_ordered_idx.size(); ++z) {
-      std::cout << z << "\t" << rr_ordered_idx[z] << "\t" << rr_dists[rr_ordered_idx[z]] << std::endl;
-    }
 
     // See sparsify_dists in pp_sketchlib.
     // This is very similar, but merging two lists as input
