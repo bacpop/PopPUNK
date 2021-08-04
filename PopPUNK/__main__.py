@@ -138,6 +138,9 @@ def get_options():
     refineMode.add_argument('--unconstrained',
             help='Optimise both boundary gradient and intercept',
             default=False, action='store_true')
+    refineMode.add_argument('--multi-boundary',
+            help='Produce clusters for this many boundary positions downward of the optimum',
+            type=int, default=0)
     refineMode.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
             choices=['both', 'core', 'accessory'], default=None)
 
