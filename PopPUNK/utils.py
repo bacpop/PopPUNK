@@ -60,15 +60,13 @@ def set_env(**environ):
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, min_count, qc_dict):
+def setupDBFuncs(args, qc_dict):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
     Args:
         args (argparse.opts)
             Parsed command lines options
-        min_count (int)
-            Minimum k-mer count for reads
         qc_dict (dict)
             Table of parameters for QC function
 

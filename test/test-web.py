@@ -27,7 +27,7 @@ def main():
     args = default_options(species_db)
     qc_dict = {'run_qc': False }
     print("Weights: " + str(args.assign.graph_weights))
-    dbFuncs = setupDBFuncs(args.assign, args.assign.min_kmer_count, qc_dict)
+    dbFuncs = setupDBFuncs(args.assign, qc_dict)
     ClusterResult = assign_query(dbFuncs,
                                 args.assign.ref_db,
                                 args.assign.q_files,

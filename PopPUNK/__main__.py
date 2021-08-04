@@ -203,7 +203,7 @@ def main():
         sys.exit(0)
 
     # Imports are here because graph tool is very slow to load
-    from .models import loadClusterFit, ClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
+    from .models import loadClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
     from .sketchlib import checkSketchlibLibrary
     from .sketchlib import removeFromDB
 
@@ -211,7 +211,6 @@ def main():
     from .network import construct_network_from_assignments
     from .network import extractReferences
     from .network import printClusters
-    from .network import get_vertex_list
     from .network import save_network
     from .network import checkNetworkVertexCount
 
@@ -222,7 +221,6 @@ def main():
 
     from .utils import setGtThreads
     from .utils import setupDBFuncs
-    from .utils import storePickle
     from .utils import readPickle
     from .utils import qcDistMat
     from .utils import createOverallLineage
@@ -254,7 +252,7 @@ def main():
     }
 
     # Dict of DB access functions
-    dbFuncs = setupDBFuncs(args, args.min_kmer_count, qc_dict)
+    dbFuncs = setupDBFuncs(args, qc_dict)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']

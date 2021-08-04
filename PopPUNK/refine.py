@@ -35,7 +35,6 @@ try:
 except ImportError as e:
     gpu_lib = False
 
-import pp_sketchlib
 import poppunk_refine
 
 from .__main__ import betweenness_sample_default
