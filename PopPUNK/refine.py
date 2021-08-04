@@ -284,12 +284,11 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
     # Set the range
     # Between optimised s and where line meets an axis
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    if mean0[1] > gradient * mean0[0]:
-        x = 0
-        y = mean0[1] - gradient * mean0[0]
-    else:
-        x = mean0[0] - mean0[1] / gradient
-        y = 0
+    # Equation of normal passing through origin y = -1/m * x
+    # Where this meets line y - y1 = m(x - x1) is at:
+    x = (gradient * mean0[0] - mean0[1]) / (gradient + 1 / gradient)
+    y = mean0[1] + gradient(x - mean0[0])
+
     s_min = -((mean0[0] - x)**2 + (mean0[1] - y)**2)**0.5
     s_range = np.linspace(-s_min, s_max, num = n_boundary_points)
 
