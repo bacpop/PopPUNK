@@ -14,7 +14,6 @@ from itertools import chain
 from tempfile import mkstemp
 from functools import partial
 import contextlib
-import poppunk_refine
 
 import numpy as np
 import pandas as pd
@@ -29,6 +28,7 @@ try:
 except ImportError as e:
     gpu_lib = False
 
+import poppunk_refine
 import pp_sketchlib
 
 def setGtThreads(threads):
