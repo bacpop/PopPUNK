@@ -408,14 +408,17 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
                     G.add_edge_list(edge_list)
                     edge_list = []
             # Add score into vector for any offsets passed (should usually just be one)
-            latest_score = -networkSummary(G,
+            G_summary = networkSummary(G,
                                 score_idx > 0,
                                 betweenness_sample = betweenness_sample,
-                                use_gpu = use_gpu)[1][score_idx]
+                                use_gpu = use_gpu)
+            latest_score = -G_summary[1][score_idx]
             for s in range(prev_idx, idx):
                 scores.append(latest_score)
                 pbar.update(1)
-                if write_clusters:
+                # Write the cluster output as long as there is at least one
+                # non-trivial clusters
+                if write_clusters and G_summary[0][0] < len(sample_names):
                     o_prefix = write_clusters + "/" + \
                         os.path.basename(write_clusters) + \
                         "_boundary" + str(s)
