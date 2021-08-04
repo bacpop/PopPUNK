@@ -167,6 +167,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
         min_idx = np.argmin(global_s)
         optimal_x = x_max[min_idx % global_grid_resolution]
         optimal_y = y_max[min_idx // global_grid_resolution]
+        optimised_s = global_s[min_idx]
 
         if not (optimal_x > x_max_start and optimal_x < x_max_end and \
                 optimal_y > y_max_start and optimal_y < y_max_end):
@@ -287,10 +288,10 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
     # Equation of normal passing through origin y = -1/m * x
     # Where this meets line y - y1 = m(x - x1) is at:
     x = (gradient * mean0[0] - mean0[1]) / (gradient + 1 / gradient)
-    y = mean0[1] + gradient(x - mean0[0])
+    y = mean0[1] + gradient * (x - mean0[0])
 
     s_min = -((mean0[0] - x)**2 + (mean0[1] - y)**2)**0.5
-    s_range = np.linspace(-s_min, s_max, num = n_boundary_points)
+    s_range = np.linspace(s_min, s_max, num = n_boundary_points)
 
     i_vec, j_vec, idx_vec = \
         poppunk_refine.thresholdIterate1D(distMat, s_range, 2,
@@ -304,7 +305,7 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
                 idx_vec,
                 s_range,
                 0,
-                save_clusters = output_prefix,
+                write_clusters = output_prefix,
                 use_gpu = use_gpu)
 
 
