@@ -291,7 +291,7 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
     y = mean0[1] + gradient * (x - mean0[0])
 
     s_min = -((mean0[0] - x)**2 + (mean0[1] - y)**2)**0.5
-    s_range = np.linspace(s_min, s_max, num = n_boundary_points)
+    s_range = np.linspace(s_min, s_max, num = n_boundary_points)[1:]
 
     i_vec, j_vec, idx_vec = \
         poppunk_refine.thresholdIterate1D(distMat, s_range, 2,
