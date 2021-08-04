@@ -107,12 +107,12 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
       if (j == i) {
         continue;
       }
-      bool new_val = abs(dist - prev_value) < epsilon;
-      if (unique_neighbors < kNN || new_val) {
+      bool new_val = abs(dist - prev_value) >= epsilon;
+      if (unique_neighbors < kNN || !new_val) {
         dists[i].push_back(dist);
         i_vec[i].push_back(i);
         j_vec[i].push_back(j);
-        if (!new_val) {
+        if (new_val) {
           unique_neighbors++;
           prev_value = dist;
         }
@@ -156,12 +156,12 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
       if (j == i) {
         continue;
       }
-      bool new_val = abs(dist - prev_value) < epsilon;
-      if (unique_neighbors < kNN || new_val) {
+      bool new_val = abs(dist - prev_value) >= epsilon;
+      if (unique_neighbors < kNN || !new_val) {
         dists.push_back(dist);
         i_vec.push_back(i);
         j_vec.push_back(j);
-        if (!new_val) {
+        if (new_val) {
           unique_neighbors++;
           prev_value = dist;
         }
