@@ -971,6 +971,10 @@ class RefineFit(ClusterFit):
 
         return y
 
+# Wrapper function for LineageFit.__reduce_rank__ to be called by
+# multiprocessing threads
+def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
+    fit.__reduce_rank__(higher_rank_sparse_mat, lower_rank, n_samples, dtype)
 
 class LineageFit(ClusterFit):
     '''Class for fits using the lineage assignment model. Inherits from :class:`ClusterFit`.
@@ -998,6 +1002,37 @@ class LineageFit(ClusterFit):
                 self.ranks.append(int(rank))
         self.use_gpu = use_gpu
 
+    def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
+      '''Save a sparse matrix in coo format
+      '''
+      if self.use_gpu:
+          data = cp.array(data)
+          data[data < epsilon] = epsilon
+          self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
+                                              shape=(n_samples, n_samples),
+                                              dtype = dtype)
+      else:
+          data = np.array(data)
+          data[data < epsilon] = epsilon
+          self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                              shape=(n_samples, n_samples),
+                                              dtype = dtype)
+
+    def __reduce_rank__(self, higher_rank_sparse_mat, lower_rank, n_samples, dtype):
+        '''Lowers the rank of a fit and saves it
+        '''
+        lower_rank_sparse_mat = \
+            poppunk_refine.lowerRank(
+                higher_rank_sparse_mat,
+                n_samples,
+                lower_rank)
+        self.__save_sparse__(lower_rank_sparse_mat[2],
+                             lower_rank_sparse_mat[0],
+                             lower_rank_sparse_mat[1],
+                             lower_rank,
+                             n_samples,
+                             dtype)
+
     def fit(self, X, accessory):
         '''Extends :func:`~ClusterFit.fit`
 
@@ -1016,7 +1051,7 @@ class LineageFit(ClusterFit):
         '''
         # Check if model requires GPU
         check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
-        
+
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
         if (max(self.ranks) >= sample_size):
@@ -1036,18 +1071,7 @@ class LineageFit(ClusterFit):
                     0,
                     rank
                 )
-            if self.use_gpu:
-                data = cp.array(data)
-                data[data < epsilon] = epsilon
-                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data,(cp.array(row),cp.array(col))),
-                                                    shape=(sample_size, sample_size),
-                                                    dtype = X.dtype)
-            else:
-                data = np.array(data)
-                data[data < epsilon] = epsilon
-                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                                    shape=(sample_size, sample_size),
-                                                    dtype = X.dtype)
+            self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
         self.fitted = True
 
@@ -1152,7 +1176,6 @@ class LineageFit(ClusterFit):
             y (list of tuples)
                 Edges to include in network
         '''
-
         # Check if model requires GPU
         check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
 
@@ -1160,71 +1183,38 @@ class LineageFit(ClusterFit):
         if self.use_gpu:
             qqDists = cp.array(qqDists)
             qrDists = cp.array(qrDists)
-    
+
         # Reshape qq and qr dist matrices
         qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]
         n_query = qqSquare.shape[1]
-        qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref)
+        qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref).T
         qrRect[qrRect < epsilon] = epsilon
 
-        for rank in self.ranks:
-            # Add the matrices together to make a large square matrix
-            if self.use_gpu:
-                full_mat = cupyx.scipy.sparse.bmat([[self.nn_dists[rank],
-                                                    qrRect.transpose()],
-                                                    [qrRect,qqSquare]],
-                                                    format = 'csr',
-                                                    dtype = self.nn_dists[rank].dtype)
-            else:
-                full_mat = scipy.sparse.bmat([[self.nn_dists[rank],
-                                            qrRect.transpose()],
-                                            [qrRect,qqSquare]],
-                                            format = 'csr',
-                                            dtype = self.nn_dists[rank].dtype)
+        max_rank = max(self.ranks)
+        rrSparse = self.nn_dists[max_rank]
+        higher_rank = \
+          poppunk_refine.extend(
+            (rrSparse.row, rrSparse.col, rrSparse.data),
+            qqSquare,
+            qrRect,
+            max_rank,
+            self.threads)
+        self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
+                             max_rank, n_ref + n_query, rrSparse.dtype)
 
-            # Reapply the rank to each row, using sparse matrix functions
-            data = []
-            row = []
-            col = []
-            for row_idx in range(full_mat.shape[0]):
-                sample_row = full_mat.getrow(row_idx)
-                if self.use_gpu:
-                    dist_row, dist_col, dist = cupyx.scipy.sparse.find(sample_row)
-                else:
-                    dist_row, dist_col, dist = scipy.sparse.find(sample_row)
-                dist[dist < epsilon] = epsilon
-                dist_idx_sort = np.argsort(dist)
-
-                # Identical to C++ code in matrix_ops.cpp:sparsify_dists
-                neighbours = 0
-                prev_val = -1
-                for sort_idx in dist_idx_sort:
-                    if row_idx == dist_col[sort_idx]:
-                        continue
-                    new_val = abs(dist[sort_idx] - prev_val) < epsilon
-                    if (neighbours < rank or new_val):
-                        data.append(dist[sort_idx])
-                        row.append(row_idx)
-                        col.append(dist_col[sort_idx])
-
-                        if not new_val:
-                            neighbours += 1
-                            prev_val = data[-1]
-                    else:
-                        break
-
-            if self.use_gpu:
-                self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix(
-                                        (cp.array(data), (cp.array(row), cp.array(col))),
-                                        shape=(full_mat.shape[0], full_mat.shape[0]),
-                                        dtype = self.nn_dists[rank].dtype)
-            else:
-                self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                                    shape=(full_mat.shape[0], full_mat.shape[0]),
-                                                    dtype = self.nn_dists[rank].dtype)
+        # Apply lower ranks
+        thread_map(partial(reduce_rank,
+                             fit=self,
+                             higher_rank_sparse_mat=higher_rank,
+                             n_samples=n_ref + n_query,
+                             dtype=rrSparse.dtype),
+                     sorted(self.ranks, reverse=True)[1:],
+                     max_workers=self.threads,
+                     disable=True)
 
         y = self.assign(min(self.ranks))
         return y
+

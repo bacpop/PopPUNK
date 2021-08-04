@@ -12,6 +12,7 @@
 namespace py = pybind11;
 
 #include "boundary.hpp"
+#include "extend.hpp"
 
 // Wrapper which makes a ref to the python/numpy array
 Eigen::VectorXf assignThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
@@ -31,27 +32,18 @@ edge_tuple edgeThreshold(const Eigen::Ref<NumpyMatrix> &distMat,
 }
 
 edge_tuple generateTuples(const std::vector<int> &assignments,
-                            const int within_label,
-                            bool self,
-                            const int num_ref,
-                            const int int_offset) {
-    edge_tuple edges = generate_tuples(assignments,
-                                        within_label,
-                                        self,
-                                        num_ref,
-                                        int_offset);
-    return (edges);
+                          const int within_label, bool self, const int num_ref,
+                          const int int_offset) {
+  edge_tuple edges =
+      generate_tuples(assignments, within_label, self, num_ref, int_offset);
+  return (edges);
 }
 
-edge_tuple generateAllTuples(const int num_ref,
-                                const int num_queries,
-                                bool self = true,
-                                const int int_offset = 0) {
-    edge_tuple edges = generate_all_tuples(num_ref,
-                                            num_queries,
-                                            self,
-                                            int_offset);
-    return (edges);
+edge_tuple generateAllTuples(const int num_ref, const int num_queries,
+                             bool self = true, const int int_offset = 0) {
+  edge_tuple edges =
+      generate_all_tuples(num_ref, num_queries, self, int_offset);
+  return (edges);
 }
 
 network_coo thresholdIterate1D(const Eigen::Ref<NumpyMatrix> &distMat,
@@ -99,21 +91,15 @@ PYBIND11_MODULE(poppunk_refine, m) {
 
   m.def("generateTuples", &generateTuples,
         py::return_value_policy::reference_internal,
-        "Return edge tuples based on assigned groups",
-        py::arg("assignments"),
-        py::arg("within_label"),
-        py::arg("self") = true,
-        py::arg("num_ref") = 0,
+        "Return edge tuples based on assigned groups", py::arg("assignments"),
+        py::arg("within_label"), py::arg("self") = true, py::arg("num_ref") = 0,
         py::arg("int_offset") = 0);
 
   m.def("generateAllTuples", &generateAllTuples,
-        py::return_value_policy::reference_internal,
-        "Return all edge tuples",
-        py::arg("num_ref"),
-        py::arg("num_queries") = 0,
-        py::arg("self") = true,
+        py::return_value_policy::reference_internal, "Return all edge tuples",
+        py::arg("num_ref"), py::arg("num_queries") = 0, py::arg("self") = true,
         py::arg("int_offset") = 0);
-    
+
   m.def("thresholdIterate1D", &thresholdIterate1D,
         py::return_value_policy::reference_internal,
         "Move a 2D boundary to grow a network by adding edges at each offset",
@@ -125,4 +111,14 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::return_value_policy::reference_internal,
         "Move a 2D boundary to grow a network by adding edges at each offset",
         py::arg("distMat").noconvert(), py::arg("x_max"), py::arg("y_max"));
+
+  m.def("extend", &extend, py::return_value_policy::reference_internal,
+        "Extend a sparse distance matrix keeping k nearest-neighbours",
+        py::arg("rr_mat"), py::arg("qq_mat").noconvert(),
+        py::arg("qr_mat").noconvert(), py::arg("kNN"),
+        py::arg("num_threads") = 1);
+
+  m.def("lowerRank", &lower_rank, py::return_value_policy::reference_internal,
+        "Extend a sparse distance matrix keeping k nearest-neighbours",
+        py::arg("rr_mat"), py::arg("n_samples"), py::arg("kNN"));
 }

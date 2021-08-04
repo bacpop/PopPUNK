@@ -4,17 +4,12 @@
  * Functions to move a network boundary
  *
  */
-#include <algorithm>
 #include <cassert> // assert
 #include <cmath>   // floor/sqrt
 #include <cstddef> // size_t
 #include <cstdint>
-#include <numeric>
 #include <string>
 #include <vector>
-
-// Parallel sort
-#include <boost/sort/sort.hpp>
 
 #include "boundary.hpp"
 
@@ -39,20 +34,6 @@ inline size_t square_to_condensed(const size_t i, const size_t j,
                                   const size_t n) {
   assert(j > i);
   return (n * i - ((i * (i + 1)) >> 1) + j - 1 - i);
-}
-
-// https://stackoverflow.com/a/12399290
-template <typename T>
-std::vector<long> sort_indexes(const T &v, const uint32_t n_threads) {
-  // initialize original index locations
-  std::vector<long> idx(v.size());
-  std::iota(idx.begin(), idx.end(), 0);
-
-  boost::sort::parallel_stable_sort(
-      idx.begin(), idx.end(), [&v](long i1, long i2) { return v[i1] < v[i2]; },
-      n_threads);
-
-  return idx;
 }
 
 // Unnormalised (signed_ distance between a point (x0, y0) and a line defined
