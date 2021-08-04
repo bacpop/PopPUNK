@@ -10,15 +10,10 @@ import numpy as np
 import subprocess
 from collections import defaultdict
 
-# Try to import sketchlib
-try:
-    import pp_sketchlib
-except ImportError as e:
-    sys.stderr.write("Sketchlib backend not available\n")
-    sys.exit(1)
-
-import poppunk_refine
 import h5py
+
+import pp_sketchlib
+import poppunk_refine
 
 # import poppunk package
 from .__init__ import __version__
@@ -127,7 +122,7 @@ def get_options():
     refinementGroup.add_argument('--manual-start', help='A file containing information for a start point. '
             'See documentation for help.', default=None)
     refinementGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
-                                                   'to clusters [default = reference database directory]', type = str)
+                                                     'to clusters [default = reference database directory]', type = str)
     refinementGroup.add_argument('--score-idx',
             help='Index of score to use [default = 0]',
             type=int, default = 0, choices=[0, 1, 2])
@@ -139,7 +134,8 @@ def get_options():
             help='Optimise both boundary gradient and intercept',
             default=False, action='store_true')
     refineMode.add_argument('--multi-boundary',
-            help='Produce clusters for this many boundary positions downward of the optimum',
+            help='Produce multiple sets of clusters at different boundary positions. This argument sets the'
+                 'number of boundary positions between n-1 clusters and the refine optimum.',
             type=int, default=0)
     refineMode.add_argument('--indiv-refine', help='Also run refinement for core and accessory individually',
             choices=['both', 'core', 'accessory'], default=None)
@@ -422,6 +418,7 @@ def main():
                                             args.manual_start,
                                             args.indiv_refine,
                                             args.unconstrained,
+                                            args.multi_boundary,
                                             args.score_idx,
                                             args.no_local,
                                             args.betweenness_sample,
@@ -447,7 +444,7 @@ def main():
 
             # save model
             model.save()
-            
+
             # plot model
             if not args.no_plot:
                 model.plot(distMat, assignments)
