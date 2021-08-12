@@ -378,7 +378,7 @@ def generate_visualisations(query_db,
     else:
         model_prefix = ref_db
     try:
-        model_file = model_prefix + "/" + os.path.basename(model_prefix)
+        model_file = os.path.join(model_prefix, os.path.basename(model_prefix))
         model = loadClusterFit(model_file + '_fit.pkl',
                                model_file + '_fit.npz')
         model.set_threads(threads)
@@ -401,7 +401,7 @@ def generate_visualisations(query_db,
         if model.type == "lineage":
             mode = "lineages"
             suffix = "_lineages.csv"
-        prev_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + suffix
+        prev_clustering = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
     isolateClustering = readIsolateTypeFromCsv(prev_clustering,
                                                mode = mode,
                                                return_dict = True)
@@ -409,7 +409,7 @@ def generate_visualisations(query_db,
     # Add individual refinement clusters if they exist
     if model.indiv_fitted:
         for type, suffix in zip(['Core','Accessory'],['_core_clusters.csv','_accessory_clusters.csv']):
-            indiv_clustering = os.path.basename(model_file) + '/' + os.path.basename(model_file) + suffix
+            indiv_clustering = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
             if os.path.isfile(indiv_clustering):
                 indiv_isolateClustering = readIsolateTypeFromCsv(indiv_clustering,
                                                                    mode = mode,
@@ -422,7 +422,7 @@ def generate_visualisations(query_db,
             if previous_query_clustering is not None:
                 prev_query_clustering = previous_query_clustering
             else:
-                prev_query_clustering = os.path.basename(query_db) + '/' + os.path.basename(query_db) + suffix
+                prev_query_clustering = os.path.join(query_db, os.path.basename(query_db) + suffix)
 
             queryIsolateClustering = readIsolateTypeFromCsv(
                     prev_query_clustering,
