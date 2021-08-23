@@ -147,10 +147,15 @@ def get_options():
                                 help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
                                 type = str,
                                 default = "1,2,3")
+    lineagesGroup.add_argument('--write-networks',
+                                help='Save all lineage networks',
+                                action = 'store_true',
+                                default = False)
     lineagesGroup.add_argument('--use-accessory',
                                 help='Use accessory distances for lineage definitions [default = use core distances]',
                                 action = 'store_true',
                                 default = False)
+    
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
@@ -490,6 +495,14 @@ def main():
                                                                         use_gpu = args.gpu_graph,
                                                                         summarise = False
                                                                        )
+                # Print individual networks if requested
+                if args.write_networks:
+                    save_network(indivNetworks[rank],
+                                    prefix = output,
+                                    suffix = '_' + str(rank) + '_graph',
+                                    use_gpu = args.gpu_graph)
+                
+                # Identify clusters from output
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
                                   refList,
