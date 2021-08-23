@@ -79,7 +79,7 @@ epsilon = 1e-10
 
 # Format for rank fits
 def rankFile(rank):
-    return('_rank' + str(rank) + '_fit.npz')
+    return('_rank_' + str(rank) + '_fit.npz')
 
 def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
                    use_gpu = False):

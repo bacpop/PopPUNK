@@ -499,7 +499,7 @@ def main():
                 if args.write_networks:
                     save_network(indivNetworks[rank],
                                     prefix = output,
-                                    suffix = '_' + str(rank) + '_graph',
+                                    suffix = '_rank_' + str(rank) + '_graph',
                                     use_gpu = args.gpu_graph)
                 
                 # Identify clusters from output
