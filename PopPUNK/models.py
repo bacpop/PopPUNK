@@ -1093,7 +1093,8 @@ class LineageFit(ClusterFit):
                 scipy.sparse.save_npz(
                     self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                     rankFile(rank),
-                    self.nn_dists[rank])
+                    self.nn_dists[rank],
+                    self.count_all_neighbours)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks, self.dist_col], self.type], pickle_file)
@@ -1107,7 +1108,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.dist_col = fit_obj
+        self.ranks, self.dist_col, self.count_all_neighbours = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 
