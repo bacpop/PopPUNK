@@ -974,7 +974,10 @@ class RefineFit(ClusterFit):
 # Wrapper function for LineageFit.__reduce_rank__ to be called by
 # multiprocessing threads
 def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
-    fit.__reduce_rank__(higher_rank_sparse_mat, lower_rank, n_samples, dtype)
+    fit.__reduce_rank__(higher_rank_sparse_mat,
+                        lower_rank,
+                        n_samples,
+                        dtype)
 
 class LineageFit(ClusterFit):
     '''Class for fits using the lineage assignment model. Inherits from :class:`ClusterFit`.
@@ -989,7 +992,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, use_gpu = False):
+    def __init__(self, outPrefix, ranks, count_all_neighbours, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -1000,6 +1003,7 @@ class LineageFit(ClusterFit):
                 sys.exit(0)
             else:
                 self.ranks.append(int(rank))
+        self.count_all_neighbours = count_all_neighbours
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
@@ -1025,7 +1029,8 @@ class LineageFit(ClusterFit):
             poppunk_refine.lowerRank(
                 higher_rank_sparse_mat,
                 n_samples,
-                lower_rank)
+                lower_rank,
+                self.count_all_neighbours)
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1044,7 +1049,7 @@ class LineageFit(ClusterFit):
                 preprocess is set.
             accessory (bool)
                 Use accessory rather than core distances
-
+                
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -1069,7 +1074,8 @@ class LineageFit(ClusterFit):
                 pp_sketchlib.sparsifyDists(
                     pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
                     0,
-                    rank
+                    rank,
+                    self.count_all_neighbours
                 )
             self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
@@ -1172,6 +1178,7 @@ class LineageFit(ClusterFit):
                 Two column array of query-query distances
             qqDists (numpy or cupy ndarray)
                 Two column array of reference-query distances
+
         Returns:
             y (list of tuples)
                 Edges to include in network

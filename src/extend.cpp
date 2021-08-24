@@ -132,7 +132,7 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
 }
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
-                      const size_t kNN) {
+                      const size_t kNN, bool count_duplicates) {
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
 
   // ijv vectors
@@ -162,7 +162,11 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
         i_vec.push_back(i);
         j_vec.push_back(j);
         if (new_val) {
-          unique_neighbors++;
+          if (count_duplicates) {
+            unique_neighbors = j_vec.size();
+          } else {
+            unique_neighbors++;
+          }
           prev_value = dist;
         }
       } else {

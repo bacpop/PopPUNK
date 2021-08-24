@@ -147,6 +147,11 @@ def get_options():
                                 help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
                                 type = str,
                                 default = "1,2,3")
+    lineagesGroup.add_argument('--count-all-neighbours',
+                                help='Count unique neighbours rather than unique distances'
+                                ' to neighbours',
+                                action = 'store_true',
+                                default = False)
     lineagesGroup.add_argument('--write-networks',
                                 help='Save all lineage networks',
                                 action = 'store_true',
@@ -438,9 +443,13 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
-                model = LineageFit(output, rank_list, use_gpu = args.gpu_graph)
+                model = LineageFit(output,
+                                    rank_list,
+                                    args.count_all_neighbours,
+                                    use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
-                model.fit(distMat, args.use_accessory)
+                model.fit(distMat,
+                            args.use_accessory)
 
                 assignments = {}
                 for rank in rank_list:
