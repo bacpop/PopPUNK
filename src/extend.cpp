@@ -132,7 +132,7 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
 }
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
-                      const size_t kNN, bool count_duplicates) {
+                      const size_t kNN, bool reciprocal_only) {
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
 
   // ijv vectors
@@ -161,18 +161,43 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
         dists.push_back(dist);
         i_vec.push_back(i);
         j_vec.push_back(j);
-        if (new_val) {
-          if (count_duplicates) {
-            unique_neighbors = j_vec.size();
-          } else {
+        if (new_val)
+        {
             unique_neighbors++;
-          }
-          prev_value = dist;
+            prev_value = denseDists(i, j);
         }
       } else {
         break; // next i
       }
     }
   }
-  return (std::make_tuple(i_vec, j_vec, dists));
+  // Only count reciprocal matches
+  if (reciprocal_only)
+  {
+      std::vector<float> filtered_dists;
+      std::vector<long> filtered_i_vec;
+      std::vector<long> filtered_j_vec;
+
+      for (long x = 0; x < i_vec.size(); x++)
+      {
+          if (i_vec[x] < j_vec[x])
+          {
+              for (long y = 0; x < i_vec.size(); y++)
+              {
+                  if (i_vec[x] == j_vec[y] && j_vec[x] == i_vec[y])
+                  {
+                      filtered_dists.push_back(dists[x]);
+                      filtered_i_vec.push_back(i_vec[x]);
+                      filtered_j_vec.push_back(j_vec[x]);
+                      break;
+                  }
+              }
+          }
+      }
+      return (std::make_tuple(filtered_i_vec, filtered_j_vec, filtered_dists));
+  }
+  else
+  {
+    return (std::make_tuple(i_vec, j_vec, dists));
+  }
 }

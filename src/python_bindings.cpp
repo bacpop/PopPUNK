@@ -121,5 +121,5 @@ PYBIND11_MODULE(poppunk_refine, m) {
   m.def("lowerRank", &lower_rank, py::return_value_policy::reference_internal,
         "Extend a sparse distance matrix keeping k nearest-neighbours",
         py::arg("rr_mat"), py::arg("n_samples"), py::arg("kNN"),
-        py::arg("count_duplicates") = false);
+        py::arg("reciprocal_only") = false);
 }
