@@ -147,9 +147,8 @@ def get_options():
                                 help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
                                 type = str,
                                 default = "1,2,3")
-    lineagesGroup.add_argument('--count-all-neighbours',
-                                help='Count unique neighbours rather than unique distances'
-                                ' to neighbours',
+    lineagesGroup.add_argument('--reciprocal-only',
+                                help='Only use reciprocal kNN matches for lineage definitions',
                                 action = 'store_true',
                                 default = False)
     lineagesGroup.add_argument('--write-networks',
@@ -445,7 +444,7 @@ def main():
                 # usage of dict reasonable
                 model = LineageFit(output,
                                     rank_list,
-                                    args.count_all_neighbours,
+                                    args.reciprocal_only,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
                 model.fit(distMat,
