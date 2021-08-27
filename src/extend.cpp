@@ -131,8 +131,11 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
-sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
-                      const size_t kNN, bool reciprocal_only) {
+sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
+                      const size_t n_samples,
+                      const size_t kNN,
+                      bool reciprocal_only,
+                      bool count_neighbours) {
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
 
   // ijv vectors
@@ -163,8 +166,15 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
         j_vec.push_back(j);
         if (new_val)
         {
-            unique_neighbors++;
-            prev_value = denseDists(i, j);
+            if (count_neighbours)
+            {
+                unique_neighbors = j_vec.size();
+            }
+            else
+            {
+                unique_neighbors++;
+            }
+            prev_value = dist;
         }
       } else {
         break; // next i

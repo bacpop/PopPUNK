@@ -10,5 +10,8 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
                   const NumpyMatrix &qr_mat_rect, const size_t kNN,
                   const size_t num_threads);
 
-sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
-                      const size_t kNN, bool reciprocal_only);
+sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
+                      const size_t n_samples,
+                      const size_t kNN,
+                      bool reciprocal_only,
+                      bool count_neighbours);
