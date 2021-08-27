@@ -585,8 +585,6 @@ def generate_visualisations(query_db,
                             output,
                             info_csv,
                             viz_subset = viz_subset)
-        if model.type == 'lineage':
-            sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
     sys.stderr.write("\nDone\n")
 

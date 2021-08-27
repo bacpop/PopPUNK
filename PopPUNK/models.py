@@ -995,7 +995,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, reciprocal_only, use_gpu = False):
+    def __init__(self, outPrefix, ranks, reciprocal_only, all_neighbours, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -1007,6 +1007,7 @@ class LineageFit(ClusterFit):
             else:
                 self.ranks.append(int(rank))
         self.reciprocal_only = reciprocal_only
+        self.all_neighbours = all_neighbours
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
@@ -1033,7 +1034,8 @@ class LineageFit(ClusterFit):
                 higher_rank_sparse_mat,
                 n_samples,
                 lower_rank,
-                self.reciprocal_only)
+                self.reciprocal_only,
+                self.all_neighbours)
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1078,7 +1080,8 @@ class LineageFit(ClusterFit):
                     pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
                     0,
                     rank,
-                    self.reciprocal_only
+                    self.reciprocal_only,
+                    self.all_neighbours
                 )
             self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
@@ -1096,11 +1099,13 @@ class LineageFit(ClusterFit):
                 scipy.sparse.save_npz(
                     self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                     rankFile(rank),
-                    self.nn_dists[rank],
-                    self.reciprocal_only)
+                    self.nn_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
-                pickle.dump([[self.ranks, self.dist_col, self.reciprocal_only],
+                pickle.dump([[self.ranks,
+                                self.dist_col,
+                                self.reciprocal_only,
+                                self.all_neighbours],
                                 self.type],
                             pickle_file)
 
@@ -1113,7 +1118,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.dist_col, self.reciprocal_only = fit_obj
+        self.ranks, self.dist_col, self.reciprocal_only, self.all_neighbours = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 

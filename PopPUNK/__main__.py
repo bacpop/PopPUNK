@@ -147,6 +147,11 @@ def get_options():
                                 help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
                                 type = str,
                                 default = "1,2,3")
+    lineagesGroup.add_argument('--all-neighbours',
+                                help='kNN enumerates number of neighbours rather than number of '
+                                'neighbouring distances',
+                                action = 'store_true',
+                                default = False)
     lineagesGroup.add_argument('--reciprocal-only',
                                 help='Only use reciprocal kNN matches for lineage definitions',
                                 action = 'store_true',
@@ -445,6 +450,7 @@ def main():
                 model = LineageFit(output,
                                     rank_list,
                                     args.reciprocal_only,
+                                    args.all_neighbours,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
                 model.fit(distMat,
