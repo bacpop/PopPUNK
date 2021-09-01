@@ -19,12 +19,19 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
   std::vector<long> row_start_idx(nr_samples + 1);
   size_t i_idx = 0;
   row_start_idx[0] = 0;
-  row_start_idx[nr_samples] = i_vec.size();
   for (long i = 1; i < nr_samples; ++i) {
     while (i_vec[i_idx] < i) {
       i_idx++;
     }
     row_start_idx[i] = i_idx;
+
+    // Set to end of vector, if reached
+    if (i_idx == i_vec.size()) {
+      for (long j = i + 1; i <= nr_samples; ++j) {
+        row_start_idx[j] = i_idx;
+      }
+      break;
+    }
   }
   return row_start_idx;
 }
@@ -65,10 +72,12 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     Eigen::VectorXf rr_dists, qr_dists;
     if (i < nr_samples) {
       qr_dists = qr_mat_rect.row(i);
-      Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
-                                         row_start_idx[i + 1] -
-                                             row_start_idx[i]);
-      rr_dists = rr_map;
+      size_t n_rr_dists = row_start_idx[i + 1] - row_start_idx[i];
+      if (n_rr_dists > 0) {
+        Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
+                                          n_rr_dists);
+        rr_dists = rr_map;
+      }
     } else {
       rr_dists = qr_mat_rect.col(i - nr_samples);
       qr_dists = qq_mat_square.row(i - nr_samples);
