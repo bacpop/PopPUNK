@@ -27,7 +27,7 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
 
     // Set to end of vector, if reached
     if (i_idx == i_vec.size()) {
-      for (long j = i + 1; i <= nr_samples; ++j) {
+      for (long j = i + 1; j <= nr_samples; ++j) {
         row_start_idx[j] = i_idx;
       }
       break;
