@@ -20,7 +20,7 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
   size_t i_idx = 0;
   row_start_idx[0] = 0;
   for (long i = 1; i < nr_samples; ++i) {
-    while (i_vec[i_idx] < i) {
+    while (i_vec[i_idx] < i && i_idx <= i_vec.size()) {
       i_idx++;
     }
     row_start_idx[i] = i_idx;
@@ -72,7 +72,8 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     Eigen::VectorXf rr_dists, qr_dists;
     if (i < nr_samples) {
       qr_dists = qr_mat_rect.row(i);
-      long n_rr_dists = std::max(0, row_start_idx[i + 1] - row_start_idx[i]);
+      long start_difference = row_start_idx[i + 1] - row_start_idx[i];
+      long n_rr_dists = std::max(0L, start_difference);
       if (n_rr_dists > 0) {
         Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
                                           n_rr_dists);
@@ -154,7 +155,8 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
   std::vector<float> dist_vec = std::get<2>(sparse_rr_mat);
   const std::vector<long> j_sparse = std::get<1>(sparse_rr_mat);
   for (long i = 0; i < n_samples; ++i) {
-      long n_rr_dists = std::max(0, row_start_idx[i + 1] - row_start_idx[i]);
+      long start_difference = row_start_idx[i + 1] - row_start_idx[i];
+      long n_rr_dists = std::max(0L, start_difference);
       if (n_rr_dists > 0) {
         Eigen::Map<Eigen::VectorXf> rr_dists(dist_vec.data() + row_start_idx[i],
                                              row_start_idx[i + 1] -
