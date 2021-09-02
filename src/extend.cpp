@@ -20,7 +20,7 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
   size_t i_idx = 0;
   row_start_idx[0] = 0;
   for (long i = 1; i < nr_samples; ++i) {
-    while (i_vec[i_idx] < i) {
+    while (i_vec[i_idx] < i && i_idx <= i_vec.size()) {
       i_idx++;
     }
     row_start_idx[i] = i_idx;
