@@ -126,7 +126,7 @@ def assign_query(dbFuncs,
             fit_type_list.append('core_refined')
         if accessory:
             fit_type_list.append('accessory_refined')
-    
+
     for fit_type in fit_type_list:
         # Define file name extension
         file_extension_string = ''
@@ -177,7 +177,7 @@ def assign_query(dbFuncs,
                                       number_plot_fits = plot_fit,
                                       threads = threads,
                                       use_gpu = gpu_dist)
-            
+
         # QC distance matrix
         if qc_dict['run_qc']:
             seq_names_passing = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)[0]
@@ -193,7 +193,7 @@ def assign_query(dbFuncs,
                          core_only = (fit_type == 'core_refined'),
                          accessory_only = (fit_type == 'accessory_refined'),
                          use_gpu = gpu_graph)
-        
+
         if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
             sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
                                 " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
@@ -346,12 +346,12 @@ def assign_query(dbFuncs,
 
             # Clique pruning
             if model.type != 'lineage':
-                
+
                 existing_ref_list = []
                 with open(ref_file_name) as refFile:
                     for reference in refFile:
                         existing_ref_list.append(reference.rstrip())
-                
+
                 # Extract references from graph
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \

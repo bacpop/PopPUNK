@@ -640,7 +640,7 @@ def process_weights(distMat, weights_type):
     else:
         sys.stderr.write('Require distance matrix to calculate distances\n')
     return processed_weights
-    
+
 def process_previous_network(previous_network = None, adding_qq_dists = False, old_ids = None,
                                 previous_pkl = None, vertex_labels = None, weights = False, use_gpu = False):
     """Extract edge types from an existing network
@@ -696,7 +696,7 @@ def process_previous_network(previous_network = None, adding_qq_dists = False, o
     else:
         sys.stderr.write('A distance pkl corresponding to ' + previous_pkl + ' is required for loading\n')
         sys.exit(1)
-    
+
     return extra_sources, extra_targets, extra_weights
 
 def construct_network_from_edge_list(rlist,
@@ -751,10 +751,10 @@ def construct_network_from_edge_list(rlist,
         G (graph)
             The resulting network
     """
-    
+
     # Check GPU library use
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-    
+
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
 
@@ -872,10 +872,10 @@ def construct_network_from_df(rlist,
         G (graph)
             The resulting network
     """
-    
+
     # Check GPU library use
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-    
+
     # data structures
     vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
 
@@ -976,10 +976,10 @@ def construct_network_from_sparse_matrix(rlist,
         G (graph)
             The resulting network
     """
-    
+
     # Check GPU library use
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-    
+
     if use_gpu:
         G_df = cudf.DataFrame()
     else:
@@ -1058,7 +1058,7 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
         # Could alternatively assign weights through eweight.a = weights
         G.add_edge_list(weighted_edges, eprops = [eweight])
         G.edge_properties["weight"] = eweight
-        
+
     return G
 
 
@@ -1114,7 +1114,7 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
         G (graph)
             The resulting network
     """
-    
+
     # Check GPU library use
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
@@ -1157,7 +1157,7 @@ def get_cugraph_triangles(G):
     Args:
         G (cugraph network)
             Network to be analysed
-    
+
     Returns:
         triangle_count (int)
             Count of triangles in graph
@@ -1308,7 +1308,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     """
     # initalise functions
     queryDatabase = dbFuncs['queryDatabase']
-    
+
     # do not calculate weights unless specified
     if weights is None:
         distance_type = None
@@ -1391,7 +1391,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                       self = True,
                                       number_plot_fits = 0,
                                       threads = threads)
-                                      
+
             if distance_type == 'core':
                 queryAssignation = model.assign(qqDistMat, slope = 0)
             elif distance_type == 'accessory':
@@ -1415,7 +1415,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                     else:
                         edge_tuple = (query_indices[query1], query_indices[query2])
                     new_edges.append(edge_tuple)
-            
+
             G = construct_network_from_assignments(qList,
                                                     qList,
                                                     queryAssignation,
@@ -1763,11 +1763,11 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
                 out_degrees = component.get_out_degrees(component_vertices)
                 seed_vertex = list(component_vertices[np.where(out_degrees == np.amax(out_degrees))])
                 seed_vertices.add(seed_vertex[0]) # Can only add one otherwise not MST
-            
+
 
     # If multiple components, add distances between seed nodes
     if num_components > 1:
-        
+
         # Extract edges and maximum edge length - as DF for cugraph
         # list of tuples for graph-tool
         if from_cugraph:
@@ -1881,7 +1881,7 @@ def cugraph_to_graph_tool(G, rlist):
          Cugraph network
        rlist (list)
          List of sequence names
-           
+
     Returns:
       G (graph-tool network)
           Graph tool network
