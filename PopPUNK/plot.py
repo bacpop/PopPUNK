@@ -127,8 +127,7 @@ def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, ou
     plt.legend(loc='upper right', prop={'size': 8})
 
     plt.title(title, fontsize = 10)
-    plt.savefig(os.path.join(out_prefix,
-                os.path.basename(out_prefix) + ".pdf"),
+    plt.savefig(os.path.join(out_prefix + ".pdf"),
                 bbox_inches='tight')
     plt.close()
 

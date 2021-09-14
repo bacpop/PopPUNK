@@ -569,7 +569,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                          raw_fit,
                          corrected[0],
                          corrected_fit,
-                         dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
+                         os.path.join(dbPrefix,
+                                      os.path.basename(dbPrefix) + "_fit_example_" + str(plot_idx + 1)),
                          "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
         duplicated = set(rNames).intersection(set(qNames))
