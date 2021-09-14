@@ -264,6 +264,9 @@ def generate_visualisations(query_db,
     # Determine whether to use sparse distances
     use_sparse = False
     use_dense = False
+    rlist = None
+    qlist = None
+    combined_seq = None
     if (tree == 'mst' or tree == 'both' or cytoscape) and rank_fit is not None:
         # Set flag
         use_sparse = True
