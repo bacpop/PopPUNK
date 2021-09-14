@@ -41,4 +41,5 @@ dependencies:
   - boost-cpp
   - libgomp
   - tqdm
+  - tzlocal <3.0
   - flask-apscheduler
