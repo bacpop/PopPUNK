@@ -80,7 +80,8 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
-    plt.savefig(os.path.join(outPrefix,os.path.basename(outPrefix) + '.png'))
+    plt.savefig(os.path.join(outPrefix,
+                os.path.basename(outPrefix) + '.png'))
     plt.close()
 
 def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, out_prefix, title):
@@ -126,7 +127,9 @@ def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, ou
     plt.legend(loc='upper right', prop={'size': 8})
 
     plt.title(title, fontsize = 10)
-    plt.savefig(out_prefix + ".pdf", bbox_inches='tight')
+    plt.savefig(os.path.join(out_prefix,
+                os.path.basename(out_prefix) + ".pdf"),
+                bbox_inches='tight')
     plt.close()
 
 def plot_results(X, Y, means, covariances, scale, title, out_prefix):
