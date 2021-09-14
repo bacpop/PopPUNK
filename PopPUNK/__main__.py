@@ -354,7 +354,8 @@ def main():
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
-                         args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
+                         os.path.join(os.path.dirname(args.output),
+                                      os.path.basename(args.output) + "_distanceDistribution"),
                          args.output + " distances")
 
     #******************************#
