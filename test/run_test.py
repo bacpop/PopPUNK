@@ -48,6 +48,10 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db e
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 2", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
 
+sys.stderr.write("Running multi boundary refinement (--multi-boundary and poppunk_iterate.py)\n")
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --multi-boundary 10", shell=True, check=True)
+subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_refine", shell=True, check=True)
+
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --output example_lineages --ranks 1,2,3,5 --ref-db example_db --overwrite", shell=True, check=True)
