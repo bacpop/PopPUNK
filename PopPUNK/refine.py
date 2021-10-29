@@ -418,7 +418,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
                 scores.append(latest_score)
                 pbar.update(1)
                 # Write the cluster output as long as there is at least one
-                # non-trivial clusters
+                # non-trivial cluster
                 if write_clusters and G_summary[0][0] < len(sample_names):
                     o_prefix = write_clusters + "/" + \
                         os.path.basename(write_clusters) + \
