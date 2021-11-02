@@ -109,8 +109,8 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm -
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation --query some_queries.txt --db example_db --output example_query", shell=True, check=True)
 
 # web API
-sys.stderr.write("Running API tests\n")
-subprocess.run(python_cmd + " test-web.py", shell=True, check=True)
+# sys.stderr.write("Running API tests\n")
+# subprocess.run(python_cmd + " test-web.py", shell=True, check=True)
 
 sys.stderr.write("Tests completed\n")
 
