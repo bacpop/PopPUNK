@@ -120,7 +120,8 @@ if __name__ == "__main__":
     # Set up reading clusters
     db_name = args.db + "/" + os.path.basename(args.db)
     cluster_it = read_next_cluster_file(db_name)
-    iterated_clusters = next(cluster_it)[1]
+    all_clusters, iterated_clusters, first_idx = next(cluster_it)
+    all_samples = set(all_clusters.values())
     cluster_idx = max(iterated_clusters.keys())
 
     # Run cluster QC
@@ -173,11 +174,12 @@ if __name__ == "__main__":
 
     # Nest the clusters
     tree = Tree()
-    root_node = Node(label="node" + str(sorted_clusters[0]))
+    root_node = Node(label="root")
     tree.root = root_node
 
-    node_list = {sorted_clusters[0]: root_node}
-    for cluster in sorted_clusters[1:]:
+    node_list = {"root": root_node}
+    iterated_clusters["root"] = all_samples
+    for cluster in sorted_clusters:
         new_node = Node(label="node" + str(cluster))
         sub_cluster = is_nested(
             iterated_clusters, iterated_clusters[cluster], node_list.keys()
