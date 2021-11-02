@@ -97,7 +97,7 @@ def is_nested(cluster_dict, child_members, node_list):
     parent = None
     for node in node_list:
         if child_members.issubset(cluster_dict[node]) and \
-          (parent == None or len(cluster_dict[node]) > len(cluster_dict[parent])):
+          (parent == None or len(cluster_dict[node]) < len(cluster_dict[parent])):
             parent = node
     return parent
 
@@ -121,7 +121,9 @@ if __name__ == "__main__":
     db_name = args.db + "/" + os.path.basename(args.db)
     cluster_it = read_next_cluster_file(db_name)
     all_clusters, iterated_clusters, first_idx = next(cluster_it)
-    all_samples = set(all_clusters.values())
+    all_samples = set()
+    for cluster_samples in all_clusters.values():
+        all_samples.update(cluster_samples)
     cluster_idx = max(iterated_clusters.keys())
 
     # Run cluster QC
@@ -180,23 +182,22 @@ if __name__ == "__main__":
     node_list = {"root": root_node}
     iterated_clusters["root"] = all_samples
     for cluster in sorted_clusters:
-        new_node = Node(label="node" + str(cluster))
-        sub_cluster = is_nested(
+        new_node = Node(label="cluster" + str(cluster))
+        parent_cluster = is_nested(
             iterated_clusters, iterated_clusters[cluster], node_list.keys()
         )
-        if sub_cluster:
-            node_list[sub_cluster].add_child(new_node)
-        else:
-            tree.root.add_child(new_node)
+        if parent_cluster:
+            node_list[parent_cluster].add_child(new_node)
+            # Remove nested samples from the parent
+            iterated_clusters[parent_cluster] -= iterated_clusters[cluster]
 
         node_list[cluster] = new_node
 
-    # list of leaves extracted as tree changed in loop below
-    leaves = list(tree.traverse_leaves())
-    for leaf in leaves:
-        cluster = int(re.match("^node(\d+)$", leaf.get_label()).group(1))
+    # Add all the samples to the tree by looking through the list where children
+    # have been removed
+    for cluster in iterated_clusters:
         for sample in iterated_clusters[cluster]:
-            leaf.add_child(Node(label=sample))
+            node_list[cluster].add_child(Node(label=sample))
 
     # Write output
     tree.write_tree_newick(args.output + ".tree.nwk", hide_rooted_prefix=True)
