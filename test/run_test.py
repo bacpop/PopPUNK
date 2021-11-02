@@ -50,7 +50,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --thres
 
 sys.stderr.write("Running multi boundary refinement (--multi-boundary and poppunk_iterate.py)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --multi-boundary 10", shell=True, check=True)
-subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_refine", shell=True, check=True)
+subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_refine --h5 example_db/example_db", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
