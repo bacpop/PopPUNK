@@ -94,10 +94,12 @@ def is_nested(cluster_dict, child_members, node_list):
         node:
             The node in the tree that contains the cluster
     """
+    parent = None
     for node in node_list:
-        if child_members.issubset(cluster_dict[node]):
-            return node
-    return None
+        if child_members.issubset(cluster_dict[node]) and \
+          (parent == None or len(cluster_dict[node]) > len(cluster_dict[parent])):
+            parent = node
+    return parent
 
 
 # main code
@@ -108,7 +110,7 @@ if __name__ == "__main__":
     if args.output is None:
         args.output = args.db + "/" + args.db + "_iterate"
     if args.h5 is None:
-        args.h5 = args.db + "/" + args.db + ".h5"
+        args.h5 = args.db + "/" + args.db
     else:
         # Remove the .h5 suffix if present
         h5_prefix = re.match("^(.+)\.h5$", args.h5)
