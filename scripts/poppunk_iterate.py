@@ -7,6 +7,7 @@ import sys
 import os
 import argparse
 import re
+from copy import deepcopy
 import numpy as np
 from treeswift import Tree, Node
 import h5py
@@ -57,9 +58,9 @@ def read_next_cluster_file(db_prefix):
             The iterated ID of the file read
     """
     cluster_idx = 0
-    all_clusters = defaultdict(set)
-    no_singletons = defaultdict(set)
     while True:
+        all_clusters = defaultdict(set)
+        no_singletons = defaultdict(set)
         cluster_file = db_prefix + "_boundary" + str(cluster_idx) + "_clusters.csv"
         if os.path.isfile(cluster_file):
             with open(cluster_file) as f:
@@ -179,24 +180,25 @@ if __name__ == "__main__":
     root_node = Node(label="root")
     tree.root = root_node
 
+    tree_clusters = deepcopy(iterated_clusters)
     node_list = {"root": root_node}
-    iterated_clusters["root"] = all_samples
+    tree_clusters["root"] = all_samples
     for cluster in sorted_clusters:
         new_node = Node(label="cluster" + str(cluster))
         parent_cluster = is_nested(
-            iterated_clusters, iterated_clusters[cluster], node_list.keys()
+            tree_clusters, tree_clusters[cluster], node_list.keys()
         )
         if parent_cluster:
             node_list[parent_cluster].add_child(new_node)
             # Remove nested samples from the parent
-            iterated_clusters[parent_cluster] -= iterated_clusters[cluster]
+            tree_clusters[parent_cluster] -= tree_clusters[cluster]
 
         node_list[cluster] = new_node
 
     # Add all the samples to the tree by looking through the list where children
     # have been removed
-    for cluster in iterated_clusters:
-        for sample in iterated_clusters[cluster]:
+    for cluster in tree_clusters:
+        for sample in tree_clusters[cluster]:
             node_list[cluster].add_child(Node(label=sample))
 
     # Write output
