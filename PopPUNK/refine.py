@@ -20,8 +20,6 @@ try:
 except ImportError as e:
     sys.stderr.write("This version of PopPUNK requires python v3.8 or higher\n")
     sys.exit(0)
-import pp_sketchlib
-import poppunk_refine
 import graph_tool.all as gt
 import pandas as pd
 
@@ -37,9 +35,11 @@ try:
 except ImportError as e:
     gpu_lib = False
 
+import poppunk_refine
+
 from .__main__ import betweenness_sample_default
 
-from .network import construct_network_from_df
+from .network import construct_network_from_df, printClusters
 from .network import construct_network_from_edge_list
 from .network import networkSummary
 from .network import add_self_loop
@@ -96,6 +96,8 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
             x-coordinate of refined fit
         optimal_y (float)
             y-coordinate of refined fit
+        optimised_s (float)
+            Position along search range of refined fit
     """
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
@@ -165,6 +167,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
         min_idx = np.argmin(global_s)
         optimal_x = x_max[min_idx % global_grid_resolution]
         optimal_y = y_max[min_idx // global_grid_resolution]
+        optimised_s = global_s[min_idx]
 
         if not (optimal_x > x_max_start and optimal_x < x_max_end and \
                 optimal_y > y_max_start and optimal_y < y_max_end):
@@ -249,7 +252,62 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
     if optimal_x < 0 or optimal_y < 0:
         raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
-    return optimal_x, optimal_y
+    return optimal_x, optimal_y, optimised_s
+
+def multi_refine(distMat, sample_names, mean0, mean1, s_max,
+                 n_boundary_points, output_prefix,
+                 num_processes = 1, use_gpu = False):
+    """Move the refinement boundary between the optimum and where it meets an
+    axis. Discrete steps, output the clusers at each step
+
+    Args:
+        distMat (numpy.array)
+            n x 2 array of core and accessory distances for n samples
+        sample_names (list)
+            List of query sequence labels
+        mean0 (numpy.array)
+            Start point to define search line
+        mean1 (numpy.array)
+            End point to define search line
+        s_max (float)
+            The optimal s position from refinement (:func:`~PopPUNK.refine.refineFit`)
+        n_boundary_points (int)
+            Number of positions to try drawing the boundary at
+        num_processes (int)
+            Number of threads to use in the global optimisation step.
+            (default = 1)
+        use_gpu (bool)
+            Whether to use cugraph for graph analyses
+    """
+    # load CUDA libraries
+    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
+
+    # Set the range
+    # Between optimised s and where line meets an axis
+    gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
+    # Equation of normal passing through origin y = -1/m * x
+    # Where this meets line y - y1 = m(x - x1) is at:
+    x = (gradient * mean0[0] - mean0[1]) / (gradient + 1 / gradient)
+    y = mean0[1] + gradient * (x - mean0[0])
+
+    s_min = -((mean0[0] - x)**2 + (mean0[1] - y)**2)**0.5
+    s_range = np.linspace(s_min, s_max, num = n_boundary_points)[1:]
+
+    i_vec, j_vec, idx_vec = \
+        poppunk_refine.thresholdIterate1D(distMat, s_range, 2,
+                                          mean0[0], mean0[1],
+                                          mean1[0], mean1[1],
+                                          num_processes)
+
+    growNetwork(sample_names,
+                i_vec,
+                j_vec,
+                idx_vec,
+                s_range,
+                0,
+                write_clusters = output_prefix,
+                use_gpu = use_gpu)
+
 
 def expand_cugraph_network(G, G_extra_df):
     """Reconstruct a cugraph network with additional edges.
@@ -276,9 +334,9 @@ def expand_cugraph_network(G, G_extra_df):
     G = add_self_loop(G_df, G_vertex_count, weights = False, renumber = False)
     return G
 
-def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
+def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
                 thread_idx = 0, betweenness_sample = betweenness_sample_default,
-                use_gpu = False):
+                write_clusters = None, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -302,6 +360,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
         betweenness_sample (int)
             Number of sequences per component used to estimate betweenness using
             a GPU. Smaller numbers are faster but less precise [default = 100]
+        write_clusters (str)
+            Set to a prefix to write the clusters from each position to files
+            [default = None]
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -310,7 +371,6 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
             -1 * network score for each of x_range.
             Where network score is from :func:`~PopPUNK.network.networkSummary`
     """
-
     scores = []
     prev_idx = -1
 
@@ -338,9 +398,9 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
             # At first offset, make a new network, otherwise just add the new edges
             if prev_idx == -1:
                 G = construct_network_from_df(sample_names, sample_names,
-                                                 edge_df,
-                                                 summarise = False,
-                                                 use_gpu = use_gpu)
+                                              edge_df,
+                                              summarise = False,
+                                              use_gpu = use_gpu)
             else:
                 if use_gpu:
                     G = expand_cugraph_network(G, edge_df)
@@ -349,13 +409,26 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx,
                     G.add_edge_list(edge_list)
                     edge_list = []
             # Add score into vector for any offsets passed (should usually just be one)
-            latest_score = -networkSummary(G,
+            G_summary = networkSummary(G,
                                 score_idx > 0,
                                 betweenness_sample = betweenness_sample,
-                                use_gpu = use_gpu)[1][score_idx]
+                                use_gpu = use_gpu)
+            latest_score = -G_summary[1][score_idx]
             for s in range(prev_idx, idx):
                 scores.append(latest_score)
                 pbar.update(1)
+                # Write the cluster output as long as there is at least one
+                # non-trivial cluster
+                if write_clusters and G_summary[0][0] < len(sample_names):
+                    o_prefix = write_clusters + "/" + \
+                        os.path.basename(write_clusters) + \
+                        "_boundary" + str(s)
+                    printClusters(G,
+                                  sample_names,
+                                  outPrefix=o_prefix,
+                                  write_unwords=False,
+                                  use_gpu=use_gpu)
+
             prev_idx = idx
 
     return(scores)

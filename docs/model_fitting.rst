@@ -684,6 +684,20 @@ also be shown on the _refined_fit.png plot as dashed gray lines:
 To use one of these for your saved model, rerun, but instead setting
 ``--indiv-refine core`` or ``--indiv-refine accessory``.
 
+.. _multi-boundary:
+
+Running with multiple boundary positions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To create clusters at equally spaced positions across the refinement range, add
+the ``--multi-boundary <n>`` argument, with the number of positions specified by
+``<n>``. This will create up to ``<n>`` sets of clusters, with boundaries equally spaced
+between the origin and the refined boundary position.
+
+Trivial cluster sets, where every sample is in its own cluster, will be excluded, so
+the final number of clusters may be less than ``<n>``.
+
+For a use of these cluster sets, see the :ref:`poppunk-iterate` section.
+
 threshold
 ---------
 In this mode no model is fitted. You provide the threshold at which within- and
