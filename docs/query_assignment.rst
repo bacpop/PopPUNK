@@ -15,7 +15,7 @@ Downloading a database
 ----------------------
 Current PopPUNK databases can be found here: https://poppunk.net/pages/databases.html
 
-.. information::
+.. note::
     We currently only have three reference databases available for public use.
     Please bear with us as we update this, more reference databases which work
     with version 2 of PopPUNK will be released shortly. You can still fit your
