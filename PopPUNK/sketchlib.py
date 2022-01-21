@@ -584,7 +584,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
         distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
                                              True, False, threads, use_gpu, deviceid)
-                                             
+
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
             jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))

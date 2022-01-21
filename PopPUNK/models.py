@@ -45,7 +45,6 @@ try:
 except ImportError as e:
     gpu_lib = False
 
-# GPU support
 import pp_sketchlib
 import poppunk_refine
 
@@ -68,8 +67,7 @@ from .dbscan import evaluate_dbscan_clusters
 from .plot import plot_dbscan_results
 
 # refine
-from .refine import refineFit
-from .refine import likelihoodBoundary
+from .refine import refineFit, multi_refine
 from .refine import readManualStart
 from .plot import plot_refined_results
 
@@ -713,7 +711,7 @@ class RefineFit(ClusterFit):
         self.unconstrained = False
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
-            unconstrained = False, score_idx = 0, no_local = False,
+            unconstrained = False, multi_boundary = 0, score_idx = 0, no_local = False,
             betweenness_sample = betweenness_sample_default, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
@@ -741,6 +739,10 @@ class RefineFit(ClusterFit):
             indiv_refine (str)
                 Run refinement for core or accessory distances separately
                 (default = None).
+            multi_boundary (int)
+                Produce cluster output at multiple boundary positions downward
+                from the optimum.
+                (default = 0).
             unconstrained (bool)
                 If True, search in 2D and change the slope of the boundary
             score_idx (int)
@@ -784,7 +786,7 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
-        self.optimal_x, self.optimal_y = \
+        self.optimal_x, self.optimal_y, optimal_s = \
           refineFit(X/self.scale,
                     sample_names,
                     self.mean0,
@@ -801,6 +803,18 @@ class RefineFit(ClusterFit):
                     use_gpu = use_gpu)
         self.fitted = True
 
+        # Output clusters at more positions if requested
+        if multi_boundary > 1:
+            multi_refine(X/self.scale,
+                        sample_names,
+                        self.mean0,
+                        self.mean1,
+                        optimal_s,
+                        multi_boundary,
+                        self.outPrefix,
+                        num_processes = self.threads,
+                        use_gpu = use_gpu)
+
         # Try and do a 1D refinement for both core and accessory
         self.core_boundary = self.optimal_x
         self.accessory_boundary = self.optimal_y
@@ -810,7 +824,7 @@ class RefineFit(ClusterFit):
                     if indiv_refine == 'both' or indiv_refine == dist_type:
                         sys.stderr.write("Refining " + dist_type + " distances separately\n")
                         # optimise core distance boundary
-                        core_boundary, accessory_boundary = \
+                        core_boundary, accessory_boundary, s = \
                           refineFit(X/self.scale,
                                     sample_names,
                                     self.mean0,
@@ -825,9 +839,9 @@ class RefineFit(ClusterFit):
                                     betweenness_sample = betweenness_sample,
                                     use_gpu = use_gpu)
                         if dist_type == "core":
-                          self.core_boundary = core_boundary
+                            self.core_boundary = core_boundary
                         if dist_type == "accessory":
-                          self.accessory_boundary = accessory_boundary
+                            self.accessory_boundary = accessory_boundary
                 self.indiv_fitted = True
             except RuntimeError as e:
                 print(e)

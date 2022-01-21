@@ -22,6 +22,38 @@ Previous versions of the software had an ``--easy-run`` mode which would run a p
 This is now available as ``poppunk_easy_run.py`` which will chain calls to ``poppunk``
 and ``poppunk_visualise`` to replicate this functionality.
 
+.. _poppunk-iterate:
+
+Iterative PopPUNK
+-----------------
+You can combine the output from multiple to produce further analysis. For an easy
+way to create multiple clusters, try the ``--multi-boundary`` option (:ref:`multi-boundary`).
+
+The script to analyse these is ``poppunk_iterate.py``. Basic use is to provide the
+output directory as ``--db``, but run ``--help`` for other common options. This relies on
+finding files named ``<db>/<db>_boundary<n>_clusters.csv``, where ``<n>`` is the boundary
+iteration number (continuous integers increasing from zero). Clusters must contain at least
+two samples.
+
+This script will do the following:
+
+1. Starting from the most specific clusters (nearest the origin), it will iteratively
+   add new clusters which are either:
+
+    a) totally new clusters
+
+    b) subsets of existing clusters
+
+    c) existing clusters are subsets of the new cluster.
+
+2. Remove duplicate clusters.
+
+3. Calculate average core distance within this cluster set.
+
+4. Create a tree by nesting smaller clusters within larger clusters they are subsets of.
+
+5. Output the combined clusters, average core distances, and tree.
+
 Adding weights to the network
 -----------------------------
 Converts binary within-cluster edge weights to the Euclidean core-accessory distance.

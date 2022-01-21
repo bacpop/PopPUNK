@@ -59,7 +59,7 @@ def sketchAssign():
             os.mkdir(outdir)
 
         qc_dict = {'run_qc': False }
-        dbFuncs = setupDBFuncs(args.assign, args.assign.min_kmer_count, qc_dict)
+        dbFuncs = setupDBFuncs(args.assign, qc_dict)
 
         # assign query to strain
         ClusterResult = assign_query(dbFuncs,

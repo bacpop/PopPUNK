@@ -14,7 +14,6 @@ from itertools import chain
 from tempfile import mkstemp
 from functools import partial
 import contextlib
-import poppunk_refine
 
 import numpy as np
 import pandas as pd
@@ -29,6 +28,7 @@ try:
 except ImportError as e:
     gpu_lib = False
 
+import poppunk_refine
 import pp_sketchlib
 
 def setGtThreads(threads):
@@ -60,15 +60,13 @@ def set_env(**environ):
 
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, min_count, qc_dict):
+def setupDBFuncs(args, qc_dict):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
     Args:
         args (argparse.opts)
             Parsed command lines options
-        min_count (int)
-            Minimum k-mer count for reads
         qc_dict (dict)
             Table of parameters for QC function
 

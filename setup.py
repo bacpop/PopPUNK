@@ -122,6 +122,7 @@ setup(
              'scripts/poppunk_calculate_silhouette.py',
              'scripts/poppunk_batch_mst.py',
              'scripts/poppunk_extract_distances.py',
+             'scripts/poppunk_iterate.py',
              'scripts/poppunk_add_weights.py',
              'scripts/poppunk_easy_run.py',
              'scripts/poppunk_pickle_fix.py'],

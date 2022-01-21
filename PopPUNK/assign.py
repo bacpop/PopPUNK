@@ -564,7 +564,7 @@ def main():
         }
 
     # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, args.min_kmer_count, qc_dict)
+    dbFuncs = setupDBFuncs(args, qc_dict)
 
     # run according to mode
     sys.stderr.write("PopPUNK: assign\n")

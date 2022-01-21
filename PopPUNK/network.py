@@ -22,7 +22,6 @@ from multiprocessing import Pool
 import pickle
 import graph_tool.all as gt
 import dendropy
-import poppunk_refine
 
 # Load GPU libraries
 try:
@@ -35,6 +34,8 @@ try:
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
+
+import poppunk_refine
 
 from .__main__ import accepted_weights_types
 from .__main__ import betweenness_sample_default
