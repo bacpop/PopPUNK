@@ -16,7 +16,7 @@
 #include <Eigen/Dense>
 
 // Parallel sort
-#include <boost/sort/sort.hpp>
+#include <boost/sort/parallel_stable_sort/parallel_stable_sort.hpp>
 typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
     NumpyMatrix;
 typedef std::tuple<std::vector<long>, std::vector<long>, std::vector<long>>
