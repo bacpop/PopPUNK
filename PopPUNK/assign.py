@@ -77,7 +77,7 @@ def assign_query(dbFuncs,
                                 use_gpu = gpu_sketch,
                                 deviceid = deviceid)
 
-    isolateClustering = assign_query_hd5(dbFuncs,
+    isolateClustering = assign_query_hdf5(dbFuncs,
                     ref_db,
                     qNames,
                     output,
