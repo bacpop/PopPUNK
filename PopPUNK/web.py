@@ -177,11 +177,11 @@ def sketch_to_hdf5(sketches_dict, output):
     sketches = queryDB.create_group("sketches")
 
     for top_key, top_value in sketches_dict.items():
-        qNames.append("query_" + top_key)
+        qNames.append(top_key)
         kmers = []
         dists = []
         sketch_dict = json.loads(top_value)
-        sketch_props = sketches.create_group("query_" + top_key)
+        sketch_props = sketches.create_group(top_key)
 
         for key, value in sketch_dict.items():
             try:
@@ -292,13 +292,14 @@ def get_aliases(aliasDF, clusterLabels, species):
         alias_dict = {"GPSC":str(GPS_name)}
     return alias_dict
 
-def summarise_clusters(output, species, species_db):
+def summarise_clusters(output, species, species_db, qNames):
     """Retreieve assigned query and all cluster prevalences.
     Write list of all isolates in cluster for tree subsetting"""
     totalDF = pd.read_csv(os.path.join(output, os.path.basename(output) + "_clusters.csv"))
-    queryDF = totalDF.loc[totalDF['Taxon'].str.contains("query_",regex=False)]
+    queryDF = totalDF[totalDF['Taxon'].isin(qNames)]
     queryDF = queryDF.reset_index(drop=True)
-    queries = list(queryDF["Cluster"])
+    queries_names = list(queryDF["Taxon"])
+    queries_clusters = list(queryDF["Cluster"])
     num_samples = len(totalDF["Taxon"])
     totalDF["Cluster"] = totalDF["Cluster"].astype(str)
     cluster_list = list(totalDF["Cluster"])
@@ -310,7 +311,7 @@ def summarise_clusters(output, species, species_db):
     clusters = list(uniquetotalDF['Cluster'])
     prevalences = list(uniquetotalDF["Prevalence"])
     queries_prevalence = []
-    for query in queries:
+    for query in queries_clusters:
         queries_prevalence.append(prevalences[clusters.index(str(query))])
         # write list of all isolates in cluster
         clusterDF = totalDF.loc[totalDF['Cluster'] == str(query)]
@@ -323,7 +324,7 @@ def summarise_clusters(output, species, species_db):
         alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
     else: 
         alias_dict = {"Aliases": "NA"}
-    return queries, queries_prevalence, clusters, prevalences, alias_dict, to_include
+    return queries_names, queries_clusters, queries_prevalence, clusters, prevalences, alias_dict, to_include
 
 @scheduler.task('interval', id='clean_tmp', hours=1, misfire_grace_time=900)
 def clean_tmp():
