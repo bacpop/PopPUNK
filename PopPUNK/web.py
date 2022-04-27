@@ -170,47 +170,49 @@ def get_colours(query, clusters):
             colours.append('blue')
     return colours
 
-def sketch_to_hdf5(sketch, output):
-    """Convert JSON sketch to query hdf5 database"""
-    kmers = []
-    dists = []
-
-    sketch_dict = json.loads(sketch)
-    qNames = ["query"]
+def sketch_to_hdf5(sketches_dict, output):
+    """Convert dict of JSON sketches to query hdf5 database"""
+    qNames = []
     queryDB = h5py.File(os.path.join(output, os.path.basename(output) + '.h5'), 'w')
     sketches = queryDB.create_group("sketches")
-    sketch_props = sketches.create_group(qNames[0])
 
-    for key, value in sketch_dict.items():
-        try:
-            kmers.append(int(key))
-            dists.append(np.array(value, dtype='uint64'))
-        except (TypeError, ValueError):
-            if key == "version":
-                sketches.attrs['sketch_version'] = value
-            elif key == "codon_phased":
-                sketches.attrs['codon_phased'] = value
-            elif key == "densified":
-                sketches.attrs['densified'] = value
-            elif key == "bases":
-                sketch_props.attrs['base_freq'] = value
-            elif key == "bbits":
-                sketch_props.attrs['bbits'] = value
-            elif key == "length":
-                sketch_props.attrs['length'] = value
-            elif key == "missing_bases":
-                sketch_props.attrs['missing_bases'] = value
-            elif key == "sketchsize64":
-                sketch_props.attrs['sketchsize64'] = value
-            elif key == "species":
-                pass
-            else:
-                sys.stderr.write(key + " not recognised")
+    for top_key, top_value in sketches_dict.items():
+        qNames.append("query_" + top_key)
+        kmers = []
+        dists = []
+        sketch_dict = json.loads(top_value)
+        sketch_props = sketches.create_group("query_" + top_key)
 
-    sketch_props.attrs['kmers'] = kmers
-    for k_index in range(len(kmers)):
-        k_spec = sketch_props.create_dataset(str(kmers[k_index]), data=dists[k_index], dtype='uint64')
-        k_spec.attrs['kmer-size'] = kmers[k_index]
+        for key, value in sketch_dict.items():
+            try:
+                kmers.append(int(key))
+                dists.append(np.array(value, dtype='uint64'))
+            except (TypeError, ValueError):
+                if key == "version":
+                    sketches.attrs['sketch_version'] = value
+                elif key == "codon_phased":
+                    sketches.attrs['codon_phased'] = value
+                elif key == "densified":
+                    sketches.attrs['densified'] = value
+                elif key == "bases":
+                    sketch_props.attrs['base_freq'] = value
+                elif key == "bbits":
+                    sketch_props.attrs['bbits'] = value
+                elif key == "length":
+                    sketch_props.attrs['length'] = value
+                elif key == "missing_bases":
+                    sketch_props.attrs['missing_bases'] = value
+                elif key == "sketchsize64":
+                    sketch_props.attrs['sketchsize64'] = value
+                elif key == "species":
+                    pass
+                else:
+                    sys.stderr.write(key + " not recognised")
+
+        sketch_props.attrs['kmers'] = kmers
+        for k_index in range(len(kmers)):
+            k_spec = sketch_props.create_dataset(str(kmers[k_index]), data=dists[k_index], dtype='uint64')
+            k_spec.attrs['kmer-size'] = kmers[k_index]
     queryDB.close()
     return qNames
 
@@ -294,9 +296,9 @@ def summarise_clusters(output, species, species_db):
     """Retreieve assigned query and all cluster prevalences.
     Write list of all isolates in cluster for tree subsetting"""
     totalDF = pd.read_csv(os.path.join(output, os.path.basename(output) + "_clusters.csv"))
-    queryDF = totalDF.loc[totalDF['Taxon'] == "query"]
+    queryDF = totalDF.loc[totalDF['Taxon'].str.contains("query_",regex=False)]
     queryDF = queryDF.reset_index(drop=True)
-    query = str(queryDF["Cluster"][0])
+    queries = list(queryDF["Cluster"])
     num_samples = len(totalDF["Taxon"])
     totalDF["Cluster"] = totalDF["Cluster"].astype(str)
     cluster_list = list(totalDF["Cluster"])
@@ -307,19 +309,21 @@ def summarise_clusters(output, species, species_db):
     uniquetotalDF = totalDF.drop_duplicates(subset=['Cluster'])
     clusters = list(uniquetotalDF['Cluster'])
     prevalences = list(uniquetotalDF["Prevalence"])
-    query_prevalence = prevalences[clusters.index(query)]
-    # write list of all isolates in cluster
-    clusterDF = totalDF.loc[totalDF['Cluster'] == query]
-    to_include = list(clusterDF['Taxon'])
-    with open(os.path.join(output, "include.txt"), "w") as i:
-        i.write("\n".join(to_include))
+    queries_prevalence = []
+    for query in queries:
+        queries_prevalence.append(prevalences[clusters.index(str(query))])
+        # write list of all isolates in cluster
+        clusterDF = totalDF.loc[totalDF['Cluster'] == str(query)]
+        to_include = list(clusterDF['Taxon'])
+        with open(os.path.join(output, "include" + str(query) + ".txt"), "w") as i:
+            i.write("\n".join(to_include))
     # get aliases
     if os.path.isfile(os.path.join(species_db, "aliases.csv")):
         aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
         alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
     else: 
         alias_dict = {"Aliases": "NA"}
-    return query, query_prevalence, clusters, prevalences, alias_dict, to_include
+    return queries, queries_prevalence, clusters, prevalences, alias_dict, to_include
 
 @scheduler.task('interval', id='clean_tmp', hours=1, misfire_grace_time=900)
 def clean_tmp():
