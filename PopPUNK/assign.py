@@ -105,7 +105,7 @@ def assign_query(dbFuncs,
                     save_partial_query_graph) 
     return(isolateClustering)           
 
-def assign_query_hd5(dbFuncs,
+def assign_query_hdf5(dbFuncs,
                  ref_db,
                  qNames,
                  output,
