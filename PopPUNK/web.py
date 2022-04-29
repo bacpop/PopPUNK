@@ -193,7 +193,7 @@ def sketch_to_hdf5(sketches_dict, output):
                 elif key == "codon_phased":
                     sketches.attrs['codon_phased'] = value
                 elif key == "densified":
-                    sketches.attrs['densified'] = value
+                    pass
                 elif key == "bases":
                     sketch_props.attrs['base_freq'] = value
                 elif key == "bbits":
