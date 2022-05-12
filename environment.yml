@@ -18,12 +18,8 @@ dependencies:
   - hdbscan
   - rapidnj
   - h5py
-  - pp-sketchlib >=1.7.0
+  - pp-sketchlib >=2.0.0
   - graph-tool >=2.35
-  - requests
-  - flask
-  - flask-cors
-  - gunicorn
   - networkx
   - xorg-libxi
   - xorg-libxcursor
@@ -42,5 +38,3 @@ dependencies:
   - boost-cpp
   - libgomp
   - tqdm
-  - tzlocal <3.0
-  - flask-apscheduler

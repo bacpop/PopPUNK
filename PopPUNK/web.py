@@ -1,7 +1,6 @@
-from types import SimpleNamespace
+from re import I
 import h5py
 import os
-import re
 import sys
 import numpy as np
 import pandas as pd
@@ -10,165 +9,7 @@ import requests
 import networkx as nx
 from networkx.readwrite import json_graph
 
-import subprocess
-import uuid
-import glob
-import atexit
-from flask import Flask, request, jsonify
-from flask_cors import CORS, cross_origin
 import json
-from flask_apscheduler import APScheduler
-
-from PopPUNK.assign import assign_query
-from PopPUNK.utils import setupDBFuncs
-from PopPUNK.visualise import generate_visualisations
-
-# data locations
-db_prefix = 'WebOutput'
-db_location = '/home/poppunk-usr/' + os.getenv('POPPUNK_DBS_LOC', 'poppunk_dbs')
-
-app = Flask(__name__, instance_relative_config=True)
-app.config.update(
-    TESTING=True,
-    SCHEDULER_API_ENABLED=True,
-    SECRET_KEY=os.environ.get('FLASK_SECRET_KEY')
-)
-CORS(app, expose_headers='Authorization')
-scheduler = APScheduler()
-
-@app.route('/')
-def api_up():
-    return 'PopPUNK.web running\n'
-
-@app.route('/upload', methods=['POST'])
-@cross_origin()
-def sketchAssign():
-    """Recieve sketch and respond with clustering information"""
-    if not request.json:
-        return "not a json post"
-    if request.json:
-        sketch_dict = request.json
-        # determine database to use
-        if sketch_dict["species"] == "S.pneumoniae":
-            species = 'Streptococcus pneumoniae'
-            species_db = db_location + "/GPS_v3_references"
-        args = default_options(species_db)
-
-        outdir = "/tmp/" + db_prefix + "_" + str(uuid.uuid4())
-        if not os.path.exists(outdir):
-            os.mkdir(outdir)
-
-        qc_dict = {'run_qc': False }
-        dbFuncs = setupDBFuncs(args.assign, qc_dict)
-
-        # assign query to strain
-        ClusterResult = assign_query(dbFuncs,
-                                    args.assign.ref_db,
-                                    args.assign.q_files,
-                                    outdir,
-                                    qc_dict,
-                                    args.assign.update_db,
-                                    args.assign.write_references,
-                                    args.assign.distances,
-                                    args.assign.threads,
-                                    args.assign.overwrite,
-                                    args.assign.plot_fit,
-                                    args.assign.graph_weights,
-                                    args.assign.max_a_dist,
-                                    args.assign.max_pi_dist,
-                                    args.assign.type_isolate,
-                                    args.assign.model_dir,
-                                    args.assign.strand_preserved,
-                                    args.assign.previous_clustering,
-                                    args.assign.external_clustering,
-                                    args.assign.core_only,
-                                    args.assign.accessory_only,
-                                    args.assign.gpu_sketch,
-                                    args.assign.gpu_dist,
-                                    args.assign.gpu_graph,
-                                    args.assign.deviceid,
-                                    args.assign.web,
-                                    sketch_dict["sketch"],
-                                    args.assign.save_partial_query_graph)
-        query, query_prevalence, clusters, prevalences, alias_dict, to_include = \
-            summarise_clusters(outdir, species, species_db)
-        colours = get_colours(query, clusters)
-        url = api(query, args.assign.ref_db)
-
-        # generate visualisations from assign output
-        if len(to_include) < 3:
-            args.visualise.microreact = False
-        generate_visualisations(outdir,
-                                species_db,
-                                None,
-                                args.visualise.threads,
-                                outdir,
-                                args.visualise.gpu_dist,
-                                args.visualise.deviceid,
-                                args.visualise.external_clustering,
-                                args.visualise.microreact,
-                                args.visualise.phandango,
-                                args.visualise.grapetree,
-                                args.visualise.cytoscape,
-                                args.visualise.perplexity,
-                                args.visualise.strand_preserved,
-                                outdir + "/include.txt",
-                                species_db,
-                                species_db + "/" + os.path.basename(species_db) + "_clusters.csv",
-                                args.visualise.previous_query_clustering,
-                                outdir + "/" + os.path.basename(outdir) + "_graph.gt",                                args.visualise.gpu_graph,
-                                args.visualise.info_csv,
-                                args.visualise.rapidnj,
-                                args.visualise.tree,
-                                args.visualise.mst_distances,
-                                args.visualise.overwrite,
-                                args.visualise.core_only,
-                                args.visualise.accessory_only,
-                                args.visualise.display_cluster,
-                                web=True)
-        networkJson = graphml_to_json(outdir)
-        if len(to_include) >= 3:
-            with open(os.path.join(outdir, os.path.basename(outdir) + "_core_NJ.nwk"), "r") as p:
-                phylogeny = p.read()
-        else:
-            phylogeny = "A tree cannot be built with fewer than 3 samples."
-
-        # Convert outputs to JSON for post to site
-        response = {"species":species,
-                    "prev":str(query_prevalence) + '%',
-                    "query":query,
-                    "clusters":clusters,
-                    "prevalences":prevalences,
-                    "colours":colours,
-                    "microreactUrl":url,
-                    "aliases":alias_dict,
-                    "network": networkJson,
-                    "phylogeny": phylogeny}
-        response = json.dumps(response)
-        subprocess.run(["rm", "-rf", outdir]) # shutil issues on azure
-        return jsonify(response)
-
-def default_options(species_db):
-    """Default options for WebAPI"""
-    with open(os.path.join(species_db, "args.txt")) as a:
-        args_json = a.read()
-    args = json.loads(args_json, object_hook=lambda d: SimpleNamespace(**d))
-    args.assign.ref_db = species_db
-    args.assign.previous_clustering = species_db
-    args.assign.model_dir = species_db
-    args.assign.distances = os.path.join(species_db, os.path.basename(species_db) + ".dists")
-    args.assign.q_files = os.path.join(args.assign.output, "queries.txt")
-    return (args)
-
-def get_colours(query, clusters):
-    """Colour array for Plotly.js"""
-    colours = []
-    for clus in clusters:
-        if str(clus) == str(query):
-            colours.append('rgb(255,128,128)')
-        else:
-            colours.append('blue')
-    return colours
 
 def sketch_to_hdf5(sketches_dict, output):
     """Convert dict of JSON sketches to query hdf5 database"""
@@ -180,7 +21,10 @@ def sketch_to_hdf5(sketches_dict, output):
         qNames.append(top_key)
         kmers = []
         dists = []
-        sketch_dict = json.loads(top_value)
+        if type(top_value) == str:
+            sketch_dict = json.loads(top_value)
+        else:
+            sketch_dict = top_value
         sketch_props = sketches.create_group(top_key)
 
         for key, value in sketch_dict.items():
@@ -255,6 +99,7 @@ def highlight_cluster(query, cluster):
         colour = "blue"
     return colour
 
+# TODO: update to new microreact API
 def api(query, ref_db):
     """Post cluster and tree information to microreact"""
     url = "https://microreact.org/api/project/"
@@ -322,19 +167,6 @@ def summarise_clusters(output, species, species_db, qNames):
     if os.path.isfile(os.path.join(species_db, "aliases.csv")):
         aliasDF = pd.read_csv(os.path.join(species_db, "aliases.csv"))
         alias_dict = get_aliases(aliasDF, list(clusterDF['Taxon']), species)
-    else: 
+    else:
         alias_dict = {"Aliases": "NA"}
     return queries_names, queries_clusters, queries_prevalence, clusters, prevalences, alias_dict, to_include
-
-@scheduler.task('interval', id='clean_tmp', hours=1, misfire_grace_time=900)
-def clean_tmp():
-    print("Cleaning up unused databases")
-    for name in glob.glob("/tmp/" + db_prefix + "_*"):
-        shutil.rmtree(name)
-
-def main():
-    # data cleanup
-    scheduler.init_app(app)
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown())
-    app.run(debug=False,use_reloader=False)
