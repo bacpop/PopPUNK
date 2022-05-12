@@ -101,7 +101,7 @@ def write_tree(tree, prefix, suffix, overwrite):
     tree_filename = prefix + "/" + os.path.basename(prefix) + suffix
     if overwrite or not os.path.isfile(tree_filename):
         with open(tree_filename, 'w') as tree_file:
-            Phylo.write(tree, tree_filename, "newick")
+            tree_file.write(tree)
     else:
         sys.stderr.write("Unable to write phylogeny to " + tree_filename + "\n")
 
