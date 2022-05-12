@@ -12,7 +12,7 @@ dependencies:
   - pandas
   - scikit-learn >=0.24
   - matplotlib-base
-  - dendropy >=4.4.0
+  - biopython
   - treeswift
   - matplotlib
   - hdbscan

@@ -5,10 +5,15 @@
 
 import sys
 import os
+import io
 import subprocess
 import numpy as np
 import pandas as pd
-import dendropy
+
+from Bio import Phylo
+from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
+from Bio.Phylo.TreeConstruction import DistanceMatrix
+from treeswift import Tree, Node
 
 from .utils import check_and_set_gpu
 
@@ -76,7 +81,7 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
         sys.exit(1)
 
     # read tree and return
-    tree = dendropy.Tree.get(path=tree_filename, schema="newick", preserve_underscores=True)
+    tree = Phylo.read(tree_filename, "newick")
     os.remove(tree_filename)
     return tree
 
@@ -96,9 +101,27 @@ def write_tree(tree, prefix, suffix, overwrite):
     tree_filename = prefix + "/" + os.path.basename(prefix) + suffix
     if overwrite or not os.path.isfile(tree_filename):
         with open(tree_filename, 'w') as tree_file:
-            tree_file.write(tree)
+            Phylo.write(tree, tree_filename, "newick")
     else:
         sys.stderr.write("Unable to write phylogeny to " + tree_filename + "\n")
+
+def tree_as_string(tree):
+    """Converts a Phylo object into a newick string
+
+    Args:
+        tree (Phylo)
+            Phylo object
+
+    Returns:
+        tree_string (str)
+            Newick formatted string representing tree
+    """
+    output_str = io.StringIO()
+    Phylo.write(tree, output_str, "newick")
+    output_str.seek(0)
+    tree_string = output_str.getvalue()
+    tree_string = tree_string.replace("'","")
+    return tree_string
 
 def load_tree(prefix, type, distances = 'core'):
     """Checks for existing trees from previous runs.
@@ -119,10 +142,8 @@ def load_tree(prefix, type, distances = 'core'):
             tree_fn = tree_prefix + suffix
             if os.path.isfile(tree_fn):
                 sys.stderr.write("Reading existing tree from " + tree_fn + "\n")
-                tree = dendropy.Tree.get(path=tree_fn, schema="newick", preserve_underscores=True)
-                tree_string = tree.as_string(schema="newick",
-                suppress_rooting=True,
-                unquoted_underscores=True)
+                tree = Phylo.read(tree_fn, "newick")
+                tree_string = tree_as_string(tree)
                 break
 
     return tree_string
@@ -150,32 +171,24 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
             Newick-formatted string of NJ tree
     """
     # Save distances to file
-    core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
-    np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
 
     # calculate phylogeny
     sys.stderr.write("Building phylogeny\n")
     if rapidnj is not None:
+        core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
+        np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
         tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, threads = threads)
+        os.remove(core_dist_file)
     else:
-        pdm = dendropy.PhylogeneticDistanceMatrix.from_csv(src=open(core_dist_file),
-                                                           delimiter=",",
-                                                           is_first_row_column_names=True,
-                                                           is_first_column_row_names=False)
-        tree = pdm.nj_tree()
+        matrix = []
+        for row, idx in enumerate(coreMat):
+            matrix.append(row[0:idx].tolist())
+        pdm = DistanceMatrix(seqLabels, matrix)
+        tree = DistanceTreeConstructor().nj(pdm)
 
-    # Midpoint root tree and write outout
-    tree.reroot_at_midpoint(update_bipartitions=True, suppress_unifurcations=False)
+    tree.reroot_at_midpoint()
+    tree_string = tree_as_string(tree)
 
-    # remove file as it can be large
-    os.remove(core_dist_file)
-
-    # return Newick string
-    tree_string = tree.as_string(schema="newick",
-                                 suppress_rooting=True,
-                                 unquoted_underscores=True)
-    tree_string = tree_string.replace("'","")
-    
     return tree_string
 
 def mst_to_phylogeny(mst_network, names, use_gpu = False):
@@ -197,26 +210,22 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     #
     # MST graph -> phylogeny
     #
-    
+
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
-    
-    # Define sequences names for tree
-    taxon_namespace = dendropy.TaxonNamespace(names)
-    # Initialise tree and create nodes
-    tree = dendropy.Tree(taxon_namespace=taxon_namespace)
+
 
     # Identify edges
     if use_gpu:
-        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) \
-            for v in range(0,mst_network.number_of_vertices())}
+        tree_nodes = [Node(label=v) for v in names]
         mst_edges_df = mst_network.view_edge_list()
     else:
-        tree_nodes = {v:dendropy.Node(taxon=taxon_namespace[int(v)]) for v in mst_network.get_vertices()}
+        tree_nodes = [Node(label=names[int(v)]) for v in mst_network.get_vertices()]
         mst_edges_df = pd.DataFrame(mst_network.get_edges(),
                                     columns = ['src', 'dst'])
         mst_edges_df['weights'] = list(mst_network.ep['weight'])
     seed_node_index = int(mst_edges_df[['src','dst']].stack().mode()[0])
-    tree.seed_node = tree_nodes[seed_node_index]
+    tree = Tree()
+    tree.root = tree_nodes[seed_node_index]
 
     # Generate links of tree
     parent_node_indices = [seed_node_index]
@@ -230,24 +239,21 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
         mst_links = mst_links_dst.append(mst_links_src)
         if use_gpu:
             mst_links = mst_links.to_pandas()
-        for (child_node,edge_length) in mst_links.itertuples(index=False, name=None):
+        for (child_node, edge_length) in mst_links.itertuples(index=False, name=None):
             if child_node not in added_nodes:
                 tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node])
-                tree_nodes[child_node].edge_length = edge_length
+                tree_nodes[child_node].set_edge_length(edge_length)
                 added_nodes.add(child_node)
                 parent_node_indices.append(child_node)
         i = i + 1
 
     # Add zero length branches for internal nodes in MST
-    for node in tree.preorder_node_iter():
+    for node in tree.traverse_preorder():
         if not node.is_leaf():
-            new_child = dendropy.Node(taxon=node.taxon, edge_length=0.0)
-            node.taxon = None
+            new_child = Node(label=node.label, edge_length=0.0)
+            node.set_label(None)
             node.add_child(new_child)
 
     # Return tree as string
-    tree_string = tree.as_string(schema="newick",
-                                 suppress_rooting=True,
-                                 unquoted_underscores=True)
-                                     
+    tree_string = tree.newick()
     return tree_string
