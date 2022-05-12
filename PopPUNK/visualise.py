@@ -5,7 +5,6 @@
 # universal
 import os
 import sys
-import pickle
 # additional
 import numpy as np
 from scipy import sparse
@@ -301,22 +300,30 @@ def generate_visualisations(query_db,
             addRandom(query_db, qlist, kmers,
                       strand_preserved = strand_preserved, threads = threads)
             query_db_loc = query_db + "/" + os.path.basename(query_db)
-            qq_distMat = pp_sketchlib.queryDatabase(query_db_loc, query_db_loc,
-                                                    qlist, qlist, kmers,
-                                                    True, False,
-                                                    threads,
-                                                    gpu_dist,
-                                                    deviceid)
+            qq_distMat = pp_sketchlib.queryDatabase(ref_db_name=query_db_loc,
+                                                    query_db_name=query_db_loc,
+                                                    rList=qlist,
+                                                    qList=qlist,
+                                                    klist=kmers,
+                                                    random_correct=True,
+                                                    jaccard=False,
+                                                    num_threads=threads,
+                                                    use_gpu=gpu_dist,
+                                                    device_id=deviceid)
 
             # If the assignment was run with references, qrDistMat will be incomplete
             if rlist != rlist_original:
                 rlist = rlist_original
-                qr_distMat = pp_sketchlib.queryDatabase(ref_db_loc, query_db_loc,
-                                                        rlist, qlist, kmers,
-                                                        True, False,
-                                                        threads,
-                                                        gpu_dist,
-                                                        deviceid)
+                qr_distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db_loc,
+                                                        query_db_name=query_db_loc,
+                                                        rList=rlist,
+                                                        qList=qlist,
+                                                        klist=kmers,
+                                                        random_correct=True,
+                                                        jaccard=False,
+                                                        num_threads=threads,
+                                                        use_gpu=gpu_dist,
+                                                        device_id=deviceid)
 
         else:
             qlist = None

@@ -9,13 +9,11 @@ import sys
 # additional
 import numpy as np
 import random
-import operator
 import pickle
 import shutil
 import re
 from sklearn import utils
 import scipy.optimize
-from scipy.spatial.distance import euclidean
 from scipy import stats
 import scipy.sparse
 import hdbscan
@@ -1081,9 +1079,10 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             row, col, data = \
                 pp_sketchlib.sparsifyDists(
-                    pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
-                    0,
-                    rank
+                    distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
+                                                      num_threads=self.threads),
+                    distCutoff=0,
+                    kNN=rank
                 )
             self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
@@ -1199,7 +1198,8 @@ class LineageFit(ClusterFit):
             qrDists = cp.array(qrDists)
 
         # Reshape qq and qr dist matrices
-        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
+        qqSquare = pp_sketchlib.longToSquare(distVec=qqDists[:, [self.dist_col]],
+                                             num_threads=self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]

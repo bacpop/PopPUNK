@@ -7,10 +7,7 @@ import os
 import sys
 # additional
 import numpy as np
-import subprocess
 from collections import defaultdict
-import scipy.optimize
-from scipy.sparse import coo_matrix, bmat, find
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
@@ -60,7 +57,7 @@ def assign_query(dbFuncs,
         sys.stderr.write("--output and --ref-db must be different to "
                          "prevent overwrite.\n")
         sys.exit(1)
-    
+
     # Find distances to reference db
     kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
 
@@ -102,8 +99,8 @@ def assign_query(dbFuncs,
                     gpu_dist,
                     gpu_graph,
                     deviceid,
-                    save_partial_query_graph) 
-    return(isolateClustering)           
+                    save_partial_query_graph)
+    return(isolateClustering)
 
 def assign_query_hdf5(dbFuncs,
                  ref_db,
@@ -201,7 +198,7 @@ def assign_query_hdf5(dbFuncs,
             fit_type_list.append('core_refined')
         if accessory:
             fit_type_list.append('accessory_refined')
-    
+
     for fit_type in fit_type_list:
         # Define file name extension
         file_extension_string = ''
@@ -225,7 +222,7 @@ def assign_query_hdf5(dbFuncs,
                 sys.exit(1)
             else:
                 rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
-                
+
         if (fit_type == 'default' or (fit_type != 'default' and use_ref_graph)):
             # run query
             qrDistMat = queryDatabase(rNames = rNames,
@@ -237,7 +234,7 @@ def assign_query_hdf5(dbFuncs,
                                       number_plot_fits = plot_fit,
                                       threads = threads,
                                       use_gpu = gpu_dist)
-            
+
         # QC distance matrix
         if qc_dict['run_qc']:
             seq_names_passing = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)[0]
@@ -253,7 +250,7 @@ def assign_query_hdf5(dbFuncs,
                          core_only = (fit_type == 'core_refined'),
                          accessory_only = (fit_type == 'accessory_refined'),
                          use_gpu = gpu_graph)
-        
+
         if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
             sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
                                 " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
@@ -396,8 +393,8 @@ def assign_query_hdf5(dbFuncs,
 
             # Get full distance matrix and save
             complete_distMat = \
-                np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                           pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+                np.hstack((pp_sketchlib.squareToLong(distMat=core_distMat, num_threads=threads).reshape(-1, 1),
+                           pp_sketchlib.squareToLong(distMat=acc_distMat, num_threads=threads).reshape(-1, 1)))
             storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
             # Copy model if needed
@@ -406,12 +403,12 @@ def assign_query_hdf5(dbFuncs,
 
             # Clique pruning
             if model.type != 'lineage':
-                
+
                 existing_ref_list = []
                 with open(ref_file_name) as refFile:
                     for reference in refFile:
                         existing_ref_list.append(reference.rstrip())
-                
+
                 # Extract references from graph
                 newRepresentativesIndices, newRepresentativesNames, \
                     newRepresentativesFile, genomeNetwork = \
