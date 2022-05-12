@@ -6,22 +6,16 @@
 # universal
 import os
 import sys
-import re
 # additional
-import glob
 import operator
-import shutil
-import subprocess
 import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
-from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
 import pickle
 import graph_tool.all as gt
-import dendropy
 
 # Load GPU libraries
 try:
@@ -43,11 +37,7 @@ from .__main__ import betweenness_sample_default
 from .sketchlib import addRandom
 
 from .utils import iterDistRows
-from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
-from .utils import readRfile
-from .utils import setupDBFuncs
-from .utils import isolateNameToLabel
 from .utils import check_and_set_gpu
 
 from .unwords import gen_unword
@@ -213,6 +203,7 @@ def cliquePrune(component, graph, reference_indices, components_list):
     """
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
+    sys.setrecursionlimit(3000)
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
     refs = reference_indices.copy()
     if subgraph.num_vertices() <= 2:
@@ -366,14 +357,12 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             gt.openmp_set_num_threads(1)
 
         # Cliques are pruned, taking one reference from each, until none remain
-        sys.setrecursionlimit = 5000
         with Pool(processes=threads) as pool:
             ref_lists = pool.map(partial(cliquePrune,
                                             graph=G,
                                             reference_indices=reference_indices,
                                             components_list=components),
                                  set(components))
-        sys.setrecursionlimit = 1000
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
