@@ -595,7 +595,7 @@ def readManualStart(startFile):
                 for mean_val in value.split(','):
                     mean_read.append(float(mean_val))
                 mean1 = np.array(mean_read)
-            elif param = 'scaled':
+            elif param == 'scaled':
                 if value == "False" or value == "false":
                     scaled = False
             else:
