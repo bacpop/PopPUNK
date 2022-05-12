@@ -186,7 +186,7 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
         pdm = DistanceMatrix(seqLabels, matrix)
         tree = DistanceTreeConstructor().nj(pdm)
 
-    tree.reroot_at_midpoint()
+    tree.root_at_midpoint()
     tree_string = tree_as_string(tree)
 
     return tree_string
