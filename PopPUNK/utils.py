@@ -457,7 +457,7 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         coreMat = pp_sketchlib.longToSquareMulti(distVec=distMat[:, [0]],
                                                  query_ref_distVec=query_ref_distMat[:, [0]],
                                                  query_query_distVec=query_query_distMat[:, [0]],
-                                                 num_threasd=threads)
+                                                 num_threads=threads)
         accMat = pp_sketchlib.longToSquareMulti(distVec=distMat[:, [1]],
                                                 query_ref_distVec=query_ref_distMat[:, [1]],
                                                 query_query_distVec=query_query_distMat[:, [1]],
