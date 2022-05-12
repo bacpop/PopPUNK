@@ -575,9 +575,12 @@ def readManualStart(startFile):
             Centre of within-strain distribution
         mean1 (numpy.array)
             Centre of between-strain distribution
+        scaled (bool)
+            True if means are scaled between [0,1]
     """
     mean0 = None
     mean1 = None
+    scaled = True
 
     with open(startFile, 'r') as start:
         for line in start:
@@ -592,6 +595,11 @@ def readManualStart(startFile):
                 for mean_val in value.split(','):
                     mean_read.append(float(mean_val))
                 mean1 = np.array(mean_read)
+            elif param = 'scaled':
+                if value == "False" or value == "false":
+                    scaled = False
+            else:
+                raise RuntimeError("Incorrectly formatted manual start file")
     try:
         if not isinstance(mean0, np.ndarray) or not isinstance(mean1, np.ndarray):
             raise RuntimeError('Must set both start and end')
@@ -606,7 +614,7 @@ def readManualStart(startFile):
         sys.stderr.write(str(e) + "\n")
         sys.exit(1)
 
-    return mean0, mean1
+    return mean0, mean1, scaled
 
 def likelihoodBoundary(s, model, start, end, within, between):
     """Wrapper function around :func:`~PopPUNK.bgmm.fit2dMultiGaussian` so that it can
