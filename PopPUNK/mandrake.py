@@ -83,7 +83,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
                                 seed=seed)
         else:
             sys.stderr.write("Running on CPU\n")
-            maxIter = maxIter / n_workers
+            maxIter = maxIter / n_threads
             wtsne_call = partial(wtsne,
                                 perplexity=perplexity,
                                 maxIter=maxIter,
