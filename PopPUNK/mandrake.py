@@ -68,7 +68,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
         if use_gpu and gpu_fn_available:
             sys.stderr.write("Running on GPU\n")
             n_workers = 65536
-            maxIter = maxIter / n_workers
+            maxIter = round(maxIter / n_workers)
             wtsne_call = partial(wtsne_gpu_fp64,
                                 perplexity=perplexity,
                                 maxIter=maxIter,
@@ -83,7 +83,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
                                 seed=seed)
         else:
             sys.stderr.write("Running on CPU\n")
-            maxIter = maxIter / n_threads
+            maxIter = round(maxIter / n_threads)
             wtsne_call = partial(wtsne,
                                 perplexity=perplexity,
                                 maxIter=maxIter,
