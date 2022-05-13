@@ -687,8 +687,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         sys.exit(1)
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
-                         outPrefix, epiCsv, queryList = None, overwrite = False,
-                         use_gpu = False):
+                         outPrefix, epiCsv, queryList = None, overwrite = False, n_threads = 1,
+                         use_gpu = False, device_id = 0):
     """Generate files for microreact
 
     Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering
@@ -718,11 +718,17 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
             (default = None)
         overwrite (bool)
             Overwrite existing output if present (default = False)
+        n_threads (int)
+            Number of CPU threads to use
+            (default = 1)
         use_gpu (bool)
             Whether to use a GPU for t-SNE generation
+        device_id (int)
+            Device ID of GPU to be used
+            (default = 0)
     """
     # Avoid recursive import
-    from .tsne import generate_tsne
+    from .mandrake import generate_embedding
 
     # generate sequence labels
     seqLabels = isolateNameToLabel(combined_list)
@@ -732,7 +738,9 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
                         combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_tsne(seqLabels, accMat, perplexity, outPrefix, overwrite, use_gpu)
+    generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite,
+                       kNN=100, maxIter=1000000, n_threads=n_threads,
+                       use_gpu=use_gpu, device_id=device_id)
 
     # write NJ tree
     if nj_tree is not None:

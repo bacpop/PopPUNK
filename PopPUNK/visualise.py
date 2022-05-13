@@ -184,13 +184,11 @@ def generate_visualisations(query_db,
                             overwrite,
                             core_only,
                             accessory_only,
-                            display_cluster,
-                            web):
+                            display_cluster):
 
     from .models import loadClusterFit
 
     from .network import construct_network_from_assignments
-    from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
     from .network import cugraph_to_graph_tool
@@ -202,12 +200,8 @@ def generate_visualisations(query_db,
     from .plot import outputsForCytoscape
     from .plot import outputsForPhandango
     from .plot import outputsForGrapetree
-    from .plot import writeClusterCsv
-
-    from .prune_db import prune_distance_matrix
 
     from .sketchlib import readDBParams
-    from .sketchlib import getKmersFromReferenceDatabase
     from .sketchlib import addRandom
     
     from .sparse_mst import generate_mst_from_sparse_input
@@ -220,7 +214,6 @@ def generate_visualisations(query_db,
     from .utils import update_distance_matrices
     from .utils import readIsolateTypeFromCsv
     from .utils import joinClusterDicts
-    from .utils import listDistInts
     from .utils import read_rlist_from_distance_pickle
 
     #******************************#
@@ -548,9 +541,11 @@ def generate_visualisations(query_db,
                              perplexity,
                              output,
                              info_csv,
-                             queryList = qlist,
-                             overwrite = overwrite,
-                             use_gpu = gpu_graph)
+                             queryList=qlist,
+                             overwrite=overwrite,
+                             n_threads=threads,
+                             use_gpu=gpu_graph,
+                             device_id=deviceid)
 
     if phandango:
         sys.stderr.write("Writing phandango output\n")
@@ -632,8 +627,7 @@ def main():
                             args.overwrite,
                             args.core_only,
                             args.accessory_only,
-                            args.display_cluster,
-                            web = False)
+                            args.display_cluster)
 
 if __name__ == '__main__':
     main()

@@ -113,7 +113,7 @@ setup(
             'poppunk_mst = PopPUNK.sparse_mst:main',
             'poppunk_prune = PopPUNK.prune_db:main',
             'poppunk_references = PopPUNK.reference_pick:main',
-            'poppunk_tsne = PopPUNK.tsne:main',
+            'poppunk_mandrake = PopPUNK.mandrake:main',
             'poppunk_info = PopPUNK.info:main'
             ]
     },

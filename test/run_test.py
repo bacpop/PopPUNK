@@ -87,9 +87,9 @@ sys.stderr.write("Running MST\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot", shell=True, check=True)
 
-# t-sne
-sys.stderr.write("Running tsne viz\n")
-subprocess.run(python_cmd + " ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1", shell=True, check=True)
+# mandrake
+sys.stderr.write("Running mandrake viz\n")
+subprocess.run(python_cmd + " ../poppunk_mandrake-runner.py --distances example_db/example_db.dists --output example_mandrake --perplexity 5", shell=True, check=True)
 
 # prune
 sys.stderr.write("Running poppunk_prune\n")

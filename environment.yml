@@ -11,6 +11,7 @@ dependencies:
   - python-dateutil
   - pandas
   - scikit-learn >=0.24
+  - mandrake
   - matplotlib-base
   - biopython
   - treeswift

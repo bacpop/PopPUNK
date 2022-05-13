@@ -73,7 +73,7 @@ Adding the ``--microreact`` flag will create the following files:
 
 - _microreact_clusters.csv -- the strain or lineage assignments with headers formatted for microreact, plus anything from ``--info-csv``.
 - _core_NJ.nwk -- a neighbour-joining tree from the core distances.
-- _perplexity20.0_accessory_tsne.dot -- a 2D embedding of the accessory distances, produced using t-SNE (in this case with
+- _perplexity20.0_accessory_mandrake.dot -- a 2D embedding of the accessory distances, produced using `mandrake <https://github.com/bacpop/mandrake>`__ (in this case with
   :ref:`perplexity` 20).
 
 Open https://microreact.org/upload in your browser, and drag and drop these three files
@@ -88,7 +88,7 @@ to create your visualisation. Here is the result of running the visualisation on
    Writing microreact output
    Parsed data, now writing to CSV
    Building phylogeny
-   Running t-SNE
+   Running mandrake
 
    Done
 
@@ -105,22 +105,23 @@ to compare results from different ranks.
 
 .. _perplexity:
 
-Setting the perplexity parameter for t-SNE
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-In t-SNE an embedding of the accessory genome distances is found which
+Setting the perplexity parameter for mandrake
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In mandrake an embedding of the accessory genome distances is found which
 represents local structure of the data. Isolates with similar accessory content
 will visually appear in clusters together.
 
 The perplexity sets a guess about the number of close neighbours each point
-has, and is a trade-off between local and global structure. t-SNE is reasonably
+has, and is a trade-off between local and global structure. t-SNE (and by extension mandrake) is reasonably
 robust to changes in the perplexity parameter (set with ``--perplexity`` when
 creating microreact output with ``--microreact``),
 however we would recommend trying a few values to get
 a good embedding for the accessory distances.
 
-There is a good discussion of the effect of perplexity `here <https://distill.pub/2016/misread-tsne/>`_
+There is a good discussion of the effect of perplexity `here <https://distill.pub/2016/misread-tsne/>`__
 and the sklearn documentation shows some examples of the effect of `changing
-perplexity <http://scikit-learn.org/stable/auto_examples/manifold/plot_t_sne_perplexity.html>`_.
+perplexity <http://scikit-learn.org/stable/auto_examples/manifold/plot_t_sne_perplexity.html>`__.
+In mandrake, points will usually appear 'tighter' than in t-SNE, and form more obvious clusters.
 
 In the :doc:`model_fitting` example, a perplexity of 30 gives clear clustering of
 the accessory genome content, condordant with the core genome structure (`data <https://microreact.org/project/Skg0j9sjz>`__):
@@ -137,11 +138,11 @@ structure cannot clearly be seen (`data <https://microreact.org/project/S1RwpK9i
    :align: center
 
 30 is a good default, but you may wish to try other values, particularly with
-larger or smaller datasets. You can re-run the t-SNE using the ``poppunk_tsne``
+larger or smaller datasets. You can re-run the mandrake using the ``poppunk_mandrake``
 command, providing the distances from the previous run::
 
-   poppunk_tsne --distances strain_db/strain_db.dists --output strain_db \
-   --perplexity 20 --verbosity 1
+   poppunk_mandrake --distances strain_db/strain_db.dists --output strain_db \
+   --perplexity 20
 
 GrapeTree
 ---------
