@@ -131,5 +131,6 @@ setup(
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     include_package_data=True,
-    package_data={'': ['PopPUNK/data/*.json.gz']}
+    package_data={'': ['PopPUNK/data/*.json.gz',
+                       'PopPUNK/data/microreact_example.pkl']}
 )

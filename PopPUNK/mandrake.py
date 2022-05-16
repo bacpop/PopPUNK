@@ -51,6 +51,10 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
         device_id (int)
             Device ID of GPU to be used
             (default = 0)
+
+    Returns:
+        mandrake_filename (str)
+            Filename with .dot of embedding
     """
     # generate accessory genome distance representation
     mandrake_filename = outPrefix + "/" + os.path.basename(outPrefix) + "_perplexity" + str(perplexity) + "_accessory_mandrake.dot"
@@ -106,6 +110,8 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
                 nFile.write('"' + seqLabel + '"' +
                             '[x='+str(5*float(embedding[s][0]))+',y='+str(5*float(embedding[s][1]))+']; ')
             nFile.write("}\n")
+
+    return mandrake_filename
 
 # command line parsing
 def get_options():

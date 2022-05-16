@@ -1,5 +1,5 @@
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2022 John Lees and Nick Croucher
 
 '''Plots of GMM results, k-mer fits, and microreact output'''
 
@@ -12,20 +12,17 @@ import matplotlib as mpl
 mpl.use('Agg')
 mpl.rcParams.update({'font.size': 18})
 import matplotlib.pyplot as plt
-import matplotlib.lines as lines
 import itertools
 # for other outputs
-from shutil import copyfile
 import pandas as pd
 from collections import defaultdict
-from scipy import spatial
-from sklearn import manifold, utils
+from sklearn import utils
 try:  # sklearn >= 0.22
     from sklearn.neighbors import KernelDensity
 except ImportError:
     from sklearn.neighbors.kde import KernelDensity
 
-from .trees import write_tree, mst_to_phylogeny
+from .trees import write_tree
 
 from .utils import isolateNameToLabel
 from .utils import decisionBoundary
@@ -726,6 +723,9 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
         device_id (int)
             Device ID of GPU to be used
             (default = 0)
+    Returns:
+        outfiles (list)
+            List of output files create
     """
     # Avoid recursive import
     from .mandrake import generate_embedding
@@ -734,21 +734,89 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
     seqLabels = isolateNameToLabel(combined_list)
 
     # check CSV before calculating other outputs
+    outfiles = [outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv"]
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_microreact_clusters.csv",
                         combined_list, combined_list, clustering, 'microreact', epiCsv, queryList)
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
-    generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite,
+    embedding_file = generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite,
                        kNN=100, maxIter=1000000, n_threads=n_threads,
                        use_gpu=use_gpu, device_id=device_id)
+    outfiles.push(embedding_file)
 
     # write NJ tree
     if nj_tree is not None:
         write_tree(nj_tree, outPrefix, "_core_NJ.nwk", overwrite)
+        outfiles.push(outPrefix, "_core_NJ.nwk")
 
     # write MST
     if mst_tree is not None:
         write_tree(mst_tree, outPrefix, "_MST.nwk", overwrite)
+        outfiles.push(outPrefix, "_MST.nwk")
+
+    return outfiles
+
+def createMicroreact(prefix, microreact_files, api_key=None):
+    """Creates a .microreact file, and instance via the API
+
+    Args:
+        prefix (str)
+            Prefix for output file
+        microreact_files (str)
+            List of Microreact files [clusters, dot, tree, mst_tree]
+        api_key (str)
+            API key for your account
+    """
+    import pkg_resources
+    import pickle
+    import requests
+    import json
+    from datetime import datetime
+
+    microreact_api_new_url = "https://microreact.org/api/projects/create"
+    description_string = "PopPUNK run on " + datetime.now().strftime("%Y-%b-%d %H:%M")
+    # Load example JSON to be modified
+    with open(pkg_resources.resource_stream(__name__, 'data/microreact_example.pkl'), 'rb') as example_pickle:
+        json_pickle = pickle.load(example_pickle)
+    json_pickle["meta"]["name"] = description_string
+
+    # Read data in
+    with open(microreact_files[0]) as cluster_file:
+        csv_string = cluster_file.read()
+        json_pickle["files"]["data-file-1"]["blob"] = csv_string
+    with open(microreact_files[1], 'r') as dot_file:
+        dot_string = dot_file.read()
+        json_pickle["files"]["network-file-1"] = {"id": "network-file-1",
+                                                  "name": "network.dot",
+                                                  "format": "text/vnd.graphviz",
+                                                  "blob": dot_string}
+        json_pickle["networks"]["network-1"] = {"title": "Network",
+                                                "file": "network-file-1",
+                                                "nodeField": "id"}
+    if len(microreact_files) > 2:
+        with open(microreact_files[2], 'r') as tree_file:
+            tree_string = tree_file.read()
+            json_pickle["files"]["tree-file-1"]["blob"] = tree_string
+    else:
+        del json_pickle["files"]["tree-file-1"]
+
+    with open(prefix + "/" + os.path.basename(prefix) + ".microreact", 'w') as json_file:
+        json.dump(json_pickle, json_file)
+
+    url = None
+    if api_key != None:
+        headers = {"Content-type": "application/json; charset=UTF-8",
+                   "Access-Token": api_key}
+        r = requests.post(microreact_api_new_url, data=json.dumps(json_pickle), headers=headers)
+        if not r.ok:
+            if r.status_code == 400:
+                sys.stderr.write("Microreact API call failed with response " + r.text + "\n")
+            else:
+                sys.stderr.write("Microreact API call failed with unknown response code " + str(r.status_code) + "\n")
+        else:
+            url = r.json()['url']
+
+    return url
 
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
                         queryList = None, overwrite = False):
