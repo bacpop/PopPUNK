@@ -79,7 +79,7 @@ Adding the ``--microreact`` flag will create the following files:
 From version 2.5.0 this will also include:
 
 - .microreact -- a Microreact compatible JSON containing all of the above, which
-   can be used directly.
+   can be uploaded directly.
 
 If you add ``--api-key`` and provide `your account's API key <https://docs.microreact.org/api/access-tokens>__`
 this will automatically create an instance, and the URL will be output to the terminal.

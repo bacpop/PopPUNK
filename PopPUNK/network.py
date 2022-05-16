@@ -1474,6 +1474,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     Args:
         G (graph)
             Network used to define clusters
+        rlist (list)
+            Names of samples
         outPrefix (str)
             Prefix for output CSV
             Default = None

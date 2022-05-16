@@ -5,9 +5,11 @@
 # universal
 import os
 import sys
+import warnings
 # additional
 import numpy as np
 from collections import defaultdict
+import h5py
 
 # required from v2.1.1 onwards (no mash support)
 import pp_sketchlib
@@ -132,7 +134,7 @@ def assign_query_hdf5(dbFuncs,
     by web APIs"""
 
     # Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)
-    from .models import loadClusterFit, ClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
+    from .models import loadClusterFit
 
     from .sketchlib import removeFromDB
 
@@ -223,6 +225,24 @@ def assign_query_hdf5(dbFuncs,
             else:
                 rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
 
+        # Deal with name clash
+        same_names = set(rNames).intersection(qNames)
+        if same_names:
+            warnings.warn("Names of queries match names in reference database\n", stacklevel=2)
+            if not write_references:
+                sys.stderr.write("Not running -- change names or add --write-references to override this behaviour\n")
+                sys.exit(1)
+            else:
+                query_db = h5py.File(output + "/" + os.path.basename(output) + ".h5", 'r+')
+                print(output + "/" + os.path.basename(output))
+                sketch_grp = query_db['sketches']
+                for idx, query in enumerate(qNames):
+                    if query in same_names:
+                        new_name = query + "_query"
+                        qNames[idx] = new_name
+                        sketch_grp.move(query, new_name)
+                query_db.close()
+
         if (fit_type == 'default' or (fit_type != 'default' and use_ref_graph)):
             # run query
             qrDistMat = queryDatabase(rNames = rNames,
@@ -237,7 +257,14 @@ def assign_query_hdf5(dbFuncs,
 
         # QC distance matrix
         if qc_dict['run_qc']:
-            seq_names_passing = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)[0]
+            seq_names_passing, qrDistMat = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)
+            seq_names_passing = set(seq_names_passing)
+            rNames = list(seq_names_passing.intersection(rNames))
+            qNames = list(seq_names_passing.intersection(qNames))
+            if update_db:
+                sys.stderr.write("Queries contained outlier distances, "
+                                 "not updating database\n")
+                update_db = False
         else:
             seq_names_passing = rNames + qNames
 
@@ -354,12 +381,7 @@ def assign_query_hdf5(dbFuncs,
         # Update DB as requested
         dists_out = output + "/" + os.path.basename(output) + ".dists"
         if update_db:
-            # Check new sequences pass QC before adding them
-            if len(set(seq_names_passing).difference(rNames + qNames)) > 0:
-                sys.stderr.write("Queries contained outlier distances, "
-                                 "not updating database\n")
-            else:
-                sys.stderr.write("Updating reference database to " + output + "\n")
+            sys.stderr.write("Updating reference database to " + output + "\n")
             # Update the network + ref list (everything) - no need to duplicate for core/accessory
             if fit_type == 'default':
                 joinDBs(ref_db, output, output,

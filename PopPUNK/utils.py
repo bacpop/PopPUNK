@@ -269,7 +269,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         seq_names_passing = refList + queryList
 
     # Sequences to remove
-    to_prune = []
+    to_prune = set()
 
     # Create output directory if it does not exist already
     if not os.path.isdir(prefix):
@@ -296,9 +296,10 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         # Prune sequences based on reference sequence
         for (s,t) in long_edges:
             if seq_names_passing[s] == qc_dict['type_isolate']:
-                to_prune.append(seq_names_passing[t])
-            elif seq_names_passing[t] == qc_dict['type_isolate']:
-                to_prune.append(seq_names_passing[s])
+                to_prune.add(seq_names_passing[t])
+            else:
+                to_prune.add(seq_names_passing[s])
+    to_prune = list(to_prune)
 
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
