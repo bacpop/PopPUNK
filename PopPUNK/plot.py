@@ -477,7 +477,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
             List of sequences to include in visualisation
 
     """
-    
+
     # Avoid circular import
     from .network import save_network
 
@@ -742,17 +742,17 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
     embedding_file = generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite,
                        kNN=100, maxIter=1000000, n_threads=n_threads,
                        use_gpu=use_gpu, device_id=device_id)
-    outfiles.push(embedding_file)
+    outfiles.append(embedding_file)
 
     # write NJ tree
     if nj_tree is not None:
         write_tree(nj_tree, outPrefix, "_core_NJ.nwk", overwrite)
-        outfiles.push(outPrefix, "_core_NJ.nwk")
+        outfiles.append(outPrefix + "/" + os.path.basename(outPrefix) + "_core_NJ.nwk")
 
     # write MST
     if mst_tree is not None:
         write_tree(mst_tree, outPrefix, "_MST.nwk", overwrite)
-        outfiles.push(outPrefix, "_MST.nwk")
+        outfiles.append(outPrefix + "/" + os.path.basename(outPrefix) + "_MST.nwk")
 
     return outfiles
 
@@ -776,7 +776,7 @@ def createMicroreact(prefix, microreact_files, api_key=None):
     microreact_api_new_url = "https://microreact.org/api/projects/create"
     description_string = "PopPUNK run on " + datetime.now().strftime("%Y-%b-%d %H:%M")
     # Load example JSON to be modified
-    with open(pkg_resources.resource_stream(__name__, 'data/microreact_example.pkl'), 'rb') as example_pickle:
+    with pkg_resources.resource_stream(__name__, 'data/microreact_example.pkl') as example_pickle:
         json_pickle = pickle.load(example_pickle)
     json_pickle["meta"]["name"] = description_string
 
@@ -848,9 +848,6 @@ def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix,
         threads (int)
             Number of threads to use with rapidnj
     """
-    # generate sequence labels
-    seqLabels = isolateNameToLabel(combined_list)
-
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_phandango_clusters.csv",
                     combined_list, combined_list, clustering, 'phandango', epiCsv, queryList)
@@ -891,9 +888,6 @@ def outputsForGrapetree(combined_list, clustering, nj_tree, mst_tree, outPrefix,
         overwrite (bool)
             Overwrite existing output if present (default = False).
     """
-    # generate sequence labels
-    seqLabels = isolateNameToLabel(combined_list)
-
     # print clustering file
     writeClusterCsv(outPrefix + "/" + os.path.basename(outPrefix) + "_grapetree_clusters.csv",
                     combined_list, combined_list, clustering, 'grapetree', epiCsv, queryList)
