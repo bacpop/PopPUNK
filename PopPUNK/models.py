@@ -75,7 +75,7 @@ epsilon = 1e-10
 
 # Format for rank fits
 def rankFile(rank):
-    return('_rank' + str(rank) + '_fit.npz')
+    return('_rank_' + str(rank) + '_fit.npz')
 
 def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
                    use_gpu = False):
@@ -130,7 +130,10 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
         load_obj = RefineFit(outPrefix)
     elif fit_type == "lineage":
         sys.stderr.write("Loading lineage cluster model\n")
-        load_obj = LineageFit(outPrefix, fit_object[0])
+        load_obj = LineageFit(outPrefix,
+                                fit_object[0],
+                                fit_object[1],
+                                fit_object[2])
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
@@ -990,7 +993,10 @@ class RefineFit(ClusterFit):
 # Wrapper function for LineageFit.__reduce_rank__ to be called by
 # multiprocessing threads
 def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
-    fit.__reduce_rank__(higher_rank_sparse_mat, lower_rank, n_samples, dtype)
+    fit.__reduce_rank__(higher_rank_sparse_mat,
+                        lower_rank,
+                        n_samples,
+                        dtype)
 
 class LineageFit(ClusterFit):
     '''Class for fits using the lineage assignment model. Inherits from :class:`ClusterFit`.
@@ -1005,7 +1011,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, use_gpu = False):
+    def __init__(self, outPrefix, ranks, reciprocal_only, all_neighbours, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -1016,6 +1022,8 @@ class LineageFit(ClusterFit):
                 sys.exit(0)
             else:
                 self.ranks.append(int(rank))
+        self.reciprocal_only = reciprocal_only
+        self.all_neighbours = all_neighbours
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
@@ -1041,7 +1049,9 @@ class LineageFit(ClusterFit):
             poppunk_refine.lowerRank(
                 higher_rank_sparse_mat,
                 n_samples,
-                lower_rank)
+                lower_rank,
+                self.reciprocal_only,
+                self.all_neighbours)
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1060,7 +1070,7 @@ class LineageFit(ClusterFit):
                 preprocess is set.
             accessory (bool)
                 Use accessory rather than core distances
-
+                
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -1087,6 +1097,8 @@ class LineageFit(ClusterFit):
                                                       num_threads=self.threads),
                     distCutoff=0,
                     kNN=rank
+                    self.reciprocal_only,
+                    self.all_neighbours
                 )
             self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
@@ -1107,7 +1119,12 @@ class LineageFit(ClusterFit):
                     self.nn_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
-                pickle.dump([[self.ranks, self.dist_col], self.type], pickle_file)
+                pickle.dump([[self.ranks,
+                                self.dist_col,
+                                self.reciprocal_only,
+                                self.all_neighbours],
+                                self.type],
+                            pickle_file)
 
     def load(self, fit_npz, fit_obj):
         '''Load the model from disk. Called from :func:`~loadClusterFit`
@@ -1118,7 +1135,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.dist_col = fit_obj
+        self.ranks, self.dist_col, self.reciprocal_only, self.all_neighbours = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 
@@ -1189,6 +1206,7 @@ class LineageFit(ClusterFit):
                 Two column array of query-query distances
             qqDists (numpy or cupy ndarray)
                 Two column array of reference-query distances
+
         Returns:
             y (list of tuples)
                 Edges to include in network

@@ -81,7 +81,7 @@ subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --distances example
 # MST
 sys.stderr.write("Running MST\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both --gpu-graph", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot --gpu-graph", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank_5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot --gpu-graph", shell=True, check=True)
 
 # mandrake
 sys.stderr.write("Running mandrake viz\n")

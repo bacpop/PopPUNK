@@ -568,7 +568,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                          raw_fit,
                          corrected[0],
                          corrected_fit,
-                         dbPrefix + "/" + dbPrefix + "_fit_example_" + str(plot_idx + 1),
+                         os.path.join(os.path.dirname(dbPrefix),
+                                      os.path.basename(dbPrefix) + "_fit_example_" + str(plot_idx + 1)),
                          "Example fit " + str(plot_idx + 1) + " - " +  example[0] + " vs. " + example[1])
     else:
         duplicated = set(rNames).intersection(set(qNames))
@@ -622,7 +623,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                           raw_fit,
                           corrected[plot_idx],
                           corrected_fit,
-                          queryPrefix + "/" + queryPrefix + "_fit_example_" + str(plot_idx + 1),
+                          os.path.join(os.path.dirname(queryPrefix),
+                                       os.path.basename(queryPrefix) + "_fit_example_" + str(plot_idx + 1)),
                           "Example fit " + str(plot_idx + 1) + " - " +  ref_examples[plot_idx] + \
                           " vs. " + query_examples[plot_idx])
 

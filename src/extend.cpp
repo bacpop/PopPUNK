@@ -19,12 +19,19 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
   std::vector<long> row_start_idx(nr_samples + 1);
   size_t i_idx = 0;
   row_start_idx[0] = 0;
-  row_start_idx[nr_samples] = i_vec.size();
   for (long i = 1; i < nr_samples; ++i) {
-    while (i_vec[i_idx] < i) {
+    while (i_vec[i_idx] < i && i_idx <= i_vec.size()) {
       i_idx++;
     }
     row_start_idx[i] = i_idx;
+
+    // Set to end of vector, if reached
+    if (i_idx == i_vec.size()) {
+      for (long j = i + 1; j <= nr_samples; ++j) {
+        row_start_idx[j] = i_idx;
+      }
+      break;
+    }
   }
   return row_start_idx;
 }
@@ -65,10 +72,13 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     Eigen::VectorXf rr_dists, qr_dists;
     if (i < nr_samples) {
       qr_dists = qr_mat_rect.row(i);
-      Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
-                                         row_start_idx[i + 1] -
-                                             row_start_idx[i]);
-      rr_dists = rr_map;
+      long start_difference = row_start_idx[i + 1] - row_start_idx[i];
+      long n_rr_dists = std::max(0L, start_difference);
+      if (n_rr_dists > 0) {
+        Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
+                                          n_rr_dists);
+        rr_dists = rr_map;
+      }
     } else {
       rr_dists = qr_mat_rect.col(i - nr_samples);
       qr_dists = qq_mat_square.row(i - nr_samples);
@@ -131,8 +141,11 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
-sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
-                      const size_t kNN) {
+sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
+                      const size_t n_samples,
+                      const size_t kNN,
+                      bool reciprocal_only,
+                      bool count_neighbours) {
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
 
   // ijv vectors
@@ -142,33 +155,73 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
   std::vector<float> dist_vec = std::get<2>(sparse_rr_mat);
   const std::vector<long> j_sparse = std::get<1>(sparse_rr_mat);
   for (long i = 0; i < n_samples; ++i) {
-    Eigen::Map<Eigen::VectorXf> rr_dists(dist_vec.data() + row_start_idx[i],
-                                         row_start_idx[i + 1] -
-                                             row_start_idx[i]);
-    std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
+      long start_difference = row_start_idx[i + 1] - row_start_idx[i];
+      long n_rr_dists = std::max(0L, start_difference);
+      if (n_rr_dists > 0) {
+        Eigen::Map<Eigen::VectorXf> rr_dists(dist_vec.data() + row_start_idx[i],
+                                             row_start_idx[i + 1] -
+                                                 row_start_idx[i]);
+        std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
 
-    long unique_neighbors = 0;
-    float prev_value = -1;
-    for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
-         ++rr_it) {
-      long j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
-      float dist = rr_dists[*rr_it];
-      if (j == i) {
-        continue;
-      }
-      bool new_val = abs(dist - prev_value) >= epsilon;
-      if (unique_neighbors < kNN || !new_val) {
-        dists.push_back(dist);
-        i_vec.push_back(i);
-        j_vec.push_back(j);
-        if (new_val) {
-          unique_neighbors++;
-          prev_value = dist;
+        long unique_neighbors = 0;
+        float prev_value = -1;
+        for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
+             ++rr_it) {
+          long j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
+          float dist = rr_dists[*rr_it];
+          if (j == i) {
+            continue;
+          }
+          bool new_val = abs(dist - prev_value) >= epsilon;
+          if (unique_neighbors < kNN || !new_val) {
+            dists.push_back(dist);
+            i_vec.push_back(i);
+            j_vec.push_back(j);
+            if (new_val)
+            {
+                if (count_neighbours)
+                {
+                    unique_neighbors = j_vec.size();
+                }
+                else
+                {
+                    unique_neighbors++;
+                }
+                prev_value = dist;
+            }
+          } else {
+            break; // next i
+          }
         }
-      } else {
-        break; // next i
       }
-    }
   }
-  return (std::make_tuple(i_vec, j_vec, dists));
+  // Only count reciprocal matches
+  if (reciprocal_only)
+  {
+      std::vector<float> filtered_dists;
+      std::vector<long> filtered_i_vec;
+      std::vector<long> filtered_j_vec;
+
+      for (long x = 0; x < i_vec.size(); x++)
+      {
+          if (i_vec[x] < j_vec[x])
+          {
+              for (long y = 0; y < i_vec.size(); y++)
+              {
+                  if (i_vec[x] == j_vec[y] && j_vec[x] == i_vec[y])
+                  {
+                      filtered_dists.push_back(dists[x]);
+                      filtered_i_vec.push_back(i_vec[x]);
+                      filtered_j_vec.push_back(j_vec[x]);
+                      break;
+                  }
+              }
+          }
+      }
+      return (std::make_tuple(filtered_i_vec, filtered_j_vec, filtered_dists));
+  }
+  else
+  {
+    return (std::make_tuple(i_vec, j_vec, dists));
+  }
 }
