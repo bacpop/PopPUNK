@@ -5,7 +5,6 @@
 # universal
 import os
 import sys
-import pickle
 # additional
 import numpy as np
 from scipy import sparse
@@ -123,9 +122,10 @@ def get_options():
         default='core', choices=accepted_weights_types)
     faGroup.add_argument('--rapidnj', help='Path to rapidNJ binary to build NJ tree for Microreact', default='rapidnj')
 
+    faGroup.add_argument('--api-key', help='API key for www.microreact.org, to directly create a visualisation', default=None)
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
-                         help='Perplexity used to calculate t-SNE projection (with --microreact) [default=20.0]')
+                         help='Perplexity used to calculate mandrake projection (with --microreact) [default=20.0]')
     faGroup.add_argument('--info-csv',
                          help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
 
@@ -180,18 +180,15 @@ def generate_visualisations(query_db,
                             gpu_graph,
                             info_csv,
                             rapidnj,
+                            api_key,
                             tree,
                             mst_distances,
                             overwrite,
-                            core_only,
-                            accessory_only,
-                            display_cluster,
-                            web):
+                            display_cluster):
 
     from .models import loadClusterFit
 
     from .network import construct_network_from_assignments
-    from .network import fetchNetwork
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
     from .network import cugraph_to_graph_tool
@@ -203,14 +200,11 @@ def generate_visualisations(query_db,
     from .plot import outputsForCytoscape
     from .plot import outputsForPhandango
     from .plot import outputsForGrapetree
-    from .plot import writeClusterCsv
-
-    from .prune_db import prune_distance_matrix
+    from .plot import createMicroreact
 
     from .sketchlib import readDBParams
-    from .sketchlib import getKmersFromReferenceDatabase
     from .sketchlib import addRandom
-    
+
     from .sparse_mst import generate_mst_from_sparse_input
 
     from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
@@ -221,7 +215,6 @@ def generate_visualisations(query_db,
     from .utils import update_distance_matrices
     from .utils import readIsolateTypeFromCsv
     from .utils import joinClusterDicts
-    from .utils import listDistInts
     from .utils import read_rlist_from_distance_pickle
 
     #******************************#
@@ -304,22 +297,30 @@ def generate_visualisations(query_db,
             addRandom(query_db, qlist, kmers,
                       strand_preserved = strand_preserved, threads = threads)
             query_db_loc = query_db + "/" + os.path.basename(query_db)
-            qq_distMat = pp_sketchlib.queryDatabase(query_db_loc, query_db_loc,
-                                                    qlist, qlist, kmers,
-                                                    True, False,
-                                                    threads,
-                                                    gpu_dist,
-                                                    deviceid)
+            qq_distMat = pp_sketchlib.queryDatabase(ref_db_name=query_db_loc,
+                                                    query_db_name=query_db_loc,
+                                                    rList=qlist,
+                                                    qList=qlist,
+                                                    klist=kmers,
+                                                    random_correct=True,
+                                                    jaccard=False,
+                                                    num_threads=threads,
+                                                    use_gpu=gpu_dist,
+                                                    device_id=deviceid)
 
             # If the assignment was run with references, qrDistMat will be incomplete
             if rlist != rlist_original:
                 rlist = rlist_original
-                qr_distMat = pp_sketchlib.queryDatabase(ref_db_loc, query_db_loc,
-                                                        rlist, qlist, kmers,
-                                                        True, False,
-                                                        threads,
-                                                        gpu_dist,
-                                                        deviceid)
+                qr_distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db_loc,
+                                                        query_db_name=query_db_loc,
+                                                        rList=rlist,
+                                                        qList=qlist,
+                                                        klist=kmers,
+                                                        random_correct=True,
+                                                        jaccard=False,
+                                                        num_threads=threads,
+                                                        use_gpu=gpu_dist,
+                                                        device_id=deviceid)
 
         else:
             qlist = None
@@ -536,17 +537,24 @@ def generate_visualisations(query_db,
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
-        outputsForMicroreact(combined_seq,
-                             isolateClustering,
-                             nj_tree,
-                             mst_tree,
-                             acc_distMat,
-                             perplexity,
-                             output,
-                             info_csv,
-                             queryList = qlist,
-                             overwrite = overwrite,
-                             use_gpu = gpu_graph)
+        microreact_files = outputsForMicroreact(combined_seq,
+                                                isolateClustering,
+                                                nj_tree,
+                                                mst_tree,
+                                                acc_distMat,
+                                                perplexity,
+                                                output,
+                                                info_csv,
+                                                queryList=qlist,
+                                                overwrite=overwrite,
+                                                n_threads=threads,
+                                                use_gpu=gpu_graph,
+                                                device_id=deviceid)
+        url = createMicroreact(output, microreact_files, api_key)
+        if url != None:
+            sys.stderr.write("Microreact: " + url + "\n")
+        else:
+            sys.stderr.write("Provide --api-key to create microreact automatically\n")
 
     if phandango:
         sys.stderr.write("Writing phandango output\n")
@@ -621,13 +629,11 @@ def main():
                             args.gpu_graph,
                             args.info_csv,
                             args.rapidnj,
+                            args.api_key,
                             args.tree,
                             args.mst_distances,
                             args.overwrite,
-                            args.core_only,
-                            args.accessory_only,
-                            args.display_cluster,
-                            web = False)
+                            args.display_cluster)
 
 if __name__ == '__main__':
     main()

@@ -603,12 +603,17 @@ you can manually provide a file with ``--manual-start`` to give the starting par
 
     start 0,0
     end 0.5,0.6
+    scaled True
 
 A key, followed by its value (space separated).
 
 ``start`` and ``end`` define the points (x,y) to draw the line between.
 These define the two red points (and therefore the
 search range) in the output plot.
+
+``scaled`` defines whether these are on the [0,1] scale. If these have been set
+using means from the terminal output this should be ``True``. Otherwise, if you
+have set them based on the plot (unscaled space), set to ``False``.
 
 .. _indiv-refine:
 

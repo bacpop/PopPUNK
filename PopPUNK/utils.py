@@ -8,7 +8,6 @@ import os
 import sys
 # additional
 import pickle
-import subprocess
 from collections import defaultdict
 from itertools import chain
 from tempfile import mkstemp
@@ -17,7 +16,6 @@ import contextlib
 
 import numpy as np
 import pandas as pd
-import h5py
 
 try:
     import cudf
@@ -271,7 +269,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         seq_names_passing = refList + queryList
 
     # Sequences to remove
-    to_prune = []
+    to_prune = set()
 
     # Create output directory if it does not exist already
     if not os.path.isdir(prefix):
@@ -298,9 +296,10 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         # Prune sequences based on reference sequence
         for (s,t) in long_edges:
             if seq_names_passing[s] == qc_dict['type_isolate']:
-                to_prune.append(seq_names_passing[t])
-            elif seq_names_passing[t] == qc_dict['type_isolate']:
-                to_prune.append(seq_names_passing[s])
+                to_prune.add(seq_names_passing[t])
+            else:
+                to_prune.add(seq_names_passing[s])
+    to_prune = list(to_prune)
 
     # prune based on distance from reference if provided
     if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
@@ -451,17 +450,19 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         seqLabels = seqLabels + queryList
 
     if queryList == None:
-        coreMat = pp_sketchlib.longToSquare(distMat[:, [0]], threads)
-        accMat = pp_sketchlib.longToSquare(distMat[:, [1]], threads)
+        coreMat = pp_sketchlib.longToSquare(distVec=distMat[:, [0]],
+                                            num_threads=threads)
+        accMat = pp_sketchlib.longToSquare(distVec=distMat[:, [1]],
+                                           num_threads=threads)
     else:
-        coreMat = pp_sketchlib.longToSquareMulti(distMat[:, [0]],
-                                                 query_ref_distMat[:, [0]],
-                                                 query_query_distMat[:, [0]],
-                                                 threads)
-        accMat = pp_sketchlib.longToSquareMulti(distMat[:, [1]],
-                                                 query_ref_distMat[:, [1]],
-                                                 query_query_distMat[:, [1]],
-                                                 threads)
+        coreMat = pp_sketchlib.longToSquareMulti(distVec=distMat[:, [0]],
+                                                 query_ref_distVec=query_ref_distMat[:, [0]],
+                                                 query_query_distVec=query_query_distMat[:, [0]],
+                                                 num_threads=threads)
+        accMat = pp_sketchlib.longToSquareMulti(distVec=distMat[:, [1]],
+                                                query_ref_distVec=query_ref_distMat[:, [1]],
+                                                query_query_distVec=query_query_distMat[:, [1]],
+                                                num_threads=threads)
 
     # return outputs
     return seqLabels, coreMat, accMat

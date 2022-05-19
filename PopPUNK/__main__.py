@@ -7,13 +7,7 @@ import os
 import sys
 # additional
 import numpy as np
-import subprocess
 from collections import defaultdict
-
-import h5py
-
-import pp_sketchlib
-import poppunk_refine
 
 # import poppunk package
 from .__init__ import __version__

@@ -8,14 +8,6 @@ import os
 import sys
 import subprocess
 # additional
-import collections
-import pickle
-import time
-from tempfile import mkstemp
-from multiprocessing import Pool, Lock
-from functools import partial
-from itertools import product
-from glob import glob
 from random import sample
 import numpy as np
 from scipy import optimize
@@ -24,7 +16,6 @@ import pp_sketchlib
 import h5py
 
 from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
-from .utils import iterDistRows
 from .utils import readRfile
 from .plot import plot_fit
 
@@ -263,11 +254,11 @@ def joinDBs(db1, db2, output, update_random = None):
             hdf_join.close()
             if len(sequence_names) > 2:
                 sys.stderr.write("Updating random match chances\n")
-                pp_sketchlib.addRandom(join_prefix + ".tmp",
-                                       sequence_names,
-                                       kmer_size,
-                                       not strand_preserved,
-                                       threads)
+                pp_sketchlib.addRandom(db_name=join_prefix + ".tmp",
+                                       samples=sequence_names,
+                                       klist=kmer_size,
+                                       use_rc=(not strand_preserved),
+                                       num_threads=threads)
         elif 'random' in hdf1:
             hdf1.copy('random', hdf_join)
 
@@ -404,19 +395,19 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         os.remove(dbfilename)
 
     # generate sketches
-    pp_sketchlib.constructDatabase(dbname,
-                                   names,
-                                   sequences,
-                                   klist,
-                                   sketch_size,
-                                   codon_phased,
-                                   False,
-                                   not strand_preserved,
-                                   min_count,
-                                   use_exact,
-                                   threads,
-                                   use_gpu,
-                                   deviceid)
+    pp_sketchlib.constructDatabase(db_name=dbname,
+                                   samples=names,
+                                   files=sequences,
+                                   klist=klist,
+                                   sketch_size=sketch_size,
+                                   codon_phased=codon_phased,
+                                   calc_random=False,
+                                   use_rc=not strand_preserved,
+                                   min_count=min_count,
+                                   exact=use_exact,
+                                   num_threads=threads,
+                                   use_gpu=use_gpu,
+                                   device_id=deviceid)
 
     # QC sequences
     if qc_dict['run_qc']:
@@ -475,11 +466,11 @@ def addRandom(oPrefix, sequence_names, klist,
                 return
 
         hdf_in.close()
-        pp_sketchlib.addRandom(dbname,
-                               sequence_names,
-                               klist,
-                               not strand_preserved,
-                               threads)
+        pp_sketchlib.addRandom(db_name=dbname,
+                               samples=sequence_names,
+                               klist=klist,
+                               use_rc=(not strand_preserved),
+                               num_threads=threads)
 
 def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, number_plot_fits = 0,
                   threads = 1, use_gpu = False, deviceid = 0):
@@ -534,8 +525,16 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         qNames = rNames
 
         # Calls to library
-        distMat = pp_sketchlib.queryDatabase(ref_db, ref_db, rNames, rNames, klist,
-                                             True, False, threads, use_gpu, deviceid)
+        distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                             query_db_name=ref_db,
+                                             rList=rNames,
+                                             qList=rNames,
+                                             klist=klist,
+                                             random_correct=True,
+                                             jaccard=False,
+                                             num_threads=threads,
+                                             use_gpu=use_gpu,
+                                             device_id=deviceid)
 
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
@@ -544,24 +543,24 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 example = sample(rNames, k=2)
                 raw = np.zeros(len(klist))
                 corrected = np.zeros(len(klist))
-                raw = pp_sketchlib.queryDatabase(ref_db,
-                                                    ref_db,
-                                                    [example[0]],
-                                                    [example[1]],
-                                                    klist,
-                                                    random_correct = False,
-                                                    jaccard = True,
-                                                    num_threads = threads,
-                                                    use_gpu = False)
-                corrected = pp_sketchlib.queryDatabase(ref_db,
-                                                        ref_db,
-                                                        [example[0]],
-                                                        [example[1]],
-                                                        klist,
-                                                        random_correct = True,
-                                                        jaccard = True,
-                                                        num_threads = threads,
-                                                        use_gpu = False)
+                raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                 query_db_name=ref_db,
+                                                 rList=[example[0]],
+                                                 qList=[example[1]],
+                                                 klist=klist,
+                                                 random_correct=False,
+                                                 jaccard=True,
+                                                 num_threads=threads,
+                                                 use_gpu = False)
+                corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                       query_db_name=ref_db,
+                                                       rList=[example[0]],
+                                                       qList=[example[1]],
+                                                       klist=klist,
+                                                       random_correct=True,
+                                                       jaccard=True,
+                                                       num_threads=threads,
+                                                       use_gpu = False)
                 raw_fit = fitKmerCurve(raw[0], klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
                 plot_fit(klist,
@@ -582,32 +581,40 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
         # Calls to library
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
-        distMat = pp_sketchlib.queryDatabase(ref_db, query_db, rNames, qNames, klist,
-                                             True, False, threads, use_gpu, deviceid)
+        distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                             query_db_name=query_db,
+                                             rList=rNames,
+                                             qList=qNames,
+                                             klist=klist,
+                                             random_correct=True,
+                                             jaccard=False,
+                                             num_threads=threads,
+                                             use_gpu=use_gpu,
+                                             device_id=deviceid)
 
         # option to plot core/accessory fits. Choose a random number from cmd line option
         if number_plot_fits > 0:
             jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
             ref_examples = sample(rNames, k = number_plot_fits)
             query_examples = sample(qNames, k = number_plot_fits)
-            raw = pp_sketchlib.queryDatabase(ref_db,
-                                                query_db,
-                                                ref_examples,
-                                                query_examples,
-                                                klist,
-                                                random_correct = False,
-                                                jaccard = True,
-                                                num_threads = threads,
-                                                use_gpu = False)
-            corrected = pp_sketchlib.queryDatabase(ref_db,
-                                                    query_db,
-                                                    ref_examples,
-                                                    query_examples,
-                                                    klist,
-                                                    random_correct = True,
-                                                    jaccard = True,
-                                                    num_threads = threads,
-                                                    use_gpu = False)
+            raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                             query_db_name=query_db,
+                                             rList=ref_examples,
+                                             qList=query_examples,
+                                             klist=klist,
+                                             random_correct=False,
+                                             jaccard=True,
+                                             num_threads=threads,
+                                             use_gpu = False)
+            corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                   query_db_name=query_db,
+                                                   rList=ref_examples,
+                                                   qList=query_examples,
+                                                   klist=klist,
+                                                   random_correct=True,
+                                                   jaccard=True,
+                                                   num_threads=threads,
+                                                   use_gpu = False)
             for plot_idx in range(number_plot_fits):
                 raw_fit = fitKmerCurve(raw[plot_idx], klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected[plot_idx], klist, jacobian)

@@ -9,13 +9,11 @@ import sys
 # additional
 import numpy as np
 import random
-import operator
 import pickle
 import shutil
 import re
 from sklearn import utils
 import scipy.optimize
-from scipy.spatial.distance import euclidean
 from scipy import stats
 import scipy.sparse
 import hdbscan
@@ -773,7 +771,10 @@ class RefineFit(ClusterFit):
         # Get starting point
         model.no_scale()
         if startFile:
-            self.mean0, self.mean1 = readManualStart(startFile)
+            self.mean0, self.mean1, scaled = readManualStart(startFile)
+            if not scaled:
+                self.mean0 /= self.scale
+                self.mean1 /= self.scale
         elif model.type == 'dbscan':
             sys.stderr.write("Initial model-based network construction based on DBSCAN fit\n")
             self.mean0 = model.cluster_means[model.within_label, :]
@@ -786,8 +787,9 @@ class RefineFit(ClusterFit):
             raise RuntimeError("Unrecognised model type")
 
         # Main refinement in 2D
+        scaled_X = X / self.scale
         self.optimal_x, self.optimal_y, optimal_s = \
-          refineFit(X/self.scale,
+          refineFit(scaled_X,
                     sample_names,
                     self.mean0,
                     self.mean1,
@@ -805,7 +807,7 @@ class RefineFit(ClusterFit):
 
         # Output clusters at more positions if requested
         if multi_boundary > 1:
-            multi_refine(X/self.scale,
+            multi_refine(scaled_X,
                         sample_names,
                         self.mean0,
                         self.mean1,
@@ -825,7 +827,7 @@ class RefineFit(ClusterFit):
                         sys.stderr.write("Refining " + dist_type + " distances separately\n")
                         # optimise core distance boundary
                         core_boundary, accessory_boundary, s = \
-                          refineFit(X/self.scale,
+                          refineFit(scaled_X,
                                     sample_names,
                                     self.mean0,
                                     self.mean1,
@@ -1091,9 +1093,10 @@ class LineageFit(ClusterFit):
         for rank in self.ranks:
             row, col, data = \
                 pp_sketchlib.sparsifyDists(
-                    pp_sketchlib.longToSquare(X[:, [self.dist_col]], self.threads),
-                    0,
-                    rank,
+                    distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
+                                                      num_threads=self.threads),
+                    distCutoff=0,
+                    kNN=rank
                     self.reciprocal_only,
                     self.all_neighbours
                 )
@@ -1217,7 +1220,8 @@ class LineageFit(ClusterFit):
             qrDists = cp.array(qrDists)
 
         # Reshape qq and qr dist matrices
-        qqSquare = pp_sketchlib.longToSquare(qqDists[:, [self.dist_col]], self.threads)
+        qqSquare = pp_sketchlib.longToSquare(distVec=qqDists[:, [self.dist_col]],
+                                             num_threads=self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
 
         n_ref = self.nn_dists[self.ranks[0]].shape[0]

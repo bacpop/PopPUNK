@@ -57,7 +57,7 @@ setup(
             'poppunk = PopPUNK.__main__:main',
             'poppunk_prune = PopPUNK.prune_db:main',
             'poppunk_references = PopPUNK.reference_pick:main',
-            'poppunk_tsne = PopPUNK.tsne:main'
+            'poppunk_mandrake = PopPUNK.mandrake:main'
             ]
     },
     scripts=['scripts/poppunk_calculate_rand_indices.py',

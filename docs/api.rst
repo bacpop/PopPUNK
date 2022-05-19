@@ -31,6 +31,12 @@ Functions used to fit DBSCAN to a database. Access using
 .. automodule:: PopPUNK.dbscan
    :members:
 
+mandrake.py
+-------
+
+.. automodule:: PopPUNK.mandrake
+   :members:
+
 models.py
 ---------
 
@@ -73,12 +79,6 @@ sketchlib.py
 ------------
 
 .. automodule:: PopPUNK.sketchlib
-   :members:
-
-tsne.py
--------
-
-.. automodule:: PopPUNK.tsne
    :members:
 
 utils.py
