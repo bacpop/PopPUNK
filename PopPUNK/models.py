@@ -1096,9 +1096,9 @@ class LineageFit(ClusterFit):
                     distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
                                                       num_threads=self.threads),
                     distCutoff=0,
-                    kNN=rank
-                    self.reciprocal_only,
-                    self.all_neighbours
+                    kNN=rank,
+                    reciprocal_only = self.reciprocal_only,
+                    all_neighbours = self.all_neighbours
                 )
             self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
 
