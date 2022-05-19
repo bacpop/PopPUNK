@@ -49,10 +49,89 @@ def assign_query(dbFuncs,
                  gpu_dist,
                  gpu_graph,
                  deviceid,
-                 web,
-                 json_sketch,
                  save_partial_query_graph):
-    """Code for assign query mode. Written as a separate function so it can be called
+    """Code for assign query mode for CLI"""
+
+    createDatabaseDir = dbFuncs['createDatabaseDir']
+    constructDatabase = dbFuncs['constructDatabase']
+    readDBParams = dbFuncs['readDBParams']
+
+    if ref_db == output:
+        sys.stderr.write("--output and --ref-db must be different to "
+                         "prevent overwrite.\n")
+        sys.exit(1)
+    
+    # Find distances to reference db
+    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
+
+    # construct database
+    createDatabaseDir(output, kmers)
+    qNames = constructDatabase(q_files,
+                                kmers,
+                                sketch_sizes,
+                                output,
+                                threads,
+                                overwrite,
+                                codon_phased = codon_phased,
+                                calc_random = False,
+                                use_gpu = gpu_sketch,
+                                deviceid = deviceid)
+
+    isolateClustering = assign_query_hdf5(dbFuncs,
+                    ref_db,
+                    qNames,
+                    output,
+                    qc_dict,
+                    update_db,
+                    write_references,
+                    distances,
+                    threads,
+                    overwrite,
+                    plot_fit,
+                    graph_weights,
+                    max_a_dist,
+                    max_pi_dist,
+                    type_isolate,
+                    model_dir,
+                    strand_preserved,
+                    previous_clustering,
+                    external_clustering,
+                    core,
+                    accessory,
+                    gpu_sketch,
+                    gpu_dist,
+                    gpu_graph,
+                    deviceid,
+                    save_partial_query_graph) 
+    return(isolateClustering)           
+
+def assign_query_hdf5(dbFuncs,
+                 ref_db,
+                 qNames,
+                 output,
+                 qc_dict,
+                 update_db,
+                 write_references,
+                 distances,
+                 threads,
+                 overwrite,
+                 plot_fit,
+                 graph_weights,
+                 max_a_dist,
+                 max_pi_dist,
+                 type_isolate,
+                 model_dir,
+                 strand_preserved,
+                 previous_clustering,
+                 external_clustering,
+                 core,
+                 accessory,
+                 gpu_sketch,
+                 gpu_dist,
+                 gpu_graph,
+                 deviceid,
+                 save_partial_query_graph):
+    """Code for assign query mode taking hdf5 as input. Written as a separate function so it can be called
     by web APIs"""
 
     # Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)
@@ -80,10 +159,6 @@ def assign_query(dbFuncs,
     from .utils import update_distance_matrices
     from .utils import createOverallLineage
 
-    from .web import sketch_to_hdf5
-
-    createDatabaseDir = dbFuncs['createDatabaseDir']
-    constructDatabase = dbFuncs['constructDatabase']
     joinDBs = dbFuncs['joinDBs']
     queryDatabase = dbFuncs['queryDatabase']
     readDBParams = dbFuncs['readDBParams']
@@ -115,7 +190,7 @@ def assign_query(dbFuncs,
         prev_clustering = model_prefix
 
     # Find distances to reference db
-    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
+    kmers = readDBParams(ref_db)[0]
 
     # Iterate through different types of model fit with a refined model when specified
     # Core and accessory assignments use the same model and same overall set of distances
@@ -150,22 +225,7 @@ def assign_query(dbFuncs,
                 sys.exit(1)
             else:
                 rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
-        # construct database - use a single database directory for all query outputs
-        if (web and json_sketch is not None):
-            qNames = sketch_to_hdf5(json_sketch, output)
-        elif (fit_type == 'default'):
-            # construct database
-            createDatabaseDir(output, kmers)
-            qNames = constructDatabase(q_files,
-                                        kmers,
-                                        sketch_sizes,
-                                        output,
-                                        threads,
-                                        overwrite,
-                                        codon_phased = codon_phased,
-                                        calc_random = False,
-                                        use_gpu = gpu_sketch,
-                                        deviceid = deviceid)
+                
         if (fit_type == 'default' or (fit_type != 'default' and use_ref_graph)):
             # run query
             qrDistMat = queryDatabase(rNames = rNames,
@@ -610,8 +670,6 @@ def main():
                  args.gpu_dist,
                  args.gpu_graph,
                  args.deviceid,
-                 web=False,
-                 json_sketch=None,
                  save_partial_query_graph=False)
 
     sys.stderr.write("\nDone\n")
