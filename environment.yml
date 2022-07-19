@@ -6,7 +6,7 @@ channels:
   - r
 dependencies:
   - pip
-  - numpy
+  - numpy==1.22
   - scipy
   - python-dateutil
   - pandas
