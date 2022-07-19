@@ -12,7 +12,8 @@ RUN apt-get update && \
 RUN git clone https://github.com/somme89/rapidNJ.git && \
     cd rapidNJ && \
     make && \
-    mv ./bin/rapidnj /usr/bin
+    mv ./bin/rapidnj /usr/bin &&\
+    cd .. && rm -r rapidNJ
 
 # Special snowflake treatment for graph_tool because the maintainer
 # refuses to make the package pip-installable, meaning we can't depend
