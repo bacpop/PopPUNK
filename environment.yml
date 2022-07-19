@@ -17,7 +17,7 @@ dependencies:
   - matplotlib
   - hdbscan
   - rapidnj
-  - h5py
+  - h5py ==3.6.0
   - pp-sketchlib >=2.0.0
   - graph-tool >=2.35
   - networkx
