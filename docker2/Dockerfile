@@ -9,6 +9,12 @@ RUN apt-get update && \
                           libopenblas-dev \
                           software-properties-common
 
+RUN git clone https://github.com/somme89/rapidNJ.git && \
+    cd rapidNJ && \
+    make && \
+    mv ./bin/rapidnj /usr/bin &&\
+    cd .. && rm -r rapidNJ
+
 # Special snowflake treatment for graph_tool because the maintainer
 # refuses to make the package pip-installable, meaning we can't depend
 # on it in a sane way. Least pain seems to be to install via apt, even
