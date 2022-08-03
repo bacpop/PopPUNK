@@ -484,12 +484,22 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     # mask network if subsetting
     if viz_subset is not None:
         viz_vertex = G.new_vertex_property('bool')
-        for n,vertex in enumerate(G.vertices()):
-            if isolate_names[n] in viz_subset:
+        for name, vertex in zip(isolate_names, G.vertices()):
+            if name in viz_subset:
                 viz_vertex[vertex] = True
             else:
                 viz_vertex[vertex] = False
-        G.set_vertex_filter(viz_vertex)
+        G = gt.GraphView(G, vfilt=viz_vertex)
+        isolate_names = viz_subset
+
+    # hard delete
+    # if viz_subset is not None:
+    #     remove_idxs = []
+    #     for idx, name in enumerate(isolate_names):
+    #         if name not in viz_subset:
+    #             remove_idxs.append(idx)
+    #     G.remove_vertex(remove_idxs)
+    #     isolate_names = viz_subset
 
     # edit names
     seqLabels = isolateNameToLabel(isolate_names)
@@ -593,10 +603,10 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
 
     # process epidemiological data without duplicating names
     # used by PopPUNK
-    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
-    'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
-    'overall_Lineage']
     if epiCsv is not None:
+        columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
+        'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
+        'overall_Lineage']
         epiData = pd.read_csv(epiCsv, index_col = False, quotechar='"')
         epiData.index = isolateNameToLabel(epiData.iloc[:,0])
         for e in epiData.columns.values:
