@@ -21,7 +21,7 @@ reasons why they failed. If running with either prune or continue, you may also 
 to write a separate sketch database with the failed samples.
 
 Random match chances in PopPUNK are only calculated and added to the database after the chosen
-QC step. If you use ``poppunk_sketch`` directly, they will be added without any automated QC.
+QC step. If you use ``sketchlib`` directly, they will be added without any automated QC.
 
 QC of input sequences
 ---------------------

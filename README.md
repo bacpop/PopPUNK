@@ -40,8 +40,8 @@ Please upgrade to `PopPUNK >=v2.2` and `pp-sketchlib >=v1.5.1`. If this is not
 possible, you can either:
 - Run `scripts/poppunk_pickle_fix.py` on your `.dists.pkl` file and re-run
   model fits.
-- Create the database with `poppunk_sketch` directly, rather than `
-  PopPUNK --create-db`
+- Create the database with `poppunk_sketch` directly, rather than
+  `PopPUNK --create-db`
 
 ## Installation
 

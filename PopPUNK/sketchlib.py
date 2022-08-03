@@ -19,7 +19,7 @@ from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
 from .utils import readRfile
 from .plot import plot_fit
 
-sketchlib_exe = "poppunk_sketch"
+sketchlib_exe = "sketchlib"
 
 def checkSketchlibVersion():
     """Checks that sketchlib can be run, and returns version
@@ -33,14 +33,18 @@ def checkSketchlibVersion():
 
     # Older versions didn't export attributes
     except AttributeError:
-        p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
-        version = 0
-        for line in iter(p.stdout.readline, ''):
-            if line != '':
-                version = line.rstrip().decode().split(" ")[1]
-                break
+        try:
+            p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
+            version = 0
+            for line in iter(p.stdout.readline, ''):
+                if line != '':
+                    version = line.rstrip().decode().split(" ")[1]
+                    break
 
-    sketchlib_version = [int(v) for v in version.split(".")]
+            sketchlib_version = [int(v) for v in version.split(".")]
+        except IndexError:
+            sys.stderr.write("WARNING: Sketchlib version could not be found\n")
+            sketchlib_version = [0, 0, 0]
     if sketchlib_version[0] < SKETCHLIB_MAJOR or \
         sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] < SKETCHLIB_MINOR or \
         sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] == SKETCHLIB_MINOR and sketchlib_version[2] < SKETCHLIB_PATCH:

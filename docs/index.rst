@@ -18,7 +18,7 @@ use these to cluster genomes. A detailed description of the method can be found
 in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
 
 If you are new to PopPUNK, we'd recommend starting on :doc:`installation`, then
-by reading the :doc:`best_practises`.
+by reading the :doc:`overview`.
 
 .. important::
    Looking for older versions of the documentation? For previous versions with
@@ -31,16 +31,16 @@ by reading the :doc:`best_practises`.
 
    self
    installation.rst
-   best_practises.rst
-   online.rst
-   query_assignment.rst
+   overview.rst
    sketching.rst
    qc.rst
    model_fitting.rst
    model_distribution.rst
+   query_assignment.rst
    visualisation.rst
    mst.rst
    subclustering.rst
+   online.rst
    gpu.rst
    troubleshooting.rst
    options.rst

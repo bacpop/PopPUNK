@@ -604,6 +604,7 @@ def initial_graph_properties(rlist, qlist):
 
 def process_weights(distMat, weights_type):
     """Calculate edge weights from the distance matrix
+
     Args:
         distMat (2 column ndarray)
             Numpy array of pairwise distances

@@ -32,7 +32,7 @@ Functions used to fit DBSCAN to a database. Access using
    :members:
 
 mandrake.py
--------
+-----------
 
 .. automodule:: PopPUNK.mandrake
    :members:

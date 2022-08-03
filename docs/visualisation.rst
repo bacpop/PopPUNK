@@ -206,9 +206,10 @@ Cytoscape is different from the above modes as it creates a layout and visualisa
 the graph used to create strains from distances. This can be useful for more detailed
 investigation of network scores, particularly in strains which have less than perfect transitivity.
 
-Add the ``--cytoscape`` option::
+Add the ``--cytoscape`` option, and also ``--network-file`` to point to the
+network you wish to visualise::
 
-   poppunk_visualise --ref-db listeria --cytoscape
+   poppunk_visualise --ref-db listeria --cytoscape --network-file listeria/listeria_graph.gt
 
    Graph-tools OpenMP parallelisation enabled: with 1 threads
    PopPUNK: visualise

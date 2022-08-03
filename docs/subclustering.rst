@@ -6,10 +6,6 @@ Subclustering with PopPIPE
 .. contents::
    :local:
 
-.. danger::
-    PopPIPE is still a work-in-progress and may not immediately work on your data. We
-    anticipate finalising the pipeline in the near future.
-
 Overview
 --------
 You can run `PopPIPE <https://github.com/johnlees/PopPIPE>`__ on your PopPUNK output,
