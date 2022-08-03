@@ -259,12 +259,13 @@ def assign_query_hdf5(dbFuncs,
         if qc_dict['run_qc']:
             seq_names_passing, qrDistMat = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)
             seq_names_passing = set(seq_names_passing)
-            rNames = list(seq_names_passing.intersection(rNames))
-            qNames = list(seq_names_passing.intersection(qNames))
-            if update_db:
+            if update_db and (len(seq_names_passing) != len(rNames) + len(qNames)):
                 sys.stderr.write("Queries contained outlier distances, "
                                  "not updating database\n")
                 update_db = False
+            rNames = [x for x in rNames if x in seq_names_passing]
+            qNames = [x for x in qNames if x in seq_names_passing]
+
         else:
             seq_names_passing = rNames + qNames
 

@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 # additional
+import re
 from random import sample
 import numpy as np
 from scipy import optimize
@@ -28,6 +29,7 @@ def checkSketchlibVersion():
         version (str)
             Version string
     """
+    sketchlib_version = [0, 0, 0]
     try:
         version = pp_sketchlib.version
 
@@ -41,10 +43,11 @@ def checkSketchlibVersion():
                     version = line.rstrip().decode().split(" ")[1]
                     break
 
-            sketchlib_version = [int(v) for v in version.split(".")]
         except IndexError:
             sys.stderr.write("WARNING: Sketchlib version could not be found\n")
-            sketchlib_version = [0, 0, 0]
+
+    version = re.sub(r'^v', '', version) # Remove leading v
+    sketchlib_version = [int(v) for v in version.split(".")]
     if sketchlib_version[0] < SKETCHLIB_MAJOR or \
         sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] < SKETCHLIB_MINOR or \
         sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] == SKETCHLIB_MINOR and sketchlib_version[2] < SKETCHLIB_PATCH:
