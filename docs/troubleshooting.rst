@@ -9,6 +9,22 @@ installing or running the software please raise an issue on github.
 
 Known bugs
 ----------
+Older HDBSCAN models fail to load
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tl;dr if you see an error ``ModuleNotFoundError: No module named 'sklearn.neighbors._dist_metrics'``
+you probably need to downgrade ``sklearn`` to v0.24.
+
+The change in scikit-learn's API in v1.0.0 and above mean that HDBSCAN models
+fitted with ```sklearn <=v0.24``` will give an error when loaded. If you run into this,
+the solution is one of:
+- Downgrade sklearn to v0.24.
+- Run model refinement to turn your model into a boundary model instead (this will
+change clusters).
+- Refit your model in an environment with ```sklearn >=v1.0``.
+
+If this is a common problem let us know, as we could write a script to 'upgrade'
+HDBSCAN models.
+See issue [#213](https://github.com/bacpop/PopPUNK/issues/213) for more details.
 
 When I look at my clusters on a tree, they make no sense
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

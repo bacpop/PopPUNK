@@ -2,7 +2,7 @@
 
 <!-- badges: start -->
 [![Dev build Status](https://dev.azure.com/jlees/PopPUNK/_apis/build/status/johnlees.PopPUNK?branchName=master)](https://dev.azure.com/jlees/PopPUNK/_build/latest?definitionId=1&branchName=master)
-![Run tests](https://github.com/johnlees/PopPUNK/workflows/Run%20tests/badge.svg)
+![Run tests](https://github.com/bacpop/PopPUNK/workflows/Run%20tests/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/poppunk/badge/?version=latest)](https://poppunk.readthedocs.io/)
 [![Anaconda package](https://anaconda.org/bioconda/poppunk/badges/version.svg)](https://anaconda.org/bioconda/poppunk)
 [![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
@@ -26,6 +26,18 @@ suggested methods paragraph.
 
 ## News
 
+### 2022-08-04
+The change in scikit-learn's API in v1.0.0 and above mean that HDBSCAN models
+fitted with `sklearn <=v0.24` will give an error when loaded. If you run into this,
+the solution is one of:
+- Downgrade sklearn to v0.24.
+- Run model refinement to turn your model into a boundary model instead (this will
+change clusters).
+- Refit your model in an environment with `sklearn >=v1.0`.
+
+If this is a common problem let us know, as we could write a script to 'upgrade'
+HDBSCAN models.
+See issue [#213](https://github.com/bacpop/PopPUNK/issues/213) for more details.
 ### 2021-03-15
 We have fixed a number of bugs with may affect the use of `poppunk_assign` with
 `--update-db`. We have also fixed a number of bugs with GPU distances. These are
@@ -34,7 +46,7 @@ We have fixed a number of bugs with may affect the use of `poppunk_assign` with
 ### 2020-09-30
 We have discovered a bug affecting the interaction of pp-sketchlib and PopPUNK.
 If you have used `PopPUNK >=v2.0.0` with `pp-sketchlib <v1.5.1` label order may
-be incorrect (see issue [#95](https://github.com/johnlees/PopPUNK/issues/95)).
+be incorrect (see issue [#95](https://github.com/bacpop/PopPUNK/issues/95)).
 
 Please upgrade to `PopPUNK >=v2.2` and `pp-sketchlib >=v1.5.1`. If this is not
 possible, you can either:
