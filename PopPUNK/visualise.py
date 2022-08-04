@@ -284,9 +284,10 @@ def generate_visualisations(query_db,
         rlist, qlist, self, complete_distMat = readPickle(distances)
         if not self:
             qr_distMat = complete_distMat
+            combined_seq = rlist + qlist
         else:
             rr_distMat = complete_distMat
-        combined_seq = rlist + qlist
+            combined_seq = rlist
 
         # Fill in qq-distances if required
         if self == False and tree != "none":
@@ -345,6 +346,7 @@ def generate_visualisations(query_db,
     #*******************************#
 
     # extract subset of distances if requested
+    all_seq = combined_seq
     if include_files is not None:
         viz_subset = set()
         with open(include_files, 'r') as assemblyFiles:
@@ -586,22 +588,29 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
+        import graph_tool.all as gt
         if network_file is not None:
             genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
+            if gpu_graph:
+                genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
+            # Hard delete from network to remove samples (mask doesn't work neatly)
+            if viz_subset is not None:
+                remove_list = []
+                for keep, idx in enumerate(row_slice):
+                    if not keep:
+                        remove_list.append(idx)
+                genomeNetwork.remove_vertex(remove_list)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
-        if gpu_graph:
-            genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(combined_seq))
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
                             combined_seq,
                             isolateClustering,
                             output,
-                            info_csv,
-                            viz_subset = viz_subset)
+                            info_csv)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 

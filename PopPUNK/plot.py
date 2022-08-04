@@ -448,7 +448,7 @@ def drawMST(mst, outPrefix, isolate_clustering, clustering_name, overwrite):
                     output=graph2_file_name, output_size=(3000, 3000))
 
 def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, queryList = None,
-                        suffix = None, writeCsv = True, viz_subset = None):
+                        suffix = None, writeCsv = True):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -473,24 +473,11 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
             (default = None)
         writeCsv (bool)
             Whether to print CSV file to accompany network
-        viz_subset (list)
-            List of sequences to include in visualisation
-
     """
 
     # Avoid circular import
     from .network import save_network
-
-    # mask network if subsetting
-    if viz_subset is not None:
-        viz_vertex = G.new_vertex_property('bool')
-        for name, vertex in zip(isolate_names, G.vertices()):
-            if name in viz_subset:
-                viz_vertex[vertex] = True
-            else:
-                viz_vertex[vertex] = False
-        G = gt.GraphView(G, vfilt=viz_vertex)
-        isolate_names = viz_subset
+    import graph_tool.all as gt
 
     # hard delete
     # if viz_subset is not None:
