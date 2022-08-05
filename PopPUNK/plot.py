@@ -479,15 +479,6 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     from .network import save_network
     import graph_tool.all as gt
 
-    # hard delete
-    # if viz_subset is not None:
-    #     remove_idxs = []
-    #     for idx, name in enumerate(isolate_names):
-    #         if name not in viz_subset:
-    #             remove_idxs.append(idx)
-    #     G.remove_vertex(remove_idxs)
-    #     isolate_names = viz_subset
-
     # edit names
     seqLabels = isolateNameToLabel(isolate_names)
     vid = G.new_vertex_property('string',
@@ -500,6 +491,18 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     else:
         suffix = suffix + '_cytoscape'
     save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
+
+    # Save each component too (useful for very large graphs)
+    component_assignments, component_hist = gt.label_components(G)
+    for component_idx in range(len(component_hist)):
+        remove_list = []
+        for vidx, v_component in enumerate(component_assignments.a):
+            if v_component != component_idx:
+                remove_list.append(vidx)
+        G_copy = G.copy()
+        G_copy.remove_vertex(remove_list)
+        save_network(G_copy, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
+        del G_copy
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
