@@ -88,21 +88,27 @@ Otherwise, open https://microreact.org/upload in your browser, and drag and drop
 to create your visualisation. Here is the result of running the visualisation on the
 *Listeria* BGMM model::
 
-   poppunk_visualise --ref-db listeria --microreact
+    poppunk_visualise --ref-db listeria --microreact --threads 8
 
-   Graph-tools OpenMP parallelisation enabled: with 1 threads
-   PopPUNK: visualise
-   Loading BGMM 2D Gaussian model
-   Writing microreact output
-   Parsed data, now writing to CSV
-   Building phylogeny
-   Running mandrake
+    Graph-tools OpenMP parallelisation enabled: with 8 threads
+    PopPUNK: visualise
+    Loading BGMM 2D Gaussian model
+    Completed model loading
+    Building phylogeny
+    Writing microreact output
+    Parsed data, now writing to CSV
+    Running mandrake
+    Running on CPU
+    Preprocessing 128 samples with perplexity = 20 took 0ms
+    Optimizing	 Progress: 99.9%, eta=0.0010, Eq=0.2583546852, clashes=2.1%
+    Optimizing done in 30s
+    Provide --api-key to create microreact automatically
 
-   Done
+    Done
 
-This can be viewed at https://microreact.org/project/8PeGg9fCjZADaAGuNJwU9z:
+This can be viewed at https://microreact.org/project/3JAZKqzJiaNyViWXindNLv-listeria-poppunk-perplexity-20:
 
-.. image:: images/listeria_microreact.png
+.. image:: images/microreact.png
    :alt:  Microreact page for Listeria monocytogenes
    :align: center
 
@@ -131,15 +137,11 @@ and the sklearn documentation shows some examples of the effect of `changing
 perplexity <http://scikit-learn.org/stable/auto_examples/manifold/plot_t_sne_perplexity.html>`__.
 In mandrake, points will usually appear 'tighter' than in t-SNE, and form more obvious clusters.
 
-In the :doc:`model_fitting` example, a perplexity of 30 gives clear clustering of
-the accessory genome content, condordant with the core genome structure (`data <https://microreact.org/project/Skg0j9sjz>`__):
+In the example with *Listeria monocytogenes* above, a perplexity of 20 gives clear clustering of
+the accessory genome content, condordant with the core genome structure (`data <https://microreact.org/project/3JAZKqzJiaNyViWXindNLv-listeria-poppunk-perplexity-20>`__):
 
-.. image:: images/microreact.png
-   :alt:  Microreact plot of results with perplexity = 30
-   :align: center
-
-With a lower perplexity of 5, the clustering is too loose, and the strain
-structure cannot clearly be seen (`data <https://microreact.org/project/S1RwpK9if>`__):
+With a lower perplexity of 5, the clustering is not as tight, but it still looks ok
+(`data <https://microreact.org/project/tXHmDR4NRfmTeemfjqbzip-listeria-poppunk-perplexity-5>`__):
 
 .. image:: images/microreact_perplexity5.png
    :alt:  Microreact plot of results with perplexity = 5
@@ -150,7 +152,7 @@ larger or smaller datasets. You can re-run the mandrake using the ``poppunk_mand
 command, providing the distances from the previous run::
 
    poppunk_mandrake --distances strain_db/strain_db.dists --output strain_db \
-   --perplexity 20
+   --perplexity 50
 
 GrapeTree
 ---------
