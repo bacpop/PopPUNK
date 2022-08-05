@@ -469,7 +469,6 @@ def main():
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
             for rank in sorted(rank_list):
-                sys.stderr.write("Network for rank " + str(rank) + "\n")
                 if args.graph_weights:
                     weights = model.edge_weights(rank)
                 else:
@@ -487,6 +486,9 @@ def main():
                                   refList,
                                   printCSV = False,
                                   use_gpu = args.gpu_graph)
+                n_clusters = max(lineage_clusters[rank].values())
+                sys.stderr.write("Network for rank " + str(rank) + " has " +
+                                 str(n_clusters) + " lineages\n")
 
             # print output of each rank as CSV
             overall_lineage = createOverallLineage(rank_list, lineage_clusters)
