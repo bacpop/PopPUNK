@@ -808,6 +808,7 @@ class RefineFit(ClusterFit):
                         sample_names,
                         self.mean0,
                         self.mean1,
+                        self.scale,
                         optimal_s,
                         multi_boundary,
                         self.outPrefix,

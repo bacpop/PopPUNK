@@ -242,7 +242,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
 
     return optimal_x, optimal_y, optimised_s
 
-def multi_refine(distMat, sample_names, mean0, mean1, s_max,
+def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
                  n_boundary_points, output_prefix,
                  num_processes = 1, use_gpu = False):
     """Move the refinement boundary between the optimum and where it meets an
@@ -257,6 +257,8 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
             Start point to define search line
         mean1 (numpy.array)
             End point to define search line
+        scale (numpy.array)
+            Scaling factor of distMat
         s_max (float)
             The optimal s position from refinement (:func:`~PopPUNK.refine.refineFit`)
         n_boundary_points (int)
@@ -280,7 +282,7 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
     s_range = np.linspace(s_min, s_max, num = n_boundary_points)[1:]
 
     (min_x, max_x), (min_y, max_y) = \
-            check_search_range(mean0, mean1, s_range[0], s_range[-1])
+        check_search_range(scale, mean0, mean1, s_range[0], s_range[-1])
     if min_x < 0 or min_y < 0:
         sys.stderr.write("Boundary range below zero")
 
