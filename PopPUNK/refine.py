@@ -12,6 +12,7 @@ from functools import partial
 import numpy as np
 import scipy.optimize
 import collections
+from math import sqrt
 from tqdm import tqdm
 try:
     from multiprocessing import Pool, shared_memory
@@ -186,23 +187,10 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
         search_length = max_move + ((mean1[0] - mean0[0])**2 + (mean1[1] - mean0[1])**2)**0.5
         global_grid_resolution = 40 # Seems to work
         s_range = np.linspace(-min_move, search_length, num = global_grid_resolution)
-        bottom_end = transformLine(s_range[0], mean0, mean1)
-        top_end = transformLine(s_range[-1], mean0, mean1)
-        min_x, min_y = decisionBoundary(bottom_end, gradient)
-        max_x, max_y = decisionBoundary(top_end, gradient)
-
+        (min_x, max_x), (min_y, max_y) = \
+            check_search_range(scale, mean0, mean1, s_range[0], s_range[-1])
         if min_x < 0 or min_y < 0:
             raise RuntimeError("Boundary range below zero")
-        sys.stderr.write("Search range (" +
-                         ",".join(["{:.3f}".format(x) for x in bottom_end * scale]) +
-                         ") to (" +
-                         ",".join(["{:.3f}".format(x) for x in top_end * scale]) + ")\n")
-        sys.stderr.write("Searching core intercept from " +
-                         "{:.3f}".format(min_x * scale[0]) +
-                         " to " + "{:.3f}".format(max_x * scale[0]) + "\n")
-        sys.stderr.write("Searching accessory intercept from " +
-                         "{:.3f}".format(min_y * scale[1]) +
-                         " to " + "{:.3f}".format(max_y * scale[1]) + "\n")
 
         i_vec, j_vec, idx_vec = \
             poppunk_refine.thresholdIterate1D(distMat, s_range, slope,
@@ -285,13 +273,16 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
     # Set the range
     # Between optimised s and where line meets an axis
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
-    # Equation of normal passing through origin y = -1/m * x
-    # Where this meets line y - y1 = m(x - x1) is at:
-    x = (gradient * mean0[0] - mean0[1]) / (gradient + 1 / gradient)
-    y = mean0[1] + gradient * (x - mean0[0])
-
-    s_min = -((mean0[0] - x)**2 + (mean0[1] - y)**2)**0.5
+    if mean0[1] >= gradient * mean0[0]:
+        s_min = -mean0[0] * sqrt(1 + gradient * gradient)
+    else:
+        s_min = -mean0[1] * sqrt(1 + 1 / (gradient * gradient))
     s_range = np.linspace(s_min, s_max, num = n_boundary_points)[1:]
+
+    (min_x, max_x), (min_y, max_y) = \
+            check_search_range(mean0, mean1, s_range[0], s_range[-1])
+    if min_x < 0 or min_y < 0:
+        sys.stderr.write("Boundary range below zero")
 
     i_vec, j_vec, idx_vec = \
         poppunk_refine.thresholdIterate1D(distMat, s_range, 2,
@@ -308,6 +299,45 @@ def multi_refine(distMat, sample_names, mean0, mean1, s_max,
                 write_clusters = output_prefix,
                 use_gpu = use_gpu)
 
+def check_search_range(scale, mean0, mean1, lower_s, upper_s):
+    """Checks a search range is within a valid range
+
+    Args:
+        scale (np.array)
+            Rescaling factor to [0, 1] for each axis
+        mean0 (np.array)
+            (x, y) of starting point defining line
+        mean1 (np.array)
+            (x, y) of end point defining line
+        lower_s (float)
+            distance along line to start search
+        upper_s (float)
+            distance along line to end search
+
+    Returns:
+        min_x, max_x
+            minimum and maximum x-intercepts of the search range
+        min_y, max_y
+            minimum and maximum x-intercepts of the search range
+    """
+    gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
+    bottom_end = transformLine(lower_s, mean0, mean1)
+    top_end = transformLine(upper_s, mean0, mean1)
+    min_x, min_y = decisionBoundary(bottom_end, gradient)
+    max_x, max_y = decisionBoundary(top_end, gradient)
+
+    sys.stderr.write("Search range (" +
+                        ",".join(["{:.3f}".format(x) for x in bottom_end * scale]) +
+                        ") to (" +
+                        ",".join(["{:.3f}".format(x) for x in top_end * scale]) + ")\n")
+    sys.stderr.write("Searching core intercept from " +
+                        "{:.3f}".format(min_x * scale[0]) +
+                        " to " + "{:.3f}".format(max_x * scale[0]) + "\n")
+    sys.stderr.write("Searching accessory intercept from " +
+                        "{:.3f}".format(min_y * scale[1]) +
+                        " to " + "{:.3f}".format(max_y * scale[1]) + "\n")
+
+    return((min_x, max_x), (min_y, max_y))
 
 def expand_cugraph_network(G, G_extra_df):
     """Reconstruct a cugraph network with additional edges.

@@ -49,8 +49,8 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db e
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
 
 sys.stderr.write("Running multi boundary refinement (--multi-boundary and poppunk_iterate.py)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --multi-boundary 10", shell=True, check=True)
-subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_refine --h5 example_db/example_db", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_iterate --neg-shift 0.2 --overwrite --multi-boundary 10", shell=True, check=True)
+subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_iterate --h5 example_db/example_db", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
@@ -108,10 +108,6 @@ subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output
 sys.stderr.write("Printing citations\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation --query some_queries.txt --db example_db --output example_query", shell=True, check=True)
-
-# web API
-# sys.stderr.write("Running API tests\n")
-# subprocess.run(python_cmd + " test-web.py", shell=True, check=True)
 
 sys.stderr.write("Tests completed\n")
 
