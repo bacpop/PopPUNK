@@ -847,7 +847,6 @@ class RefineFit(ClusterFit):
                 print(e)
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
-            self.indiv_fitted = True
         y = self.assign(X)
         return y
 

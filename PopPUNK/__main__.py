@@ -549,12 +549,13 @@ def main():
         if model.type != "lineage":
             dist_type_list = ['original']
             dist_string_list = ['']
-            if args.indiv_refine == 'both' or args.indiv_refine == 'core':
-                dist_type_list.append('core')
-                dist_string_list.append('_core')
-            if args.indiv_refine == 'both' or args.indiv_refine == 'accessory':
-                dist_type_list.append('accessory')
-                dist_string_list.append('_accessory')
+            if model.indiv_fitted:
+                if args.indiv_refine == 'both' or args.indiv_refine == 'core':
+                    dist_type_list.append('core')
+                    dist_string_list.append('_core')
+                if args.indiv_refine == 'both' or args.indiv_refine == 'accessory':
+                    dist_type_list.append('accessory')
+                    dist_string_list.append('_accessory')
             # Iterate through different network types
             for dist_type, dist_string in zip(dist_type_list, dist_string_list):
                 if dist_type == 'original':
