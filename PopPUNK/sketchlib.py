@@ -420,10 +420,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     if qc_dict['run_qc']:
         filtered_names = sketchlibAssemblyQC(oPrefix,
                                              names,
-                                             klist,
-                                             qc_dict,
-                                             strand_preserved,
-                                             threads)
+                                             qc_dict)
     else:
         filtered_names = names
 
@@ -676,7 +673,7 @@ def pickTypeIsolate(prefix, names):
 
     return type_isolate
 
-def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads):
+def sketchlibAssemblyQC(prefix, names, qc_dict):
     """Calculates random match probability based on means of genomes
     in assemblyList, and looks for length outliers.
 
@@ -685,14 +682,8 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
             Prefix of output files
         names (list)
             Names of samples to QC
-        klist (list)
-            List of k-mer sizes to sketch
         qc_dict (dict)
             Dictionary of QC parameters
-        strand_preserved (bool)
-            Ignore reverse complement k-mers (default = False)
-        threads (int)
-            Number of threads to use in parallelisation
 
     Returns:
         retained (list)
@@ -721,7 +712,13 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
                 # test thresholds
                 remove = False
                 seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-                seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
+                # If reads, do not QC based on Ns (simpler this way)
+                # Older versions of DB do not save reads, so attr may not be present
+                if 'reads' in hdf_in['sketches'][dataset].attrs and \
+                    hdf_in['sketches'][dataset].attrs['reads']:
+                    seq_ambiguous[dataset] = 0
+                else:
+                    seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
 
         # calculate thresholds
         # get mean length
@@ -736,6 +733,7 @@ def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads
                 qc_dict['length_sigma'] * np.std(genome_lengths)
         else:
             lower_length, upper_length = qc_dict['length_range']
+
 
         # open file to report QC failures
         with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
