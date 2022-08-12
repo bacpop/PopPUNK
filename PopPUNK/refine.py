@@ -233,12 +233,13 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
         optimised_coor = transformLine(optimised_s, mean0, mean1)
         if slope == 2:
             optimal_x, optimal_y = decisionBoundary(optimised_coor, gradient)
+            if optimal_x < 0 or optimal_y < 0:
+                raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
         else:
             optimal_x = optimised_coor[0]
             optimal_y = optimised_coor[1]
-
-    if optimal_x < 0 or optimal_y < 0:
-        raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
+            if (slope == 0 and optimal_x < 0) or (slope == 1 and optimal_y < 0):
+               raise RuntimeError("Optimisation failed: produced a boundary outside of allowed range\n")
 
     return optimal_x, optimal_y, optimised_s
 
