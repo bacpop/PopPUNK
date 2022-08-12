@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
     tree_clusters = deepcopy(iterated_clusters)
     node_list = {"root": root_node}
-    tree_clusters["root"] = all_samples
+    tree_clusters["root"] = all_samples.copy()
     for cluster in sorted_clusters:
         new_node = Node(label="cluster" + str(cluster))
         parent_cluster = is_nested(
@@ -223,8 +223,8 @@ if __name__ == "__main__":
         cluster_label = re.match(r"^cluster(\d+)$", node.get_label())
         if cluster_label and cluster_label.group(1):
             node.set_edge_length(pi_values[int(cluster_label.group(1))])
-        else:
-            raise RuntimeError(f"Couldn't parse cluster {cluster_label}")
+        elif node.get_label() != "root":
+            raise RuntimeError(f"Couldn't parse cluster {node.get_label()}")
     tree.scale_edges(1 / max_pi)
 
     cut_clusters = set()
@@ -233,14 +233,15 @@ if __name__ == "__main__":
         if not parent_node.is_root():
             # For each leaf, go back up the tree to find the cluster which
             # crosses the cutoff threshold
-            while parent_node.get_edge_length() < args.cutoff:
+            while not parent_node.is_root() and\
+                parent_node.get_edge_length() < args.cutoff:
                 # Go up a level
                 child_node = parent_node
-                parent_node = leaf.get_parent()
+                parent_node = child_node.get_parent()
                 if parent_node.is_root() or \
                     (child_node.get_edge_length() < args.cutoff and \
                      parent_node.get_edge_length() > args.cutoff):
-                    cut_clusters.add(parent_node.get_label())
+                    cut_clusters.add(parent_node)
 
     # In the case where a grand-parent node's average core distance is smaller
     # than child node's both great parent node and child node will be selected
@@ -261,11 +262,11 @@ if __name__ == "__main__":
             if cluster_label and cluster_label.group(1):
                 for sample in iterated_clusters[int(cluster_label.group(1))]:
                     included_samples.add(sample)
-                    f.write(f"{sample},{idx + 1}")
-            else:
-                raise RuntimeError(f"Couldn't parse cluster {cluster_label}")
+                    f.write(f"{sample},{idx + 1}\n")
+            elif selected_node.get_label() != "root":
+                raise RuntimeError(f"Couldn't parse cluster {selected_node.get_label()}")
         singletons = all_samples - included_samples
-        for idx, sample in singletons:
-            f.write(f"{sample},{idx + len(cut_clusters) + 1}")
+        for idx, sample in enumerate(singletons):
+            f.write(f"{sample},{idx + len(cut_clusters) + 1}\n")
 
     sys.exit(0)

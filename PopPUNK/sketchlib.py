@@ -734,7 +734,6 @@ def sketchlibAssemblyQC(prefix, names, qc_dict):
         else:
             lower_length, upper_length = qc_dict['length_range']
 
-
         # open file to report QC failures
         with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
             # iterate through and filter
