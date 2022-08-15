@@ -339,7 +339,7 @@ def removeFromDB(db_name, out_name, removeSeqs, full_names = False):
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         threads, overwrite,
                         strand_preserved, min_count,
-                        use_exact, qc_dict, calc_random = True,
+                        use_exact, calc_random = True,
                         codon_phased = False,
                         use_gpu = False, deviceid = 0):
     """Sketch the input assemblies at the requested k-mer lengths
@@ -373,8 +373,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         use_exact (bool)
             Use exact count of k-mer appearance in reads
             (default = False)
-        qc_dict (dict)
-            Dict containg QC settings
         calc_random (bool)
             Add random match chances to DB (turn off for queries)
         codon_phased (bool)
@@ -388,8 +386,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             (default = 0)
     Returns:
         names (list)
-            List of names included in the database (some may be pruned due
-            to QC)
+            List of names included in the database (from rfile)
     """
     # read file names
     names, sequences = readRfile(assemblyList)
@@ -416,26 +413,17 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                                    use_gpu=use_gpu,
                                    device_id=deviceid)
 
-    # QC sequences
-    if qc_dict['run_qc']:
-        filtered_names = sketchlibAssemblyQC(oPrefix,
-                                             names,
-                                             qc_dict)
-    else:
-        filtered_names = names
-
     # Add random matches if required
     # (typically on for reference, off for query)
     if (calc_random):
         addRandom(oPrefix,
-                  filtered_names,
+                  names,
                   klist,
                   strand_preserved,
                   overwrite = True,
                   threads = threads)
 
-    # return filtered file names
-    return filtered_names
+    return names
 
 
 def addRandom(oPrefix, sequence_names, klist,
@@ -632,188 +620,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     return distMat
 
-
-def pickTypeIsolate(prefix, names):
-    """Selects a type isolate as that with a minimal proportion
-    of missing data.
-
-    Args:
-        prefix (str)
-            Prefix of output files
-        names (list)
-            Names of samples to QC
-
-    Returns:
-        type_isolate (str)
-            Name of isolate selected as reference
-    """
-    # open databases
-    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-
-    min_prop_n = 1.0
-    type_isolate = None
-
-    try:
-        # process data structures
-        read_grp = hdf_in['sketches']
-        # iterate through sketches
-        for dataset in read_grp:
-            if hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length'] < min_prop_n:
-                min_prop_n = hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length']
-                type_isolate = dataset
-            if min_prop_n == 0.0:
-                break
-    # if failure still close files to avoid corruption
-    except:
-        hdf_in.close()
-        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
-        raise
-
-    return type_isolate
-
-def sketchlibAssemblyQC(prefix, names, qc_dict):
-    """Calculates random match probability based on means of genomes
-    in assemblyList, and looks for length outliers.
-
-    Args:
-        prefix (str)
-            Prefix of output files
-        names (list)
-            Names of samples to QC
-        qc_dict (dict)
-            Dictionary of QC parameters
-
-    Returns:
-        retained (list)
-            List of sequences passing QC filters
-    """
-    sys.stderr.write("Running QC on sketches\n")
-
-    # open databases
-    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-
-    # try/except structure to prevent h5 corruption
-    failed_samples = False
-    try:
-        # process data structures
-        read_grp = hdf_in['sketches']
-
-        seq_length = {}
-        seq_ambiguous = {}
-        retained = []
-        failed = []
-
-        # iterate through sketches
-        for dataset in read_grp:
-            if dataset in names:
-                # test thresholds
-                remove = False
-                seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-                # If reads, do not QC based on Ns (simpler this way)
-                # Older versions of DB do not save reads, so attr may not be present
-                if 'reads' in hdf_in['sketches'][dataset].attrs and \
-                    hdf_in['sketches'][dataset].attrs['reads']:
-                    seq_ambiguous[dataset] = 0
-                else:
-                    seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
-
-        # calculate thresholds
-        # get mean length
-        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-        mean_genome_length = np.mean(genome_lengths)
-
-        # calculate length threshold unless user-supplied
-        if qc_dict['length_range'][0] is None:
-            lower_length = mean_genome_length - \
-                qc_dict['length_sigma'] * np.std(genome_lengths)
-            upper_length = mean_genome_length + \
-                qc_dict['length_sigma'] * np.std(genome_lengths)
-        else:
-            lower_length, upper_length = qc_dict['length_range']
-
-        # open file to report QC failures
-        with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
-            # iterate through and filter
-            for dataset in seq_length.keys():
-                # determine if sequence passes filters
-                remove = False
-                if seq_length[dataset] < lower_length:
-                    remove = True
-                    qc_file.write(dataset + '\tBelow lower length threshold\n')
-                elif seq_length[dataset] > upper_length:
-                    remove = True
-                    qc_file.write(dataset + '\tAbove upper length threshold\n')
-                if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
-                    remove = True
-                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-                elif seq_ambiguous[dataset] > qc_dict['prop_n'] * seq_length[dataset]:
-                    remove = True
-                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-
-                if remove:
-                    sys.stderr.write(dataset + ' failed QC\n')
-                    failed_samples = True
-                    failed.append(dataset)
-                else:
-                    retained.append(dataset)
-
-            # retain sketches of failed samples
-            if qc_dict['retain_failures']:
-                removeFromDB(db_name,
-                             prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5',
-                             retained,
-                             full_names = True)
-            # new database file if pruning
-            if qc_dict['qc_filter'] == 'prune':
-                filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
-                removeFromDB(db_name,
-                             prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5',
-                             failed,
-                             full_names = True)
-                os.rename(filtered_db_name, db_name)
-        hdf_in.close()
-    # if failure still close files to avoid corruption
-    except:
-        hdf_in.close()
-        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-
-        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
-        raise
-
-    # stop if at least one sample fails QC and option is not continue/prune
-    if failed_samples and qc_dict['qc_filter'] == 'stop':
-        sys.stderr.write('Sequences failed QC filters - details in ' + \
-                         prefix + '/' + os.path.basename(prefix) + \
-                         '_qcreport.txt\n')
-        sys.exit(1)
-    elif qc_dict['qc_filter'] == 'continue':
-        retained = retained + failed
-
-    # stop if no sequences pass QC
-    if len(retained) == 0:
-        sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
-        sys.exit(1)
-
-    # remove random matches if already present
-    if 'random' in hdf_in:
-        hdf_in.close()
-        hdf_in = h5py.File(db_name, 'r+')
-        del hdf_in['random']
-    hdf_in.close()
-
-    # This gives back retained in the same order as names
-    retained = [x for x in names if x in frozenset(retained)]
-
-    # stop if type sequence does not pass QC or is absent
-    if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in retained:
-        sys.stderr.write('Type isolate ' + qc_dict['type_isolate'] + ' not found in isolates after QC; check '
-        'name of type isolate and QC options\n')
-        sys.exit(1)
-
-    return retained
 
 def fitKmerCurve(pairwise, klist, jacobian):
     """Fit the function :math:`pr = (1-a)(1-c)^k`
