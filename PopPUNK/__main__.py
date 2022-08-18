@@ -221,7 +221,7 @@ def main():
 
     from .utils import setGtThreads
     from .utils import setupDBFuncs
-    from .utils import readPickle
+    from .utils import readPickle, storePickle
     from .utils import createOverallLineage
 
     # check kmer properties
@@ -235,8 +235,6 @@ def main():
         sys.stderr.write("Min k-mer length must be 3 or higher\n")
         sys.exit(1)
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
-
-
 
     # Dict of DB access functions
     dbFuncs = setupDBFuncs(args)
@@ -263,6 +261,20 @@ def main():
             sys.stderr.write("Ranks must be >= 1\n")
         if max(rank_list) > 100:
             sys.stderr.write("WARNING: Ranks should be small non-zero integers for sensible lineage results\n")
+
+    if args.create_db == False:
+        # Check and set required parameters for other modes
+        if args.ref_db is None:
+            sys.stderr.write("Need to provide --ref-db where .h5 and .dists from "
+                             "--create-db mode were output")
+        if args.distances is None:
+            distances = args.ref_db + "/" + os.path.basename(args.ref_db) + ".dists"
+        else:
+            distances = args.distances
+        if args.output is None:
+            output = args.ref_db
+        else:
+            output = args.output
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
@@ -304,6 +316,7 @@ def main():
                                 self = True,
                                 number_plot_fits = args.plot_fit,
                                 threads = args.threads)
+        storePickle(seq_names, seq_names, True, distMat, f"{args.output}/{os.path.basename(args.output)}.dists")
 
         # Plot results
         if not args.no_plot:
@@ -350,7 +363,7 @@ def main():
         # assembly qc
         sys.stderr.write("Running sequence QC\n")
         pass_assembly_qc, fail_assembly_qc = \
-            sketchlibAssemblyQC(args.output,
+            sketchlibAssemblyQC(args.ref_db,
                                 refList,
                                 qc_dict)
         sys.stderr.write(f"{len(fail_assembly_qc)} samples failed\n")
@@ -362,14 +375,13 @@ def main():
                       refList,
                       queryList,
                       args.ref_db,
-                      output,
                       qc_dict)
         sys.stderr.write(f"{len(fail_dist_qc)} samples failed\n")
 
         # Get list of passing samples
         pass_list = set(refList) - fail_unconditionally.keys() - fail_assembly_qc.keys() - fail_dist_qc.keys()
         assert(pass_list == set(refList).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
-        passed = [x for x in refList if x not in pass_list]
+        passed = [x for x in refList if x in pass_list]
         if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
             raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
                                ' not found in isolates after QC; check '
@@ -378,7 +390,7 @@ def main():
         if len(passed) < len(refList):
             remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
-                           args.ref_db, distMat, args.output,
+                           args.ref_db, distMat, output,
                            args.strand_preserved, args.threads)
 
 

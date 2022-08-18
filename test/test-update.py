@@ -66,9 +66,9 @@ def old_get_seq_tuples(rows,cols):
 # Check distances after one query
 
 # Check that order is the same after doing 1 + 2 with --update-db, as doing all of 1 + 2 together
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt --output batch12 --overwrite --qc-filter continue", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt --output batch12 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch12 --ranks 1,2", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile1.txt --output batch1 --overwrite --qc-filter continue", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile1.txt --output batch1 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1", shell=True, check=True)
 

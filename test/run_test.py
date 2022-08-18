@@ -17,13 +17,13 @@ if os.environ.get("POPPUNK_PYTHON"):
 else:
     python_cmd = "python"
 
-#easy run
 sys.stderr.write("Running database creation (--create-db)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_db --qc-filter prune --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --plot-fit 5 --output example_db --overwrite", shell=True, check=True)
 
 # create database with different QC options
-sys.stderr.write("Running database QC test (--create-db)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_qc --qc-filter continue --length-range 2000000 3000000 --overwrite", shell=True, check=True)
+sys.stderr.write("Running database QC test (--qc-db)\n")
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --type-isolate \"12754_4#79\" --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --length-range 2000000 3000000 --overwrite", shell=True, check=True)
 
 # test updating order is correct
 sys.stderr.write("Running distance matrix order check (--update-db)\n")

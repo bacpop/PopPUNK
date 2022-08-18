@@ -22,6 +22,32 @@ from .plot import plot_fit
 
 sketchlib_exe = "sketchlib"
 
+# https://stackoverflow.com/a/17954769
+from contextlib import contextmanager
+@contextmanager
+def stderr_redirected(to=os.devnull):
+    '''
+    import os
+
+    with stdout_redirected(to=filename):
+        print("from Python")
+        os.system("echo non-Python applications are also supported")
+    '''
+    fd = sys.stderr.fileno()
+
+    def _redirect_stderr(to):
+        sys.stderr.close()
+        os.dup2(to.fileno(), fd)
+        sys.stderr = os.fdopen(fd, 'w')
+
+    with os.fdopen(os.dup(fd), 'w') as old_stderr:
+        with open(to, 'w') as file:
+            _redirect_stderr(to=file)
+        try:
+            yield
+        finally:
+            _redirect_stderr(to=old_stderr)
+
 def checkSketchlibVersion():
     """Checks that sketchlib can be run, and returns version
 
@@ -535,24 +561,25 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 example = sample(rNames, k=2)
                 raw = np.zeros(len(klist))
                 corrected = np.zeros(len(klist))
-                raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                                 query_db_name=ref_db,
-                                                 rList=[example[0]],
-                                                 qList=[example[1]],
-                                                 klist=klist,
-                                                 random_correct=False,
-                                                 jaccard=True,
-                                                 num_threads=threads,
-                                                 use_gpu = False)
-                corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                                       query_db_name=ref_db,
-                                                       rList=[example[0]],
-                                                       qList=[example[1]],
-                                                       klist=klist,
-                                                       random_correct=True,
-                                                       jaccard=True,
-                                                       num_threads=threads,
-                                                       use_gpu = False)
+                with stderr_redirected(): # Hide the many progress bars
+                    raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                    query_db_name=ref_db,
+                                                    rList=[example[0]],
+                                                    qList=[example[1]],
+                                                    klist=klist,
+                                                    random_correct=False,
+                                                    jaccard=True,
+                                                    num_threads=threads,
+                                                    use_gpu = False)
+                    corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                        query_db_name=ref_db,
+                                                        rList=[example[0]],
+                                                        qList=[example[1]],
+                                                        klist=klist,
+                                                        random_correct=True,
+                                                        jaccard=True,
+                                                        num_threads=threads,
+                                                        use_gpu = False)
                 raw_fit = fitKmerCurve(raw[0], klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
                 plot_fit(klist,
@@ -588,24 +615,25 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
             ref_examples = sample(rNames, k = number_plot_fits)
             query_examples = sample(qNames, k = number_plot_fits)
-            raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                             query_db_name=query_db,
-                                             rList=ref_examples,
-                                             qList=query_examples,
-                                             klist=klist,
-                                             random_correct=False,
-                                             jaccard=True,
-                                             num_threads=threads,
-                                             use_gpu = False)
-            corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                                   query_db_name=query_db,
-                                                   rList=ref_examples,
-                                                   qList=query_examples,
-                                                   klist=klist,
-                                                   random_correct=True,
-                                                   jaccard=True,
-                                                   num_threads=threads,
-                                                   use_gpu = False)
+            with stderr_redirected(): # Hide the many progress bars
+                raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                query_db_name=query_db,
+                                                rList=ref_examples,
+                                                qList=query_examples,
+                                                klist=klist,
+                                                random_correct=False,
+                                                jaccard=True,
+                                                num_threads=threads,
+                                                use_gpu = False)
+                corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                    query_db_name=query_db,
+                                                    rList=ref_examples,
+                                                    qList=query_examples,
+                                                    klist=klist,
+                                                    random_correct=True,
+                                                    jaccard=True,
+                                                    num_threads=threads,
+                                                    use_gpu = False)
             for plot_idx in range(number_plot_fits):
                 raw_fit = fitKmerCurve(raw[plot_idx], klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected[plot_idx], klist, jacobian)
@@ -653,7 +681,7 @@ def fitKmerCurve(pairwise, klist, jacobian):
                          "\nWith mash input " +
                          np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
                          "\nCheck for low quality input genomes\n")
-        exit(0)
+        transformed_params = [0, 0]
 
     # Return core, accessory
     return(np.flipud(transformed_params))

@@ -180,7 +180,7 @@ def sketchlibAssemblyQC(prefix, names, qc_dict):
     return retained_samples, failed_samples
 
 
-def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
+def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
     """Checks distance matrix for outliers.
 
     Args:
@@ -192,8 +192,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
             Query labels (or refList if self)
         ref_db (str)
             Prefix of reference database
-        prefix (str)
-            Prefix of output files
         qc_dict (dict)
             Dict of QC options
 
@@ -208,14 +206,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
         names = refList
     else:
         names = refList + queryList
-
-    # Create output directory if it does not exist already
-    if not os.path.isdir(prefix):
-        try:
-            os.makedirs(prefix)
-        except OSError:
-            sys.stderr.write("Cannot create output directory " + prefix + "\n")
-            sys.exit(1)
 
     # Pick type isolate if not supplied
     if qc_dict['type_isolate'] is None:
@@ -275,6 +265,14 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
     """
     from .sketchlib import removeFromDB, addRandom, readDBParams
 
+    # Create output directory if it does not exist already
+    if not os.path.isdir(prefix):
+        try:
+            os.makedirs(prefix)
+        except OSError:
+            sys.stderr.write("Cannot create output directory " + prefix + "\n")
+            sys.exit(1)
+
     failed = set(names) - set(passed)
     if qc_dict['retain_failures']:
         removeFromDB(ref_db,
@@ -282,15 +280,16 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                     passed,
                     full_names = True)
     # new database file if pruning
-    if qc_dict['qc_filter'] == 'prune':
-        sys.stderr.write(f"Removing {len(failed)} samples from database and distances\n")
-        filtered_db_name = f"{prefix}/filtered.{os.path.basename(prefix)}.h5"
-        db_name = f"{ref_db}/{os.path.basename(ref_db)}.h5"
-        removeFromDB(ref_db,
-                     f"{prefix}/filtered.{os.path.basename(prefix)}.h5",
+    if failed and not qc_dict['no_remove']:
+        # sys.stderr.write(f"Removing {len(failed)} samples from database and distances\n")
+        tmp_filtered_db_name = f"{prefix}/filtered.{os.path.basename(prefix)}.h5"
+        output_db_name = f"{prefix}/{os.path.basename(prefix)}.h5"
+        input_db_name = f"{ref_db}/{os.path.basename(ref_db)}.h5"
+        removeFromDB(input_db_name,
+                     tmp_filtered_db_name,
                      failed,
                      full_names = True)
-        os.rename(filtered_db_name, db_name)
+        os.rename(tmp_filtered_db_name, output_db_name)
 
         # Remove from the distMat too
         prune_distance_matrix(names,
@@ -305,13 +304,13 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                     overwrite=True, threads=threads)
 
     # write failing & reasons
-    with open(f"{prefix}/{os.path.basename(prefix)}_qcreport.txt", 'r') as qc_file:
+    with open(f"{prefix}/{os.path.basename(prefix)}_qcreport.txt", 'w') as qc_file:
         for sample in failed:
             reasons = []
             for fail_test in fail_dicts:
                 if sample in fail_test:
-                    reasons.append(fail_test[sample])
-        qc_file.write(f"{sample}\t{','.join(reasons)}\n")
+                    reasons += (fail_test[sample])
+            qc_file.write(f"{sample}\t{','.join(reasons)}\n")
 
 def pickTypeIsolate(prefix):
     """Selects a type isolate as that with a minimal proportion
