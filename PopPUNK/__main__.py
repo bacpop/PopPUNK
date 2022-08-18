@@ -15,6 +15,11 @@ from .__init__ import __version__
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
 betweenness_sample_default = 100
+default_length_sigma = 5
+default_prop_n = 0.1
+default_max_zero = 0.05
+default_max_a_dist = 0.5
+default_max_pi_dist = 0.1
 
 #******************************#
 #*                            *#
@@ -87,21 +92,21 @@ def get_options():
                                      default=None, type=str)
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
                                                    'separate database [default = False]', default=False, action='store_true')
-    qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
-                                                default = 0.5, type = float)
-    qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
-                                                default = 0.5, type = float)
-    qcGroup.add_argument('--max-zero-dist', help='Maximum proportion of zero distances to permit [default = 0.05]',
-                                                default = 0.05, type = float)
+    qcGroup.add_argument('--max-a-dist', help=f"Maximum accessory distance to permit [default = {default_max_a_dist}]",
+                                                default = default_max_a_dist, type = float)
+    qcGroup.add_argument('--max-pi-dist', help=f"Maximum core distance to permit [default = {default_max_pi_dist}]",
+                                                default = default_max_pi_dist, type = float)
+    qcGroup.add_argument('--max-zero-dist', help=f"Maximum proportion of zero distances to permit [default = {default_max_zero}]",
+                                                default = default_max_zero, type = float)
     qcGroup.add_argument('--type-isolate', help='Isolate from which distances will be calculated for pruning [default = None]',
                                                 default = None, type = str)
-    qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
-                                                'which sequences will be excluded [default = 5]', default = 5, type = int)
+    qcGroup.add_argument('--length-sigma', help=f"Number of standard deviations of length distribution beyond "
+                                                f"which sequences will be excluded [default = {default_length_sigma}]", default = default_length_sigma, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
                                                 '[two values needed - lower and upper bounds]', default=[None,None],
                                                 type = int, nargs = 2)
-    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
-                                                ' [default = 0.1]', default = 0.1,
+    qcGroup.add_argument('--prop-n', help=f"Threshold ambiguous base proportion above which sequences will be excluded"
+                                          f" [default = {default_prop_n}]", default = default_prop_n,
                                                 type = float)
     qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
                                                 default=None, type = int)

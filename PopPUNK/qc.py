@@ -204,8 +204,10 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
     # Create overall list of sequences
     if refList == queryList:
         names = refList
+        self = True
     else:
         names = refList + queryList
+        self = False
 
     # Pick type isolate if not supplied
     if qc_dict['type_isolate'] is None:
@@ -217,7 +219,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
     long_edges = poppunk_refine.generateTuples(long_distance_rows,
                                                 0,
-                                                self = (refList == queryList),
+                                                self = self,
                                                 num_ref = len(refList),
                                                 int_offset = 0)
     failed_samples = {}

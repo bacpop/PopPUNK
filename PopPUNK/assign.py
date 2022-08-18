@@ -16,7 +16,7 @@ import pp_sketchlib
 
 # import poppunk package
 from .__init__ import __version__
-from .models import rankFile
+from .__main__ import default_prop_n, default_length_sigma, default_max_a_dist, default_max_pi_dist, default_max_zero
 
 #*******************************#
 #*                             *#
@@ -35,9 +35,6 @@ def assign_query(dbFuncs,
                  overwrite,
                  plot_fit,
                  graph_weights,
-                 max_a_dist,
-                 max_pi_dist,
-                 type_isolate,
                  model_dir,
                  strand_preserved,
                  previous_clustering,
@@ -50,6 +47,7 @@ def assign_query(dbFuncs,
                  deviceid,
                  save_partial_query_graph):
     """Code for assign query mode for CLI"""
+    from .qc import sketchlibAssemblyQC
 
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
@@ -76,6 +74,16 @@ def assign_query(dbFuncs,
                                 use_gpu = gpu_sketch,
                                 deviceid = deviceid)
 
+    if qc_dict["run_qc"]:
+        sys.stderr.write("Running sequence QC\n")
+        pass_assembly_qc, fail_assembly_qc = \
+                sketchlibAssemblyQC(output,
+                                    qNames,
+                                    qc_dict)
+        if len(fail_assembly_qc) > 0:
+            sys.stderr.write(f"{len(fail_assembly_qc)} samples failed:\n"
+                             f"{','.join(fail_assembly_qc.keys())}\n")
+
     isolateClustering = assign_query_hdf5(dbFuncs,
                     ref_db,
                     qNames,
@@ -88,19 +96,14 @@ def assign_query(dbFuncs,
                     overwrite,
                     plot_fit,
                     graph_weights,
-                    max_a_dist,
-                    max_pi_dist,
-                    type_isolate,
                     model_dir,
                     strand_preserved,
                     previous_clustering,
                     external_clustering,
                     core,
                     accessory,
-                    gpu_sketch,
                     gpu_dist,
                     gpu_graph,
-                    deviceid,
                     save_partial_query_graph)
     return(isolateClustering)
 
@@ -116,19 +119,14 @@ def assign_query_hdf5(dbFuncs,
                  overwrite,
                  plot_fit,
                  graph_weights,
-                 max_a_dist,
-                 max_pi_dist,
-                 type_isolate,
                  model_dir,
                  strand_preserved,
                  previous_clustering,
                  external_clustering,
                  core,
                  accessory,
-                 gpu_sketch,
                  gpu_dist,
                  gpu_graph,
-                 deviceid,
                  save_partial_query_graph):
     """Code for assign query mode taking hdf5 as input. Written as a separate function so it can be called
     by web APIs"""
@@ -148,13 +146,12 @@ def assign_query_hdf5(dbFuncs,
 
     from .plot import writeClusterCsv
 
-    from .prune_db import prune_distance_matrix
+    from .qc import qcDistMat, prune_distance_matrix
 
     from .sketchlib import addRandom
 
     from .utils import storePickle
     from .utils import readPickle
-    from .utils import qcDistMat
     from .utils import update_distance_matrices
     from .utils import createOverallLineage
 
@@ -257,14 +254,17 @@ def assign_query_hdf5(dbFuncs,
 
         # QC distance matrix
         if qc_dict['run_qc']:
-            seq_names_passing, qrDistMat = qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)
-            seq_names_passing = set(seq_names_passing)
-            if update_db and (len(seq_names_passing) != len(rNames) + len(qNames)):
-                sys.stderr.write("Queries contained outlier distances, "
-                                 "not updating database\n")
-                update_db = False
-            rNames = [x for x in rNames if x in seq_names_passing]
-            qNames = [x for x in qNames if x in seq_names_passing]
+            seq_names_passing = \
+                set(qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)[0])
+            if len(seq_names_passing) != len(rNames) + len(qNames):
+                if update_db:
+                    sys.stderr.write("Queries contained outlier distances, "
+                                    "not updating database\n")
+                    update_db = False
+                rNames = [x for x in rNames if x in seq_names_passing]
+                qNames = [x for x in qNames if x in seq_names_passing]
+
+                # TODO need to write a prune for the qrDistMat here, which should be a simple slice?
 
         else:
             seq_names_passing = rNames + qNames
@@ -527,15 +527,12 @@ def get_options():
 
     # qc options
     qcGroup = parser.add_argument_group('Quality control options for distances')
-    qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
-                                                ' (analyse data passing QC), or "continue" (analyse all data)',
-                                                default='stop', type = str, choices=['stop', 'prune', 'continue'])
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
                                                 'separate database [default = False]', default=False, action='store_true')
-    qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
-                                                default = 0.5, type = float)
-    qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
-                                                default = 0.5, type = float)
+    qcGroup.add_argument('--max-a-dist', help=f"Maximum accessory distance to permit [default = {default_max_a_dist}]",
+                                                default = default_max_a_dist, type = float)
+    qcGroup.add_argument('--max-pi-dist', help=f"Maximum core distance to permit [default = {default_max_pi_dist}]",
+                                                default = default_max_pi_dist, type = float)
     qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
                                                 default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
@@ -544,7 +541,7 @@ def get_options():
                                                 '[two values needed - lower and upper bounds]', default=[None,None],
                                                 type = int, nargs = 2)
     qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
-                                                ' [default = 0.1]', default = None,
+                                                ' [default = None]', default = None,
                                                 type = float)
     qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
                                                 default=None, type = int)
@@ -620,16 +617,17 @@ def main():
         if args.length_sigma is not None:
             length_sigma = args.length_sigma
         elif None in args.length_range:
-            length_sigma = 5 # default used in __main__
+            length_sigma = default_length_sigma
         else:
             length_sigma = None
         # prop_n
         if args.prop_n is not None:
             prop_n = args.prop_n
         elif args.upper_n is None:
-            prop_n = 0.1 # default used in __main__
+            prop_n = default_prop_n
         else:
             prop_n = None
+
         qc_dict = {
             'run_qc': True,
             'qc_filter': args.qc_filter,
@@ -640,11 +638,12 @@ def main():
             'upper_n': args.upper_n,
             'max_pi_dist': args.max_pi_dist,
             'max_a_dist': args.max_a_dist,
+            'prop_zero': args.max_zero_dist,
             'type_isolate': args.type_isolate
         }
 
     # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args, qc_dict)
+    dbFuncs = setupDBFuncs(args)
 
     # run according to mode
     sys.stderr.write("PopPUNK: assign\n")
@@ -677,9 +676,6 @@ def main():
                  args.overwrite,
                  args.plot_fit,
                  args.graph_weights,
-                 args.max_a_dist,
-                 args.max_pi_dist,
-                 args.type_isolate,
                  args.model_dir,
                  args.strand_preserved,
                  args.previous_clustering,
@@ -689,7 +685,6 @@ def main():
                  args.gpu_sketch,
                  args.gpu_dist,
                  args.gpu_graph,
-                 args.deviceid,
                  save_partial_query_graph=False)
 
     sys.stderr.write("\nDone\n")
