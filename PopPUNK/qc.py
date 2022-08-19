@@ -68,6 +68,8 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
         newRowNames = iter(iterDistRows(newRefList, newRefList, self=True))
 
         # Copy over rows which don't have an excluded sequence
+        # TODO this seems like it would be slow for a big dist matrix
+        # TODO didn't we used to have this as a slice?
         newIdx = 0
         for distRow, (ref1, ref2) in zip(distMat, iterDistRows(refList, refList, self=True)):
             if ref1 not in remove_seqs and ref2 not in remove_seqs:
@@ -87,6 +89,40 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
     # return new distance matrix and sequence lists
     return newRefList, newDistMat
 
+def prune_query_distance_matrix(refList, queryList, remove_seqs, qrDistMat):
+    """Remove chunks from the distance matrix which correspond to bad queries
+
+    Args:
+        refList (list)
+            List of ref sequences used to generate distance matrix
+        queryList (list)
+            List of query sequences used to generate distance matrix
+        remove_seqs_in (list)
+            List of sequences to be omitted (must be from queries)
+        qrDistMat (numpy.array)
+            (r*q)x2 matrix of core distances (column 0) and accessory
+            distances (column 1)
+    Returns:
+        passing_queries (list)
+            List of query sequences retained in distance matrix
+        newqrDistMat (numpy.array)
+            Updated version of qrDistMat
+    """
+    if remove_seqs.intersection(refList):
+        raise RuntimeError("Trying to remove references")
+
+    passing_queries = []
+    pass_rows = []
+    for name in queryList:
+        if name not in remove_seqs:
+            passing_queries.append(name)
+            pass_rows += [True] * len(refList)
+        else:
+            pass_rows += [False] * len(refList)
+
+    qrDistMat = qrDistMat[pass_rows, :]
+
+    return passing_queries, qrDistMat
 
 def sketchlibAssemblyQC(prefix, names, qc_dict):
     """Calculates random match probability based on means of genomes
@@ -224,10 +260,14 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                 int_offset = 0)
     failed_samples = {}
     message = ["Failed distance QC"]
+    querySet = frozenset(queryList)
     if len(long_edges) > 0:
-        # Prune sequences based on reference sequence
+        # Prune sequences
         for (s,t) in long_edges:
-            if names[s] == qc_dict['type_isolate']:
+            # Can prune either s or t. Don't choose the type isolate, and
+            # choose a query rather than a reference (the latter is needed
+            # for the dist QC in assign to work, which can't remove refs)
+            if names[s] == qc_dict['type_isolate'] or names[t] in querySet:
                 if names[t] not in failed_samples:
                     failed_samples[names[t]] = message
             elif names[s] not in failed_samples:

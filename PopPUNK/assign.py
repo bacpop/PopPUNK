@@ -18,6 +18,212 @@ import pp_sketchlib
 from .__init__ import __version__
 from .__main__ import default_prop_n, default_length_sigma, default_max_a_dist, default_max_pi_dist, default_max_zero
 
+#******************************#
+#*                            *#
+#* Command line parsing       *#
+#*                            *#
+#******************************#
+def get_options():
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Assign isolates to strains (by POPulation Partitioning Using Nucleotide Kmers)',
+                                     prog='poppunk_assign')
+
+    # input options
+    iGroup = parser.add_argument_group('Input files')
+    iGroup.add_argument('--db', required=True, type = str, help='Location of built reference database')
+    iGroup.add_argument('--query', required=True, help='File listing query input assemblies')
+    iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances (if not in --db)')
+    iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
+                                                      'generated with any other method.', default=None)
+
+    # output options
+    oGroup = parser.add_argument_group('Output options')
+    oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
+    oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
+                                            '[default = 0]', default=0, type=int)
+    oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
+                                              default=False, action='store_true')
+    oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
+    oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
+    oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
+
+    # comparison metrics
+    kmerGroup = parser.add_argument_group('Kmer comparison options')
+    kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
+    kmerGroup.add_argument('--exact-count', default=False, action='store_true',
+                           help='Use the exact k-mer counter with reads '
+                                '[default = use countmin counter]')
+    kmerGroup.add_argument('--strand-preserved', default=False, action='store_true',
+                           help='Treat input as being on the same strand, and ignore reverse complement '
+                                'k-mers [default = use canonical k-mers]')
+
+    # qc options
+    qcGroup = parser.add_argument_group('Quality control options for distances')
+    qcGroup.add_argument('--run-qc', help="Run the QC steps", default=False, action="store_true")
+    qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
+                                                'separate database [default = False]', default=False, action='store_true')
+    qcGroup.add_argument('--max-a-dist', help=f"Maximum accessory distance to permit [default = {default_max_a_dist}]",
+                                                default = default_max_a_dist, type = float)
+    qcGroup.add_argument('--max-pi-dist', help=f"Maximum core distance to permit [default = {default_max_pi_dist}]",
+                                                default = default_max_pi_dist, type = float)
+    qcGroup.add_argument('--max-zero-dist', help=f"Maximum proportion of zero distances to permit [default = {default_max_zero}]",
+                                                default = default_max_zero, type = float)
+    qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
+                                                default = None, type = str)
+    qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
+                                                'which sequences will be excluded [default = 5]', default = None, type = int)
+    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
+                                                '[two values needed - lower and upper bounds]', default=[None,None],
+                                                type = int, nargs = 2)
+    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
+                                                ' [default = None]', default = None,
+                                                type = float)
+    qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
+                                                default=None, type = int)
+
+    # sequence querying
+    queryingGroup = parser.add_argument_group('Database querying options')
+    queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
+                                                   'to clusters [default = reference database directory]', type = str)
+    queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
+                                                             'and network [default = use that in the directory '
+                                                             'containing the model]', type = str)
+    queryingGroup.add_argument('--core', help='(with a \'refine\' model) '
+                                                   'Use a core-distance only model for assigning queries '
+                                                   '[default = False]', default=False, action='store_true')
+    queryingGroup.add_argument('--accessory', help='(with a \'refine\' or \'lineage\' model) '
+                                                        'Use an accessory-distance only model for assigning queries '
+                                                        '[default = False]', default=False, action='store_true')
+
+    # processing
+    other = parser.add_argument_group('Other options')
+    other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
+    other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
+    other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when constructing networks [default = False]')
+    other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
+    other.add_argument('--version', action='version',
+                       version='%(prog)s '+__version__)
+    other.add_argument('--citation',
+                       action='store_true',
+                       default=False,
+                       help='Give a citation, and possible methods paragraph'
+                            ' based on the command line')
+
+
+    # combine
+    args = parser.parse_args()
+
+    # ensure directories do not have trailing forward slash
+    for arg in [args.db, args.model_dir, args.output, args.previous_clustering]:
+        if arg is not None:
+            arg = arg.rstrip('\\')
+
+    return args
+
+def main():
+    """Main function. Parses cmd line args and runs in the specified mode.
+    """
+
+    #******************************#
+    #*                            *#
+    #* Check command options      *#
+    #*                            *#
+    #******************************#
+    args = get_options()
+
+    # May just want to print the citation
+    if args.citation:
+        from .citation import print_citation
+        print_citation(args, assign=True)
+        sys.exit(0)
+
+    from .sketchlib import checkSketchlibLibrary
+    from .utils import setGtThreads
+    from .utils import setupDBFuncs
+
+    # Dict of QC options for passing to database construction and querying functions
+    if args.run_qc:
+        # define defaults if one QC parameter given
+        # length_sigma
+        if args.length_sigma is not None:
+            length_sigma = args.length_sigma
+        elif None in args.length_range:
+            length_sigma = default_length_sigma
+        else:
+            length_sigma = None
+        # prop_n
+        if args.prop_n is not None:
+            prop_n = args.prop_n
+        elif args.upper_n is None:
+            prop_n = default_prop_n
+        else:
+            prop_n = None
+
+        qc_dict = {
+            'run_qc': True,
+            'retain_failures': args.retain_failures,
+            'length_sigma': length_sigma,
+            'length_range': args.length_range,
+            'prop_n': prop_n,
+            'upper_n': args.upper_n,
+            'max_pi_dist': args.max_pi_dist,
+            'max_a_dist': args.max_a_dist,
+            'prop_zero': args.max_zero_dist,
+            'type_isolate': args.type_isolate
+        }
+    else:
+        qc_dict = {'run_qc': False, 'type_isolate': None }
+
+    # Dict of DB access functions for assign_query (which is out of scope)
+    dbFuncs = setupDBFuncs(args)
+
+    sys.stderr.write("PopPUNK: assign\n")
+    sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
+    sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
+    sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
+
+    # Check on parallelisation of graph-tools
+    setGtThreads(args.threads)
+
+    if args.distances is None:
+        distances = args.db + "/" + os.path.basename(args.db) + ".dists"
+    else:
+        distances = args.distances
+
+    #*******************************#
+    #*                             *#
+    #* query assignment            *#
+    #*                             *#
+    #*******************************#
+    assign_query(dbFuncs,
+                 args.db,
+                 args.query,
+                 args.output,
+                 qc_dict,
+                 args.update_db,
+                 args.write_references,
+                 distances,
+                 args.threads,
+                 args.overwrite,
+                 args.plot_fit,
+                 args.graph_weights,
+                 args.model_dir,
+                 args.strand_preserved,
+                 args.previous_clustering,
+                 args.external_clustering,
+                 args.core,
+                 args.accessory,
+                 args.gpu_sketch,
+                 args.gpu_dist,
+                 args.gpu_graph,
+                 args.deviceid,
+                 save_partial_query_graph=False)
+
+    sys.stderr.write("\nDone\n")
+
 #*******************************#
 #*                             *#
 #* query assignment            *#
@@ -75,7 +281,6 @@ def assign_query(dbFuncs,
                                 deviceid = deviceid)
 
     if qc_dict["run_qc"]:
-        sys.stderr.write("Running sequence QC\n")
         pass_assembly_qc, fail_assembly_qc = \
                 sketchlibAssemblyQC(output,
                                     qNames,
@@ -83,6 +288,9 @@ def assign_query(dbFuncs,
         if len(fail_assembly_qc) > 0:
             sys.stderr.write(f"{len(fail_assembly_qc)} samples failed:\n"
                              f"{','.join(fail_assembly_qc.keys())}\n")
+            qNames = [x for x in qNames if x in pass_assembly_qc]
+            if len(qNames) == 0:
+                sys.exit(1)
 
     isolateClustering = assign_query_hdf5(dbFuncs,
                     ref_db,
@@ -146,7 +354,7 @@ def assign_query_hdf5(dbFuncs,
 
     from .plot import writeClusterCsv
 
-    from .qc import qcDistMat, prune_distance_matrix
+    from .qc import qcDistMat, prune_distance_matrix, prune_query_distance_matrix
 
     from .sketchlib import addRandom
 
@@ -160,7 +368,6 @@ def assign_query_hdf5(dbFuncs,
     readDBParams = dbFuncs['readDBParams']
     getSeqsInDb = dbFuncs['getSeqsInDb']
 
-    sys.stderr.write("Mode: Assigning clusters of query sequences\n\n")
     if ref_db == output:
         sys.stderr.write("--output and --ref-db must be different to "
                          "prevent overwrite.\n")
@@ -254,20 +461,22 @@ def assign_query_hdf5(dbFuncs,
 
         # QC distance matrix
         if qc_dict['run_qc']:
+            sys.stderr.write("Running QC on distance matrix\n")
             seq_names_passing = \
-                set(qcDistMat(qrDistMat, rNames, qNames, ref_db, output, qc_dict)[0])
-            if len(seq_names_passing) != len(rNames) + len(qNames):
-                if update_db:
-                    sys.stderr.write("Queries contained outlier distances, "
-                                    "not updating database\n")
-                    update_db = False
-                rNames = [x for x in rNames if x in seq_names_passing]
-                qNames = [x for x in qNames if x in seq_names_passing]
-
-                # TODO need to write a prune for the qrDistMat here, which should be a simple slice?
-
-        else:
-            seq_names_passing = rNames + qNames
+                frozenset(qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)[0])
+            failed_samples = frozenset(qNames) - seq_names_passing
+            if len(failed_samples) > 0:
+                sys.stderr.write(f"{len(failed_samples)} samples failed:\n"
+                                 f"{','.join(failed_samples)}\n")
+                if len(failed_samples) == len(qNames):
+                    sys.exit(1)
+                else:
+                    qNames, qrDistMat = \
+                        prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)
+                    if update_db:
+                        sys.stderr.write("Queries contained outlier distances, "
+                                        "not updating database\n")
+                        update_db = False
 
         # Load the network based on supplied options
         genomeNetwork, old_cluster_file = \
@@ -281,8 +490,8 @@ def assign_query_hdf5(dbFuncs,
 
         if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
             sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
-                                " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
-                                "please check the '--model-dir' variable is pointing to the correct directory\n")
+                             " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
+                             "please check the '--model-dir' variable is pointing to the correct directory\n")
 
         if model.type == 'lineage':
             # Assign lineages by calculating query-query information
@@ -483,211 +692,6 @@ def assign_query_hdf5(dbFuncs,
                     save_network(genomeNetwork, prefix = output, suffix = graph_suffix, use_gpu = gpu_graph)
 
     return(isolateClustering)
-
-#******************************#
-#*                            *#
-#* Command line parsing       *#
-#*                            *#
-#******************************#
-def get_options():
-
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Assign isolates to strains (by POPulation Partitioning Using Nucleotide Kmers)',
-                                     prog='poppunk_assign')
-
-    # input options
-    iGroup = parser.add_argument_group('Input files')
-    iGroup.add_argument('--db', required=True, type = str, help='Location of built reference database')
-    iGroup.add_argument('--query', required=True, help='File listing query input assemblies')
-    iGroup.add_argument('--distances', help='Prefix of input pickle of pre-calculated distances (if not in --db)')
-    iGroup.add_argument('--external-clustering', help='File with cluster definitions or other labels '
-                                                      'generated with any other method.', default=None)
-
-    # output options
-    oGroup = parser.add_argument_group('Output options')
-    oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
-    oGroup.add_argument('--plot-fit', help='Create this many plots of some fits relating k-mer to core/accessory distances '
-                                            '[default = 0]', default=0, type=int)
-    oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
-                                              default=False, action='store_true')
-    oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
-    oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
-    oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
-
-    # comparison metrics
-    kmerGroup = parser.add_argument_group('Kmer comparison options')
-    kmerGroup.add_argument('--min-kmer-count', default=0, type=int, help='Minimum k-mer count when using reads as input [default = 0]')
-    kmerGroup.add_argument('--exact-count', default=False, action='store_true',
-                           help='Use the exact k-mer counter with reads '
-                                '[default = use countmin counter]')
-    kmerGroup.add_argument('--strand-preserved', default=False, action='store_true',
-                           help='Treat input as being on the same strand, and ignore reverse complement '
-                                'k-mers [default = use canonical k-mers]')
-
-    # qc options
-    qcGroup = parser.add_argument_group('Quality control options for distances')
-    qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
-                                                'separate database [default = False]', default=False, action='store_true')
-    qcGroup.add_argument('--max-a-dist', help=f"Maximum accessory distance to permit [default = {default_max_a_dist}]",
-                                                default = default_max_a_dist, type = float)
-    qcGroup.add_argument('--max-pi-dist', help=f"Maximum core distance to permit [default = {default_max_pi_dist}]",
-                                                default = default_max_pi_dist, type = float)
-    qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
-                                                default = None, type = str)
-    qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
-                                                'which sequences will be excluded [default = 5]', default = None, type = int)
-    qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
-                                                '[two values needed - lower and upper bounds]', default=[None,None],
-                                                type = int, nargs = 2)
-    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
-                                                ' [default = None]', default = None,
-                                                type = float)
-    qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
-                                                default=None, type = int)
-
-    # sequence querying
-    queryingGroup = parser.add_argument_group('Database querying options')
-    queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
-                                                   'to clusters [default = reference database directory]', type = str)
-    queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
-                                                             'and network [default = use that in the directory '
-                                                             'containing the model]', type = str)
-    queryingGroup.add_argument('--core', help='(with a \'refine\' model) '
-                                                   'Use a core-distance only model for assigning queries '
-                                                   '[default = False]', default=False, action='store_true')
-    queryingGroup.add_argument('--accessory', help='(with a \'refine\' or \'lineage\' model) '
-                                                        'Use an accessory-distance only model for assigning queries '
-                                                        '[default = False]', default=False, action='store_true')
-
-    # processing
-    other = parser.add_argument_group('Other options')
-    other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
-    other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
-    other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
-    other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when constructing networks [default = False]')
-    other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
-    other.add_argument('--version', action='version',
-                       version='%(prog)s '+__version__)
-    other.add_argument('--citation',
-                       action='store_true',
-                       default=False,
-                       help='Give a citation, and possible methods paragraph'
-                            ' based on the command line')
-
-
-    # combine
-    args = parser.parse_args()
-
-    # ensure directories do not have trailing forward slash
-    for arg in [args.db, args.model_dir, args.output, args.previous_clustering]:
-        if arg is not None:
-            arg = arg.rstrip('\\')
-
-    return args
-
-def main():
-    """Main function. Parses cmd line args and runs in the specified mode.
-    """
-
-    #******************************#
-    #*                            *#
-    #* Check command options      *#
-    #*                            *#
-    #******************************#
-    args = get_options()
-
-    # May just want to print the citation
-    if args.citation:
-        from .citation import print_citation
-        print_citation(args, assign=True)
-        sys.exit(0)
-
-    from .sketchlib import checkSketchlibLibrary
-    from .utils import setGtThreads
-    from .utils import setupDBFuncs
-
-    # Dict of QC options for passing to database construction and querying functions
-    if args.length_sigma is None and None in args.length_range and args.prop_n is None \
-        and args.upper_n is None and args.max_a_dist is None and args.max_pi_dist is None:
-        qc_dict = {'run_qc': False, 'type_isolate': None }
-    else:
-        # define defaults if one QC parameter given
-        # length_sigma
-        if args.length_sigma is not None:
-            length_sigma = args.length_sigma
-        elif None in args.length_range:
-            length_sigma = default_length_sigma
-        else:
-            length_sigma = None
-        # prop_n
-        if args.prop_n is not None:
-            prop_n = args.prop_n
-        elif args.upper_n is None:
-            prop_n = default_prop_n
-        else:
-            prop_n = None
-
-        qc_dict = {
-            'run_qc': True,
-            'qc_filter': args.qc_filter,
-            'retain_failures': args.retain_failures,
-            'length_sigma': length_sigma,
-            'length_range': args.length_range,
-            'prop_n': prop_n,
-            'upper_n': args.upper_n,
-            'max_pi_dist': args.max_pi_dist,
-            'max_a_dist': args.max_a_dist,
-            'prop_zero': args.max_zero_dist,
-            'type_isolate': args.type_isolate
-        }
-
-    # Dict of DB access functions for assign_query (which is out of scope)
-    dbFuncs = setupDBFuncs(args)
-
-    # run according to mode
-    sys.stderr.write("PopPUNK: assign\n")
-    sys.stderr.write("\t(with backend: " + dbFuncs['backend'] + " v" + dbFuncs['backend_version'] + "\n")
-    sys.stderr.write('\t sketchlib: ' + checkSketchlibLibrary() + ')\n')
-
-    # Check on parallelisation of graph-tools
-    setGtThreads(args.threads)
-
-    if args.distances is None:
-        distances = args.db + "/" + os.path.basename(args.db) + ".dists"
-    else:
-        distances = args.distances
-
-    #*******************************#
-    #*                             *#
-    #* query assignment (function  *#
-    #* at top)                     *#
-    #*                             *#
-    #*******************************#
-    assign_query(dbFuncs,
-                 args.db,
-                 args.query,
-                 args.output,
-                 qc_dict,
-                 args.update_db,
-                 args.write_references,
-                 distances,
-                 args.threads,
-                 args.overwrite,
-                 args.plot_fit,
-                 args.graph_weights,
-                 args.model_dir,
-                 args.strand_preserved,
-                 args.previous_clustering,
-                 args.external_clustering,
-                 args.core,
-                 args.accessory,
-                 args.gpu_sketch,
-                 args.gpu_dist,
-                 args.gpu_graph,
-                 save_partial_query_graph=False)
-
-    sys.stderr.write("\nDone\n")
 
 
 if __name__ == '__main__':

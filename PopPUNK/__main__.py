@@ -629,7 +629,7 @@ def main():
                                         refList,
                                         output,
                                         outSuffix = dist_string,
-                                        type_isolate = qc_dict['type_isolate'],
+                                        type_isolate = args.type_isolate,
                                         threads = args.threads,
                                         use_gpu = args.gpu_graph)
                 nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)

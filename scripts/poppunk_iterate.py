@@ -14,6 +14,33 @@ import h5py
 
 import pp_sketchlib
 
+# https://stackoverflow.com/a/17954769
+from contextlib import contextmanager
+@contextmanager
+def stderr_redirected(to=os.devnull):
+    '''
+    import os
+
+    with stdout_redirected(to=filename):
+        print("from Python")
+        os.system("echo non-Python applications are also supported")
+    '''
+    fd = sys.stderr.fileno()
+
+    def _redirect_stderr(to):
+        sys.stderr.close()
+        os.dup2(to.fileno(), fd)
+        sys.stderr = os.fdopen(fd, 'w')
+
+    with os.fdopen(os.dup(fd), 'w') as old_stderr:
+        with open(to, 'w') as file:
+            _redirect_stderr(to=file)
+        try:
+            yield
+        finally:
+            _redirect_stderr(to=old_stderr)
+
+
 # command line parsing
 def get_options():
 
@@ -168,22 +195,24 @@ if __name__ == "__main__":
     # Run a query for each cluster
     pi_values = {}
     max_pi = -1.0
-    for cluster in sorted_clusters:
-        rNames = list(iterated_clusters[cluster])
-        distMat = pp_sketchlib.queryDatabase(
-            args.h5,
-            args.h5,
-            rNames,
-            rNames,
-            kmers,
-            random_correct,
-            jaccard,
-            args.cpus,
-            use_gpu,
-            deviceid,
-        )
-        pi_values[cluster] = np.mean(distMat[:, 0])
-        max_pi = max(max_pi, pi_values[cluster])
+    # Hide the progress bars
+    with stderr_redirected():
+        for cluster in sorted_clusters:
+            rNames = list(iterated_clusters[cluster])
+            distMat = pp_sketchlib.queryDatabase(
+                args.h5,
+                args.h5,
+                rNames,
+                rNames,
+                kmers,
+                random_correct,
+                jaccard,
+                args.cpus,
+                use_gpu,
+                deviceid,
+            )
+            pi_values[cluster] = np.mean(distMat[:, 0])
+            max_pi = max(max_pi, pi_values[cluster])
 
     # Nest the clusters
     tree = Tree()

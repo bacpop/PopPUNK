@@ -17,36 +17,10 @@ import pp_sketchlib
 import h5py
 
 from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
-from .utils import readRfile
+from .utils import readRfile, stderr_redirected
 from .plot import plot_fit
 
 sketchlib_exe = "sketchlib"
-
-# https://stackoverflow.com/a/17954769
-from contextlib import contextmanager
-@contextmanager
-def stderr_redirected(to=os.devnull):
-    '''
-    import os
-
-    with stdout_redirected(to=filename):
-        print("from Python")
-        os.system("echo non-Python applications are also supported")
-    '''
-    fd = sys.stderr.fileno()
-
-    def _redirect_stderr(to):
-        sys.stderr.close()
-        os.dup2(to.fileno(), fd)
-        sys.stderr = os.fdopen(fd, 'w')
-
-    with os.fdopen(os.dup(fd), 'w') as old_stderr:
-        with open(to, 'w') as file:
-            _redirect_stderr(to=file)
-        try:
-            yield
-        finally:
-            _redirect_stderr(to=old_stderr)
 
 def checkSketchlibVersion():
     """Checks that sketchlib can be run, and returns version

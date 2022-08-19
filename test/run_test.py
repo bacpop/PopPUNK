@@ -25,10 +25,6 @@ sys.stderr.write("Running database QC test (--qc-db)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --type-isolate \"12754_4#79\" --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --length-range 2000000 3000000 --overwrite", shell=True, check=True)
 
-# test updating order is correct
-sys.stderr.write("Running distance matrix order check (--update-db)\n")
-subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
-
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model bgmm --ref-db example_db --K 4 --overwrite", shell=True, check=True)
@@ -67,10 +63,16 @@ subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)
 #assign query
 sys.stderr.write("Running query assignment\n")
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --core --accessory", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --length-range 2900000 3000000 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --max-pi-dist 0.04 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_dbscan --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True) # uses graph weights
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --model-dir example_refine --output example_single_query --update-db --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query inref_query.txt --db example_db --model-dir example_refine --output example_single_query --write-references", shell=True, check=True) # matched name, but should be renamed in the output
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
+
+# test updating order is correct
+sys.stderr.write("Running distance matrix order check (--update-db)\n")
+subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")

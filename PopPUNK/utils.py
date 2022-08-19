@@ -56,6 +56,32 @@ def set_env(**environ):
         os.environ.clear()
         os.environ.update(old_environ)
 
+# https://stackoverflow.com/a/17954769
+from contextlib import contextmanager
+@contextmanager
+def stderr_redirected(to=os.devnull):
+    '''
+    import os
+
+    with stdout_redirected(to=filename):
+        print("from Python")
+        os.system("echo non-Python applications are also supported")
+    '''
+    fd = sys.stderr.fileno()
+
+    def _redirect_stderr(to):
+        sys.stderr.close()
+        os.dup2(to.fileno(), fd)
+        sys.stderr = os.fdopen(fd, 'w')
+
+    with os.fdopen(os.dup(fd), 'w') as old_stderr:
+        with open(to, 'w') as file:
+            _redirect_stderr(to=file)
+        try:
+            yield
+        finally:
+            _redirect_stderr(to=old_stderr)
+
 # Use partials to set up slightly different function calls between
 # both possible backends
 def setupDBFuncs(args):
