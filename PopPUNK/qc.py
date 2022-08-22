@@ -260,17 +260,42 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                 num_ref = len(refList),
                                                 int_offset = 0)
 
-    failed_samples = prune_edges(long_edges,
+    failed = prune_edges(long_edges,
                                  type_isolate=names.index(qc_dict['type_isolate']),
                                  query_start=len(refList),
                                  allow_ref_ref=self)
     # Convert the edge IDs back to sample names
-    failed_samples = {names[x]: ["Failed distance QC"] for x in failed_samples}
-    retained_samples = [x for x in names if x not in frozenset(failed_samples.keys())]
+    failed_samples = {names[x]: ["Failed distance QC (too high)"] for x in failed}
 
+    # Check if too many zeros, basically the same way but update the existing
+    # dicts/sets, and set a minimum count of zero lengths
+    if qc_dict["prop_zero"] < 1:
+        zero_count = round(qc_dict["prop_zero"] * len(names))
+        zero_distance_rows = np.where([(distMat[:, 0] == 0) | (distMat[:, 1] == 0)],0,1)[0].tolist()
+        zero_edges = poppunk_refine.generateTuples(zero_distance_rows,
+                                                    0,
+                                                    self = self,
+                                                    num_ref = len(refList),
+                                                    int_offset = 0)
+        failed = prune_edges(zero_edges,
+                            type_isolate=names.index(qc_dict['type_isolate']),
+                            query_start=len(refList),
+                            failed=failed,
+                            min_count=zero_count,
+                            allow_ref_ref=self)
+        message = ["Failed distance QC (too many zeros)"]
+        for sample in failed:
+            name = names[sample]
+            if name in failed_samples:
+                failed_samples[name] += message
+            else:
+                failed_samples[name] = message
+
+    retained_samples = [x for x in names if x not in frozenset(failed_samples.keys())]
     return retained_samples, failed_samples
 
-def prune_edges(long_edges, type_isolate, query_start, allow_ref_ref):
+def prune_edges(long_edges, type_isolate, query_start,
+                failed=None, min_count=1, allow_ref_ref=True):
     """Gives a list of failed vertices from a list of failing
     edges. Tries to prune by those nodes with highest degree of
     bad nodes, preferentially removes queries, and doesn't remove
@@ -283,13 +308,18 @@ def prune_edges(long_edges, type_isolate, query_start, allow_ref_ref):
             The node ID of the type isolate
         query_start (int)
             The first node ID which corresponds to queries
+        failed (set or None)
+            If set, an existing prune list to add to
+        min_count (int)
+            Must be at least this many failures to prune
         allow_ref_ref (bool)
-            Whether r-r edges can be pruned (set False i)
+            Whether r-r edges can be pruned (set False if querying)
     Returns:
         failed (set)
             Failed sample IDs
     """
-    failed = set()
+    if failed == None:
+        failed = set()
     if len(long_edges) > 0:
         # Find nodes with the most bad edges
         counts = Counter()
@@ -299,19 +329,21 @@ def prune_edges(long_edges, type_isolate, query_start, allow_ref_ref):
         # Sorts by edges which appear most often
         long_edges.sort(key=lambda x: max(counts[x[0]], counts[x[1]]), reverse=True)
         for (r, q) in long_edges:
-            if q not in failed and r not in failed:
+            if q not in failed and r not in failed and (counts[r] >= min_count or counts[q] >= min_count):
                 # Do not add any refs if querying
                 if r < query_start and q < query_start:
                     if allow_ref_ref:
-                        if q == type_isolate or counts['r'] > counts['q']:
+                        if q == type_isolate or (counts[r] > counts[q] and counts[r] >= min_count):
                             failed.add(r)
-                        else:
+                        elif counts[q] >= min_count:
                             failed.add(q)
+                # NB q > r
+                elif r < query_start and q >= query_start:
+                    failed.add(q)
                 else:
-                    # NB q > r
-                    if counts['r'] > counts['q']:
+                    if counts[r] > counts[q] and counts[r] >= min_count:
                         failed.add(r)
-                    else:
+                    elif counts[q] >= min_count:
                         failed.add(q)
 
     return failed
