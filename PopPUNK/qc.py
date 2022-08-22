@@ -7,6 +7,7 @@ import os
 import sys
 # additional
 import numpy as np
+from collections import Counter
 
 import poppunk_refine
 
@@ -290,14 +291,13 @@ def prune_edges(long_edges, type_isolate, query_start, allow_ref_ref):
     """
     failed = set()
     if len(long_edges) > 0:
-        from collections import Counter
         # Find nodes with the most bad edges
         counts = Counter()
         for (r, q) in long_edges:
             counts.update([r, q])
 
-        from operator import itemgetter
-        long_edges.sort(key=itemgetter(1), reverse=True)
+        # Sorts by edges which appear most often
+        long_edges.sort(key=lambda x: max(counts[x[0]], counts[x[1]]), reverse=True)
         for (r, q) in long_edges:
             if q not in failed and r not in failed:
                 # Do not add any refs if querying
