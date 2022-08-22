@@ -247,7 +247,7 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
 
     # Pick type isolate if not supplied
     if qc_dict['type_isolate'] is None:
-        qc_dict['type_isolate'] = pickTypeIsolate(ref_db)
+        qc_dict['type_isolate'] = pickTypeIsolate(ref_db, refList)
         sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
 
     # First check with numpy, which is quicker than iterating over everything
@@ -258,24 +258,63 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                 self = self,
                                                 num_ref = len(refList),
                                                 int_offset = 0)
-    failed_samples = {}
-    message = ["Failed distance QC"]
-    querySet = frozenset(queryList)
-    if len(long_edges) > 0:
-        # Prune sequences
-        for (s,t) in long_edges:
-            # Can prune either s or t. Don't choose the type isolate, and
-            # choose a query rather than a reference (the latter is needed
-            # for the dist QC in assign to work, which can't remove refs)
-            if names[s] == qc_dict['type_isolate'] or names[t] in querySet:
-                if names[t] not in failed_samples:
-                    failed_samples[names[t]] = message
-            elif names[s] not in failed_samples:
-                failed_samples[names[s]] = message
 
+    failed_samples = prune_edges(long_edges,
+                                 type_isolate=names.index(qc_dict['type_isolate']),
+                                 query_start=len(refList),
+                                 allow_ref_ref=self)
+    # Convert the edge IDs back to sample names
+    failed_samples = {names[x]: ["Failed distance QC"] for x in failed_samples}
     retained_samples = [x for x in names if x not in frozenset(failed_samples.keys())]
 
     return retained_samples, failed_samples
+
+def prune_edges(long_edges, type_isolate, query_start, allow_ref_ref):
+    """Gives a list of failed vertices from a list of failing
+    edges. Tries to prune by those nodes with highest degree of
+    bad nodes, preferentially removes queries, and doesn't remove
+    the type isolate
+
+    Args:
+        long_edges (list of tuples)
+            List of bad edges as node IDs
+        type_isolate (int)
+            The node ID of the type isolate
+        query_start (int)
+            The first node ID which corresponds to queries
+        allow_ref_ref (bool)
+            Whether r-r edges can be pruned (set False i)
+    Returns:
+        failed (set)
+            Failed sample IDs
+    """
+    failed = set()
+    if len(long_edges) > 0:
+        from collections import Counter
+        # Find nodes with the most bad edges
+        counts = Counter()
+        for (r, q) in long_edges:
+            counts.update([r, q])
+
+        from operator import itemgetter
+        long_edges.sort(key=itemgetter(1), reverse=True)
+        for (r, q) in long_edges:
+            if q not in failed and r not in failed:
+                # Do not add any refs if querying
+                if r < query_start and q < query_start:
+                    if allow_ref_ref:
+                        if q == type_isolate or counts['r'] > counts['q']:
+                            failed.add(r)
+                        else:
+                            failed.add(q)
+                else:
+                    # NB q > r
+                    if counts['r'] > counts['q']:
+                        failed.add(r)
+                    else:
+                        failed.add(q)
+
+    return failed
 
 def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                    strand_preserved=False, threads=1):
@@ -354,13 +393,15 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                     reasons += (fail_test[sample])
             qc_file.write(f"{sample}\t{','.join(reasons)}\n")
 
-def pickTypeIsolate(prefix):
+def pickTypeIsolate(prefix, refList):
     """Selects a type isolate as that with a minimal proportion
     of missing data.
 
     Args:
         prefix (str)
-            Prefix of output files
+            Prefix for database
+        refList (list)
+            References to pick from
 
     Returns:
         type_isolate (str)
@@ -378,17 +419,18 @@ def pickTypeIsolate(prefix):
         # process data structures
         read_grp = hdf_in['sketches']
         # iterate through sketches
-        for dataset in read_grp:
-            if 'reads' in hdf_in['sketches'][dataset].attrs and \
-                hdf_in['sketches'][dataset].attrs['reads']:
-                sample_prop_n = 1.0
-            else:
-                sample_prop_n = hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length']
-            if sample_prop_n < min_prop_n:
-                min_prop_n = sample_prop_n
-                type_isolate = dataset
-            if min_prop_n == 0.0:
-                break
+        for sample in refList:
+            if sample in read_grp:
+                if 'reads' in hdf_in['sketches'][sample].attrs and \
+                    hdf_in['sketches'][sample].attrs['reads']:
+                    sample_prop_n = 1.0
+                else:
+                    sample_prop_n = hdf_in['sketches'][sample].attrs['missing_bases']/hdf_in['sketches'][sample].attrs['length']
+                if sample_prop_n < min_prop_n:
+                    min_prop_n = sample_prop_n
+                    type_isolate = sample
+                if min_prop_n == 0.0:
+                    break
     # if failure still close files to avoid corruption
     except:
         hdf_in.close()
