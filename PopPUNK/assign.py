@@ -85,6 +85,8 @@ def get_options():
 
     # sequence querying
     queryingGroup = parser.add_argument_group('Database querying options')
+    queryingGroup.add_argument('--serial', default=False, action='store_true',
+                               help='Do assignment one-by-one, not in batches (see docs) [default = False]')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
     queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
@@ -206,6 +208,7 @@ def main():
                  args.update_db,
                  args.write_references,
                  distances,
+                 args.serial,
                  args.threads,
                  args.overwrite,
                  args.plot_fit,
@@ -237,6 +240,7 @@ def assign_query(dbFuncs,
                  update_db,
                  write_references,
                  distances,
+                 serial,
                  threads,
                  overwrite,
                  plot_fit,
@@ -300,6 +304,7 @@ def assign_query(dbFuncs,
                     update_db,
                     write_references,
                     distances,
+                    serial,
                     threads,
                     overwrite,
                     plot_fit,
@@ -323,6 +328,7 @@ def assign_query_hdf5(dbFuncs,
                  update_db,
                  write_references,
                  distances,
+                 serial,
                  threads,
                  overwrite,
                  plot_fit,
@@ -338,8 +344,8 @@ def assign_query_hdf5(dbFuncs,
                  save_partial_query_graph):
     """Code for assign query mode taking hdf5 as input. Written as a separate function so it can be called
     by web APIs"""
-
     # Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)
+    from tqdm import tqdm
     from .models import loadClusterFit
 
     from .sketchlib import removeFromDB
@@ -351,6 +357,7 @@ def assign_query_hdf5(dbFuncs,
     from .network import printClusters
     from .network import save_network
     from .network import get_vertex_list
+    from .network import printExternalClusters
 
     from .plot import writeClusterCsv
 
@@ -375,6 +382,8 @@ def assign_query_hdf5(dbFuncs,
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
         sys.exit(1)
+    if serial and update_db:
+        raise RuntimeError("--update-db cannot be used with --serial")
 
     # Load the previous model
     model_prefix = ref_db
@@ -558,36 +567,76 @@ def assign_query_hdf5(dbFuncs,
             else:
                 weights = None
 
-            genomeNetwork, qqDistMat = \
-                addQueryToNetwork(dbFuncs,
-                                    rNames,
-                                    qNames,
-                                    genomeNetwork,
-                                    kmers,
-                                    queryAssignments,
-                                    model,
-                                    output,
-                                    distances = distances,
-                                    distance_type = dist_type,
-                                    queryQuery = (update_db and
-                                                    (fit_type == 'default' or
-                                                    (fit_type != 'default' and use_ref_graph)
-                                                    )
-                                                  ),
-                                    strand_preserved = strand_preserved,
-                                    weights = weights,
-                                    threads = threads,
-                                    use_gpu = gpu_graph)
-
             output_fn = os.path.join(output, os.path.basename(output) + file_extension_string)
-            isolateClustering = \
-                {'combined': printClusters(genomeNetwork,
-                                            rNames + qNames,
-                                            output_fn,
-                                            old_cluster_file,
-                                            external_clustering,
-                                            write_references or update_db,
-                                            use_gpu = gpu_graph)}
+            if not serial:
+                genomeNetwork, qqDistMat = \
+                    addQueryToNetwork(dbFuncs,
+                                        rNames,
+                                        qNames,
+                                        genomeNetwork,
+                                        queryAssignments,
+                                        model,
+                                        output,
+                                        kmers = kmers,
+                                        distance_type = dist_type,
+                                        queryQuery = (update_db and
+                                                        (fit_type == 'default' or
+                                                        (fit_type != 'default' and use_ref_graph)
+                                                        )
+                                                    ),
+                                        strand_preserved = strand_preserved,
+                                        weights = weights,
+                                        threads = threads,
+                                        use_gpu = gpu_graph)
+
+                isolateClustering = \
+                    {'combined': printClusters(genomeNetwork,
+                                                rNames + qNames,
+                                                output_fn,
+                                                old_cluster_file,
+                                                external_clustering,
+                                                write_references or update_db,
+                                                use_gpu = gpu_graph)}
+            else:
+                sys.stderr.write("Assigning serially\n")
+                G_copy = genomeNetwork.copy()
+                isolateClustering = {}
+                for idx, sample in tqdm(enumerate(qNames), total=len(qNames)):
+                    genomeNetwork = \
+                        addQueryToNetwork(dbFuncs,
+                                        rNames,
+                                        [sample],
+                                        genomeNetwork,
+                                        queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
+                                        model,
+                                        output)[0]
+                    isolate_cluster = printClusters(genomeNetwork,
+                                                rNames + [sample],
+                                                output_fn,
+                                                old_cluster_file,
+                                                external_clustering,
+                                                printRef=False,
+                                                printCSV=False,
+                                                write_unwords=False,
+                                                use_gpu = gpu_graph)
+                    cluster = int(isolate_cluster[sample])
+                    if cluster > len(rNames):
+                        cluster = "novel"
+                    isolateClustering[sample] = cluster
+                    # Reset for next sample
+                    genomeNetwork = G_copy
+
+                # Write out the results
+                cluster_f = open(f"{output}/{os.path.basename(output)}_clusters.csv", 'w')
+                cluster_f.write("Taxon,Cluster\n")
+                for sample, cluster in isolateClustering.items():
+                    cluster_f.write(",".join((sample, str(cluster))) + "\n")
+                cluster_f.close()
+
+                if external_clustering is not None:
+                    printExternalClusters(isolateClustering, external_clustering,
+                                          output, rNames, printRef=False)
+
         # Update DB as requested
         dists_out = output + "/" + os.path.basename(output) + ".dists"
         if update_db:
@@ -684,7 +733,7 @@ def assign_query_hdf5(dbFuncs,
                     assert set(postpruning_combined_seq).issuperset(added_references), "Error identifying references"
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
-            if save_partial_query_graph:
+            if save_partial_query_graph and not serial:
                 if model.type == 'lineage':
                     save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
                 else:

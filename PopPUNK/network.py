@@ -1249,8 +1249,8 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
     return(metrics, scores)
 
-def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
-                      assignments, model, queryDB, distances = None, distance_type = 'euclidean',
+def addQueryToNetwork(dbFuncs, rList, qList, G,
+                      assignments, model, queryDB, kmers = None, distance_type = 'euclidean',
                       queryQuery = False, strand_preserved = False, weights = None, threads = 1,
                       use_gpu = False):
     """Finds edges between queries and items in the reference database,
@@ -1265,8 +1265,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             List of query names
         G (graph)
             Network to add to (mutated)
-        kmers (list)
-            List of k-mer sizes
         assignments (numpy.array)
             Cluster assignment of items in qlist
         model (ClusterModel)
@@ -1275,6 +1273,8 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             Query database location
         distances (str)
             Prefix of distance files for extending network
+        kmers (list)
+            List of k-mer sizes
         distance_type (str)
             Distance type to use as weights in network
         queryQuery (bool)
