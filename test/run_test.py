@@ -63,6 +63,7 @@ subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)
 #assign query
 sys.stderr.write("Running query assignment\n")
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --core --accessory", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --serial --overwrite --core --accessory", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --length-range 2900000 3000000 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --max-pi-dist 0.04 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --max-zero-dist 0.05 --overwrite", shell=True, check=True)

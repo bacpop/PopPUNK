@@ -1300,13 +1300,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
     # initalise functions
     queryDatabase = dbFuncs['queryDatabase']
 
+    if len(qList) > 1 and kmers == None:
+        raise RuntimeError("Must provide db querying info (kmers) if adding "
+                           "more than one sample, as q-q dists may be needed")
+
     # do not calculate weights unless specified
     if weights is None:
         distance_type = None
-
-    # initialise links data structure
-    new_edges = []
-    assigned = set()
 
     # These are returned
     qqDistMat = None
@@ -1325,6 +1325,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
                                             weights_type = distance_type,
                                             summarise = False,
                                             use_gpu = use_gpu)
+
+    # Check if any queries were not assigned, run qq dists if so
+    if not queryQuery:
+        edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
+        if np.any(edge_count == 0):
+            sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
+            queryQuery = True
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
@@ -1357,63 +1364,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
                                                     within_label = model.within_label,
                                                     previous_network = G,
                                                     old_ids = rList,
-                                                    adding_qq_dists = True,
-                                                    distMat = qqDistMat,
-                                                    weights_type = distance_type,
-                                                    summarise = False,
-                                                    use_gpu = use_gpu)
-
-    # Otherwise only calculate query-query distances for new clusters
-    else:
-        # identify potentially new lineages in list: unassigned is a list of queries with no hits
-        unassigned = set(qList).difference(assigned)
-        query_indices = {k:v+ref_count for v,k in enumerate(qList)}
-        # process unassigned query sequences, if there are any
-        if len(unassigned) > 1:
-            sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
-
-            # use database construction methods to find links between unassigned queries
-            addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-            qqDistMat = queryDatabase(rNames = list(unassigned),
-                                      qNames = list(unassigned),
-                                      dbPrefix = queryDB,
-                                      queryPrefix = queryDB,
-                                      klist = kmers,
-                                      self = True,
-                                      number_plot_fits = 0,
-                                      threads = threads)
-
-            if distance_type == 'core':
-                queryAssignation = model.assign(qqDistMat, slope = 0)
-            elif distance_type == 'accessory':
-                queryAssignation = model.assign(qqDistMat, slope = 1)
-            else:
-                queryAssignation = model.assign(qqDistMat)
-
-            # identify any links between queries and store in the same links dict
-            # links dict now contains lists of links both to original database and new queries
-            # have to use names and link to query list in order to match to node indices
-            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qList, self = True))):
-                if assignment == model.within_label:
-                    if weights is not None:
-                        if distance_type == 'core':
-                            dist = weights[row_idx, 0]
-                        elif distance_type == 'accessory':
-                            dist = weights[row_idx, 1]
-                        else:
-                            dist = np.linalg.norm(weights[row_idx, :])
-                        edge_tuple = (query_indices[query1], query_indices[query2], dist)
-                    else:
-                        edge_tuple = (query_indices[query1], query_indices[query2])
-                    new_edges.append(edge_tuple)
-
-            G = construct_network_from_assignments(qList,
-                                                    qList,
-                                                    queryAssignation,
-                                                    int_offset = ref_count,
-                                                    within_label = model.within_label,
-                                                    previous_network = G,
-                                                    old_ids = rList + qList,
                                                     adding_qq_dists = True,
                                                     distMat = qqDistMat,
                                                     weights_type = distance_type,

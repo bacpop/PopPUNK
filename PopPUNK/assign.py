@@ -393,6 +393,8 @@ def assign_query_hdf5(dbFuncs,
 
     model = loadClusterFit(model_file + '.pkl',
                            model_file + '.npz')
+    if model.type == "lineage" and serial:
+        raise RuntimeError("lineage models cannot be used with --serial")
     model.set_threads(threads)
 
     # Set directories of previous fit
