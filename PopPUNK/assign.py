@@ -494,7 +494,7 @@ def assign_query_hdf5(dbFuncs,
                     sys.exit(1)
                 else:
                     qNames, qrDistMat = \
-                        prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)[0:1]
+                        prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)[0:2]
                     if update_db:
                         sys.stderr.write("Queries contained outlier distances, "
                                          "not updating database\n")
@@ -625,10 +625,10 @@ def assign_query_hdf5(dbFuncs,
                                         weights = weights,
                                         threads = threads,
                                         use_gpu = gpu_graph)
-                if qc_dict['betweenness']:
+                if qc_dict['run_qc'] and qc_dict['betweenness']:
                     betweenness = vertex_betweenness(genomeNetwork)[len(rNames):len(rNames) + len(qNames)]
                     query_betweenness = {query: b for query, b in zip(qNames, betweenness)}
-                    print("query\tbetweenness\n")
+                    print("query\tbetweenness")
                     for query, q_betweenness in sorted(query_betweenness.items(), key=itemgetter(1), reverse=True):
                         print(f"{query}\t{q_betweenness}")
 
