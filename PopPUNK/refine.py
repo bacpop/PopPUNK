@@ -280,7 +280,7 @@ def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
         s_min = -mean0[0] * sqrt(1 + gradient * gradient)
     else:
         s_min = -mean0[1] * sqrt(1 + 1 / (gradient * gradient))
-    s_range = np.linspace(s_min, s_max, num = n_boundary_points)[1:]
+    s_range = np.linspace(s_min, s_max, num = n_boundary_points)
 
     (min_x, max_x), (min_y, max_y) = \
         check_search_range(scale, mean0, mean1, s_range[0], s_range[-1])
@@ -453,9 +453,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
                 # Write the cluster output as long as there is at least one
                 # non-trivial cluster
                 if write_clusters and G_summary[0][0] < len(sample_names):
-                    o_prefix = write_clusters + "/" + \
-                        os.path.basename(write_clusters) + \
-                        "_boundary" + str(s)
+                    o_prefix = \
+                        f"{write_clusters}/{os.path.basename(write_clusters)}_boundary{s + 1}"
                     printClusters(G,
                                   sample_names,
                                   outPrefix=o_prefix,

@@ -804,6 +804,7 @@ class RefineFit(ClusterFit):
 
         # Output clusters at more positions if requested
         if multi_boundary > 1:
+            sys.stderr.write("Creating multiple boundary fits\n")
             multi_refine(scaled_X,
                         sample_names,
                         self.mean0,
