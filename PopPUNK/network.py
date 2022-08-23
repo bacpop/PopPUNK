@@ -577,30 +577,6 @@ def print_network_summary(G, betweenness_sample = betweenness_sample_default, us
                                                    "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
                                                    + "\n")
 
-def initial_graph_properties(rlist, qlist):
-    """Initial processing of sequence names for
-    network construction.
-
-    Args:
-        rlist (list)
-            List of reference sequence labels
-        qlist (list)
-            List of query sequence labels
-
-    Returns:
-        vertex_labels (list)
-            Ordered list of sequences in network
-        self_comparison (bool)
-            Whether the network is being constructed from all-v-all distances or
-            reference-v-query information
-    """
-    if rlist == qlist:
-        self_comparison = True
-        vertex_labels = rlist
-    else:
-        self_comparison = False
-        vertex_labels = rlist +  qlist
-    return vertex_labels, self_comparison
 
 def process_weights(distMat, weights_type):
     """Calculate edge weights from the distance matrix
@@ -747,7 +723,10 @@ def construct_network_from_edge_list(rlist,
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    if rlist != qlist:
+        vertex_labels = rlist + qlist
+    else:
+        vertex_labels = rlist
 
     # Create new network
     if use_gpu:
@@ -797,7 +776,9 @@ def construct_network_from_edge_list(rlist,
             if previous_network is not None:
                 for (src, dest) in zip(extra_sources, extra_targets):
                     edge_list.append((src, dest))
-        # build the graph
+
+        # build the graph (from scratch)
+        #TODO append to existing graph
         G = gt.Graph(directed = False)
         G.add_vertex(len(vertex_labels))
         if weights is not None:
@@ -806,6 +787,9 @@ def construct_network_from_edge_list(rlist,
             G.edge_properties["weight"] = eweight
         else:
             G.add_edge_list(edge_list)
+        print(vertex_labels)
+        print(G)
+        print(edge_list)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
 
@@ -868,7 +852,10 @@ def construct_network_from_df(rlist,
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    if rlist != qlist:
+        vertex_labels = rlist + qlist
+    else:
+        vertex_labels = rlist
 
     # Check df format is correct
     if weights:
@@ -1014,7 +1001,7 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, rlist)
+    vertex_labels = rlist
 
     # Filter weights to only the relevant edges
     if weights is None:
@@ -1300,7 +1287,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
     # initalise functions
     queryDatabase = dbFuncs['queryDatabase']
 
-    if len(qList) > 1 and kmers == None:
+    if len(qList) > 1 and kmers is None:
         raise RuntimeError("Must provide db querying info (kmers) if adding "
                            "more than one sample, as q-q dists may be needed")
 
@@ -1357,13 +1344,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
                 queryAssignation = model.assign(qqDistMat)
 
             # Add queries to network
-            G = construct_network_from_assignments(qList,
-                                                    qList,
+            vertex_labels = rList + qList
+            G = construct_network_from_assignments(vertex_labels,
+                                                   vertex_labels,
                                                     queryAssignation,
                                                     int_offset = ref_count,
                                                     within_label = model.within_label,
                                                     previous_network = G,
-                                                    old_ids = rList,
+                                                    old_ids = vertex_labels,
                                                     adding_qq_dists = True,
                                                     distMat = qqDistMat,
                                                     weights_type = distance_type,
