@@ -3,6 +3,7 @@
 # Copyright 2018-2020 John Lees and Nick Croucher
 
 # universal
+from operator import itemgetter
 import os
 import sys
 import warnings
@@ -72,7 +73,9 @@ def get_options():
     qcGroup.add_argument('--max-zero-dist', help=f"Maximum proportion of zero distances to permit [default = {default_max_zero}]",
                                                 default = default_max_zero, type = float)
     qcGroup.add_argument('--max-merge', help=f"Maximum number of cluster merges a sample can cause [default = {default_max_merge}]",
-                                                default = default_max_merge, type = float)
+                                                default = default_max_merge, type = int)
+    qcGroup.add_argument('--betweenness', default=False, action='store_true',
+                               help='Report the betweenness of all the query nodes [default = False]')
     qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
                                                 default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
@@ -178,6 +181,7 @@ def main():
             'max_a_dist': args.max_a_dist,
             'prop_zero': args.max_zero_dist,
             'max_merge': args.max_merge,
+            'betweenness': args.betweenness,
             'type_isolate': args.type_isolate
         }
     else:
@@ -362,6 +366,8 @@ def assign_query_hdf5(dbFuncs,
     from .network import save_network
     from .network import get_vertex_list
     from .network import printExternalClusters
+    from .network import vertex_betweenness
+
 
     from .plot import writeClusterCsv
 
@@ -569,7 +575,7 @@ def assign_query_hdf5(dbFuncs,
                 dist_type = 'accessory'
 
             # QC assignments to check for multi-links
-            if qc_dict['run_qc']:
+            if qc_dict['run_qc'] and qc_dict['max_merge'] > 1:
                 sys.stderr.write("Running QC on model assignments\n")
                 seq_names_passing = \
                     frozenset(qcQueryAssignments(rNames,
@@ -619,6 +625,12 @@ def assign_query_hdf5(dbFuncs,
                                         weights = weights,
                                         threads = threads,
                                         use_gpu = gpu_graph)
+                if qc_dict['betweenness']:
+                    betweenness = vertex_betweenness(genomeNetwork)[len(rNames):len(rNames) + len(qNames)]
+                    query_betweenness = {query: b for query, b in zip(qNames, betweenness)}
+                    print("query\tbetweenness\n")
+                    for query, q_betweenness in sorted(query_betweenness.items(), key=itemgetter(1), reverse=True):
+                        print(f"{query}\t{q_betweenness}")
 
                 isolateClustering = \
                     {'combined': printClusters(genomeNetwork,

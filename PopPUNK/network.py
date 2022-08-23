@@ -1217,7 +1217,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                 if size > 3:
                     vfilt = component_assignments.a == component
                     subgraph = gt.GraphView(G, vfilt=vfilt)
-                    betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+                    betweenness.append(max(vertex_betweenness(subgraph, norm=True)))
                     sizes.append(size)
 
         if len(betweenness) > 1:
@@ -1232,6 +1232,12 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     base_score = transitivity * (1 - density)
     scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
     return(metrics, scores)
+
+# graph-tool only, for now
+def vertex_betweenness(graph, norm=True):
+    """Returns betweenness for nodes in the graph
+    """
+    return gt.betweenness(graph, norm=norm)[0].a
 
 def addQueryToNetwork(dbFuncs, rList, qList, G,
                       assignments, model, queryDB, kmers = None, distance_type = 'euclidean',
