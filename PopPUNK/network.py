@@ -787,9 +787,6 @@ def construct_network_from_edge_list(rlist,
             G.edge_properties["weight"] = eweight
         else:
             G.add_edge_list(edge_list)
-        print(vertex_labels)
-        print(G)
-        print(edge_list)
     if summarise:
         print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
 
