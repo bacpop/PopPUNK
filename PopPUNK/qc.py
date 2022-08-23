@@ -11,8 +11,7 @@ from collections import Counter
 
 import poppunk_refine
 
-from .utils import storePickle
-from .utils import iterDistRows
+from .utils import storePickle, iterDistRows, readIsolateTypeFromCsv
 
 def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
     """Rebuild distance matrix following selection of panel of references
@@ -90,7 +89,8 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
     # return new distance matrix and sequence lists
     return newRefList, newDistMat
 
-def prune_query_distance_matrix(refList, queryList, remove_seqs, qrDistMat):
+def prune_query_distance_matrix(refList, queryList, remove_seqs, qrDistMat,
+                                queryAssign=None):
     """Remove chunks from the distance matrix which correspond to bad queries
 
     Args:
@@ -103,11 +103,16 @@ def prune_query_distance_matrix(refList, queryList, remove_seqs, qrDistMat):
         qrDistMat (numpy.array)
             (r*q)x2 matrix of core distances (column 0) and accessory
             distances (column 1)
+        queryAssign (numpy.array)
+            Query assign results, which will also be pruned if passed
+            [default = None]
     Returns:
         passing_queries (list)
             List of query sequences retained in distance matrix
         newqrDistMat (numpy.array)
             Updated version of qrDistMat
+        queryAssign (numpy.array)
+            Updated version of queryAssign
     """
     if remove_seqs.intersection(refList):
         raise RuntimeError("Trying to remove references")
@@ -122,8 +127,10 @@ def prune_query_distance_matrix(refList, queryList, remove_seqs, qrDistMat):
             pass_rows += [False] * len(refList)
 
     qrDistMat = qrDistMat[pass_rows, :]
+    if queryAssign is not None:
+        queryAssign = queryAssign[pass_rows]
 
-    return passing_queries, qrDistMat
+    return passing_queries, qrDistMat, queryAssign
 
 def sketchlibAssemblyQC(prefix, names, qc_dict):
     """Calculates random match probability based on means of genomes
@@ -292,6 +299,54 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                 failed_samples[name] = message
 
     retained_samples = [x for x in names if x not in frozenset(failed_samples.keys())]
+    return retained_samples, failed_samples
+
+
+def qcQueryAssignments(rList, qList, query_assignments, max_clusters,
+                       original_cluster_file):
+    """Checks assignments for too many links between clusters.
+
+    Args:
+        refList (list)
+            Reference labels
+        queryList (list)
+            Query labels
+        query_assignments (list or np.array)
+            List of assignments for qrMat, where -1 is a link
+        max_clusters (int)
+            Maximum number of clusters which can be connected
+        original_cluster_file (str)
+            File to load original cluster definitions from
+
+    Returns:
+        retained (list)
+            List of sequences passing QC filters
+        failed (dict)
+            List of sequences failing, and reasons
+    """
+    message = ["Failed graph QC (too many links)"]
+    retained_samples = []
+    failed_samples = {}
+
+    # Read the rList cluster assignments, and turn into a dict which
+    # is idx: cluster
+    clusters = readIsolateTypeFromCsv(original_cluster_file, return_dict=True)
+    clusters_idx = {idx: clusters['Cluster'][name] for idx, name in enumerate(rList)}
+
+    # Find the edges for each query, and count how many unique clusters they
+    # appear in
+    for idx, query in enumerate(qList):
+        row_start = idx * len(rList)
+        row_end = (idx + 1) * len(rList)
+        edges = np.argwhere(query_assignments[row_start:row_end] == -1).reshape(-1)
+        cluster_links = set()
+        for edge in edges:
+            cluster_links.add(clusters_idx[edge])
+
+        if len(cluster_links) > max_clusters:
+            failed_samples[query] = message
+        else:
+            retained_samples.append(query)
     return retained_samples, failed_samples
 
 def prune_edges(long_edges, type_isolate, query_start,

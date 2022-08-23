@@ -264,9 +264,12 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     Args:
         clustCSV (str)
             File name of CSV with isolate assignments
+        mode (str)
+            Type of file to read 'clusters', 'lineages', or 'external'
         return_type (str)
             If True, return a dict with sample->cluster instead
             of sets
+            [default = False]
 
     Returns:
         clusters (dict)

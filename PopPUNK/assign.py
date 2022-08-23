@@ -16,7 +16,8 @@ import pp_sketchlib
 
 # import poppunk package
 from .__init__ import __version__
-from .__main__ import default_prop_n, default_length_sigma, default_max_a_dist, default_max_pi_dist, default_max_zero
+from .__main__ import default_prop_n, default_length_sigma, default_max_a_dist, \
+    default_max_pi_dist, default_max_zero, default_max_merge
 
 #******************************#
 #*                            *#
@@ -70,6 +71,8 @@ def get_options():
                                                 default = default_max_pi_dist, type = float)
     qcGroup.add_argument('--max-zero-dist', help=f"Maximum proportion of zero distances to permit [default = {default_max_zero}]",
                                                 default = default_max_zero, type = float)
+    qcGroup.add_argument('--max-merge', help=f"Maximum number of cluster merges a sample can cause [default = {default_max_merge}]",
+                                                default = default_max_merge, type = float)
     qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
                                                 default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
@@ -174,6 +177,7 @@ def main():
             'max_pi_dist': args.max_pi_dist,
             'max_a_dist': args.max_a_dist,
             'prop_zero': args.max_zero_dist,
+            'max_merge': args.max_merge,
             'type_isolate': args.type_isolate
         }
     else:
@@ -361,7 +365,8 @@ def assign_query_hdf5(dbFuncs,
 
     from .plot import writeClusterCsv
 
-    from .qc import qcDistMat, prune_distance_matrix, prune_query_distance_matrix
+    from .qc import qcDistMat, qcQueryAssignments, prune_distance_matrix, \
+        prune_query_distance_matrix
 
     from .sketchlib import addRandom
 
@@ -483,10 +488,10 @@ def assign_query_hdf5(dbFuncs,
                     sys.exit(1)
                 else:
                     qNames, qrDistMat = \
-                        prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)
+                        prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)[0:1]
                     if update_db:
                         sys.stderr.write("Queries contained outlier distances, "
-                                        "not updating database\n")
+                                         "not updating database\n")
                         update_db = False
 
         # Load the network based on supplied options
@@ -562,6 +567,30 @@ def assign_query_hdf5(dbFuncs,
             elif fit_type == 'accessory_refined':
                 queryAssignments = model.assign(qrDistMat, slope = 1)
                 dist_type = 'accessory'
+
+            # QC assignments to check for multi-links
+            if qc_dict['run_qc']:
+                sys.stderr.write("Running QC on model assignments\n")
+                seq_names_passing = \
+                    frozenset(qcQueryAssignments(rNames,
+                                                 qNames,
+                                                 queryAssignments,
+                                                 qc_dict['max_merge'],
+                                                 old_cluster_file)[0])
+                failed_samples = frozenset(qNames) - seq_names_passing
+                if len(failed_samples) > 0:
+                    sys.stderr.write(f"{len(failed_samples)} samples failed:\n"
+                                    f"{','.join(failed_samples)}\n")
+                    if len(failed_samples) == len(qNames):
+                        sys.exit(1)
+                    else:
+                        qNames, qrDistMat, queryAssignments = \
+                            prune_query_distance_matrix(rNames, qNames,
+                                failed_samples, qrDistMat, queryAssignments)
+                        if update_db:
+                            sys.stderr.write("Queries contained too many links, "
+                                             "not updating database\n")
+                            update_db = False
 
             # Assign clustering by adding to network
             if graph_weights:

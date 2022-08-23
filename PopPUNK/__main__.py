@@ -20,6 +20,7 @@ default_prop_n = 0.1
 default_max_zero = 0.05
 default_max_a_dist = 0.5
 default_max_pi_dist = 0.1
+default_max_merge = 2
 
 #******************************#
 #*                            *#
