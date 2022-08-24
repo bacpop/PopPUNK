@@ -80,3 +80,11 @@ conda config --add channels conda-forge
 
 See the [quickstart](https://poppunk.readthedocs.io/en/latest/quickstart.html) guide
 for a brief tutorial.
+
+## Docker image
+
+A docker image is available
+
+```
+docker pull mrcide/poppunk:bacpop-20
+```

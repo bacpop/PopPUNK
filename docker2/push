@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -e
+
+HERE=$(dirname $0)
+. $HERE/common
+
+# In case we switch agents between steps
+[ ! -z $(docker images -q $TAG_SHA) ] || docker pull $TAG_SHA
+
+docker tag $TAG_SHA $TAG_BRANCH
+docker push $TAG_BRANCH
+
+if [ $GIT_BRANCH == "master" ]; then
+   docker tag $TAG_SHA $TAG_LATEST
+   docker push $TAG_LATEST
+fi
