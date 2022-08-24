@@ -12,7 +12,7 @@ def deleteDir(dirname):
         shutil.rmtree(dirname)
 
 sys.stderr.write("Cleaning up tests\n")
-refs = []
+refs = ['example_db.info.csv']
 with open("references.txt", 'r') as ref_file:
     for line in ref_file:
         refs.append(line.rstrip().split("\t")[1])
@@ -38,7 +38,7 @@ outputDirs = [
     "example_mst",
     "example_sparse_mst",
     "example_mandrake",
-    "example_prune",
+    "example_iterate",
     "example_refs",
     "example_api",
     "batch1",
