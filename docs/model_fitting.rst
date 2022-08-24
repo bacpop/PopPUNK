@@ -1,5 +1,5 @@
-Fitting new models
-==================
+Fitting new models (``--fit-model``)
+====================================
 
 .. |nbsp| unicode:: 0xA0
    :trim:

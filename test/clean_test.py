@@ -12,10 +12,10 @@ def deleteDir(dirname):
         shutil.rmtree(dirname)
 
 sys.stderr.write("Cleaning up tests\n")
-refs = ['example_db.info.csv']
+dirty_files = ['example_db.info.csv']
 with open("references.txt", 'r') as ref_file:
     for line in ref_file:
-        refs.append(line.rstrip().split("\t")[1])
+        dirty_files.append(line.rstrip().split("\t")[1])
 
 # clean up
 outputDirs = [
@@ -50,7 +50,7 @@ outputDirs = [
 for outDir in outputDirs:
     deleteDir(outDir)
 
-for ref in refs:
+for ref in dirty_files:
     if os.path.isfile(ref):
         os.remove(ref)
 

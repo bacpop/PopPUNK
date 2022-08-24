@@ -3,25 +3,12 @@ Overview
 This page details the way in which we would advise that you *should* use and
 run PopPUNK, if possible.
 
+.. contents::
+   :local:
+
 .. image:: images/poppunk_flowchart.png
    :alt:  Flowchart for choosing how to use PopPUNK
    :align: center
-
-Use an online interface
------------------------
-If available, you may want to use one of the browser-based interfaces to
-PopPUNK. These include `PopPUNK-web <https://web.poppunk.net/>`__ and
-`pathogen.watch <https://pathogen.watch/genomes/all?genusId=1301&speciesId=1313>`__
-(*S. pneumoniae* only).
-
-.. warning::
-   PopPUNK-web is temporarily down while we work on an updated and better supported
-   version.
-
-Using these interfaces requires nothing to be installed or set up, doesn't require any
-genome data to be shared with us, and will return interactive visualisations. If your
-species isn't available, or you have large batches of genomes to cluster you will
-likely want to use the command line interface instead.
 
 Use the command line interface
 ------------------------------
@@ -53,8 +40,9 @@ Fit your own model
 If a database isn't available for your species, you can fit your own. This consists of three steps:
 
 1. Sketch your genomes (see :doc:`sketching`).
-2. Fit a model (see :doc:`model_fitting`).
-3. Repeat step two, until you have a model which works for your needs.
+2. Quality control your database (see :doc:`qc`).
+3. Fit a model (see :doc:`model_fitting`).
+4. Repeat step two, until you have a model which works for your needs.
 
 After getting a good fit, you may want to share it with others so that they can
 use it to assign queries. See :doc:`model_distribution` for advice. We would also
@@ -76,3 +64,19 @@ and then with ``--generate-viz`` mode. This is now run separately, after the
 main analysis, with ``poppunk_visualise``.
 
 See :doc:`visualisation` for details on options.
+
+Use an online interface
+-----------------------
+If available, you may want to use one of the browser-based interfaces to
+PopPUNK. These include `PopPUNK-web <https://web.poppunk.net/>`__ and
+`pathogen.watch <https://pathogen.watch/genomes/all?genusId=1301&speciesId=1313>`__
+(*S. pneumoniae* only).
+
+.. warning::
+   PopPUNK-web is temporarily down while we work on an updated and better supported
+   version.
+
+Using these interfaces requires nothing to be installed or set up, doesn't require any
+genome data to be shared with us, and will return interactive visualisations. If your
+species isn't available, or you have large batches of genomes to cluster you will
+likely want to use the command line interface instead.

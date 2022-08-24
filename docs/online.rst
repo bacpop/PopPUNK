@@ -6,7 +6,7 @@ using pre-optimised species-specific databases and default parameters.
 
 .. warning::
    PopPUNK-web is temporarily down while we work on an updated and better supported
-   version.
+   version (beebop).
 
 .. contents::
    :local:

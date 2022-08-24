@@ -31,6 +31,8 @@ Then run::
 
     conda install poppunk
 
+If you want to use GPUs, take a look at :doc:`gpu`.
+
 If you are having conflict issues with conda, our advice would be:
 
 - Remove and reinstall miniconda.
@@ -49,7 +51,8 @@ If you do not have conda, you can also install through pip::
 
     python3 -m pip install poppunk
 
-This may not deal with all necessary :ref:`dependencies`.
+This may not deal with all necessary dependencies, but we are working on it
+and it should again be possible in an upcoming release.
 
 Clone the code
 --------------
@@ -60,27 +63,7 @@ You can also clone the github to run the latest version, which is executed by::
 
 This will also give access to the :ref:`scripts`.
 
-You will need to install the :ref:`dependencies` yourself (you can still use
-conda or pip for this purpose).
+You will need to install the dependencies yourself (you can still use
+conda or pip for this purpose). See ``environment.yml``.
 
-.. _dependencies:
 
-Dependencies
-------------
-This documentation refers to a conda installation with the following packages:
-
-* python3 (3.8.2)
-* ``pp-sketchlib`` (1.6.2)
-* ``DendroPy`` (4.3.0)
-* ``hdbscan`` (0.8.13)
-* ``matplotlib`` (2.1.2)
-* ``graph-tool`` (2.31)
-* ``numpy`` (1.14.1)
-* ``pandas`` (0.22.0)
-* ``scikit-learn`` (0.19.1)
-* ``scipy`` (1.0.0)
-* ``sharedmem`` (0.3.5)
-
-Optionally, you can use `rapidnj <http://birc.au.dk/software/rapidnj/>`__
-if producing output with ``--microreact`` and ``--rapidnj`` options. We used
-v2.3.2.

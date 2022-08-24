@@ -1,5 +1,5 @@
-Sketching
-=========
+Sketching (``--create-db``)
+===========================
 
 The basis of all analysis is estimation of core and accessory genome distances between samples.
 PopPUNK uses genome sketching to make analysis more efficient. In previous versions we used

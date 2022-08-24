@@ -1,5 +1,5 @@
-Query assignment
-================
+Query assignment (``poppunk_assign``)
+=====================================
 This is the recommended mode to use PopPUNK, as long as a database is available for
 your species. If there is no database available, you can fit your own (:doc:`model_fitting`).
 

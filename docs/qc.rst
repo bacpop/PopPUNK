@@ -1,23 +1,35 @@
-Data quality control
-====================
-PopPUNK now comes with some basic quality control options which are applied by
-default when running ``--create-db``:
+Data quality control (``--qc-db``)
+==================================
+PopPUNK now comes with some basic quality control options, which you should
+run on your sketch database made with ``--create-db`` by running ``--qc-db``
+as follows::
 
-- Outlying genome length (calculated during sketching, for assemblies or reads).
-- Too many 'N's.
-- Outlying accessory distance.
+    poppunk --qc-db --ref-db example_db --type-isolate 12754_4_79 --length-range 2000000 3000000
 
-Accessory distance is also used with ``poppunk_assign``.
+For ``poppunk_assign``, instead add ``--run-qc``::
 
-You can set the behaviour when creating the database by setting ``--qc-filter``
-to one of the following three values if any failing samples are found:
+    poppunk_assign --query queries.txt --db example_db --run-qc --max-zero-dist 1 --max-merge 3
 
-- ``stop`` (default) -- Do not proceed past the sketching step, and throw an error.
-- ``prune`` -- Remove failing samples from the sketch database before continuing.
-- ``continue`` -- Ignore failing samples and run anyway.
+The following criteria are available:
+
+- Outlying genome length (calculated during sketching, for assemblies or reads) with ``--length-range`` and/or ``--length-sigma``.
+- Too many 'N's with ``--prop-n`` and/or ``--upper-n``.
+- Outlying core or accessory distances with ``--max-pi-dist`` and ``--max-a-dist`` respectively.
+- Too many zero distances with ``--max-zero-dist``.
+
+For ``poppunk --create-db`` only:
+
+- Names of samples to remove (e.g. failing external QC) with ``--remove-samples``.
+
+For ``poppunk_assign`` only:
+
+- Maximum number of clusters a single isolate can cause to merge with ``--max-merge``.
+- Betweenness of queries (not automated, just reported) with ``--betweenness``.
 
 In all cases a file will be written at ``qcreport.txt`` which lists the failing samples, and the
-reasons why they failed. If running with either prune or continue, you may also add ``--retain-failures``
+reasons why they failed. Adding ``--qc-keep`` will
+only write the file and not remove failing samples.
+You may also add ``--retain-failures``
 to write a separate sketch database with the failed samples.
 
 Random match chances in PopPUNK are only calculated and added to the database after the chosen
@@ -38,7 +50,8 @@ and ``--upper-n`` which gives the absolute maximum value.
 QC of pairwise distances
 ------------------------
 The second QC step uses the pairwise distances, to enable the removal of outlier samples
-that may not be part of the taxon being studied.
+that may not be part of the taxon being studied. This is with reference to a type
+isolate. The type isolate will be selected by PopPUNK, unless specified using ``--type-isolate``.
 
 By default, the maximum allowed accessory distance is 0.5 to ensure you check for contamination.
 However, many species do really have high accessory values above this range, in which case you
@@ -47,82 +60,21 @@ should increase the value of ``--max-a-dist``.
 The maximum allowed core distance is also 0.5, by default. This can be altered with ``--max-pi-dist``.
 
 All sequences differing from the type isolate by distances greater than either threshold will be
-identified by the analysis, with the behaviour determined by the ``--qc-filter`` option. The type
-isolate will be selected by PopPUNK, unless specified using ``--type-isolate``.
+identified by the analysis.
 
-Removing samples from an existing database
-------------------------------------------
-You can use the ``poppunk_prune`` command to remove samples from a database,
-for example those found to be of poor quality. Create a file
-``remove.txt`` with the names of the samples you wish to remove, one per line,
-and run::
+Each isolate may have a proportion of distances that are exactly zero as set by
+``--max-zero-dist``.
 
-   poppunk_prune --remove remove.txt --distances strain_db/strain_db.dists --output pruned_db
+QC of the network (assign only)
+-------------------------------
+Finally, you may also check network properties.
 
-This will remove the samples from the ``strain_db.dists`` files. This can instead be done
-simultaneously as the model is fitted - problematic sequences can be pruned, and the model fitted
-to the remaining high-quality samples by modifying the model fitting command to include QC options:
+Maximum number of clusters a single isolate can cause to merge is
+set with ``--max-merge``. More than this number of links across the original clusters
+will result in removal of the isolate.
 
-  poppunk --fit-model dbscan --ref-db example_db --output example_dbscan --max-a-dist 0.4 --max-pi-dist 0.2
+Betweenness of queries can be reported with ``--betweenness``, which may be useful
+to prune the input in more complex cases. This does not cause automated removal as
+it's difficult to set a sensible threshold across datasets.
+You will therefore need to re-run and remove samples yourself.
 
-Dealing with poor quality data
-------------------------------
-In this example we analyse 76 *Haemophilus influenzae* isolates. One isolate, 14412_4_15,
-is contaminated with 12% of reads being *Haemophilus parainfluenzae* and a total
-assembly length of 3.8Mb. It would be removed before input, but its presence
-can also be found with ``PopPUNK --qc-filter continue``.
-
-With the distances
-^^^^^^^^^^^^^^^^^^
-A fit with three mixture components overestimates the number of between strain
-links, and gives a network with a poor score (0.6849) and only five components:
-
-.. image:: images/contam_DPGMM_fit.png
-   :alt:  A bad fit to pairwise distances
-   :align: center
-
-Distances in the top left of the plot, with low core distances and high
-accessory distances, are due to the contaminated contigs in the isolate.
-Finding which isolates contribute to these distances reveals a clear culprit::
-
-    awk '$3<0.02 && $4 > 0.3 {print $1}' contam_db/contam_db.search.out | cut -f 1 | sort | uniq -c
-       1 14412_3_81
-       1 14412_3_82
-       1 14412_3_83
-       1 14412_3_84
-       1 14412_3_88
-       1 14412_3_89
-       1 14412_3_91
-       1 14412_3_92
-       1 14412_4_1
-       1 14412_4_10
-      28 14412_4_15
-
-In this case it is sufficient to increase the number of mixture components to four,
-which no longer includes these inflated distances. This gives a score of 0.9401 and 28 components:
-
-.. image:: images/contam_DPGMM_better_fit.png
-   :alt:  A better fit to pairwise distances
-   :align: center
-
-The best thing to do is to remove the poor quality isolate, or if possible
-remove the contaminated reads/contigs from the assembly.
-
-With the network
-^^^^^^^^^^^^^^^^
-Alternatively, the network itself can be inspected with ``--cytoscape``. Using
-the approach detailed in :ref:`cytoscape-view` gives the following view:
-
-.. image:: images/cytoscape_contaminant.png
-   :alt:  A better fit to pairwise distances
-   :align: center
-
-The contaminated node appears when ordering by ClusteringCoefficient, Stress or
-TopologicalCoefficient, and its edges appear when ordering by EdgeBetweeness.
-It can be seen highlighted in the top right component, connecting two clusters
-which otherwise have no links. It can be removed, and components recalculated in
-cytoscape directly, though removal from the PopPUNK database is best.
-
-The second largest cluster is also suspicious, where there are few triangles
-(low transitivity) and the nodes involved have high Stress. This is indicative
-of a bad fit overall, rather than a single problem sample.
