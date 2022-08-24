@@ -183,7 +183,7 @@ def readPickle(pklName, enforce_self=False, distances=True):
     """
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
-        if enforce_self and not self or rlist != qlist:
+        if enforce_self and (not self or rlist != qlist):
             sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
             sys.exit(1)
     if distances:

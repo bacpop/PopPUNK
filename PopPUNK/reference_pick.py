@@ -17,7 +17,7 @@ from .network import extractReferences
 from .network import load_network_file
 from .network import save_network
 
-from .prune_db import prune_distance_matrix
+from .qc import prune_distance_matrix
 
 from .utils import setGtThreads
 from .utils import readPickle
