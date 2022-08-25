@@ -58,5 +58,5 @@ setup(
             'poppunk_assing = PopPUNK.assing:main'
             ]
     }
-    test_suite="test",
+    test_suite="test"
 )
