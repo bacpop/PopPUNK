@@ -55,15 +55,8 @@ setup(
     entry_points={
         "console_scripts": [
             'poppunk = PopPUNK.__main__:main',
-            'poppunk_prune = PopPUNK.prune_db:main',
-            'poppunk_references = PopPUNK.reference_pick:main',
-            'poppunk_mandrake = PopPUNK.mandrake:main'
+            'poppunk_assing = PopPUNK.assing:main'
             ]
-    },
-    scripts=['scripts/poppunk_calculate_rand_indices.py',
-             'scripts/poppunk_extract_components.py',
-             'scripts/poppunk_calculate_silhouette.py',
-             'scripts/poppunk_extract_distances.py',
-             'scripts/poppunk_pickle_fix.py'],
+    }
     test_suite="test",
 )
