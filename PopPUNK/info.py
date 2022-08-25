@@ -30,7 +30,7 @@ except ImportError as e:
 def get_options():
 
     parser = argparse.ArgumentParser(description='Get information about a PopPUNK database',
-                                     prog='poppunk_db_info')
+                                     prog='poppunk_info')
 
     # input options
     parser.add_argument('--db',

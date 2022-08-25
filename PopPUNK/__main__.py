@@ -7,13 +7,7 @@ import os
 import sys
 # additional
 import numpy as np
-import subprocess
 from collections import defaultdict
-
-import h5py
-
-import pp_sketchlib
-import poppunk_refine
 
 # import poppunk package
 from .__init__ import __version__
@@ -21,6 +15,12 @@ from .__init__ import __version__
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
 betweenness_sample_default = 100
+default_length_sigma = 5
+default_prop_n = 0.1
+default_max_zero = 0.05
+default_max_a_dist = 0.5
+default_max_pi_dist = 0.1
+default_max_merge = -1 # off
 
 #******************************#
 #*                            *#
@@ -40,8 +40,12 @@ def get_options():
             help='Create pairwise distances database between reference sequences',
             default=False,
             action='store_true')
+    mode.add_argument('--qc-db',
+            help='Run quality control on a reference database',
+            default=False,
+            action='store_true')
     mode.add_argument('--fit-model',
-            help='Fit a mixture model to a reference database',
+            help='Fit a model to a (QCed) reference database',
             choices=['bgmm', 'dbscan', 'refine', 'lineage', 'threshold'],
             default = False)
     mode.add_argument('--use-model',
@@ -83,24 +87,27 @@ def get_options():
 
     # qc options
     qcGroup = parser.add_argument_group('Quality control options')
-    qcGroup.add_argument('--qc-filter', help='Behaviour following sequence QC step: "stop" [default], "prune"'
-                                                ' (analyse data passing QC), or "continue" (analyse all data)',
-                                                default='stop', type = str, choices=['stop', 'prune', 'continue'])
+    qcGroup.add_argument('--qc-keep', help="Only write failing sequences to a file, don't remove them from the database file",
+                                      default=False, action='store_true')
+    qcGroup.add_argument('--remove-samples', help='A list of names to remove from the database (regardless of any other QC)',
+                                     default=None, type=str)
     qcGroup.add_argument('--retain-failures', help='Retain sketches of genomes that do not pass QC filters in '
-                                                'separate database [default = False]', default=False, action='store_true')
-    qcGroup.add_argument('--max-a-dist', help='Maximum accessory distance to permit [default = 0.5]',
-                                                default = 0.5, type = float)
-    qcGroup.add_argument('--max-pi-dist', help='Maximum core distance to permit [default = 0.5]',
-                                                default = 0.5, type = float)
+                                                   'separate database [default = False]', default=False, action='store_true')
+    qcGroup.add_argument('--max-a-dist', help=f"Maximum accessory distance to permit [default = {default_max_a_dist}]",
+                                                default = default_max_a_dist, type = float)
+    qcGroup.add_argument('--max-pi-dist', help=f"Maximum core distance to permit [default = {default_max_pi_dist}]",
+                                                default = default_max_pi_dist, type = float)
+    qcGroup.add_argument('--max-zero-dist', help=f"Maximum proportion of zero distances to permit [default = {default_max_zero}]",
+                                                default = default_max_zero, type = float)
     qcGroup.add_argument('--type-isolate', help='Isolate from which distances will be calculated for pruning [default = None]',
                                                 default = None, type = str)
-    qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
-                                                'which sequences will be excluded [default = 5]', default = 5, type = int)
+    qcGroup.add_argument('--length-sigma', help=f"Number of standard deviations of length distribution beyond "
+                                                f"which sequences will be excluded [default = {default_length_sigma}]", default = default_length_sigma, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
                                                 '[two values needed - lower and upper bounds]', default=[None,None],
                                                 type = int, nargs = 2)
-    qcGroup.add_argument('--prop-n', help='Threshold ambiguous base proportion above which sequences will be excluded'
-                                                ' [default = 0.1]', default = 0.1,
+    qcGroup.add_argument('--prop-n', help=f"Threshold ambiguous base proportion above which sequences will be excluded"
+                                          f" [default = {default_prop_n}]", default = default_prop_n,
                                                 type = float)
     qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
                                                 default=None, type = int)
@@ -204,8 +211,7 @@ def main():
 
     # Imports are here because graph tool is very slow to load
     from .models import loadClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
-    from .sketchlib import checkSketchlibLibrary
-    from .sketchlib import removeFromDB
+    from .sketchlib import checkSketchlibLibrary, removeFromDB
 
     from .network import construct_network_from_edge_list
     from .network import construct_network_from_assignments
@@ -217,12 +223,11 @@ def main():
     from .plot import writeClusterCsv
     from .plot import plot_scatter
 
-    from .prune_db import prune_distance_matrix
+    from .qc import prune_distance_matrix, qcDistMat, sketchlibAssemblyQC, remove_qc_fail
 
     from .utils import setGtThreads
     from .utils import setupDBFuncs
-    from .utils import readPickle
-    from .utils import qcDistMat
+    from .utils import readPickle, storePickle
     from .utils import createOverallLineage
 
     # check kmer properties
@@ -237,22 +242,8 @@ def main():
         sys.exit(1)
     kmers = np.arange(args.min_k, args.max_k + 1, args.k_step)
 
-    # Dict of QC options for passing to database construction and querying functions
-    qc_dict = {
-        'run_qc': args.create_db,
-        'qc_filter': args.qc_filter,
-        'retain_failures': args.retain_failures,
-        'length_sigma': args.length_sigma,
-        'length_range': args.length_range,
-        'prop_n': args.prop_n,
-        'upper_n': args.upper_n,
-        'max_pi_dist': args.max_pi_dist,
-        'max_a_dist': args.max_a_dist,
-        'type_isolate': args.type_isolate
-    }
-
     # Dict of DB access functions
-    dbFuncs = setupDBFuncs(args, qc_dict)
+    dbFuncs = setupDBFuncs(args)
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     queryDatabase = dbFuncs['queryDatabase']
@@ -269,13 +260,6 @@ def main():
     # for sketchlib, only supporting a single sketch size
     sketch_sizes = int(round(max(sketch_sizes.values())/64))
 
-    # if a length range is specified, check it makes sense
-    if args.length_range[0] is not None:
-        if args.length_range[0] >= args.length_range[1]:
-            sys.stderr.write('Ensure the specified length range is space-separated argument of'
-                             ' length 2, with the lower value first\n')
-            sys.exit(1)
-
     # check if working with lineages
     if args.fit_model == 'lineage':
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
@@ -283,6 +267,20 @@ def main():
             sys.stderr.write("Ranks must be >= 1\n")
         if max(rank_list) > 100:
             sys.stderr.write("WARNING: Ranks should be small non-zero integers for sensible lineage results\n")
+
+    if args.create_db == False:
+        # Check and set required parameters for other modes
+        if args.ref_db is None:
+            sys.stderr.write("Need to provide --ref-db where .h5 and .dists from "
+                             "--create-db mode were output")
+        if args.distances is None:
+            distances = args.ref_db + "/" + os.path.basename(args.ref_db) + ".dists"
+        else:
+            distances = args.distances
+        if args.output is None:
+            output = args.ref_db
+        else:
+            output = args.output
 
     # run according to mode
     sys.stderr.write("PopPUNK (POPulation Partitioning Using Nucleotide Kmers)\n")
@@ -305,40 +303,102 @@ def main():
 
         # generate sketches and QC sequences to identify sequences not matching specified criteria
         createDatabaseDir(args.output, kmers)
-        seq_names_passing = \
-            constructDatabase(
-                args.r_files,
-                kmers,
-                sketch_sizes,
-                args.output,
-                args.threads,
-                args.overwrite,
-                codon_phased = args.codon_phased,
-                calc_random = True)
+        seq_names = constructDatabase(
+            args.r_files,
+            kmers,
+            sketch_sizes,
+            args.output,
+            args.threads,
+            args.overwrite,
+            codon_phased = args.codon_phased,
+            calc_random = True)
 
         # calculate distances between sequences
-        distMat = queryDatabase(rNames = seq_names_passing,
-                                qNames = seq_names_passing,
+        distMat = queryDatabase(rNames = seq_names,
+                                qNames = seq_names,
                                 dbPrefix = args.output,
                                 queryPrefix = args.output,
                                 klist = kmers,
                                 self = True,
                                 number_plot_fits = args.plot_fit,
                                 threads = args.threads)
-
-        # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
-        seq_names_passing, distMat = qcDistMat(distMat,
-                                                seq_names_passing,
-                                                seq_names_passing,
-                                                args.output,
-                                                args.output,
-                                                qc_dict)
+        storePickle(seq_names, seq_names, True, distMat, f"{args.output}/{os.path.basename(args.output)}.dists")
 
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
                          args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
                          args.output + " distances")
+
+    #******************************#
+    #*                            *#
+    #* DB QC                      *#
+    #*                            *#
+    #******************************#
+    if args.qc_db:
+        # if a length range is specified, check it makes sense
+        if args.length_range[0] is not None:
+            if args.length_range[0] >= args.length_range[1]:
+                sys.stderr.write('Ensure the specified length range is space-separated argument of'
+                                ' length 2, with the lower value first\n')
+                sys.exit(1)
+
+        # Dict of QC options for passing to database construction and querying functions
+        qc_dict = {
+            'no_remove': args.qc_keep,
+            'retain_failures': args.retain_failures,
+            'length_sigma': args.length_sigma,
+            'length_range': args.length_range,
+            'prop_n': args.prop_n,
+            'upper_n': args.upper_n,
+            'max_pi_dist': args.max_pi_dist,
+            'max_a_dist': args.max_a_dist,
+            'prop_zero': args.max_zero_dist,
+            'type_isolate': args.type_isolate
+        }
+
+        refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
+
+        fail_unconditionally = {}
+        # Unconditional removal
+        if args.remove_samples:
+            with open(args.remove_samples, 'r') as f:
+                for line in f:
+                    fail_unconditionally[line.rstrip] = ["removed"]
+
+        # assembly qc
+        sys.stderr.write("Running sequence QC\n")
+        pass_assembly_qc, fail_assembly_qc = \
+            sketchlibAssemblyQC(args.ref_db,
+                                refList,
+                                qc_dict)
+        sys.stderr.write(f"{len(fail_assembly_qc)} samples failed\n")
+
+        # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
+        sys.stderr.write("Running distance QC\n")
+        pass_dist_qc, fail_dist_qc = \
+            qcDistMat(distMat,
+                      refList,
+                      queryList,
+                      args.ref_db,
+                      qc_dict)
+        sys.stderr.write(f"{len(fail_dist_qc)} samples failed\n")
+
+        # Get list of passing samples
+        pass_list = set(refList) - fail_unconditionally.keys() - fail_assembly_qc.keys() - fail_dist_qc.keys()
+        assert(pass_list == set(refList).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
+        passed = [x for x in refList if x in pass_list]
+        if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
+            raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
+                               ' not found in isolates after QC; check '
+                               'name of type isolate and QC options\n')
+
+        if len(passed) < len(refList):
+            remove_qc_fail(qc_dict, refList, passed,
+                           [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
+                           args.ref_db, distMat, output,
+                           args.strand_preserved, args.threads)
+
 
     #******************************#
     #*                            *#
@@ -385,11 +445,6 @@ def main():
 
         # Load the distances
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
-        seq_names = set(set(refList) | set(queryList))
-        seq_names_passing, distMat = qcDistMat(distMat, refList, queryList, args.ref_db, output, qc_dict)
-        if len(set(seq_names_passing).difference(seq_names)) > 0 and args.qc_filter == "stop":
-            sys.stderr.write("Distances failed quality control (change QC options to run anyway)\n")
-            sys.exit(1)
 
         #******************************#
         #*                            *#
@@ -475,7 +530,6 @@ def main():
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
             for rank in sorted(rank_list):
-                sys.stderr.write("Network for rank " + str(rank) + "\n")
                 if args.graph_weights:
                     weights = model.edge_weights(rank)
                 else:
@@ -493,6 +547,9 @@ def main():
                                   refList,
                                   printCSV = False,
                                   use_gpu = args.gpu_graph)
+                n_clusters = max(lineage_clusters[rank].values())
+                sys.stderr.write("Network for rank " + str(rank) + " has " +
+                                 str(n_clusters) + " lineages\n")
 
             # print output of each rank as CSV
             overall_lineage = createOverallLineage(rank_list, lineage_clusters)
@@ -553,12 +610,13 @@ def main():
         if model.type != "lineage":
             dist_type_list = ['original']
             dist_string_list = ['']
-            if args.indiv_refine == 'both' or args.indiv_refine == 'core':
-                dist_type_list.append('core')
-                dist_string_list.append('_core')
-            if args.indiv_refine == 'both' or args.indiv_refine == 'accessory':
-                dist_type_list.append('accessory')
-                dist_string_list.append('_accessory')
+            if model.indiv_fitted:
+                if args.indiv_refine == 'both' or args.indiv_refine == 'core':
+                    dist_type_list.append('core')
+                    dist_string_list.append('_core')
+                if args.indiv_refine == 'both' or args.indiv_refine == 'accessory':
+                    dist_type_list.append('accessory')
+                    dist_string_list.append('_accessory')
             # Iterate through different network types
             for dist_type, dist_string in zip(dist_type_list, dist_string_list):
                 if dist_type == 'original':
@@ -572,7 +630,7 @@ def main():
                                         refList,
                                         output,
                                         outSuffix = dist_string,
-                                        type_isolate = qc_dict['type_isolate'],
+                                        type_isolate = args.type_isolate,
                                         threads = args.threads,
                                         use_gpu = args.gpu_graph)
                 nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)

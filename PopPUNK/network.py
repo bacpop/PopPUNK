@@ -6,22 +6,16 @@
 # universal
 import os
 import sys
-import re
 # additional
-import glob
 import operator
-import shutil
-import subprocess
 import numpy as np
 import pandas as pd
 from scipy.stats import rankdata
-from tempfile import mkstemp, mkdtemp
 from collections import defaultdict, Counter
 from functools import partial
 from multiprocessing import Pool
 import pickle
 import graph_tool.all as gt
-import dendropy
 
 # Load GPU libraries
 try:
@@ -43,11 +37,7 @@ from .__main__ import betweenness_sample_default
 from .sketchlib import addRandom
 
 from .utils import iterDistRows
-from .utils import listDistInts
 from .utils import readIsolateTypeFromCsv
-from .utils import readRfile
-from .utils import setupDBFuncs
-from .utils import isolateNameToLabel
 from .utils import check_and_set_gpu
 
 from .unwords import gen_unword
@@ -213,6 +203,7 @@ def cliquePrune(component, graph, reference_indices, components_list):
     """
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
+    sys.setrecursionlimit(3000)
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
     refs = reference_indices.copy()
     if subgraph.num_vertices() <= 2:
@@ -366,14 +357,12 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             gt.openmp_set_num_threads(1)
 
         # Cliques are pruned, taking one reference from each, until none remain
-        sys.setrecursionlimit = 5000
         with Pool(processes=threads) as pool:
             ref_lists = pool.map(partial(cliquePrune,
                                             graph=G,
                                             reference_indices=reference_indices,
                                             components_list=components),
                                  set(components))
-        sys.setrecursionlimit = 1000
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
@@ -588,33 +577,10 @@ def print_network_summary(G, betweenness_sample = betweenness_sample_default, us
                                                    "\tScore (w/ weighted-betweenness)\t\t" + "{:.4f}".format(scores[2])])
                                                    + "\n")
 
-def initial_graph_properties(rlist, qlist):
-    """Initial processing of sequence names for
-    network construction.
-
-    Args:
-        rlist (list)
-            List of reference sequence labels
-        qlist (list)
-            List of query sequence labels
-
-    Returns:
-        vertex_labels (list)
-            Ordered list of sequences in network
-        self_comparison (bool)
-            Whether the network is being constructed from all-v-all distances or
-            reference-v-query information
-    """
-    if rlist == qlist:
-        self_comparison = True
-        vertex_labels = rlist
-    else:
-        self_comparison = False
-        vertex_labels = rlist +  qlist
-    return vertex_labels, self_comparison
 
 def process_weights(distMat, weights_type):
     """Calculate edge weights from the distance matrix
+
     Args:
         distMat (2 column ndarray)
             Numpy array of pairwise distances
@@ -757,7 +723,10 @@ def construct_network_from_edge_list(rlist,
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    if rlist != qlist:
+        vertex_labels = rlist + qlist
+    else:
+        vertex_labels = rlist
 
     # Create new network
     if use_gpu:
@@ -807,7 +776,9 @@ def construct_network_from_edge_list(rlist,
             if previous_network is not None:
                 for (src, dest) in zip(extra_sources, extra_targets):
                     edge_list.append((src, dest))
-        # build the graph
+
+        # build the graph (from scratch)
+        #TODO append to existing graph
         G = gt.Graph(directed = False)
         G.add_vertex(len(vertex_labels))
         if weights is not None:
@@ -878,7 +849,10 @@ def construct_network_from_df(rlist,
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, qlist)
+    if rlist != qlist:
+        vertex_labels = rlist + qlist
+    else:
+        vertex_labels = rlist
 
     # Check df format is correct
     if weights:
@@ -1024,7 +998,7 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
     use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
-    vertex_labels, self_comparison = initial_graph_properties(rlist, rlist)
+    vertex_labels = rlist
 
     # Filter weights to only the relevant edges
     if weights is None:
@@ -1243,7 +1217,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                 if size > 3:
                     vfilt = component_assignments.a == component
                     subgraph = gt.GraphView(G, vfilt=vfilt)
-                    betweenness.append(max(gt.betweenness(subgraph, norm = True)[0].a))
+                    betweenness.append(max(vertex_betweenness(subgraph, norm=True)))
                     sizes.append(size)
 
         if len(betweenness) > 1:
@@ -1259,8 +1233,14 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
     return(metrics, scores)
 
-def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
-                      assignments, model, queryDB, distances = None, distance_type = 'euclidean',
+# graph-tool only, for now
+def vertex_betweenness(graph, norm=True):
+    """Returns betweenness for nodes in the graph
+    """
+    return gt.betweenness(graph, norm=norm)[0].a
+
+def addQueryToNetwork(dbFuncs, rList, qList, G,
+                      assignments, model, queryDB, kmers = None, distance_type = 'euclidean',
                       queryQuery = False, strand_preserved = False, weights = None, threads = 1,
                       use_gpu = False):
     """Finds edges between queries and items in the reference database,
@@ -1275,8 +1255,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             List of query names
         G (graph)
             Network to add to (mutated)
-        kmers (list)
-            List of k-mer sizes
         assignments (numpy.array)
             Cluster assignment of items in qlist
         model (ClusterModel)
@@ -1285,6 +1263,8 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
             Query database location
         distances (str)
             Prefix of distance files for extending network
+        kmers (list)
+            List of k-mer sizes
         distance_type (str)
             Distance type to use as weights in network
         queryQuery (bool)
@@ -1310,13 +1290,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
     # initalise functions
     queryDatabase = dbFuncs['queryDatabase']
 
+    if len(qList) > 1 and kmers is None:
+        raise RuntimeError("Must provide db querying info (kmers) if adding "
+                           "more than one sample, as q-q dists may be needed")
+
     # do not calculate weights unless specified
     if weights is None:
         distance_type = None
-
-    # initialise links data structure
-    new_edges = []
-    assigned = set()
 
     # These are returned
     qqDistMat = None
@@ -1335,6 +1315,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                                             weights_type = distance_type,
                                             summarise = False,
                                             use_gpu = use_gpu)
+
+    # Check if any queries were not assigned, run qq dists if so
+    if not queryQuery:
+        edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
+        if np.any(edge_count == 0):
+            sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
+            queryQuery = True
 
     # Calculate all query-query distances too, if updating database
     if queryQuery:
@@ -1360,70 +1347,14 @@ def addQueryToNetwork(dbFuncs, rList, qList, G, kmers,
                 queryAssignation = model.assign(qqDistMat)
 
             # Add queries to network
-            G = construct_network_from_assignments(qList,
-                                                    qList,
+            vertex_labels = rList + qList
+            G = construct_network_from_assignments(vertex_labels,
+                                                   vertex_labels,
                                                     queryAssignation,
                                                     int_offset = ref_count,
                                                     within_label = model.within_label,
                                                     previous_network = G,
-                                                    old_ids = rList,
-                                                    adding_qq_dists = True,
-                                                    distMat = qqDistMat,
-                                                    weights_type = distance_type,
-                                                    summarise = False,
-                                                    use_gpu = use_gpu)
-
-    # Otherwise only calculate query-query distances for new clusters
-    else:
-        # identify potentially new lineages in list: unassigned is a list of queries with no hits
-        unassigned = set(qList).difference(assigned)
-        query_indices = {k:v+ref_count for v,k in enumerate(qList)}
-        # process unassigned query sequences, if there are any
-        if len(unassigned) > 1:
-            sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
-
-            # use database construction methods to find links between unassigned queries
-            addRandom(queryDB, qList, kmers, strand_preserved, threads = threads)
-            qqDistMat = queryDatabase(rNames = list(unassigned),
-                                      qNames = list(unassigned),
-                                      dbPrefix = queryDB,
-                                      queryPrefix = queryDB,
-                                      klist = kmers,
-                                      self = True,
-                                      number_plot_fits = 0,
-                                      threads = threads)
-
-            if distance_type == 'core':
-                queryAssignation = model.assign(qqDistMat, slope = 0)
-            elif distance_type == 'accessory':
-                queryAssignation = model.assign(qqDistMat, slope = 1)
-            else:
-                queryAssignation = model.assign(qqDistMat)
-
-            # identify any links between queries and store in the same links dict
-            # links dict now contains lists of links both to original database and new queries
-            # have to use names and link to query list in order to match to node indices
-            for row_idx, (assignment, (query1, query2)) in enumerate(zip(queryAssignation, iterDistRows(qList, qList, self = True))):
-                if assignment == model.within_label:
-                    if weights is not None:
-                        if distance_type == 'core':
-                            dist = weights[row_idx, 0]
-                        elif distance_type == 'accessory':
-                            dist = weights[row_idx, 1]
-                        else:
-                            dist = np.linalg.norm(weights[row_idx, :])
-                        edge_tuple = (query_indices[query1], query_indices[query2], dist)
-                    else:
-                        edge_tuple = (query_indices[query1], query_indices[query2])
-                    new_edges.append(edge_tuple)
-
-            G = construct_network_from_assignments(qList,
-                                                    qList,
-                                                    queryAssignation,
-                                                    int_offset = ref_count,
-                                                    within_label = model.within_label,
-                                                    previous_network = G,
-                                                    old_ids = rList + qList,
+                                                    old_ids = vertex_labels,
                                                     adding_qq_dists = True,
                                                     distMat = qqDistMat,
                                                     weights_type = distance_type,
@@ -1485,6 +1416,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     Args:
         G (graph)
             Network used to define clusters
+        rlist (list)
+            Names of samples
         outPrefix (str)
             Prefix for output CSV
             Default = None

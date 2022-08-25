@@ -4,6 +4,10 @@ PopPUNK-web is available at https://web.poppunk.net/.
 This interface has been designed for non-specialists and allows you to easily analyse and assign lineages to your query genomic sequences,
 using pre-optimised species-specific databases and default parameters.
 
+.. warning::
+   PopPUNK-web is temporarily down while we work on an updated and better supported
+   version (beebop).
+
 .. contents::
    :local:
 

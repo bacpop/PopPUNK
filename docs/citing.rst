@@ -36,5 +36,5 @@ gives:
     version 2.4.0 (doi:10.1101/gr.241455.118) [1-5].
 
 If your journal requires versions for all software packages, you may find running
-``conda list`` helpful. The ``poppunk_db_info.py`` script (:ref:`db-info`) can be
-run on your ``.h5`` files to give useful information too.
+``conda list`` helpful. Running ``poppunk_info`` (:ref:`db-info`) on your ``.h5``
+files will give useful information too.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2022 John Lees and Nick Croucher
 
 """Tests for PopPUNK using GPUs where possible"""
 
@@ -17,13 +17,9 @@ if os.environ.get("POPPUNK_PYTHON"):
 else:
     python_cmd = "python"
 
-#easy run
 sys.stderr.write("Running database creation (--create-db)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_db --qc-filter prune --overwrite --gpu-dist", shell=True, check=True)
-
-# create database with different QC options
-sys.stderr.write("Running database QC test (--create-db)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_qc --qc-filter continue --length-range 2000000 3000000 --overwrite --gpu-dist", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --plot-fit 5 --output example_db --overwrite --gpu-dist", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --type-isolate \"12754_4#79\" --overwrite", shell=True, check=True)
 
 # test updating order is correct
 sys.stderr.write("Running distance matrix order check (--update-db)\n")
@@ -83,9 +79,9 @@ sys.stderr.write("Running MST\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both --gpu-graph", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot --gpu-graph", shell=True, check=True)
 
-# t-sne
-sys.stderr.write("Running tsne viz\n")
-subprocess.run(python_cmd + " ../poppunk_tsne-runner.py --distances example_db/example_db.dists --output example_tsne --perplexity 5 --verbosity 1 --use-gpu", shell=True, check=True)
+# mandrake
+sys.stderr.write("Running mandrake viz\n")
+subprocess.run(python_cmd + " ../poppunk_mandrake-runner.py --distances example_db/example_db.dists --output example_mandrake --perplexity 5 --use-gpu", shell=True, check=True)
 
 # prune
 sys.stderr.write("Running poppunk_prune\n")

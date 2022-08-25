@@ -1,12 +1,15 @@
 PopPUNK documentation
 ==================================
-.. image:: images/poppunk_v2.png
-   :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
-   :align: center
-
 PopPUNK is a tool for clustering genomes. We refer to the clusters as
 variable-length-k-mer clusters, or **VLKCs**. Biologically, these clusters
 typically represent distinct strains. We refer to subclusters of strains as lineages.
+
+If you are new to PopPUNK, we'd recommend starting on :doc:`installation`, then
+by reading the :doc:`overview`.
+
+.. image:: images/poppunk_v2.png
+   :alt:  PopPUNK (Population Partitioning Using Nucleotide K-mers)
+   :align: center
 
 The first version was targeted specifically
 as bacterial genomes, but the current version has also been used for viruses
@@ -17,8 +20,7 @@ core and accessory distances, and machine learning tools written in python to
 use these to cluster genomes. A detailed description of the method can be found
 in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
 
-If you are new to PopPUNK, we'd recommend starting on :doc:`installation`, then
-by reading the :doc:`best_practises`.
+
 
 .. important::
    Looking for older versions of the documentation? For previous versions with
@@ -31,19 +33,18 @@ by reading the :doc:`best_practises`.
 
    self
    installation.rst
-   best_practises.rst
-   online.rst
-   query_assignment.rst
+   overview.rst
    sketching.rst
    qc.rst
    model_fitting.rst
    model_distribution.rst
+   query_assignment.rst
    visualisation.rst
    mst.rst
    subclustering.rst
+   online.rst
    gpu.rst
    troubleshooting.rst
-   options.rst
    scripts.rst
    citing.rst
    api.rst

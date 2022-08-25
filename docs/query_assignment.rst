@@ -1,5 +1,5 @@
-Query assignment
-================
+Query assignment (``poppunk_assign``)
+=====================================
 This is the recommended mode to use PopPUNK, as long as a database is available for
 your species. If there is no database available, you can fit your own (:doc:`model_fitting`).
 
@@ -14,12 +14,6 @@ Briefly, `download your reference database <https://poppunk.net/pages/databases.
 Downloading a database
 ----------------------
 Current PopPUNK databases can be found here: https://poppunk.net/pages/databases.html
-
-.. note::
-    We currently only have three reference databases available for public use.
-    Please bear with us as we update this, more reference databases which work
-    with version 2 of PopPUNK will be released shortly. You can still fit your
-    own model to your data.
 
 We refer to sequences in the database as references, and those being added
 as queries. The clusters assigned by PopPUNK are variable-length-k-mer clusters (VLKCs).
@@ -149,14 +143,6 @@ From these accumulated samples the external clusters will be collected, and assi
 to all of these examples. This may give you a one-to-one mapping between PopPUNK clusters
 and your external cluster, or you may find multiple external clusters refer to the
 PopPUNK cluster giving output such as ``227;811;763;824``.
-
-Using a model fitted with lineage assignment mode
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You will need to add ``--assign-lineages`` to pick up the correct model, additionally
-you can add options ``--rank`` to choose the rank to assign from (default is the lowest
-available) and ``--use-accessory`` to use the accessory distances rather than the core
-for clustering. You will find extra model files with the ranks listed in their name if
-this model type is available.
 
 Using a model fitted with ``--indiv-refine``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

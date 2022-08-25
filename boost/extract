@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -eux
+HERE=$(dirname $0)
+ROOT=$(realpath $HERE/..)
+IMAGE=mrcide/poppunk:boost
+DEST=$ROOT/vendor
+REQUIRE=boost/sort/parallel_stable_sort/parallel_stable_sort.hpp
+docker build -t $IMAGE "$ROOT/boost"
+rm -rf $DEST/boost
+mkdir -p $DEST
+docker run \
+       --user "$(id -u):$(id -g)" \
+       -v $DEST:/dest \
+       $IMAGE \
+       bcp --boost=/usr/include $REQUIRE /dest

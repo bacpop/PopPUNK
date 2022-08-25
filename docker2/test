@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -ex
+
+HERE=$(dirname $0)
+. $HERE/common
+
+# In case we switch agents between steps
+[ ! -z $(docker images -q $TAG_SHA) ] || docker pull $TAG_SHA
+
+## Just check that we can bring up the container and run something
+docker run -it -w /src --rm $TAG_SHA poppunk --version

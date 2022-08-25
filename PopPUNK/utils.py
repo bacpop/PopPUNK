@@ -8,7 +8,6 @@ import os
 import sys
 # additional
 import pickle
-import subprocess
 from collections import defaultdict
 from itertools import chain
 from tempfile import mkstemp
@@ -17,7 +16,6 @@ import contextlib
 
 import numpy as np
 import pandas as pd
-import h5py
 
 try:
     import cudf
@@ -58,9 +56,35 @@ def set_env(**environ):
         os.environ.clear()
         os.environ.update(old_environ)
 
+# https://stackoverflow.com/a/17954769
+from contextlib import contextmanager
+@contextmanager
+def stderr_redirected(to=os.devnull):
+    '''
+    import os
+
+    with stdout_redirected(to=filename):
+        print("from Python")
+        os.system("echo non-Python applications are also supported")
+    '''
+    fd = sys.stderr.fileno()
+
+    def _redirect_stderr(to):
+        sys.stderr.close()
+        os.dup2(to.fileno(), fd)
+        sys.stderr = os.fdopen(fd, 'w')
+
+    with os.fdopen(os.dup(fd), 'w') as old_stderr:
+        with open(to, 'w') as file:
+            _redirect_stderr(to=file)
+        try:
+            yield
+        finally:
+            _redirect_stderr(to=old_stderr)
+
 # Use partials to set up slightly different function calls between
 # both possible backends
-def setupDBFuncs(args, qc_dict):
+def setupDBFuncs(args):
     """Wraps common database access functions from sketchlib and mash,
     to try and make their API more similar
 
@@ -89,7 +113,6 @@ def setupDBFuncs(args, qc_dict):
                                 strand_preserved = args.strand_preserved,
                                 min_count = args.min_kmer_count,
                                 use_exact = args.exact_count,
-                                qc_dict = qc_dict,
                                 use_gpu = args.gpu_sketch,
                                 deviceid = args.deviceid)
     queryDatabase = partial(queryDatabaseSketchlib,
@@ -160,9 +183,9 @@ def readPickle(pklName, enforce_self=False, distances=True):
     """
     with open(pklName + ".pkl", 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
-        if enforce_self and not self:
+        if enforce_self and (not self or rlist != qlist):
             sys.stderr.write("Old distances " + pklName + ".npy not complete\n")
-            sys.stderr.exit(1)
+            sys.exit(1)
     if distances:
         X = np.load(pklName + ".npy")
     else:
@@ -235,114 +258,18 @@ def listDistInts(refSeqs, querySeqs, self=True):
         return comparisons
 
 
-def qcDistMat(distMat, refList, queryList, ref_db, prefix, qc_dict):
-    """Checks distance matrix for outliers.
-
-    Args:
-        distMat (np.array)
-            Core and accessory distances
-        refList (list)
-            Reference labels
-        queryList (list)
-            Query labels (or refList if self)
-        ref_db (str)
-            Prefix of reference database
-        prefix (str)
-            Prefix of output files
-        qc_dict (dict)
-            Dict of QC options
-
-    Returns:
-        seq_names_passing (list)
-            List of isolates passing QC distance filters
-        distMat ([n,2] numpy ndarray)
-            Filtered long form distance matrix
-    """
-
-    # avoid circular import
-    from .prune_db import prune_distance_matrix
-    from .sketchlib import removeFromDB
-    from .sketchlib import pickTypeIsolate
-
-    # Create overall list of sequences
-    if refList == queryList:
-        seq_names_passing = refList
-    else:
-        seq_names_passing = refList + queryList
-
-    # Sequences to remove
-    to_prune = []
-
-    # Create output directory if it does not exist already
-    if not os.path.isdir(prefix):
-        try:
-            os.makedirs(prefix)
-        except OSError:
-            sys.stderr.write("Cannot create output directory " + prefix + "\n")
-            sys.exit(1)
-
-    # Pick type isolate if not supplied
-    if qc_dict['type_isolate'] is None:
-        qc_dict['type_isolate'] = pickTypeIsolate(ref_db, seq_names_passing)
-        sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
-
-    # First check with numpy, which is quicker than iterating over everything
-    #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
-    long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
-    long_edges = poppunk_refine.generateTuples(long_distance_rows,
-                                                0,
-                                                self = (refList == queryList),
-                                                num_ref = len(refList),
-                                                int_offset = 0)
-    if len(long_edges) > 0:
-        # Prune sequences based on reference sequence
-        for (s,t) in long_edges:
-            if seq_names_passing[s] == qc_dict['type_isolate']:
-                to_prune.append(seq_names_passing[t])
-            elif seq_names_passing[t] == qc_dict['type_isolate']:
-                to_prune.append(seq_names_passing[s])
-
-    # prune based on distance from reference if provided
-    if qc_dict['qc_filter'] == 'stop' and len(to_prune) > 0:
-        sys.stderr.write('Outlier distances exceed QC thresholds; prune sequences or raise thresholds\n')
-        sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
-        sys.exit(1)
-    elif qc_dict['qc_filter'] == 'prune' and len(to_prune) > 0:
-        if qc_dict['type_isolate'] is None:
-            sys.stderr.write('Distances exceeded QC thresholds but no reference isolate supplied\n')
-            sys.stderr.write('Problem distances involved sequences ' + ';'.join(to_prune) + '\n')
-            sys.exit(1)
-        else:
-            # Remove sketches
-            db_name = ref_db + '/' + os.path.basename(ref_db) + '.h5'
-            filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
-            removeFromDB(db_name,
-                         filtered_db_name,
-                         to_prune,
-                         full_names = True)
-            os.rename(filtered_db_name, db_name)
-            # Remove from distance matrix
-            seq_names_passing, distMat = prune_distance_matrix(seq_names_passing,
-                                                                to_prune,
-                                                                distMat,
-                                                                prefix + "/" + os.path.basename(prefix) + ".dists")
-            # Remove from reflist
-            sys.stderr.write('Pruned from the database after failing distance QC: ' + ';'.join(to_prune) + '\n')
-    else:
-        storePickle(seq_names_passing, seq_names_passing, True, distMat, prefix + "/" + os.path.basename(prefix) + ".dists")
-
-    return seq_names_passing, distMat
-
-
 def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
     """Read cluster definitions from CSV file.
 
     Args:
         clustCSV (str)
             File name of CSV with isolate assignments
+        mode (str)
+            Type of file to read 'clusters', 'lineages', or 'external'
         return_type (str)
             If True, return a dict with sample->cluster instead
             of sets
+            [default = False]
 
     Returns:
         clusters (dict)
@@ -451,17 +378,19 @@ def update_distance_matrices(refList, distMat, queryList = None, query_ref_distM
         seqLabels = seqLabels + queryList
 
     if queryList == None:
-        coreMat = pp_sketchlib.longToSquare(distMat[:, [0]], threads)
-        accMat = pp_sketchlib.longToSquare(distMat[:, [1]], threads)
+        coreMat = pp_sketchlib.longToSquare(distVec=distMat[:, [0]],
+                                            num_threads=threads)
+        accMat = pp_sketchlib.longToSquare(distVec=distMat[:, [1]],
+                                           num_threads=threads)
     else:
-        coreMat = pp_sketchlib.longToSquareMulti(distMat[:, [0]],
-                                                 query_ref_distMat[:, [0]],
-                                                 query_query_distMat[:, [0]],
-                                                 threads)
-        accMat = pp_sketchlib.longToSquareMulti(distMat[:, [1]],
-                                                 query_ref_distMat[:, [1]],
-                                                 query_query_distMat[:, [1]],
-                                                 threads)
+        coreMat = pp_sketchlib.longToSquareMulti(distVec=distMat[:, [0]],
+                                                 query_ref_distVec=query_ref_distMat[:, [0]],
+                                                 query_query_distVec=query_query_distMat[:, [0]],
+                                                 num_threads=threads)
+        accMat = pp_sketchlib.longToSquareMulti(distVec=distMat[:, [1]],
+                                                query_ref_distVec=query_ref_distMat[:, [1]],
+                                                query_query_distVec=query_query_distMat[:, [1]],
+                                                num_threads=threads)
 
     # return outputs
     return seqLabels, coreMat, accMat

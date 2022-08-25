@@ -92,7 +92,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/johnlees/PopPUNK',
-    author='John Lees and Nicholas Croucher',
+    author='John Lees, Nicholas Croucher, Marie Gronemeyer, Richard Fitzjohn',
     author_email='john@johnlees.me',
     license='Apache Software License',
     classifiers=[
@@ -111,9 +111,8 @@ setup(
             'poppunk_assign = PopPUNK.assign:main',
             'poppunk_visualise = PopPUNK.visualise:main',
             'poppunk_mst = PopPUNK.sparse_mst:main',
-            'poppunk_prune = PopPUNK.prune_db:main',
             'poppunk_references = PopPUNK.reference_pick:main',
-            'poppunk_tsne = PopPUNK.tsne:main',
+            'poppunk_mandrake = PopPUNK.mandrake:main',
             'poppunk_info = PopPUNK.info:main'
             ]
     },
@@ -124,12 +123,12 @@ setup(
              'scripts/poppunk_extract_distances.py',
              'scripts/poppunk_iterate.py',
              'scripts/poppunk_add_weights.py',
-             'scripts/poppunk_easy_run.py',
-             'scripts/poppunk_pickle_fix.py'],
+             'scripts/poppunk_easy_run.py'],
     ext_modules=[CMakeExtension('poppunk_refine')],
     test_suite="test",
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     include_package_data=True,
-    package_data={'': ['PopPUNK/data/*.json.gz']}
+    package_data={'': ['PopPUNK/data/*.json.gz',
+                       'PopPUNK/data/microreact_example.pkl']}
 )

@@ -54,6 +54,8 @@ This script will do the following:
 
 5. Output the combined clusters, average core distances, and tree.
 
+6. Cut this tree to pick a set of clusters under a similarity given by ``--cutoff``.
+
 Adding weights to the network
 -----------------------------
 Converts binary within-cluster edge weights to the Euclidean core-accessory distance.

@@ -6,24 +6,22 @@ channels:
   - r
 dependencies:
   - pip
-  - numpy
+  - numpy <=1.22.4
   - scipy
   - python-dateutil
   - pandas
   - scikit-learn >=0.24
+  - mandrake
   - matplotlib-base
-  - dendropy >=4.4.0
+  - biopython
   - treeswift
   - matplotlib
   - hdbscan
   - rapidnj
   - h5py
-  - pp-sketchlib >=1.7.0
-  - graph-tool >=2.35
   - requests
-  - flask
-  - flask-cors
-  - gunicorn
+  - pp-sketchlib >=2.0.0
+  - graph-tool >=2.35
   - networkx
   - xorg-libxi
   - xorg-libxcursor
@@ -42,5 +40,3 @@ dependencies:
   - boost-cpp
   - libgomp
   - tqdm
-  - tzlocal <3.0
-  - flask-apscheduler
