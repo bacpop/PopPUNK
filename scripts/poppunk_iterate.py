@@ -260,17 +260,22 @@ if __name__ == "__main__":
     for leaf in tree.traverse_leaves():
         parent_node = leaf.get_parent()
         if not parent_node.is_root():
+            if parent_node.get_edge_length() < args.cutoff and parent_node.get_parent().is_root():
+                cut_clusters.add(parent_node)
+            elif parent_node.get_edge_length() < args.cutoff and not parent_node.get_parent().is_root():
             # For each leaf, go back up the tree to find the cluster which
             # crosses the cutoff threshold
-            while not parent_node.is_root() and\
-                parent_node.get_edge_length() < args.cutoff:
-                # Go up a level
-                child_node = parent_node
-                parent_node = child_node.get_parent()
-                if parent_node.is_root() or \
-                    (child_node.get_edge_length() < args.cutoff and \
-                     parent_node.get_edge_length() > args.cutoff):
-                    cut_clusters.add(parent_node)
+                while parent_node.get_edge_length() < args.cutoff:
+                    # Go up a level
+                    child_node = parent_node
+                    parent_node = child_node.get_parent()
+                    if parent_node.is_root():
+                        cut_clusters.add(child_node)
+                        break
+                    if (child_node.get_edge_length() < args.cutoff and \
+                        parent_node.get_edge_length() > args.cutoff):
+                        cut_clusters.add(child_node)
+                        break
 
     # In the case where a grand-parent node's average core distance is smaller
     # than child node's both great parent node and child node will be selected
