@@ -290,7 +290,7 @@ def generate_visualisations(query_db,
             combined_seq = rlist
 
         # Fill in qq-distances if required
-        if self == False and tree != "none":
+        if self == False:
             sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
                              "Note: Distance will be extended to full all-vs-all distances\n"
                              "Note: Re-run poppunk_assign with --update-db to avoid this\n")
