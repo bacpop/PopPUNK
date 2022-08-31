@@ -33,11 +33,8 @@ RUN add-apt-repository https://downloads.skewed.de/apt && \
     ln -s /usr/lib/python3/dist-packages/graph_tool \
       /usr/local/lib/python3.10/site-packages
 
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install pybind11 && \
-  pip install -r /tmp/requirements.txt && \
-  rm -f /tmp/requirements.txt
+RUN pip install pybind11
 
 COPY . /src
 WORKDIR /src
-RUN python setup.py install
+RUN pip install .
