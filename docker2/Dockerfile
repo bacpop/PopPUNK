@@ -2,19 +2,20 @@ FROM python:3.10
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-                          cmake \
                           gfortran \
                           libarmadillo-dev \
                           libeigen3-dev \
                           libopenblas-dev \
                           software-properties-common
 
+RUN pip install cmake pybind11[global] plotly ffmpeg
+
+
 RUN git clone https://github.com/somme89/rapidNJ.git && \
     cd rapidNJ && \
     make && \
     mv ./bin/rapidnj /usr/bin &&\
     cd .. && rm -r rapidNJ
-
 
 
 # Special snowflake treatment for graph_tool because the maintainer
@@ -35,7 +36,6 @@ RUN add-apt-repository https://downloads.skewed.de/apt && \
     ln -s /usr/lib/python3/dist-packages/graph_tool \
       /usr/local/lib/python3.10/site-packages
 
-RUN pip install pybind11 plotly ffmpeg cmake
 
 RUN git clone https://github.com/bacpop/mandrake.git && \
     cd mandrake && \
