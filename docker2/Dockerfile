@@ -15,10 +15,7 @@ RUN git clone https://github.com/somme89/rapidNJ.git && \
     mv ./bin/rapidnj /usr/bin &&\
     cd .. && rm -r rapidNJ
 
-RUN git clone https://github.com/bacpop/mandrake.git && \
-    cd mandrake && \
-    python setup.py install && \
-    cd .. && rm -r mandrake
+
 
 # Special snowflake treatment for graph_tool because the maintainer
 # refuses to make the package pip-installable, meaning we can't depend
@@ -38,7 +35,12 @@ RUN add-apt-repository https://downloads.skewed.de/apt && \
     ln -s /usr/lib/python3/dist-packages/graph_tool \
       /usr/local/lib/python3.10/site-packages
 
-RUN pip install pybind11 plotly ffmpeg
+RUN pip install pybind11 plotly ffmpeg cmake
+
+RUN git clone https://github.com/bacpop/mandrake.git && \
+    cd mandrake && \
+    python setup.py install && \
+    cd .. && rm -r mandrake
 
 COPY . /src
 WORKDIR /src
