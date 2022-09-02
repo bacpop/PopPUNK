@@ -7,7 +7,8 @@ RUN apt-get update && \
                           libarmadillo-dev \
                           libeigen3-dev \
                           libopenblas-dev \
-                          software-properties-common
+                          software-properties-common \
+                          libboost-all-dev
 
 RUN git clone https://github.com/somme89/rapidNJ.git && \
     cd rapidNJ && \
