@@ -7,8 +7,7 @@ RUN apt-get update && \
                           libarmadillo-dev \
                           libeigen3-dev \
                           libopenblas-dev \
-                          software-properties-common \
-                          libboost-all-dev
+                          software-properties-common
 
 RUN git clone https://github.com/somme89/rapidNJ.git && \
     cd rapidNJ && \
@@ -42,7 +41,7 @@ RUN pip install .
 
 RUN pip install cmake plotly ffmpeg
 
-RUN git clone https://github.com/bacpop/mandrake.git && \
+RUN git clone -b bacpop-49 https://github.com/bacpop/mandrake.git && \
     cd mandrake && \
     python setup.py install && \
     cd .. && rm -r mandrake
