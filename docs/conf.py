@@ -51,6 +51,8 @@ autodoc_mock_imports = ["hdbscan",
                         "Bio",
                         "tqdm",
                         "tqdm.tqdm",
+                        "SCE",
+                        "treeswift",
                         "poppunk_refine",
                         "h5py",
                         "networkx"]
