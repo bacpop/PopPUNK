@@ -1,3 +1,4 @@
 Cython>=0.26.1
 sphinx>=5.0
 sphinx_rtd_theme>=1.0
+docutils==0.16 # bullets in rtd theme
