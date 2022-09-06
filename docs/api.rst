@@ -7,9 +7,6 @@ Documentation for module functions (for developers)
     This doesn't build properly on readthedocs. To view, clone and run
     ``cd docs && make html`` then see ``_build/api.html``.
 
-.. contents::
-   :local:
-
 assign.py
 ---------
 ``poppunk_assign`` main function

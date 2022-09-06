@@ -8,9 +8,6 @@ using pre-optimised species-specific databases and default parameters.
    PopPUNK-web is temporarily down while we work on an updated and better supported
    version (beebop).
 
-.. contents::
-   :local:
-
 How it works
 ------------
 PopPUNK-web uses C++ code compiled to WebAssembly to sketch query sequences client side, then post this sketch to our Python backend running PopPUNK.

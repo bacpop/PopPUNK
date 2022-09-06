@@ -8,9 +8,6 @@ To use these scripts you will need to have a clone of the git repository, or the
 installed with the prefix 'poppunk' (e.g to run ``extract_distances.py``, run the command
 ``poppunk_extract_distances.py``).
 
-.. contents::
-   :local:
-
 Easy run mode
 -------------
 Previous versions of the software had an ``--easy-run`` mode which would run a pipeline of:

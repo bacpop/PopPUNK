@@ -3,9 +3,6 @@ Overview
 This page details the way in which we would advise that you *should* use and
 run PopPUNK, if possible.
 
-.. contents::
-   :local:
-
 .. image:: images/poppunk_flowchart.png
    :alt:  Flowchart for choosing how to use PopPUNK
    :align: center

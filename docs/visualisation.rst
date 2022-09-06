@@ -1,11 +1,6 @@
 Creating visualisations
 =======================
 
-**Contents**:
-
-.. contents::
-   :local:
-
 We have moved visualisation tools into their own program ``poppunk_visualise``, both
 to reinforce our commitment to UK spellings, and so that you can rerun visualisations
 with different outputs and settings without rerunning the other parts of the code.
