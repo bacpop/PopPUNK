@@ -46,11 +46,13 @@ autodoc_mock_imports = ["hdbscan",
                         "sklearn",
                         "matplotlib",
                         "dendropy",
-                        "pp-sketchlib",
+                        "pp_sketchlib",
+                        "biopython",
+                        "Bio",
+                        "tqdm",
+                        "tqdm.tqdm",
                         "poppunk_refine",
                         "h5py",
-                        "flask",
-                        "flask-cors",
                         "networkx"]
 
 # Add any paths that contain templates here, relative to this directory.
