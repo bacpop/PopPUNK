@@ -1,11 +1,6 @@
 Subclustering with PopPIPE
 ==========================
 
-**Contents**:
-
-.. contents::
-   :local:
-
 Overview
 --------
 You can run `PopPIPE <https://github.com/johnlees/PopPIPE>`__ on your PopPUNK output,

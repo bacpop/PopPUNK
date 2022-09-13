@@ -14,9 +14,6 @@ on the population structure of your dataset.
     so others can use it for assigning queries. If you are open to this, please read
     :doc:`model_distribution` after this page.
 
-.. contents::
-   :local:
-
 Overview
 --------
 

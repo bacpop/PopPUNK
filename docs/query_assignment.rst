@@ -8,9 +8,6 @@ Briefly, `download your reference database <https://poppunk.net/pages/databases.
     poppunk_assign --db database --query qfile.txt \
     --output poppunk_clusters --threads 8
 
-.. contents::
-   :local:
-
 Downloading a database
 ----------------------
 Current PopPUNK databases can be found here: https://poppunk.net/pages/databases.html

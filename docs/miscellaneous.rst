@@ -3,6 +3,7 @@ Miscellaneous
 
 Rejected/alternative logos
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 .. image:: images/poppunk_logo_original.png
    :alt:  Original logo
    :align: center

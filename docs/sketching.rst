@@ -8,9 +8,6 @@ mash, however the current version now requires `pp-sketchlib <https://github.com
 This page details options related to sketching and distance calculation, and is relevant
 to both :doc:`query_assignment` and :doc:`model_fitting`.
 
-.. contents::
-   :local:
-
 Overview
 --------
 Any input given to ``--r-files`` or ``--q-files`` will be sketched using the following

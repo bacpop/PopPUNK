@@ -20,11 +20,6 @@ In each mode, you can get as output:
 - The graph as a graphml file, to view in :ref:`cytoscape-view`.
 - The MST formatted as a newick file, to view in a tree viewer of your choice.
 
-**Jump to**:
-
-.. contents::
-   :local:
-
 With small data
 ---------------
 For a small dataset it's feasible to find the MST from your (dense) distance matrix.
