@@ -32,6 +32,9 @@ Lineage models do not use references.
     enable query assignment, but visualisation and subclustering within strains will no longer be
     possible, as full information within each strain will be missing.
 
+These databases can be automatically generated using the ``poppunk_distribute_fit.py``
+script after model fitting. See the :doc:`scripts` page for more information.
+
 Picking references
 ------------------
 PopPUNK automatically prunes redundant sequence information from databases by removing
