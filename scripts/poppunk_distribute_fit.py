@@ -9,7 +9,7 @@ import tarfile
 
 def get_options():
 	description = 'Generates distributable fits from PopPUNK'
-	parser = argparse.ArgumentParser(description=description, prog='python PopPUNK_distribution.py')
+	parser = argparse.ArgumentParser(description=description, prog='python poppunk_distribute_fit.py')
 
 	IO = parser.add_argument_group('Input/Output options')
 	IO.add_argument('--dbdir', default=None, help='PopPUNK Database Directory. ')
