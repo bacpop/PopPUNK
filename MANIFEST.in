@@ -1,2 +1,6 @@
 recursive-include scripts *.py
 recursive-include PopPUNK/data *.gz
+recursive-include PopPUNK/data *.pkl
+recursive-include vendor *
+recursive-include src *
+include CMakeLists.txt

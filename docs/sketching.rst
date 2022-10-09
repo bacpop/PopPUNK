@@ -1,5 +1,5 @@
-Sketching
-=========
+Sketching (``--create-db``)
+===========================
 
 The basis of all analysis is estimation of core and accessory genome distances between samples.
 PopPUNK uses genome sketching to make analysis more efficient. In previous versions we used
@@ -7,9 +7,6 @@ mash, however the current version now requires `pp-sketchlib <https://github.com
 
 This page details options related to sketching and distance calculation, and is relevant
 to both :doc:`query_assignment` and :doc:`model_fitting`.
-
-.. contents::
-   :local:
 
 Overview
 --------
@@ -52,15 +49,14 @@ You can use pp-sketchlib directly to create sketches, though functionality is id
 to doing this through PopPUNK. You will need to run both sketch and query modes to generate
 the sketch database and the distance files as in ``--create-db``::
 
-   poppunk_sketch --sketch --rfile rfiles.txt --ref-db database --sketch-size 10000 --min-k 15 --k-step 2 --cpus 4
-   poppunk_sketch --query --ref-db database --query-db database --cpus 4
+   sketchlib sketch -l rfiles.txt -o database -s 10000 -k 15,31,2 --cpus 4
+   sketchlib query dist database -o dists --cpus 4
 
 You may want to do this if you anticipate trying different k-mer sizes, are using the
 databases for other purposes, or running a very large analysis where it is useful to split
 up the sketching and distance steps. Useful options include:
 
-- ``--print`` -- to print distances in human-readable format to the terminal.
-- ``--jaccard`` -- will output Jaccard distances at each k-mer length, rather than core and accessory distances.
+- ``sketchlib query jaccard`` -- will output Jaccard distances at each k-mer length, rather than core and accessory distances.
 - ``--subset`` -- to only calculate distances for a subset of the genomes in the reference database.
 
 .. warning::
@@ -70,7 +66,7 @@ up the sketching and distance steps. Useful options include:
 
 Viewing information about a database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Use ``poppunk_db_info`` on a HDF5 file::
+Use ``poppunk_info`` on a HDF5 file::
 
     PopPUNK database:		ecoli.h5
     Sketch version:			9314bda28ed25a60dd40f9b9e896c0b269500fec

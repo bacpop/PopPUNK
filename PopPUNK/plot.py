@@ -449,7 +449,7 @@ def drawMST(mst, outPrefix, isolate_clustering, clustering_name, overwrite):
                     output=graph2_file_name, output_size=(3000, 3000))
 
 def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, queryList = None,
-                        suffix = None, writeCsv = True, viz_subset = None):
+                        suffix = None, writeCsv = True):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -474,23 +474,11 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
             (default = None)
         writeCsv (bool)
             Whether to print CSV file to accompany network
-        viz_subset (list)
-            List of sequences to include in visualisation
-
     """
 
     # Avoid circular import
     from .network import save_network
-
-    # mask network if subsetting
-    if viz_subset is not None:
-        viz_vertex = G.new_vertex_property('bool')
-        for n,vertex in enumerate(G.vertices()):
-            if isolate_names[n] in viz_subset:
-                viz_vertex[vertex] = True
-            else:
-                viz_vertex[vertex] = False
-        G.set_vertex_filter(viz_vertex)
+    import graph_tool.all as gt
 
     # edit names
     seqLabels = isolateNameToLabel(isolate_names)
@@ -504,6 +492,18 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     else:
         suffix = suffix + '_cytoscape'
     save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
+
+    # Save each component too (useful for very large graphs)
+    component_assignments, component_hist = gt.label_components(G)
+    for component_idx in range(len(component_hist)):
+        remove_list = []
+        for vidx, v_component in enumerate(component_assignments.a):
+            if v_component != component_idx:
+                remove_list.append(vidx)
+        G_copy = G.copy()
+        G_copy.remove_vertex(remove_list)
+        save_network(G_copy, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
+        del G_copy
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
@@ -594,10 +594,10 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
 
     # process epidemiological data without duplicating names
     # used by PopPUNK
-    columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
-    'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
-    'overall_Lineage']
     if epiCsv is not None:
+        columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
+        'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
+        'overall_Lineage']
         epiData = pd.read_csv(epiCsv, index_col = False, quotechar='"')
         epiData.index = isolateNameToLabel(epiData.iloc[:,0])
         for e in epiData.columns.values:

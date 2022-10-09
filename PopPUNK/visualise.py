@@ -116,7 +116,7 @@ def get_options():
     faGroup.add_argument('--cytoscape', help='Generate network output files for Cytoscape', default=False, action='store_true')
     faGroup.add_argument('--phandango', help='Generate phylogeny and TSV for Phandango visualisation', default=False, action='store_true')
     faGroup.add_argument('--grapetree', help='Generate phylogeny and CSV for grapetree visualisation', default=False, action='store_true')
-    faGroup.add_argument('--tree', help='Type of tree to calculate [default = nj]', type=str, default='nj',
+    faGroup.add_argument('--tree', help='Type of tree to calculate (not for cytoscape) [default = nj]', type=str, default='nj',
         choices=['nj', 'mst', 'both', 'none'])
     faGroup.add_argument('--mst-distances', help='Distances used to calculate a minimum spanning tree [default = core]', type=str,
         default='core', choices=accepted_weights_types)
@@ -230,6 +230,12 @@ def generate_visualisations(query_db,
     if not (microreact or phandango or grapetree or cytoscape):
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
+    if cytoscape and not (microreact or phandango or grapetree):
+        if rank_fit == None and not os.path.isfile(network_file):
+            sys.stderr.write("For cytoscape, specify either a network file to visualise "
+                             "with --network-file or a lineage model with --rank-fit\n")
+            sys.exit(1)
+        tree = 'none'
 
     # make directory for new output files
     if not os.path.isdir(output):
@@ -255,12 +261,10 @@ def generate_visualisations(query_db,
         distances = distances
 
     # Determine whether to use sparse distances
+    combined_seq = None
     use_sparse = False
     use_dense = False
-    rlist = None
-    qlist = None
-    combined_seq = None
-    if (tree == 'mst' or tree == 'both' or cytoscape) and rank_fit is not None:
+    if (tree == "mst" or tree == "both") and rank_fit is not None:
         # Set flag
         use_sparse = True
         # Read list of sequence names and sparse distance matrix
@@ -274,14 +278,16 @@ def generate_visualisations(query_db,
         elif previous_mst is not None:
             sys.stderr.write('The prefix of the distance files used to create the previous MST'
                              ' is needed to use the network')
-    if tree == 'nj' or tree == 'both' or microreact:
+    if (tree == "nj" or tree == "both") or rank_fit == None:
         use_dense = True
         # Process dense distance matrix
         rlist, qlist, self, complete_distMat = readPickle(distances)
         if not self:
             qr_distMat = complete_distMat
+            combined_seq = rlist + qlist
         else:
             rr_distMat = complete_distMat
+            combined_seq = rlist
 
         # Fill in qq-distances if required
         if self == False:
@@ -340,6 +346,7 @@ def generate_visualisations(query_db,
     #*******************************#
 
     # extract subset of distances if requested
+    all_seq = combined_seq
     if include_files is not None:
         viz_subset = set()
         with open(include_files, 'r') as assemblyFiles:
@@ -444,89 +451,90 @@ def generate_visualisations(query_db,
     mst_tree = None
     mst_graph = None
     nj_tree = None
-    if len(combined_seq) >= 3:
-        # MST tree
-        if tree == 'mst' or tree == 'both':
-            existing_tree = None
-            if not overwrite:
-                existing_tree = load_tree(output, "MST", distances=mst_distances)
-            if existing_tree is None:
-                # Check selecting clustering type is in CSV
-                clustering_name = 'Cluster'
-                if display_cluster != None:
-                    if display_cluster not in isolateClustering.keys():
-                        clustering_name = list(isolateClustering.keys())[0]
-                        sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
-                                         prev_clustering + '; instead using ' + clustering_name + '\n')
+    if tree != 'none':
+        if len(combined_seq) >= 3:
+            # MST tree
+            if tree == 'mst' or tree == 'both':
+                existing_tree = None
+                if not overwrite:
+                    existing_tree = load_tree(output, "MST", distances=mst_distances)
+                if existing_tree is None:
+                    # Check selecting clustering type is in CSV
+                    clustering_name = 'Cluster'
+                    if display_cluster != None:
+                        if display_cluster not in isolateClustering.keys():
+                            clustering_name = list(isolateClustering.keys())[0]
+                            sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
+                                            prev_clustering + '; instead using ' + clustering_name + '\n')
+                        else:
+                            clustering_name = display_cluster
                     else:
-                        clustering_name = display_cluster
-                else:
-                    clustering_name = list(isolateClustering.keys())[0]
-                if use_sparse:
-                    G = generate_mst_from_sparse_input(sparse_mat,
-                                                        rlist,
-                                                        old_rlist = old_rlist,
-                                                        previous_mst = previous_mst,
-                                                        gpu_graph = gpu_graph)
-                elif use_dense:
-                    # Get distance matrix
-                    complete_distMat = \
-                        np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                                pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
-                    # Dense network may be slow
-                    sys.stderr.write("Generating MST from dense distances (may be slow)\n")
-                    G = construct_network_from_assignments(combined_seq,
-                                                            combined_seq,
-                                                            [0]*complete_distMat.shape[0],
-                                                            within_label = 0,
-                                                            distMat = complete_distMat,
-                                                            weights_type = mst_distances,
-                                                            use_gpu = gpu_graph,
-                                                            summarise = False)
+                        clustering_name = list(isolateClustering.keys())[0]
+                    if use_sparse:
+                        G = generate_mst_from_sparse_input(sparse_mat,
+                                                            rlist,
+                                                            old_rlist = old_rlist,
+                                                            previous_mst = previous_mst,
+                                                            gpu_graph = gpu_graph)
+                    elif use_dense:
+                        # Get distance matrix
+                        complete_distMat = \
+                            np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                                    pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+                        # Dense network may be slow
+                        sys.stderr.write("Generating MST from dense distances (may be slow)\n")
+                        G = construct_network_from_assignments(combined_seq,
+                                                                combined_seq,
+                                                                [0]*complete_distMat.shape[0],
+                                                                within_label = 0,
+                                                                distMat = complete_distMat,
+                                                                weights_type = mst_distances,
+                                                                use_gpu = gpu_graph,
+                                                                summarise = False)
+                        if gpu_graph:
+                            G = cugraph.minimum_spanning_tree(G, weight='weights')
+                    else:
+                        sys.stderr.write("Need either sparse or dense distances matrix to construct MST\n")
+                        exit(1)
+                    mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
+                    del G
+                    # save outputs
+                    save_network(mst_graph,
+                                    prefix = output,
+                                    suffix = '_mst',
+                                    use_graphml = False,
+                                    use_gpu = gpu_graph)
                     if gpu_graph:
-                        G = cugraph.minimum_spanning_tree(G, weight='weights')
+                        mst_graph = cugraph_to_graph_tool(mst_graph, isolateNameToLabel(combined_seq))
+                    else:
+                        vid = mst_graph.new_vertex_property('string',
+                                                    vals = isolateNameToLabel(combined_seq))
+                        mst_graph.vp.id = vid
+                    mst_as_tree = mst_to_phylogeny(mst_graph,
+                                                    isolateNameToLabel(combined_seq),
+                                                    use_gpu = False)
+                    mst_as_tree = mst_as_tree.replace("'","")
+                    with open(os.path.join(output,os.path.basename(output) + '_mst.nwk'),'w') as tree_out:
+                        tree_out.write(mst_as_tree)
+                    drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
                 else:
-                    sys.stderr.write("Need either sparse or dense distances matrix to construct MST\n")
-                    exit(1)
-                mst_graph = generate_minimum_spanning_tree(G, gpu_graph)
-                del G
-                # save outputs
-                save_network(mst_graph,
-                                prefix = output,
-                                suffix = '_mst',
-                                use_graphml = False,
-                                use_gpu = gpu_graph)
-                if gpu_graph:
-                    mst_graph = cugraph_to_graph_tool(mst_graph, isolateNameToLabel(combined_seq))
-                else:
-                    vid = mst_graph.new_vertex_property('string',
-                                                vals = isolateNameToLabel(combined_seq))
-                    mst_graph.vp.id = vid
-                mst_as_tree = mst_to_phylogeny(mst_graph,
-                                                isolateNameToLabel(combined_seq),
-                                                use_gpu = False)
-                mst_as_tree = mst_as_tree.replace("'","")
-                with open(os.path.join(output,os.path.basename(output) + '_mst.nwk'),'w') as tree_out:
-                    tree_out.write(mst_as_tree)
-                drawMST(mst_graph, output, isolateClustering, clustering_name, overwrite)
-            else:
-                mst_tree = existing_tree
+                    mst_tree = existing_tree
 
-        # Generate NJ tree
-        if tree == 'nj' or tree == 'both':
-            existing_tree = None
-            if not overwrite:
-                existing_tree = load_tree(output, "NJ")
-            if existing_tree is None:
-                nj_tree = generate_nj_tree(core_distMat,
-                                            combined_seq,
-                                            output,
-                                            rapidnj,
-                                            threads = threads)
-            else:
-                nj_tree = existing_tree
-    else:
-        sys.stderr.write("Fewer than three sequences, not drawing trees\n")
+            # Generate NJ tree
+            if tree == 'nj' or tree == 'both':
+                existing_tree = None
+                if not overwrite:
+                    existing_tree = load_tree(output, "NJ")
+                if existing_tree is None:
+                    nj_tree = generate_nj_tree(core_distMat,
+                                                combined_seq,
+                                                output,
+                                                rapidnj,
+                                                threads = threads)
+                else:
+                    nj_tree = existing_tree
+        else:
+            sys.stderr.write("Fewer than three sequences, not drawing trees\n")
 
     #****************#
     #*              *#
@@ -580,22 +588,31 @@ def generate_visualisations(query_db,
 
     if cytoscape:
         sys.stderr.write("Writing cytoscape output\n")
+        import graph_tool.all as gt
         if network_file is not None:
             genomeNetwork = load_network_file(network_file, use_gpu = gpu_graph)
+            if gpu_graph:
+                genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
+            # Hard delete from network to remove samples (mask doesn't work neatly)
+            if viz_subset is not None:
+                remove_list = []
+                for keep, idx in enumerate(row_slice):
+                    if not keep:
+                        remove_list.append(idx)
+                genomeNetwork.remove_vertex(remove_list)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
         else:
-            sys.stderr.write('Cytoscape output requires a network file or lineage rank fit is provided\n')
+            sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
-        if gpu_graph:
-            genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(combined_seq))
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
                             combined_seq,
                             isolateClustering,
                             output,
-                            info_csv,
-                            viz_subset = viz_subset)
+                            info_csv)
+        if model.type == 'lineage':
+            sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
     sys.stderr.write("\nDone\n")
 

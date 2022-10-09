@@ -807,10 +807,12 @@ class RefineFit(ClusterFit):
 
         # Output clusters at more positions if requested
         if multi_boundary > 1:
+            sys.stderr.write("Creating multiple boundary fits\n")
             multi_refine(scaled_X,
                         sample_names,
                         self.mean0,
                         self.mean1,
+                        self.scale,
                         optimal_s,
                         multi_boundary,
                         self.outPrefix,
@@ -849,7 +851,6 @@ class RefineFit(ClusterFit):
                 print(e)
                 sys.stderr.write("Could not separately refine core and accessory boundaries. "
                                  "Using joint 2D refinement only.\n")
-            self.indiv_fitted = True
         y = self.assign(X)
         return y
 

@@ -17,17 +17,13 @@ if os.environ.get("POPPUNK_PYTHON"):
 else:
     python_cmd = "python"
 
-#easy run
 sys.stderr.write("Running database creation (--create-db)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_db --qc-filter prune --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --plot-fit 5 --output example_db --overwrite", shell=True, check=True)
 
 # create database with different QC options
-sys.stderr.write("Running database QC test (--create-db)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files references.txt --min-k 13 --k-step 3 --output example_qc --qc-filter continue --length-range 2000000 3000000 --overwrite", shell=True, check=True)
-
-# test updating order is correct
-sys.stderr.write("Running distance matrix order check (--update-db)\n")
-subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
+sys.stderr.write("Running database QC test (--qc-db)\n")
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --type-isolate \"12754_4#79\" --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --length-range 2000000 3000000 --overwrite", shell=True, check=True)
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
@@ -39,18 +35,18 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db e
 
 #refine model with GMM
 sys.stderr.write("Running model refinement (--fit-model refine)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --manual-start manual.txt --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --indiv-refine both", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --indiv-refine both --no-local", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --unconstrained", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 1", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --score-idx 2", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --indiv-refine both", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --indiv-refine both --no-local", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --unconstrained", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --score-idx 1", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --score-idx 2", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
 
 sys.stderr.write("Running multi boundary refinement (--multi-boundary and poppunk_iterate.py)\n")
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.2 --overwrite --multi-boundary 10", shell=True, check=True)
-subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_refine --h5 example_db/example_db", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_iterate --neg-shift -0.2 --overwrite --multi-boundary 10", shell=True, check=True)
+subprocess.run(python_cmd + " ../scripts/poppunk_iterate.py --db example_iterate --h5 example_db/example_db", shell=True, check=True)
 
 # lineage clustering
 sys.stderr.write("Running lineage clustering test (--fit-model lineage)\n")
@@ -64,13 +60,22 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --use-model --ref-db example_
 sys.stderr.write("Testing C++ extension\n")
 subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)
 
-#assign query
+# assign query
 sys.stderr.write("Running query assignment\n")
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --core --accessory", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --serial --overwrite --core --accessory", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --length-range 2900000 3000000 --max-zero-dist 1 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --max-pi-dist 0.04 --max-zero-dist 1 --betweenness --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query more_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --max-zero-dist 0.3 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query more_queries.txt --db example_db --model-dir example_refine --output example_query --run-qc --max-zero-dist 1 --max-merge 3 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_dbscan --output example_query_update --update-db --graph-weights --overwrite", shell=True, check=True) # uses graph weights
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.txt --db example_db --model-dir example_refine --output example_single_query --update-db --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query inref_query.txt --db example_db --model-dir example_refine --output example_single_query --write-references", shell=True, check=True) # matched name, but should be renamed in the output
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
+
+# test updating order is correct
+sys.stderr.write("Running distance matrix order check (--update-db)\n")
+subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
 
 # viz
 sys.stderr.write("Running visualisations (poppunk_visualise)\n")
@@ -92,10 +97,6 @@ subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db
 sys.stderr.write("Running mandrake viz\n")
 subprocess.run(python_cmd + " ../poppunk_mandrake-runner.py --distances example_db/example_db.dists --output example_mandrake --perplexity 5", shell=True, check=True)
 
-# prune
-sys.stderr.write("Running poppunk_prune\n")
-subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_prune", shell=True, check=True)
-
 # references
 sys.stderr.write("Running poppunk_references\n")
 subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.gt --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db", shell=True, check=True)
@@ -108,10 +109,6 @@ subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output
 sys.stderr.write("Printing citations\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation --query some_queries.txt --db example_db --output example_query", shell=True, check=True)
-
-# web API
-# sys.stderr.write("Running API tests\n")
-# subprocess.run(python_cmd + " test-web.py", shell=True, check=True)
 
 sys.stderr.write("Tests completed\n")
 

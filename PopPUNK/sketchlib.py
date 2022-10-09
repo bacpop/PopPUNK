@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 # additional
+import re
 from random import sample
 import numpy as np
 from scipy import optimize
@@ -16,10 +17,10 @@ import pp_sketchlib
 import h5py
 
 from .__init__ import SKETCHLIB_MAJOR, SKETCHLIB_MINOR, SKETCHLIB_PATCH
-from .utils import readRfile
+from .utils import readRfile, stderr_redirected
 from .plot import plot_fit
 
-sketchlib_exe = "poppunk_sketch"
+sketchlib_exe = "sketchlib"
 
 def checkSketchlibVersion():
     """Checks that sketchlib can be run, and returns version
@@ -28,18 +29,24 @@ def checkSketchlibVersion():
         version (str)
             Version string
     """
+    sketchlib_version = [0, 0, 0]
     try:
         version = pp_sketchlib.version
 
     # Older versions didn't export attributes
     except AttributeError:
-        p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
-        version = 0
-        for line in iter(p.stdout.readline, ''):
-            if line != '':
-                version = line.rstrip().decode().split(" ")[1]
-                break
+        try:
+            p = subprocess.Popen([sketchlib_exe + ' --version'], shell=True, stdout=subprocess.PIPE)
+            version = 0
+            for line in iter(p.stdout.readline, ''):
+                if line != '':
+                    version = line.rstrip().decode().split(" ")[1]
+                    break
 
+        except IndexError:
+            sys.stderr.write("WARNING: Sketchlib version could not be found\n")
+
+    version = re.sub(r'^v', '', version) # Remove leading v
     sketchlib_version = [int(v) for v in version.split(".")]
     if sketchlib_version[0] < SKETCHLIB_MAJOR or \
         sketchlib_version[0] == SKETCHLIB_MAJOR and sketchlib_version[1] < SKETCHLIB_MINOR or \
@@ -332,7 +339,7 @@ def removeFromDB(db_name, out_name, removeSeqs, full_names = False):
 def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                         threads, overwrite,
                         strand_preserved, min_count,
-                        use_exact, qc_dict, calc_random = True,
+                        use_exact, calc_random = True,
                         codon_phased = False,
                         use_gpu = False, deviceid = 0):
     """Sketch the input assemblies at the requested k-mer lengths
@@ -366,8 +373,6 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
         use_exact (bool)
             Use exact count of k-mer appearance in reads
             (default = False)
-        qc_dict (dict)
-            Dict containg QC settings
         calc_random (bool)
             Add random match chances to DB (turn off for queries)
         codon_phased (bool)
@@ -381,8 +386,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
             (default = 0)
     Returns:
         names (list)
-            List of names included in the database (some may be pruned due
-            to QC)
+            List of names included in the database (from rfile)
     """
     # read file names
     names, sequences = readRfile(assemblyList)
@@ -409,29 +413,17 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
                                    use_gpu=use_gpu,
                                    device_id=deviceid)
 
-    # QC sequences
-    if qc_dict['run_qc']:
-        filtered_names = sketchlibAssemblyQC(oPrefix,
-                                             names,
-                                             klist,
-                                             qc_dict,
-                                             strand_preserved,
-                                             threads)
-    else:
-        filtered_names = names
-
     # Add random matches if required
     # (typically on for reference, off for query)
     if (calc_random):
         addRandom(oPrefix,
-                  filtered_names,
+                  names,
                   klist,
                   strand_preserved,
                   overwrite = True,
                   threads = threads)
 
-    # return filtered file names
-    return filtered_names
+    return names
 
 
 def addRandom(oPrefix, sequence_names, klist,
@@ -543,24 +535,25 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                 example = sample(rNames, k=2)
                 raw = np.zeros(len(klist))
                 corrected = np.zeros(len(klist))
-                raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                                 query_db_name=ref_db,
-                                                 rList=[example[0]],
-                                                 qList=[example[1]],
-                                                 klist=klist,
-                                                 random_correct=False,
-                                                 jaccard=True,
-                                                 num_threads=threads,
-                                                 use_gpu = False)
-                corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                                       query_db_name=ref_db,
-                                                       rList=[example[0]],
-                                                       qList=[example[1]],
-                                                       klist=klist,
-                                                       random_correct=True,
-                                                       jaccard=True,
-                                                       num_threads=threads,
-                                                       use_gpu = False)
+                with stderr_redirected(): # Hide the many progress bars
+                    raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                    query_db_name=ref_db,
+                                                    rList=[example[0]],
+                                                    qList=[example[1]],
+                                                    klist=klist,
+                                                    random_correct=False,
+                                                    jaccard=True,
+                                                    num_threads=threads,
+                                                    use_gpu = False)
+                    corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                        query_db_name=ref_db,
+                                                        rList=[example[0]],
+                                                        qList=[example[1]],
+                                                        klist=klist,
+                                                        random_correct=True,
+                                                        jaccard=True,
+                                                        num_threads=threads,
+                                                        use_gpu = False)
                 raw_fit = fitKmerCurve(raw[0], klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected[0], klist, jacobian)
                 plot_fit(klist,
@@ -597,24 +590,25 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))
             ref_examples = sample(rNames, k = number_plot_fits)
             query_examples = sample(qNames, k = number_plot_fits)
-            raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                             query_db_name=query_db,
-                                             rList=ref_examples,
-                                             qList=query_examples,
-                                             klist=klist,
-                                             random_correct=False,
-                                             jaccard=True,
-                                             num_threads=threads,
-                                             use_gpu = False)
-            corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
-                                                   query_db_name=query_db,
-                                                   rList=ref_examples,
-                                                   qList=query_examples,
-                                                   klist=klist,
-                                                   random_correct=True,
-                                                   jaccard=True,
-                                                   num_threads=threads,
-                                                   use_gpu = False)
+            with stderr_redirected(): # Hide the many progress bars
+                raw = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                query_db_name=query_db,
+                                                rList=ref_examples,
+                                                qList=query_examples,
+                                                klist=klist,
+                                                random_correct=False,
+                                                jaccard=True,
+                                                num_threads=threads,
+                                                use_gpu = False)
+                corrected = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
+                                                    query_db_name=query_db,
+                                                    rList=ref_examples,
+                                                    qList=query_examples,
+                                                    klist=klist,
+                                                    random_correct=True,
+                                                    jaccard=True,
+                                                    num_threads=threads,
+                                                    use_gpu = False)
             for plot_idx in range(number_plot_fits):
                 raw_fit = fitKmerCurve(raw[plot_idx], klist, jacobian)
                 corrected_fit = fitKmerCurve(corrected[plot_idx], klist, jacobian)
@@ -630,188 +624,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
     return distMat
 
-
-def pickTypeIsolate(prefix, names):
-    """Selects a type isolate as that with a minimal proportion
-    of missing data.
-
-    Args:
-        prefix (str)
-            Prefix of output files
-        names (list)
-            Names of samples to QC
-
-    Returns:
-        type_isolate (str)
-            Name of isolate selected as reference
-    """
-    # open databases
-    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-
-    min_prop_n = 1.0
-    type_isolate = None
-
-    try:
-        # process data structures
-        read_grp = hdf_in['sketches']
-        # iterate through sketches
-        for dataset in read_grp:
-            if hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length'] < min_prop_n:
-                min_prop_n = hdf_in['sketches'][dataset].attrs['missing_bases']/hdf_in['sketches'][dataset].attrs['length']
-                type_isolate = dataset
-            if min_prop_n == 0.0:
-                break
-    # if failure still close files to avoid corruption
-    except:
-        hdf_in.close()
-        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
-        raise
-
-    return type_isolate
-
-def sketchlibAssemblyQC(prefix, names, klist, qc_dict, strand_preserved, threads):
-    """Calculates random match probability based on means of genomes
-    in assemblyList, and looks for length outliers.
-
-    Args:
-        prefix (str)
-            Prefix of output files
-        names (list)
-            Names of samples to QC
-        klist (list)
-            List of k-mer sizes to sketch
-        qc_dict (dict)
-            Dictionary of QC parameters
-        strand_preserved (bool)
-            Ignore reverse complement k-mers (default = False)
-        threads (int)
-            Number of threads to use in parallelisation
-
-    Returns:
-        retained (list)
-            List of sequences passing QC filters
-    """
-    sys.stderr.write("Running QC on sketches\n")
-
-    # open databases
-    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-
-    # try/except structure to prevent h5 corruption
-    failed_samples = False
-    try:
-        # process data structures
-        read_grp = hdf_in['sketches']
-
-        seq_length = {}
-        seq_ambiguous = {}
-        retained = []
-        failed = []
-
-        # iterate through sketches
-        for dataset in read_grp:
-            if dataset in names:
-                # test thresholds
-                remove = False
-                seq_length[dataset] = hdf_in['sketches'][dataset].attrs['length']
-                seq_ambiguous[dataset] = hdf_in['sketches'][dataset].attrs['missing_bases']
-
-        # calculate thresholds
-        # get mean length
-        genome_lengths = np.fromiter(seq_length.values(), dtype = int)
-        mean_genome_length = np.mean(genome_lengths)
-
-        # calculate length threshold unless user-supplied
-        if qc_dict['length_range'][0] is None:
-            lower_length = mean_genome_length - \
-                qc_dict['length_sigma'] * np.std(genome_lengths)
-            upper_length = mean_genome_length + \
-                qc_dict['length_sigma'] * np.std(genome_lengths)
-        else:
-            lower_length, upper_length = qc_dict['length_range']
-
-        # open file to report QC failures
-        with open(prefix + '/' + os.path.basename(prefix) + '_qcreport.txt', 'a+') as qc_file:
-            # iterate through and filter
-            for dataset in seq_length.keys():
-                # determine if sequence passes filters
-                remove = False
-                if seq_length[dataset] < lower_length:
-                    remove = True
-                    qc_file.write(dataset + '\tBelow lower length threshold\n')
-                elif seq_length[dataset] > upper_length:
-                    remove = True
-                    qc_file.write(dataset + '\tAbove upper length threshold\n')
-                if qc_dict['upper_n'] is not None and seq_ambiguous[dataset] > qc_dict['upper_n']:
-                    remove = True
-                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-                elif seq_ambiguous[dataset] > qc_dict['prop_n'] * seq_length[dataset]:
-                    remove = True
-                    qc_file.write(dataset + '\tAmbiguous sequence too high\n')
-
-                if remove:
-                    sys.stderr.write(dataset + ' failed QC\n')
-                    failed_samples = True
-                    failed.append(dataset)
-                else:
-                    retained.append(dataset)
-
-            # retain sketches of failed samples
-            if qc_dict['retain_failures']:
-                removeFromDB(db_name,
-                             prefix + '/' + 'failed.' + os.path.basename(prefix) + '.h5',
-                             retained,
-                             full_names = True)
-            # new database file if pruning
-            if qc_dict['qc_filter'] == 'prune':
-                filtered_db_name = prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5'
-                removeFromDB(db_name,
-                             prefix + '/' + 'filtered.' + os.path.basename(prefix) + '.h5',
-                             failed,
-                             full_names = True)
-                os.rename(filtered_db_name, db_name)
-        hdf_in.close()
-    # if failure still close files to avoid corruption
-    except:
-        hdf_in.close()
-        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-
-        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
-        raise
-
-    # stop if at least one sample fails QC and option is not continue/prune
-    if failed_samples and qc_dict['qc_filter'] == 'stop':
-        sys.stderr.write('Sequences failed QC filters - details in ' + \
-                         prefix + '/' + os.path.basename(prefix) + \
-                         '_qcreport.txt\n')
-        sys.exit(1)
-    elif qc_dict['qc_filter'] == 'continue':
-        retained = retained + failed
-
-    # stop if no sequences pass QC
-    if len(retained) == 0:
-        sys.stderr.write('No sequences passed QC filters - please adjust your settings\n')
-        sys.exit(1)
-
-    # remove random matches if already present
-    if 'random' in hdf_in:
-        hdf_in.close()
-        hdf_in = h5py.File(db_name, 'r+')
-        del hdf_in['random']
-    hdf_in.close()
-
-    # This gives back retained in the same order as names
-    retained = [x for x in names if x in frozenset(retained)]
-
-    # stop if type sequence does not pass QC or is absent
-    if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in retained:
-        sys.stderr.write('Type isolate ' + qc_dict['type_isolate'] + ' not found in isolates after QC; check '
-        'name of type isolate and QC options\n')
-        sys.exit(1)
-
-    return retained
 
 def fitKmerCurve(pairwise, klist, jacobian):
     """Fit the function :math:`pr = (1-a)(1-c)^k`
@@ -845,7 +657,7 @@ def fitKmerCurve(pairwise, klist, jacobian):
                          "\nWith mash input " +
                          np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
                          "\nCheck for low quality input genomes\n")
-        exit(0)
+        transformed_params = [0, 0]
 
     # Return core, accessory
     return(np.flipud(transformed_params))

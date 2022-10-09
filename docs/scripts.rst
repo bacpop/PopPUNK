@@ -8,9 +8,6 @@ To use these scripts you will need to have a clone of the git repository, or the
 installed with the prefix 'poppunk' (e.g to run ``extract_distances.py``, run the command
 ``poppunk_extract_distances.py``).
 
-.. contents::
-   :local:
-
 Easy run mode
 -------------
 Previous versions of the software had an ``--easy-run`` mode which would run a pipeline of:
@@ -53,6 +50,8 @@ This script will do the following:
 4. Create a tree by nesting smaller clusters within larger clusters they are subsets of.
 
 5. Output the combined clusters, average core distances, and tree.
+
+6. Cut this tree to pick a set of clusters under a similarity given by ``--cutoff``.
 
 Adding weights to the network
 -----------------------------
@@ -109,8 +108,26 @@ To run::
 
   poppunk_calculate_silhouette.py --distances strain_db.dists --cluster-csv strain_db_clusters.csv
 
-The following additonal options are available for use with external clusterings (e.g. from hierBAPS):
+The following additional options are available for use with external clusterings (e.g. from hierBAPS):
 
 - ``--cluster-col`` the (1-indexed) column index containing the cluster assignment
 - ``--id-col`` the (1-indexed) column index containing the sample names
 - ``--sub`` a string to remove from sample names to match them to those in ``--distances``
+
+Distributing PopPUNK models
+------------------------------
+This script automatically generates compressed and uncompressed directories containing all files
+required for distribution and reuse of PopPUNK model fits.
+
+To run::
+
+    python poppunk_distribute_fit.py --dbdir database_directory --fitdir model_fit_directory --outpref output_prefix
+
+The following additional arguments are available:
+
+- ``--lineage`` specify only if lineage fit was used.
+- ``--no-compress`` will not generate tar.bz2 archives
+
+``--dbdir`` and ``--fitdir`` can be the same directory, however both must still be specified.
+The output of this script is a directory and a compressed tar.bz2 archive for each of the
+full dataset and representative genomes dataset.

@@ -1,5 +1,5 @@
-Fitting new models
-==================
+Fitting new models (``--fit-model``)
+====================================
 
 .. |nbsp| unicode:: 0xA0
    :trim:
@@ -13,9 +13,6 @@ on the population structure of your dataset.
     After fitting a model to a new species we would like to share it on our website,
     so others can use it for assigning queries. If you are open to this, please read
     :doc:`model_distribution` after this page.
-
-.. contents::
-   :local:
 
 Overview
 --------
@@ -292,6 +289,12 @@ for small datasets with sparse points, or for datasets without much structure in
 and accessory), and that some points are classified as 'noise' so not all of their
 edges are included in the network (these are the small black points).
 
+.. warning::
+    HDBSCAN models are not backwards compatible from sklearn v1.0 onwards. We
+    would recommend using at least this version. Even better would be to then run
+    model refinement (:ref:`refine-models`) to get a simpler and faster model
+    for onward query assignment.
+
 dbscan usually needs little modification to run::
 
     poppunk --fit-model dbscan --ref-db listeria
@@ -399,6 +402,8 @@ Setting either ``--min-cluster-prop`` or ``--D`` too low can cause the fit to fa
     Mode: Fitting dbscan model to reference database
 
     Failed to find distinct clusters in this dataset
+
+.. _refine-models:
 
 refine
 ------
