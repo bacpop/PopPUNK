@@ -279,7 +279,7 @@ def main():
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if int(min(rank_list)) == 0:
             sys.stderr.write("Ranks must be >= 1\n")
-        if max(rank_list) > 100:
+        if max(rank_list) > 1000:
             sys.stderr.write("WARNING: Ranks should be small non-zero integers for sensible lineage results\n")
 
     if args.create_db == False:
