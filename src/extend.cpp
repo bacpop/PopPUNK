@@ -125,8 +125,15 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         dists[i].push_back(dist);
         i_vec[i].push_back(i);
         j_vec[i].push_back(j);
-        if (new_val) {
+        if (all_neighbours)
+        {
           unique_neighbors++;
+        }
+        else if (new_val) {
+          unique_neighbors++;
+        }
+        if (new_val)
+        {
           prev_value = dist;
         }
       } else {
