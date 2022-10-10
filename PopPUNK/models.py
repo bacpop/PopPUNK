@@ -1238,6 +1238,8 @@ class LineageFit(ClusterFit):
             qqSquare,
             qrRect,
             max_rank,
+            self.reciprocal_only,
+            self.all_neighbours,
             self.threads)
         self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
                              max_rank, n_ref + n_query, rrSparse.dtype)

@@ -50,7 +50,10 @@ std::vector<T> combine_vectors(const std::vector<std::vector<T>> &vec,
 
 sparse_coo extend(const sparse_coo &sparse_rr_mat,
                   const NumpyMatrix &qq_mat_square,
-                  const NumpyMatrix &qr_mat_rect, const size_t kNN,
+                  const NumpyMatrix &qr_mat_rect,
+                  const size_t kNN,
+                  bool reciprocal_only,
+                  bool all_neighbours,
                   const size_t num_threads) {
   const size_t nr_samples = qr_mat_rect.rows();
   const size_t nq_samples = qr_mat_rect.cols();
@@ -138,7 +141,35 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
   std::vector<long> i_vec_all = combine_vectors(i_vec, len);
   std::vector<long> j_vec_all = combine_vectors(j_vec, len);
 
-  return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
+  // Only count reciprocal matches
+  if (reciprocal_only)
+  {
+    std::vector<float> filtered_dists;
+    std::vector<long> filtered_i_vec;
+    std::vector<long> filtered_j_vec;
+
+    for (long x = 0; x < i_vec.size(); x++)
+    {
+      if (i_vec[x] < j_vec[x])
+      {
+        for (long y = 0; y < j_vec.size(); y++)
+        {
+          if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y])
+          {
+            filtered_dists.push_back(filtered_dists[x]);
+            filtered_i_vec.push_back(i_vec_all[x]);
+            filtered_j_vec.push_back(j_vec_all[x]);
+            break;
+          }
+        }
+      }
+    }
+    return (std::make_tuple(filtered_i_vec, filtered_j_vec, filtered_dists));
+  }
+  else
+  {
+    return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
+  }
 }
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
