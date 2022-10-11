@@ -159,9 +159,9 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
 
     for (long x = 0; x < i_vec.size(); x++)
     {
-      if (i_vec[x] < j_vec[x])
+      if (i_vec_all[x] < j_vec_all[x])
       {
-        for (long y = 0; y < j_vec.size(); y++)
+        for (long y = 0; y < j_vec_all.size(); y++)
         {
           if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y])
           {
