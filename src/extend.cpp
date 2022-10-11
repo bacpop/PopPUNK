@@ -33,6 +33,8 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
       break;
     }
   }
+  // Ensure last range end is end of vector
+  row_start_idx[nr_samples] = i_vec.size();
   return row_start_idx;
 }
 
