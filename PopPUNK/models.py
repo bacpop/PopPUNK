@@ -132,8 +132,9 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
         sys.stderr.write("Loading lineage cluster model\n")
         load_obj = LineageFit(outPrefix,
                                 fit_object[0],
-                                fit_object[1],
-                                fit_object[2])
+                                fit_object[2],
+                                fit_object[3],
+                                fit_object[1])
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
@@ -1012,7 +1013,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, reciprocal_only, all_neighbours, use_gpu = False):
+    def __init__(self, outPrefix, ranks, reciprocal_only, all_neighbours, dist_col = None, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -1025,6 +1026,7 @@ class LineageFit(ClusterFit):
                 self.ranks.append(int(rank))
         self.reciprocal_only = reciprocal_only
         self.all_neighbours = all_neighbours
+        self.dist_col = dist_col
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
