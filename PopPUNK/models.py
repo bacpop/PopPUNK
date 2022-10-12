@@ -1013,10 +1013,11 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, reciprocal_only, all_neighbours, dist_col = None, use_gpu = False):
+    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only, all_neighbours, dist_col = None, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
+        self.max_search_depth = max_search_depth
         self.ranks = []
         for rank in sorted(ranks):
             if (rank < 1):

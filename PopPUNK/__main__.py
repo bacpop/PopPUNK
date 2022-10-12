@@ -153,7 +153,7 @@ def get_options():
                                 help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
                                 type = str,
                                 default = "1,2,3")
-    lineagesGroup.add_argument('--all-neighbours',
+    lineagesGroup.add_argument('--count-neighbours',
                                 help='kNN enumerates number of neighbours rather than number of '
                                 'neighbouring distances',
                                 action = 'store_true',
@@ -162,6 +162,11 @@ def get_options():
                                 help='Only use reciprocal kNN matches for lineage definitions',
                                 action = 'store_true',
                                 default = False)
+    lineagesGroup.add_argument('--max-search-depth',
+                                help='Number of kNN distances per sequence to filter when counting neighbours'
+                                ' or using only reciprocal matches [default = 10% of sample size]',
+                                type = str,
+                                default = None)
     lineagesGroup.add_argument('--write-networks',
                                 help='Save all lineage networks',
                                 action = 'store_true',
@@ -278,10 +283,11 @@ def main():
     if args.fit_model == 'lineage':
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if int(min(rank_list)) == 0:
-            sys.stderr.write("Ranks must be >= 1\n")
-        if max(rank_list) > 1000:
-            sys.stderr.write("WARNING: Ranks should be small non-zero integers for sensible lineage results\n")
-
+            sys.stderr.write("Ranks must be greater than 1\n")
+        if args.max_search_depth is not None and args.max_search_depth < max(rank_list):
+            sys.stderr.write("The maximum search depth must be greater than the highest lineage rank\n")
+            sys.exit(1)
+            
     if args.create_db == False:
         # Check and set required parameters for other modes
         if args.ref_db is None:
@@ -501,10 +507,18 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
+                if args.max_search_depth is not None:
+                    max_search_depth = int(args.max_search_depth)
+                elif args.max_search_depth is None and (args.reciprocal_only or args.count_neighbours):
+                    max_search_depth = max([int(0.1*len(refList)),int(1.1*max(rank_list))])
+                else:
+                    max_search_depth = max(rank_list)
+
                 model = LineageFit(output,
                                     rank_list,
+                                    max_search_depth,
                                     args.reciprocal_only,
-                                    args.all_neighbours,
+                                    args.count_neighbours,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
                 model.fit(distMat,
