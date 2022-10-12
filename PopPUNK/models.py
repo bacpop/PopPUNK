@@ -1001,9 +1001,7 @@ class RefineFit(ClusterFit):
 # multiprocessing threads
 def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
     # Only modify the matrix if the method or rank differs - otherwise save in unmodified form
-    print("Lower rank is " + str(lower_rank))
     if lower_rank==fit.max_search_depth and fit.reciprocal_only is False and fit.all_neighbours is False:
-        print("EASY")
         fit.__save_sparse__(higher_rank_sparse_mat[2],
                        higher_rank_sparse_mat[0],
                        higher_rank_sparse_mat[1],
@@ -1011,7 +1009,6 @@ def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
                        n_samples,
                        dtype)
     else:
-      print("HARD")
       fit.__reduce_rank__(higher_rank_sparse_mat,
                           lower_rank,
                           n_samples,
@@ -1078,8 +1075,6 @@ class LineageFit(ClusterFit):
     def __reduce_rank__(self, higher_rank_sparse_mat, lower_rank, n_samples, dtype):
         '''Lowers the rank of a fit and saves it
         '''
-        print("Reducing rank")
-        print("Reducting " + str(higher_rank_sparse_mat))
         lower_rank_sparse_mat = \
             poppunk_refine.lowerRank(
                 higher_rank_sparse_mat,
@@ -1087,10 +1082,6 @@ class LineageFit(ClusterFit):
                 lower_rank,
                 self.reciprocal_only,
                 self.all_neighbours)
-        print("Rank: " + str(lower_rank))
-        print("i: " + str(lower_rank_sparse_mat[0]))
-        print("j: " + str(lower_rank_sparse_mat[1]))
-        print("d: " + str(lower_rank_sparse_mat[2]))
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1128,43 +1119,27 @@ class LineageFit(ClusterFit):
         else:
             self.dist_col = 0
 
-#        self.lower_rank_dists = {}
         row, col, data = \
             pp_sketchlib.sparsifyDists(
                 distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
                                                   num_threads=self.threads),
                 distCutoff=0,
-#                kNN=self.max_search_depth,
-#                reciprocal_only=self.reciprocal_only,
-#                all_neighbours=self.all_neighbours
                 kNN=self.max_search_depth,
-                reciprocal_only=False,
-                all_neighbours=False
             )
         self.__save_sparse__(data, row, col, self.max_search_depth, sample_size, X.dtype,
                               is_nn_dist = True)
 
         # Apply filtering of links if requested and extract lower ranks
-#        if self.reciprocal_only or self.all_neighbours:
-#          ranks_for_reduction = self.ranks
-#        else:
-#          ranks_for_reduction = self.ranks[self.ranks!=self.max_search_depth]
-#        if isinstance(ranks_for_reduction, int):
-#          ranks_for_reduction = [ranks_for_reduction]
-#        if len(ranks_for_reduction) > 0:
         thread_map(partial(reduce_rank,
                              fit=self,
                              higher_rank_sparse_mat=(row, col, data),
                              n_samples=sample_size,
                              dtype=X.dtype),
-#                       ranks_for_reduction,
                      self.ranks,
                      max_workers=self.threads,
                      disable=True)
 
         self.fitted = True
-        print('Lower ranks: ' + str(self.lower_rank_dists))
-        print('Min rank: ' + str(min(self.ranks)))
         y = self.assign(min(self.ranks))
         return y
 
@@ -1292,58 +1267,30 @@ class LineageFit(ClusterFit):
 
         n_ref = self.nn_dists.shape[0]
         n_query = qqSquare.shape[1]
-        print("n_ref: " + str(n_ref) + " n_query: " + str(n_query))
-        print("QRdist: " + str(qrDists[:, [self.dist_col]]))
-        print("Col is " + str(self.dist_col))
         qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref).T
         qrRect[qrRect < epsilon] = epsilon
 
-#        max_rank = max(self.ranks)
-        rrSparse = self.nn_dists
-        print("rrSparse! " + str(rrSparse))
-        print("qqSquare! " + str(qqSquare))
-        print("qrRect! " + str(qrRect))
-        print("kNN: " + str(self.max_search_depth))
         higher_rank = \
           poppunk_refine.extend(
-#            (rrSparse.row, rrSparse.col, rrSparse.data),
-#            qqSquare,
-#            qrRect,
-#            self.max_search_depth,
-#            self.reciprocal_only,
-#            self.all_neighbours,
-#            self.threads)
-            (rrSparse.row, rrSparse.col, rrSparse.data),
+            (self.nn_dists.row, self.nn_dists.col, self.nn_dists.data),
             qqSquare,
             qrRect,
             self.max_search_depth,
-            False,
-            False,
             self.threads)
-        print("AND NOW " + str(higher_rank))
         # Update NN dist associated with model
         self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
-                             self.max_search_depth, n_ref + n_query, rrSparse.dtype,
+                             self.max_search_depth, n_ref + n_query, self.nn_dists.dtype,
                              is_nn_dist = True)
 
         # Apply lower ranks
-#        if self.reciprocal_only or self.all_neighbours:
-#          ranks_for_reduction = self.ranks
-#        else:
-#          ranks_for_reduction = self.ranks[self.ranks!=self.max_search_depth]
-#        if isinstance(ranks_for_reduction, int):
-#            ranks_for_reduction = [ranks_for_reduction]
-#        if len(ranks_for_reduction) > 0:
         thread_map(partial(reduce_rank,
                              fit=self,
                              higher_rank_sparse_mat=higher_rank,
                              n_samples=n_ref + n_query,
-                             dtype=rrSparse.dtype),
-#                       ranks_for_reduction,
+                             dtype=self.nn_dists.dtype),
                      self.ranks,
                      max_workers=self.threads,
                      disable=True)
-        print('Lower ranks: ' + str(self.lower_rank_dists))
         y = self.assign(min(self.ranks))
         return y
 
