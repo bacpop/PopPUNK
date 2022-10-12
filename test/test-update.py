@@ -63,7 +63,7 @@ def old_get_seq_tuples(rows,cols):
     seq_tuples = [tuple(row) for row in seq_pairs]
     return seq_tuples
 
-for lineage_option_string in [" "," --all-neighbours ", " --reciprocal-only "," --all-neighbours  --reciprocal-only "]:
+for lineage_option_string in [" "," --all-neighbours ", " --reciprocal-only "," --count-neighbours  --reciprocal-only "]:
 
   if lineage_option_string != " ":
     print("\n*** Now running tests with lineage option" + lineage_option_string + "***\n")
