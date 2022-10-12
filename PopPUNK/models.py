@@ -106,16 +106,21 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
     if fit_type == 'lineage':
         # Can't save multiple sparse matrices to the same file, so do some
         # file name processing
-        fit_data = {}
-        for rank in fit_object[0]:
-            fit_file = os.path.basename(pkl_file)
-            prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
-            rank_file = os.path.dirname(pkl_file) + "/" + \
-                        prefix.group(1) + rankFile(rank)
-            if use_gpu:
-                fit_data[rank] = scipy.sparse.load_npz(rank_file)
-            else:
-                fit_data[rank] = scipy.sparse.load_npz(rank_file)
+#        fit_data = {}
+        fit_file = os.path.basename(pkl_file)
+        prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
+        rank_file = os.path.dirname(pkl_file) + "/" + \
+                      prefix.group(1) + '_sparse_dists.npz'
+        fit_data = scipy.sparse.load_npz(rank_file)
+#        for rank in fit_object[0]:
+#            fit_file = os.path.basename(pkl_file)
+#            prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
+#            rank_file = os.path.dirname(pkl_file) + "/" + \
+#                        prefix.group(1) + rankFile(rank)
+#            if use_gpu:
+#                fit_data[rank] = scipy.sparse.load_npz(rank_file)
+#            else:
+#                fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
         fit_data = np.load(npz_file)
 
@@ -995,10 +1000,22 @@ class RefineFit(ClusterFit):
 # Wrapper function for LineageFit.__reduce_rank__ to be called by
 # multiprocessing threads
 def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
-    fit.__reduce_rank__(higher_rank_sparse_mat,
-                        lower_rank,
-                        n_samples,
-                        dtype)
+    # Only modify the matrix if the method or rank differs - otherwise save in unmodified form
+    print("Lower rank is " + str(lower_rank))
+    if lower_rank==fit.max_search_depth and fit.reciprocal_only is False and fit.all_neighbours is False:
+        print("EASY")
+        fit.__save_sparse__(higher_rank_sparse_mat[2],
+                       higher_rank_sparse_mat[0],
+                       higher_rank_sparse_mat[1],
+                       lower_rank,
+                       n_samples,
+                       dtype)
+    else:
+      print("HARD")
+      fit.__reduce_rank__(higher_rank_sparse_mat,
+                          lower_rank,
+                          n_samples,
+                          dtype)
 
 class LineageFit(ClusterFit):
     '''Class for fits using the lineage assignment model. Inherits from :class:`ClusterFit`.
@@ -1018,6 +1035,7 @@ class LineageFit(ClusterFit):
         self.type = 'lineage'
         self.preprocess = False
         self.max_search_depth = max_search_depth
+        self.nn_dists = None # stores the unprocessed kNN at the maximum search depth
         self.ranks = []
         for rank in sorted(ranks):
             if (rank < 1):
@@ -1025,30 +1043,43 @@ class LineageFit(ClusterFit):
                 sys.exit(0)
             else:
                 self.ranks.append(int(rank))
+        self.lower_rank_dists = {}
         self.reciprocal_only = reciprocal_only
         self.all_neighbours = all_neighbours
         self.dist_col = dist_col
         self.use_gpu = use_gpu
 
-    def __save_sparse__(self, data, row, col, rank, n_samples, dtype):
+    def __save_sparse__(self, data, row, col, rank, n_samples, dtype, is_nn_dist = False):
       '''Save a sparse matrix in coo format
       '''
       if self.use_gpu:
           data = cp.array(data)
           data[data < epsilon] = epsilon
-          self.nn_dists[rank] = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
-                                              shape=(n_samples, n_samples),
-                                              dtype = dtype)
+          if is_nn_dist:
+            self.nn_dists = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
+                                                shape=(n_samples, n_samples),
+                                                dtype = dtype)
+          else:
+            self.lower_rank_dists[rank] = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
+                                                shape=(n_samples, n_samples),
+                                                dtype = dtype)
       else:
           data = np.array(data)
           data[data < epsilon] = epsilon
-          self.nn_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                              shape=(n_samples, n_samples),
-                                              dtype = dtype)
+          if is_nn_dist:
+            self.nn_dists = scipy.sparse.coo_matrix((data, (row, col)),
+                                                shape=(n_samples, n_samples),
+                                                dtype = dtype)
+          else:
+            self.lower_rank_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                                shape=(n_samples, n_samples),
+                                                dtype = dtype)
 
     def __reduce_rank__(self, higher_rank_sparse_mat, lower_rank, n_samples, dtype):
         '''Lowers the rank of a fit and saves it
         '''
+        print("Reducing rank")
+        print("Reducting " + str(higher_rank_sparse_mat))
         lower_rank_sparse_mat = \
             poppunk_refine.lowerRank(
                 higher_rank_sparse_mat,
@@ -1056,6 +1087,10 @@ class LineageFit(ClusterFit):
                 lower_rank,
                 self.reciprocal_only,
                 self.all_neighbours)
+        print("Rank: " + str(lower_rank))
+        print("i: " + str(lower_rank_sparse_mat[0]))
+        print("j: " + str(lower_rank_sparse_mat[1]))
+        print("d: " + str(lower_rank_sparse_mat[2]))
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1093,21 +1128,43 @@ class LineageFit(ClusterFit):
         else:
             self.dist_col = 0
 
-        self.nn_dists = {}
-        for rank in self.ranks:
-            row, col, data = \
-                pp_sketchlib.sparsifyDists(
-                    distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
-                                                      num_threads=self.threads),
-                    distCutoff=0,
-                    kNN=rank,
-                    reciprocal_only=self.reciprocal_only,
-                    all_neighbours=self.all_neighbours
-                )
-            self.__save_sparse__(data, row, col, rank, sample_size, X.dtype)
+#        self.lower_rank_dists = {}
+        row, col, data = \
+            pp_sketchlib.sparsifyDists(
+                distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
+                                                  num_threads=self.threads),
+                distCutoff=0,
+#                kNN=self.max_search_depth,
+#                reciprocal_only=self.reciprocal_only,
+#                all_neighbours=self.all_neighbours
+                kNN=self.max_search_depth,
+                reciprocal_only=False,
+                all_neighbours=False
+            )
+        self.__save_sparse__(data, row, col, self.max_search_depth, sample_size, X.dtype,
+                              is_nn_dist = True)
+
+        # Apply filtering of links if requested and extract lower ranks
+#        if self.reciprocal_only or self.all_neighbours:
+#          ranks_for_reduction = self.ranks
+#        else:
+#          ranks_for_reduction = self.ranks[self.ranks!=self.max_search_depth]
+#        if isinstance(ranks_for_reduction, int):
+#          ranks_for_reduction = [ranks_for_reduction]
+#        if len(ranks_for_reduction) > 0:
+        thread_map(partial(reduce_rank,
+                             fit=self,
+                             higher_rank_sparse_mat=(row, col, data),
+                             n_samples=sample_size,
+                             dtype=X.dtype),
+#                       ranks_for_reduction,
+                     self.ranks,
+                     max_workers=self.threads,
+                     disable=True)
 
         self.fitted = True
-
+        print('Lower ranks: ' + str(self.lower_rank_dists))
+        print('Min rank: ' + str(min(self.ranks)))
         y = self.assign(min(self.ranks))
         return y
 
@@ -1116,15 +1173,20 @@ class LineageFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to save unfitted model")
         else:
+            scipy.sparse.save_npz(
+                    self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
+                    '_sparse_dists.npz',
+                    self.nn_dists)
             for rank in self.ranks:
                 scipy.sparse.save_npz(
                     self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                     rankFile(rank),
-                    self.nn_dists[rank])
+                    self.lower_rank_dists[rank])
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks,
                                 self.dist_col,
+                                self.max_search_depth,
                                 self.reciprocal_only,
                                 self.all_neighbours],
                                 self.type],
@@ -1139,7 +1201,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.dist_col, self.reciprocal_only, self.all_neighbours = fit_obj
+        self.ranks, self.dist_col, self.max_search_depth, self.reciprocal_only, self.all_neighbours = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 
@@ -1159,9 +1221,9 @@ class LineageFit(ClusterFit):
         ClusterFit.plot(self, X)
         for rank in self.ranks:
             if self.use_gpu:
-                hist_data = self.nn_dists[rank].get().data
+                hist_data = self.lower_rank_dists[rank].get().data
             else:
-                hist_data = self.nn_dists[rank].data
+                hist_data = self.lower_rank_dists[rank].data
             distHistogram(hist_data,
                               rank,
                               self.outPrefix + "/" + os.path.basename(self.outPrefix))
@@ -1182,7 +1244,7 @@ class LineageFit(ClusterFit):
             raise RuntimeError("Trying to assign using an unfitted model")
         else:
             y = []
-            for row, col in zip(self.nn_dists[rank].row, self.nn_dists[rank].col):
+            for row, col in zip(self.lower_rank_dists[rank].row, self.lower_rank_dists[rank].col):
                 y.append((row, col))
 
         return y
@@ -1200,7 +1262,7 @@ class LineageFit(ClusterFit):
         if not self.fitted:
             raise RuntimeError("Trying to get weights from an unfitted model")
         else:
-            return (self.nn_dists[rank].data)
+            return (self.lower_rank_dists[rank].data)
 
     def extend(self, qqDists, qrDists):
         '''Update the sparse distance matrix of nearest neighbours after querying
@@ -1228,35 +1290,60 @@ class LineageFit(ClusterFit):
                                              num_threads=self.threads)
         qqSquare[qqSquare < epsilon] = epsilon
 
-        n_ref = self.nn_dists[self.ranks[0]].shape[0]
+        n_ref = self.nn_dists.shape[0]
         n_query = qqSquare.shape[1]
+        print("n_ref: " + str(n_ref) + " n_query: " + str(n_query))
+        print("QRdist: " + str(qrDists[:, [self.dist_col]]))
+        print("Col is " + str(self.dist_col))
         qrRect = qrDists[:, [self.dist_col]].reshape(n_query, n_ref).T
         qrRect[qrRect < epsilon] = epsilon
 
-        max_rank = max(self.ranks)
-        rrSparse = self.nn_dists[max_rank]
+#        max_rank = max(self.ranks)
+        rrSparse = self.nn_dists
+        print("rrSparse! " + str(rrSparse))
+        print("qqSquare! " + str(qqSquare))
+        print("qrRect! " + str(qrRect))
+        print("kNN: " + str(self.max_search_depth))
         higher_rank = \
           poppunk_refine.extend(
+#            (rrSparse.row, rrSparse.col, rrSparse.data),
+#            qqSquare,
+#            qrRect,
+#            self.max_search_depth,
+#            self.reciprocal_only,
+#            self.all_neighbours,
+#            self.threads)
             (rrSparse.row, rrSparse.col, rrSparse.data),
             qqSquare,
             qrRect,
-            max_rank,
-            self.reciprocal_only,
-            self.all_neighbours,
+            self.max_search_depth,
+            False,
+            False,
             self.threads)
+        print("AND NOW " + str(higher_rank))
+        # Update NN dist associated with model
         self.__save_sparse__(higher_rank[2], higher_rank[0], higher_rank[1],
-                             max_rank, n_ref + n_query, rrSparse.dtype)
+                             self.max_search_depth, n_ref + n_query, rrSparse.dtype,
+                             is_nn_dist = True)
 
         # Apply lower ranks
+#        if self.reciprocal_only or self.all_neighbours:
+#          ranks_for_reduction = self.ranks
+#        else:
+#          ranks_for_reduction = self.ranks[self.ranks!=self.max_search_depth]
+#        if isinstance(ranks_for_reduction, int):
+#            ranks_for_reduction = [ranks_for_reduction]
+#        if len(ranks_for_reduction) > 0:
         thread_map(partial(reduce_rank,
                              fit=self,
                              higher_rank_sparse_mat=higher_rank,
                              n_samples=n_ref + n_query,
                              dtype=rrSparse.dtype),
-                     sorted(self.ranks, reverse=True)[1:],
+#                       ranks_for_reduction,
+                     self.ranks,
                      max_workers=self.threads,
                      disable=True)
-
+        print('Lower ranks: ' + str(self.lower_rank_dists))
         y = self.assign(min(self.ranks))
         return y
 

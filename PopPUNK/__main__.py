@@ -507,10 +507,11 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
+                # Memory usage determined by maximum search depth
                 if args.max_search_depth is not None:
                     max_search_depth = int(args.max_search_depth)
                 elif args.max_search_depth is None and (args.reciprocal_only or args.count_neighbours):
-                    max_search_depth = max([int(0.1*len(refList)),int(1.1*max(rank_list))])
+                    max_search_depth = max([int(0.1*len(refList)),int(1.1*max(rank_list)),int(1+max(rank_list))])
                 else:
                     max_search_depth = max(rank_list)
 

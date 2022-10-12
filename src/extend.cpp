@@ -7,7 +7,7 @@
 #include <cstddef> // size_t
 #include <cstdint>
 #include <vector>
-
+#include <iostream>
 #include "extend.hpp"
 
 const float epsilon = 1E-10;
@@ -16,6 +16,11 @@ const float epsilon = 1E-10;
 std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
                                     const size_t nr_samples) {
   const std::vector<long> i_vec = std::get<0>(sparse_rr_mat);
+  std::cout << "I_vec for starts" << std::endl;
+  for (unsigned int x; x < i_vec.size(); ++x) {
+    std::cout << i_vec[x] << " ";
+  }
+  std::cout << std::endl;
   std::vector<long> row_start_idx(nr_samples + 1);
   size_t i_idx = 0;
   row_start_idx[0] = 0;
@@ -24,6 +29,7 @@ std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
       i_idx++;
     }
     row_start_idx[i] = i_idx;
+    std::cout << "IDX: " << i << " START: " << row_start_idx[i] << std::endl;
 
     // Set to end of vector, if reached
     if (i_idx == i_vec.size()) {
@@ -66,12 +72,31 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
   // ijv vectors
   std::vector<std::vector<float>> dists(nr_samples + nq_samples);
   std::vector<std::vector<long>> i_vec(nr_samples + nq_samples);
+  std::vector<long> ivec = std::get<0>(sparse_rr_mat); // not needed
+  std::cout << "IVEC: ";
+  for (unsigned int x = 0; x < ivec.size(); ++x) {
+    std::cout << ivec[x] << " ";
+  }
+  std::cout << std::endl;
+  std::vector<long> jvec = std::get<1>(sparse_rr_mat); // not needed
+  std::cout << "JVEC: ";
+  for (unsigned int x = 0; x < jvec.size(); ++x) {
+    std::cout << jvec[x] << " ";
+  }
+  std::cout << std::endl;
+  std::vector<float> dvec = std::get<2>(sparse_rr_mat); // not needed
+  std::cout << "DVEC: ";
+  for (unsigned int x = 0; x < dvec.size(); ++x) {
+    std::cout << dvec[x] << " ";
+  }
+  std::cout << std::endl;
   std::vector<std::vector<long>> j_vec(nr_samples + nq_samples);
   size_t len = 0;
 
   std::vector<float> dist_vec = std::get<2>(sparse_rr_mat);
 #pragma omp parallel for schedule(static) num_threads(num_threads) reduction(+:len)
   for (long i = 0; i < nr_samples + nq_samples; ++i) {
+    std::cout << "i: " << i << " from nr: " << nr_samples << " nq: " << nq_samples << std::endl;
     // Extract the dists for the row from the qr (dense) and rr (sparse)
     // matrices
     Eigen::VectorXf rr_dists, qr_dists;
@@ -83,7 +108,18 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
                                           n_rr_dists);
         rr_dists = rr_map;
+        std::cout << "rr_dists " << std::endl;
+        for (unsigned int x = 0; x < rr_dists.size(); ++x) {
+          std::cout << rr_dists[x] << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "qr_dists " << std::endl;
+        for (unsigned int x = 0; x < qr_dists.size(); ++x) {
+          std::cout << qr_dists[x] << " ";
+        }
+        std::cout << std::endl;
       }
+      std::cout << "Starting: " << row_start_idx[i + 1] << " " << row_start_idx[i] << std::endl;
     } else {
       rr_dists = qr_mat_rect.col(i - nr_samples);
       qr_dists = qq_mat_square.row(i - nr_samples);
@@ -92,6 +128,16 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     // Sort these. Then do a merge below
     std::vector<long> qr_ordered_idx = sort_indexes(qr_dists, 1);
     std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
+    std::cout << "qr_ordered_idx " << std::endl;
+    for (unsigned int x = 0; x < qr_ordered_idx.size(); ++x) {
+      std::cout << qr_ordered_idx[x] << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "rr_ordered_idx " << std::endl;
+    for (unsigned int x = 0; x < rr_ordered_idx.size(); ++x) {
+      std::cout << rr_ordered_idx[x] << " ";
+    }
+    std::cout << std::endl;
 
     // See sparsify_dists in pp_sketchlib.
     // This is very similar, but merging two lists as input
@@ -123,19 +169,22 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         continue;
       }
       bool new_val = abs(dist - prev_value) >= epsilon;
+      std::cout << "Looking in here for i " << i << " with neighbours " << unique_neighbors << std::endl;
+      std::cout << "kNN is " << kNN << " and new val is " << new_val << std::endl;
       if (unique_neighbors < kNN || !new_val) {
         dists[i].push_back(dist);
         i_vec[i].push_back(i);
         j_vec[i].push_back(j);
-        if (all_neighbours)
-        {
-          unique_neighbors++;
-        }
-        else if (new_val) {
-          unique_neighbors++;
-        }
+//        if (all_neighbours)
+//        {
+//          unique_neighbors++;
+//        }
+//        else if (new_val) {
+//          unique_neighbors++;
+//        }
         if (new_val)
         {
+          unique_neighbors++;
           prev_value = dist;
         }
       } else {
@@ -143,42 +192,62 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
       }
     }
     len += dists[i].size();
+    std::cout << "FIRST LOOK i: " << i << " j is ";
+    for (unsigned int x = 0; x < j_vec[i].size(); ++x)
+    {
+      std::cout << j_vec[i][x] << " ";
+    }
+    std::cout << std::endl;
   }
 
   // Combine the lists from each thread
   std::vector<float> dists_all = combine_vectors(dists, len);
   std::vector<long> i_vec_all = combine_vectors(i_vec, len);
   std::vector<long> j_vec_all = combine_vectors(j_vec, len);
+  return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 
-  // Only count reciprocal matches
-  if (reciprocal_only)
-  {
-    std::vector<float> filtered_dists;
-    std::vector<long> filtered_i_vec;
-    std::vector<long> filtered_j_vec;
-
-    for (long x = 0; x < i_vec.size(); x++)
-    {
-      if (i_vec_all[x] < j_vec_all[x])
-      {
-        for (long y = 0; y < j_vec_all.size(); y++)
-        {
-          if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y])
-          {
-            filtered_dists.push_back(filtered_dists[x]);
-            filtered_i_vec.push_back(i_vec_all[x]);
-            filtered_j_vec.push_back(j_vec_all[x]);
-            break;
-          }
-        }
-      }
-    }
-    return (std::make_tuple(filtered_i_vec, filtered_j_vec, filtered_dists));
-  }
-  else
-  {
-    return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
-  }
+//  // Only count reciprocal matches
+//  std::cout << "i_vec_all:" << std::endl;
+//  for (unsigned int i = 0; i < i_vec_all.size(); ++i)
+//  {
+//    std::cout << i_vec_all[i] << " ";
+//  }
+//  std::cout << std::endl;
+//  std::cout << "j_vec_all:" << std::endl;
+//  for (unsigned int i = 0; i < j_vec_all.size(); ++i)
+//  {
+//    std::cout << j_vec_all[i] << " ";
+//  }
+//  std::cout << std::endl;
+//  if (reciprocal_only)
+//  {
+//    std::cout << "Reciprocal only started!" << std::endl;
+//    std::vector<float> filtered_dists;
+//    std::vector<long> filtered_i_vec;
+//    std::vector<long> filtered_j_vec;
+//
+//    for (long x = 0; x < i_vec_all.size(); x++)
+//    {
+//      for (long y = 0; y < j_vec_all.size(); y++)
+//      {
+//        if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y])
+//        {
+//          filtered_dists.push_back(dists_all[x]);
+//          filtered_i_vec.push_back(i_vec_all[x]);
+//          filtered_j_vec.push_back(j_vec_all[x]);
+//          std::cout << "x: " << x << " y: " << y << " i_x: " << i_vec_all[x] << " i_y: " << i_vec_all[y] << " j_x: " << j_vec_all[x] << " j_y: " << j_vec_all[y] << std::endl;
+//          break;
+//        }
+//      }
+//    }
+//    std::cout << "Making tuples!" << std::endl;
+//    return (std::make_tuple(filtered_i_vec, filtered_j_vec, filtered_dists));
+//  }
+//  else
+//  {
+//    return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
+//  }
+//  return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
@@ -186,8 +255,9 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
                       const size_t kNN,
                       bool reciprocal_only,
                       bool count_neighbours) {
+  std::cout << "Lowering - start indices: " << n_samples << std::endl;
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
-
+  std::cout << "After starts: " << row_start_idx[0] << std::endl;
   // ijv vectors
   std::vector<float> dists;
   std::vector<long> i_vec;
@@ -235,6 +305,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
         }
       }
   }
+  std::cout << "After normal bit" << std::endl;
   // Only count reciprocal matches
   if (reciprocal_only)
   {
