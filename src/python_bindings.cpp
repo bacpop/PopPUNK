@@ -124,5 +124,5 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("rr_mat"), py::arg("n_samples"),
         py::arg("kNN"),
         py::arg("reciprocal_only") = false,
-        py::arg("count_neighbours") = false);
+        py::arg("count_unique_distances") = false);
 }

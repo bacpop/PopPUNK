@@ -1001,7 +1001,7 @@ class RefineFit(ClusterFit):
 # multiprocessing threads
 def reduce_rank(lower_rank, fit, higher_rank_sparse_mat, n_samples, dtype):
     # Only modify the matrix if the method or rank differs - otherwise save in unmodified form
-    if lower_rank==fit.max_search_depth and fit.reciprocal_only is False and fit.all_neighbours is False:
+    if lower_rank==fit.max_search_depth and fit.reciprocal_only is False and fit.count_unique_distances is False:
         fit.__save_sparse__(higher_rank_sparse_mat[2],
                        higher_rank_sparse_mat[0],
                        higher_rank_sparse_mat[1],
@@ -1027,7 +1027,7 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only, all_neighbours, dist_col = None, use_gpu = False):
+    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only, count_unique_distances, dist_col = None, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -1042,7 +1042,7 @@ class LineageFit(ClusterFit):
                 self.ranks.append(int(rank))
         self.lower_rank_dists = {}
         self.reciprocal_only = reciprocal_only
-        self.all_neighbours = all_neighbours
+        self.count_unique_distances = count_unique_distances
         self.dist_col = dist_col
         self.use_gpu = use_gpu
 
@@ -1081,7 +1081,7 @@ class LineageFit(ClusterFit):
                 n_samples,
                 lower_rank,
                 self.reciprocal_only,
-                self.all_neighbours)
+                self.count_unique_distances)
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1163,7 +1163,7 @@ class LineageFit(ClusterFit):
                                 self.dist_col,
                                 self.max_search_depth,
                                 self.reciprocal_only,
-                                self.all_neighbours],
+                                self.count_unique_distances],
                                 self.type],
                             pickle_file)
 
@@ -1176,7 +1176,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.dist_col, self.max_search_depth, self.reciprocal_only, self.all_neighbours = fit_obj
+        self.ranks, self.dist_col, self.max_search_depth, self.reciprocal_only, self.count_unique_distances = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 

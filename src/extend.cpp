@@ -91,7 +91,6 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
     // See sparsify_dists in pp_sketchlib.
     // This is very similar, but merging two lists as input
-    long unique_neighbors = 0;
     float prev_value = -1;
     auto rr_it = rr_ordered_idx.cbegin();
     auto qr_it = qr_ordered_idx.cbegin();
@@ -118,18 +117,12 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
       if (j == i) {
         continue;
       }
-      bool new_val = abs(dist - prev_value) >= epsilon;
-      if (unique_neighbors < kNN || !new_val) {
+      if (j_vec[i].size() < kNN) {
         dists[i].push_back(dist);
         i_vec[i].push_back(i);
         j_vec[i].push_back(j);
-        if (new_val)
-        {
-          unique_neighbors++;
-          prev_value = dist;
-        }
       } else {
-        break; // next i
+        break; // move to next i
       }
     }
     len += dists[i].size();
@@ -146,7 +139,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
                       const size_t n_samples,
                       const size_t kNN,
                       bool reciprocal_only,
-                      bool count_neighbours) {
+                      bool count_unique_distances) {
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
   // ijv vectors
   std::vector<float> dists;
@@ -179,13 +172,13 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
             j_vec.push_back(j);
             if (new_val)
             {
-                if (count_neighbours)
+                if (count_unique_distances)
                 {
-                    unique_neighbors = j_vec.size();
+                  unique_neighbors++;
                 }
                 else
                 {
-                    unique_neighbors++;
+                  unique_neighbors = j_vec.size();
                 }
                 prev_value = dist;
             }
