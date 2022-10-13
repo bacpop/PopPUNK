@@ -1119,12 +1119,16 @@ class LineageFit(ClusterFit):
         else:
             self.dist_col = 0
 
+        print("Sparsify distances")
         row, col, data = \
             pp_sketchlib.sparsifyDists(
                 distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
                                                   num_threads=self.threads),
                 distCutoff=0,
                 kNN=self.max_search_depth,
+                reciprocal_only=False,
+                all_neighbours=False,
+                num_threads=self.threads
             )
         self.__save_sparse__(data, row, col, self.max_search_depth, sample_size, X.dtype,
                               is_nn_dist = True)
