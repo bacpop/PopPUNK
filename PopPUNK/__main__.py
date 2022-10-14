@@ -163,9 +163,9 @@ def get_options():
                                 action = 'store_true',
                                 default = False)
     lineagesGroup.add_argument('--max-search-depth',
-                                help='Number of kNN distances per sequence to filter when counting neighbours'
-                                ' or using only reciprocal matches [default = 10% of sample size]',
-                                type = str,
+                                help='Number of kNN distances per sequence to filter when '
+                                      'counting neighbours or using only reciprocal matches',
+                                type = int,
                                 default = None)
     lineagesGroup.add_argument('--write-networks',
                                 help='Save all lineage networks',
@@ -175,7 +175,6 @@ def get_options():
                                 help='Use accessory distances for lineage definitions [default = use core distances]',
                                 action = 'store_true',
                                 default = False)
-    
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
