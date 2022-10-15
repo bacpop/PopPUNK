@@ -158,6 +158,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
 
         long unique_neighbors = 0;
         float prev_value = -1;
+        bool new_val;
         for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
              ++rr_it) {
           long j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
@@ -170,7 +171,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
             i_vec.push_back(i);
             j_vec.push_back(j);
             if (count_unique_distances)
-              bool new_val = abs(dist - prev_value) >= epsilon;
+              new_val = abs(dist - prev_value) >= epsilon;
               if (new_val)
               {
                 unique_neighbors++;
