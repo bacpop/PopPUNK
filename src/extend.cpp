@@ -165,22 +165,20 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
           if (j == i) {
             continue;
           }
-          bool new_val = abs(dist - prev_value) >= epsilon;
-          if (unique_neighbors < kNN || !new_val) {
+          if (unique_neighbors < kNN) {
             dists.push_back(dist);
             i_vec.push_back(i);
             j_vec.push_back(j);
-            if (new_val)
-            {
-                if (count_unique_distances)
-                {
-                  unique_neighbors++;
-                }
-                else
-                {
-                  unique_neighbors = j_vec.size();
-                }
+            if (count_unique_distances)
+              bool new_val = abs(dist - prev_value) >= epsilon;
+              if (new_val)
+              {
+                unique_neighbors++;
                 prev_value = dist;
+              }
+            else
+            {
+              unique_neighbors = j_vec.size();
             }
           } else {
             break; // next i
