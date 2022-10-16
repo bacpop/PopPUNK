@@ -105,6 +105,10 @@ subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_
 sys.stderr.write("Running poppunk_info\n")
 subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output example_db.info.csv", shell=True, check=True)
 
+# lineages from strains
+sys.stderr.write("Running poppunk_lineages_from_strains\n")
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --db example_db --output example_lineage_scheme", shell=True, check=True)
+
 # citations
 sys.stderr.write("Printing citations\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
