@@ -1081,7 +1081,8 @@ class LineageFit(ClusterFit):
                 n_samples,
                 lower_rank,
                 self.reciprocal_only,
-                self.count_unique_distances)
+                self.count_unique_distances,
+                self.threads)
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
                              lower_rank_sparse_mat[1],
@@ -1131,15 +1132,15 @@ class LineageFit(ClusterFit):
         self.__save_sparse__(data, row, col, self.max_search_depth, sample_size, X.dtype,
                               is_nn_dist = True)
 
-        # Apply filtering of links if requested and extract lower ranks
-        thread_map(partial(reduce_rank,
-                             fit=self,
-                             higher_rank_sparse_mat=(row, col, data),
-                             n_samples=sample_size,
-                             dtype=X.dtype),
-                     self.ranks,
-                     max_workers=self.threads,
-                     disable=True)
+        # Apply filtering of links if requested and extract lower ranks - parallelisation within C++ code
+        for rank in self.ranks:
+            reduce_rank(
+              rank,
+              fit=self,
+              higher_rank_sparse_mat=(row, col, data),
+              n_samples=sample_size,
+              dtype=X.dtype
+            )
 
         self.fitted = True
         y = self.assign(min(self.ranks))
@@ -1284,15 +1285,15 @@ class LineageFit(ClusterFit):
                              self.max_search_depth, n_ref + n_query, self.nn_dists.dtype,
                              is_nn_dist = True)
 
-        # Apply lower ranks
-        thread_map(partial(reduce_rank,
-                             fit=self,
-                             higher_rank_sparse_mat=higher_rank,
-                             n_samples=n_ref + n_query,
-                             dtype=self.nn_dists.dtype),
-                     self.ranks,
-                     max_workers=self.threads,
-                     disable=True)
+        # Apply lower ranks - parallelisation within C++ code
+        for rank in self.ranks:
+            reduce_rank(
+              rank,
+              fit=self,
+              higher_rank_sparse_mat=higher_rank,
+              n_samples=n_ref + n_query,
+              dtype=self.nn_dists.dtype
+            )
         y = self.assign(min(self.ranks))
         return y
 

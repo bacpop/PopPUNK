@@ -139,81 +139,96 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
                       const size_t n_samples,
                       const size_t kNN,
                       bool reciprocal_only,
-                      bool count_unique_distances) {
+                      bool count_unique_distances,
+                      size_t num_threads = 1) {
+  // Data structures for iteration
+  size_t len = 0;
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
-  // ijv vectors
-  std::vector<float> dists;
-  std::vector<long> i_vec;
-  std::vector<long> j_vec;
   std::vector<float> dist_vec = std::get<2>(sparse_rr_mat);
   const std::vector<long> j_sparse = std::get<1>(sparse_rr_mat);
+  // ijv vectors
+  std::vector<std::vector<float>> dists(n_samples);
+  std::vector<std::vector<long>> i_vec(n_samples);
+  std::vector<std::vector<long>> j_vec(n_samples);
+#pragma omp parallel for schedule(static) num_threads(num_threads) reduction(+:len)
   for (long i = 0; i < n_samples; ++i) {
-      long start_difference = row_start_idx[i + 1] - row_start_idx[i];
-      long n_rr_dists = std::max(0L, start_difference);
-      if (n_rr_dists > 0) {
-        Eigen::Map<Eigen::VectorXf> rr_dists(dist_vec.data() + row_start_idx[i],
-                                             row_start_idx[i + 1] -
-                                                 row_start_idx[i]);
-        std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
+    long start_difference = row_start_idx[i + 1] - row_start_idx[i];
+    long n_rr_dists = std::max(0L, start_difference);
+    if (n_rr_dists > 0) {
+      Eigen::Map<Eigen::VectorXf> rr_dists(dist_vec.data() + row_start_idx[i],
+                                           row_start_idx[i + 1] -
+                                               row_start_idx[i]);
+      std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
 
-        long unique_neighbors = 0;
-        float prev_value = -1;
-        bool new_val;
-        for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
-             ++rr_it) {
-          long j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
-          float dist = rr_dists[*rr_it];
-          if (j == i) {
-            continue;
-          }
-          if (unique_neighbors < kNN) {
-            dists.push_back(dist);
-            i_vec.push_back(i);
-            j_vec.push_back(j);
-            if (count_unique_distances)
-              new_val = abs(dist - prev_value) >= epsilon;
-              if (new_val)
-              {
-                unique_neighbors++;
-                prev_value = dist;
-              }
-            else
+      long unique_neighbors = 0;
+      float prev_value = -1;
+      bool new_val;
+      for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
+           ++rr_it) {
+        long j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
+        float dist = rr_dists[*rr_it];
+        if (j == i) {
+          continue;
+        }
+        if (unique_neighbors < kNN) {
+          dists[i].push_back(dist);
+          i_vec[i].push_back(i);
+          j_vec[i].push_back(j);
+          if (count_unique_distances)
+            new_val = abs(dist - prev_value) >= epsilon;
+            if (new_val)
             {
-              unique_neighbors = j_vec.size();
+              unique_neighbors++;
+              prev_value = dist;
             }
-          } else {
-            break; // next i
+          else
+          {
+            unique_neighbors = j_vec[i].size();
           }
+        } else {
+          break; // next i
         }
       }
+    }
+    len += dists[i].size();
   }
+  // Combine the lists from each thread
+  std::vector<float> dists_all = combine_vectors(dists, len);
+  std::vector<long> i_vec_all = combine_vectors(i_vec, len);
+  std::vector<long> j_vec_all = combine_vectors(j_vec, len);
   // Only count reciprocal matches
   if (reciprocal_only)
   {
-      std::vector<float> filtered_dists;
-      std::vector<long> filtered_i_vec;
-      std::vector<long> filtered_j_vec;
-
-      for (long x = 0; x < i_vec.size(); x++)
+    std::vector<std::vector<float>> filtered_dists(n_samples);
+    std::vector<std::vector<long>> filtered_i_vec(n_samples);
+    std::vector<std::vector<long>> filtered_j_vec(n_samples);
+    len = 0;
+#pragma omp parallel for schedule(static) num_threads(num_threads) reduction(+:len)
+    for (long x = 0; x < i_vec_all.size(); x++)
+    {
+      if (i_vec_all[x] < j_vec_all[x])
       {
-          if (i_vec[x] < j_vec[x])
+          for (long y = 0; y < i_vec_all.size(); y++)
           {
-              for (long y = 0; y < i_vec.size(); y++)
+              if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y])
               {
-                  if (i_vec[x] == j_vec[y] && j_vec[x] == i_vec[y])
-                  {
-                      filtered_dists.push_back(dists[x]);
-                      filtered_i_vec.push_back(i_vec[x]);
-                      filtered_j_vec.push_back(j_vec[x]);
-                      break;
-                  }
+                  filtered_dists[i_vec_all[x]].push_back(dists_all[x]);
+                  filtered_i_vec[i_vec_all[x]].push_back(i_vec_all[x]);
+                  filtered_j_vec[i_vec_all[x]].push_back(j_vec_all[x]);
+                  break;
               }
           }
       }
-      return (std::make_tuple(filtered_i_vec, filtered_j_vec, filtered_dists));
+      len += filtered_dists[i_vec_all[x]].size();
+    }
+    // Combine the lists from each thread
+    std::vector<float> filtered_dists_all = combine_vectors(filtered_dists, len);
+    std::vector<long> filtered_i_vec_all = combine_vectors(filtered_i_vec, len);
+    std::vector<long> filtered_j_vec_all = combine_vectors(filtered_j_vec, len);
+    return (std::make_tuple(filtered_i_vec_all, filtered_j_vec_all, filtered_dists_all));
   }
   else
   {
-    return (std::make_tuple(i_vec, j_vec, dists));
+    return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
   }
 }
