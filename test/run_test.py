@@ -107,7 +107,8 @@ subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output
 
 # lineages from strains
 sys.stderr.write("Running poppunk_lineages_from_strains\n")
-subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --db example_db --output example_lineage_scheme", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --create-db --db example_db --db-scheme example_lineage_scheme.pkl --output lineage_creation_output", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --query-db --db-scheme example_lineage_scheme.pkl --query some_queries.txt --output lineage_querying_output", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")

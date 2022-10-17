@@ -500,20 +500,21 @@ def assign_query_hdf5(dbFuncs,
                                          "not updating database\n")
                         update_db = False
 
-        # Load the network based on supplied options
-        genomeNetwork, old_cluster_file = \
-            fetchNetwork(prev_clustering,
-                         model,
-                         rNames,
-                         ref_graph = use_ref_graph,
-                         core_only = (fit_type == 'core_refined'),
-                         accessory_only = (fit_type == 'accessory_refined'),
-                         use_gpu = gpu_graph)
+        # Load the network based on supplied options (never used for lineage models)
+        if model.type != 'lineage':
+            genomeNetwork, old_cluster_file = \
+                fetchNetwork(prev_clustering,
+                             model,
+                             rNames,
+                             ref_graph = use_ref_graph,
+                             core_only = (fit_type == 'core_refined'),
+                             accessory_only = (fit_type == 'accessory_refined'),
+                             use_gpu = gpu_graph)
 
-        if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
-            sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
-                             " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
-                             "please check the '--model-dir' variable is pointing to the correct directory\n")
+            if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
+                sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
+                                 " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
+                                 "please check the '--model-dir' variable is pointing to the correct directory\n")
 
         if model.type == 'lineage':
             # Assign lineages by calculating query-query information

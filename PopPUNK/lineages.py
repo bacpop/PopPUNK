@@ -11,12 +11,13 @@ import pandas as pd
 from collections import defaultdict
 
 import pp_sketchlib
+from .assign import assign_query, assign_query_hdf5
 from .network import construct_network_from_edge_list, printClusters, save_network
 from .models import LineageFit
 from .plot import writeClusterCsv
 from .sketchlib import readDBParams
-from .qc import prune_distance_matrix
-from .utils import createOverallLineage, readPickle
+from .qc import prune_distance_matrix, sketchlibAssemblyQC
+from .utils import createOverallLineage, readPickle, setupDBFuncs
 
 # command line parsing
 def get_options():
@@ -24,13 +25,34 @@ def get_options():
     parser = argparse.ArgumentParser(description='Generate script and databases for lineage clustering across strains',
                                      prog='lineages_within_strains')
 
-    # input options
+    modeGroup = parser.add_argument_group('Mode of operation')
+    mode = modeGroup.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--create-db',
+            help='Create lineage models for each strain in an existing database',
+            default=False,
+            action='store_true')
+    mode.add_argument('--query-db',
+            help='Query a set of strain and lineages models',
+            default=False,
+            action='store_true')
+            
+    # input/output options
     ioGroup = parser.add_argument_group('Input and output files')
-    ioGroup.add_argument('--db',         help="PopPUNK strain database")
+    ioGroup.add_argument('--db',        help="PopPUNK strain database (required to creaete database)")
+    ioGroup.add_argument('--query',     help="File listing query input assemblies (required to query database)")
+    ioGroup.add_argument('--db-scheme', help = "Pickle file describing database scheme, written by --create-db"
+                                        " and read by --query-db",
+                                        required=True)
+    ioGroup.add_argument('--output',    help = "Location of query output",
+                                        required=True)
+    ioGroup.add_argument('--model-dir',
+                                        help="Directory containing model (if not in database)")
     ioGroup.add_argument('--distances',
                                         help="Distance file prefix (if not in database)")
-    ioGroup.add_argument('--clustering-file',
-                                        help="Clustering file (if not in database)")
+    ioGroup.add_argument('--external-clustering',
+                                        help="File with cluster definitions or other labels "
+                                        "generated with any other method",
+                                        default=None)
     ioGroup.add_argument('--clustering-col-name',
                                         help="Clustering column name [default: 'Cluster']",
                                         default="Cluster")
@@ -41,23 +63,49 @@ def get_options():
                                         help="Write networks for lineages",
                                         default=False,
                                         action='store_true')
-    ioGroup.add_argument('--output',    help = "Output script file for analysing by strain, then lineage",
-                                        required=True)
     
     aGroup = parser.add_argument_group('Analysis options')
     aGroup.add_argument('--poppunk_exe',help="Path to PopPUNK executable if not on path")
     aGroup.add_argument('--threads',    help="Number of CPUs to use in analysis",
                                         default=1,
                                         type=int)
-    aGroup.add_argument('--use-gpu',    help="Use GPU for analyses",
+    aGroup.add_argument('--gpu-sketch', help="Use GPU for sketching",
+                                        default=False,
+                                        action='store_true')
+    aGroup.add_argument('--gpu-dist', help="Use GPU for distance calculations",
+                                        default=False,
+                                        action='store_true')
+    aGroup.add_argument('--gpu-graph', help="Use GPU for graph analysis",
                                         default=False,
                                         action='store_true')
     aGroup.add_argument('--deviceid',   help="Device ID of GPU",
                                         default=0,
                                         type=int)
-    
+
+    qGroup = parser.add_argument_group('Strain model querying options')
+    qGroup.add_argument('--strand-preserved',
+                                    help="Treat input as being on the same strand, and ignore reverse complement",
+                                    action = 'store_true',
+                                    default = False)
+    qGroup.add_argument('--core',
+                                    help="Use a core-distance only model for assigning queries",
+                                    action = 'store_true',
+                                    default = False)
+    qGroup.add_argument('--accessory',
+                                    help="Use an accessory-distance only model for assigning queries",
+                                    action = 'store_true',
+                                    default = False)
+    qGroup.add_argument('--min-kmer-count',
+                                    help="Minimum k-mer count when using reads as input  [default = 0]",
+                                    type = int,
+                                    default = 0)
+    qGroup.add_argument('--exact-count',
+                                    help="Use the exact k-mer counter with reads [default = use countmin counter]",
+                                    action = 'store_true',
+                                    default = False)
+
     lGroup = parser.add_argument_group('Lineage model options')
-    lGroup.add_argument('--ranks',      help="Comma separated list of ranks used in lineage clustering",
+    lGroup.add_argument('--ranks',  help="Comma separated list of ranks used in lineage clustering",
                                     default = "1,2,3",
                                     type = str)
     lGroup.add_argument('--max-search-depth',
@@ -89,20 +137,34 @@ def main():
     # Check input ok
     args = get_options()
 
+    if args.create_db:
+        create_db(args)
+    elif args.query_db:
+        query_db(args)
+  
+    return 0
+
+def create_db(args):
     if args.poppunk_exe is None:
         poppunk = "poppunk"
     else:
         poppunk = args.poppunk_exe
 
+    # Data to save for scheme
+    lineage_dbs = {}
+    overall_lineage = {}
+
     sys.stderr.write("Identifying strains in existing database\n")
     # Read in strain information
     strains = {}
-    if args.clustering_file is None:
-        clustering_file = os.path.join(args.db,os.path.basename(args.db) + '_clusters.csv')
+    if args.model_dir is None:
+        args.model_dir = args.db
+    if args.external_clustering is None:
+        clustering_file = os.path.join(args.model_dir,os.path.basename(args.model_dir) + '_clusters.csv')
     else:
-        clustering_file = args.clustering_file
-    strains = pd.read_csv(clustering_file).groupby(args.clustering_col_name)
-    
+        clustering_file = args.external_clustering
+    strains = pd.read_csv(clustering_file, dtype = str).groupby(args.clustering_col_name)
+
     sys.stderr.write("Extracting properties of database\n")
     # Get rlist
     if args.distances is None:
@@ -132,12 +194,18 @@ def main():
       isolate_list = isolates[isolates.columns.values[0]].to_list()
       num_isolates = len(isolate_list)
       if num_isolates >= args.min_count:
+        lineage_dbs[strain] = strain_db_name
         if not os.path.isdir(strain_db_name):
             try:
                 os.makedirs(strain_db_name)
             except OSError:
                 sys.stderr.write("Cannot create output directory\n")
                 sys.exit(1)
+        # Make link to main database
+        src_db = os.path.join(args.db,os.path.basename(args.db) + '.h5')
+        dest_db = os.path.join(strain_db_name,os.path.basename(strain_db_name) + '.h5')
+        rel_path = os.path.relpath(src_db, os.path.dirname(dest_db))
+        os.symlink(rel_path,dest_db)
         # Extract sparse distances
         prune_distance_matrix(rlist,
                         list(set(rlist) - set(isolate_list)),
@@ -149,7 +217,7 @@ def main():
                   max_search_depth,
                   args.reciprocal_only,
                   args.count_unique_distances,
-                  use_gpu = args.use_gpu)
+                  use_gpu = args.gpu_graph)
         model.set_threads(args.threads)
         # Load pruned distance matrix
         strain_rlist, strain_qlist, strain_self, strain_X = \
@@ -174,30 +242,30 @@ def main():
                                                         assignments[rank],
                                                         weights = None,
                                                         betweenness_sample = None,
-                                                        use_gpu = args.use_gpu,
+                                                        use_gpu = args.gpu_graph,
                                                         summarise = False
                                                        )
             # Write networks
-            if args.write_networks:
-                save_network(indivNetworks[rank],
-                        prefix = output,
-                        suffix = '_rank_' + str(rank) + '_graph',
-                        use_gpu = args.use_gpu)
+            save_network(indivNetworks[rank],
+                    prefix = strain_db_name,
+                    suffix = '_rank_' + str(rank) + '_graph',
+                        use_gpu = args.gpu_graph)
             # Identify clusters from output
             lineage_clusters[rank] = \
                 printClusters(indivNetworks[rank],
-                                                                                      strain_rlist,
+                              strain_rlist,
                               printCSV = False,
-                              use_gpu = args.use_gpu)
+                              use_gpu = args.gpu_graph)
             n_clusters = max(lineage_clusters[rank].values())
             sys.stderr.write("Network for rank " + str(rank) + " has " +
                              str(n_clusters) + " lineages\n")
         # For each strain, print output of each rank as CSV
-        overall_lineage = createOverallLineage(rank_list, lineage_clusters)
+        overall_lineage[strain] = {}
+        overall_lineage[strain] = createOverallLineage(rank_list, lineage_clusters)
         writeClusterCsv(os.path.join(strain_db_name,os.path.basename(strain_db_name) + '_lineages.csv'),
             strain_rlist,
             strain_rlist,
-            overall_lineage,
+            overall_lineage[strain],
             output_format = 'phandango',
             epiCsv = None,
             suffix = '_Lineage')
@@ -205,7 +273,196 @@ def main():
         # Save model
         model.save()
 
+    # Print combined strain and lineage clustering
+    print_overall_clustering(overall_lineage,args.output + '.csv',rlist)
+
+    # Write scheme to file
+    with open(args.db_scheme, 'wb') as pickle_file:
+        pickle.dump([args.db,
+                      rlist,
+                      args.model_dir,
+                      clustering_file,
+                      args.clustering_col_name,
+                      distances,
+                      kmers,
+                      sketch_sizes,
+                      codon_phased,
+                      max_search_depth,
+                      rank_list,
+                      args.use_accessory,
+                      args.min_count,
+                      args.count_unique_distances,
+                      args.reciprocal_only,
+                      args.strand_preserved,
+                      args.core,
+                      args.accessory,
+                      lineage_dbs],
+                    pickle_file)
+
     return 0
+
+def query_db(args):
+    
+    # Read querying scheme
+    with open(args.db_scheme, 'rb') as pickle_file:
+        ref_db, rlist, model_dir, clustering_file, args.clustering_col_name, distances, \
+        kmers, sketch_sizes, codon_phased, max_search_depth, rank_list, use_accessory, min_count, \
+        count_unique_distances, reciprocal_only, strand_preserved, core, accessory, lineage_dbs = \
+          pickle.load(pickle_file)
+
+    dbFuncs = setupDBFuncs(args)
+
+    # Define clustering files
+    previous_clustering_file = os.path.join(model_dir,os.path.basename(model_dir) + '_clusters.csv')
+    external_clustering = None
+    if clustering_file != previous_clustering_file:
+        external_clustering = clustering_file
+
+    # Store clustering
+    overall_lineage = {}
+
+    # Ignore QC at the moment
+    qc_dict = {'run_qc': False, 'type_isolate': None }
+
+    # Check output file
+    if args.output is None:
+        sys.stderr.write("Need an output file name\n")
+        sys.exit(1)
+
+    # Set up database
+    createDatabaseDir = dbFuncs['createDatabaseDir']
+    constructDatabase = dbFuncs['constructDatabase']
+    readDBParams = dbFuncs['readDBParams']
+
+    if ref_db == args.output:
+        sys.stderr.write("--output and --ref-db must be different to "
+                         "prevent overwrite.\n")
+        sys.exit(1)
+
+    # construct database
+    createDatabaseDir(args.output, kmers)
+    qNames = constructDatabase(args.query,
+                                kmers,
+                                sketch_sizes,
+                                args.output,
+                                args.threads,
+                                True, # overwrite - probably OK?
+                                codon_phased = codon_phased,
+                                calc_random = False,
+                                use_gpu = args.gpu_sketch,
+                                deviceid = args.deviceid)
+
+    if qc_dict["run_qc"]:
+        pass_assembly_qc, fail_assembly_qc = \
+                sketchlibAssemblyQC(output,
+                                    qNames,
+                                    qc_dict)
+        if len(fail_assembly_qc) > 0:
+            sys.stderr.write(f"{len(fail_assembly_qc)} samples failed:\n"
+                             f"{','.join(fail_assembly_qc.keys())}\n")
+            qNames = [x for x in qNames if x in pass_assembly_qc]
+            if len(qNames) == 0:
+                sys.exit(1)
+
+    isolateClustering = \
+        assign_query_hdf5(dbFuncs,
+                    ref_db,
+                    qNames,
+                    args.output,
+                    qc_dict,
+                    False, # update DB - not yet
+                    False, # write references - need to consider whether to support ref-only databases for assignment
+                    distances,
+                    False, # serial - needs to be supported for web version?
+                    args.threads,
+                    True, # overwrite - probably OK?
+                    False, # plot_fit - turn off for now
+                    False, # graph weights - might be helpful for MSTs not for strains
+                    model_dir,
+                    strand_preserved,
+                    model_dir,
+                    external_clustering,
+                    core,
+                    accessory,
+                    args.gpu_dist,
+                    args.gpu_graph,
+                    save_partial_query_graph = False)
+
+    # Process clustering
+    query_strains = {}
+    clustering_type = 'combined'
+    if core:
+        clustering_type = 'core'
+    elif accessory:
+        clustering_type = 'accessory'
+    for isolate in isolateClustering[clustering_type]:
+        if isolate in qNames:
+          strain = isolateClustering[clustering_type][isolate]
+          if strain in query_strains:
+              query_strains[strain].append(isolate)
+          else:
+              query_strains[strain] = [isolate]
+
+    # Assign to lineage for each isolate
+    for strain in query_strains:
+        if strain in lineage_dbs.keys():
+            lineage_distances = os.path.join(lineage_dbs[strain],os.path.basename(lineage_dbs[strain]) + '.dists')
+            lineageClustering = \
+                assign_query_hdf5(dbFuncs,
+                            lineage_dbs[strain],
+                            query_strains[strain],
+                            args.output,
+                            qc_dict,
+                            False, # update DB - not yet
+                            False, # write references - need to consider whether to support ref-only databases for assignment
+                            lineage_distances,
+                            False, # serial - needs to be supported for web version?
+                            args.threads,
+                            True, # overwrite - probably OK?
+                            False, # plot_fit - turn off for now
+                            False, # graph weights - might be helpful for MSTs not for strains
+                            lineage_dbs[strain],
+                            strand_preserved,
+                            lineage_dbs[strain],
+                            None, # No external clustering
+                            core,
+                            accessory,
+                            args.gpu_dist,
+                            args.gpu_graph,
+                            save_partial_query_graph = False)
+            overall_lineage[strain] = {}
+            overall_lineage[strain] = createOverallLineage(rank_list, lineageClustering)
+    
+    # Print combined strain and lineage clustering
+    print_overall_clustering(overall_lineage,args.output + '.csv',qNames)
+    
+    return 0
+
+def print_overall_clustering(overall_lineage,output,include_list):
+
+    # Get clustering information
+    first_strain = list(overall_lineage.keys())[0]
+    isolate_info = {}
+    ranks = list(overall_lineage[first_strain].keys())
+
+    # Compile clustering
+    for strain in overall_lineage:
+        for rank in ranks:
+            for isolate in overall_lineage[strain][rank]:
+                if isolate in include_list:
+                    if isolate in isolate_info:
+                        isolate_info[isolate].append(str(overall_lineage[strain][rank][isolate]))
+                    else:
+                        isolate_info[isolate] = [str(strain),str(overall_lineage[strain][rank][isolate])]
+    
+    # Print output
+    with open(output,'w') as out:
+        out.write('id,Cluster,')
+        out.write(','.join(ranks))
+        out.write('\n')
+        for isolate in isolate_info:
+            out.write(isolate + ',' + ','.join(isolate_info[isolate]))
+            out.write('\n')
 
 if __name__ == '__main__':
     main()
