@@ -239,19 +239,12 @@ sparse_coo get_kNN_distances(const NumpyMatrix &distMat,
                      const size_t num_threads) {
 
   int distance_val_size = sizeof(float);
+  size_t dist_rows = distMat.rows();
   std::vector<float> dists(distance_val_size * kNN);
   std::vector<long> i_vec(distance_val_size * kNN);
   std::vector<long> j_vec(distance_val_size * kNN);
 
   bool interrupt = false;
-
-  // Set up progress meter
-  size_t dist_rows = distMat.rows();
-  static const uint64_t n_progress_ticks = 1000;
-  uint64_t update_every = 1;
-  if (dist_rows > n_progress_ticks) {
-    update_every = dist_rows / n_progress_ticks;
-  }
 
 #pragma omp parallel for schedule(static) num_threads(num_threads) shared(progress)
   for (size_t i = 0; i < dist_rows; i++) {
