@@ -1122,11 +1122,11 @@ class LineageFit(ClusterFit):
 
         print("Sparsify distances")
         row, col, data = \
-            pp_sketchlib.sparsifyDists(
+            poppunk_refine.get_kNN_distances(
                 distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
                                                   num_threads=self.threads),
-                distCutoff=0,
                 kNN=self.max_search_depth,
+                dist_col=self.dist_col,
                 num_threads=self.threads
             )
         self.__save_sparse__(data, row, col, self.max_search_depth, sample_size, X.dtype,

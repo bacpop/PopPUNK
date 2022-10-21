@@ -126,4 +126,11 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("reciprocal_only") = false,
         py::arg("count_unique_distances") = false,
         py::arg("num_threads") = 1);
+
+  m.def("get_kNN_distances", &get_kNN_distances, py::return_value_policy::reference_internal,
+        "Identify k nearest-neighbours from a square distance matrix",
+        py::arg("distMat").noconvert(),
+        py::arg("kNN"),
+        py::arg("dist_col"),
+        py::arg("num_threads") = 1);
 }

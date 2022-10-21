@@ -7,6 +7,7 @@
 #include <cstddef> // size_t
 #include <cstdint>
 #include <vector>
+#include <pybind11/pybind11.h>
 #include "extend.hpp"
 
 const float epsilon = 1E-10;
@@ -231,4 +232,51 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
   {
     return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
   }
+}
+
+sparse_coo get_kNN_distances(const NumpyMatrix &distMat,
+                     const int kNN, const size_t dist_col,
+                     const size_t num_threads) {
+
+  int distance_val_size = sizeof(float);
+  std::vector<float> dists(distance_val_size * kNN);
+  std::vector<long> i_vec(distance_val_size * kNN);
+  std::vector<long> j_vec(distance_val_size * kNN);
+
+  bool interrupt = false;
+
+  // Set up progress meter
+  size_t dist_rows = distMat.rows();
+  static const uint64_t n_progress_ticks = 1000;
+  uint64_t update_every = 1;
+  if (dist_rows > n_progress_ticks) {
+    update_every = dist_rows / n_progress_ticks;
+  }
+
+#pragma omp parallel for schedule(static) num_threads(num_threads) shared(progress)
+  for (size_t i = 0; i < dist_rows; i++) {
+    std::vector<float> row_dists(distMat.cols());
+    if (interrupt || PyErr_CheckSignals() != 0) {
+      interrupt = true;
+    } else {
+      long offset = i * kNN;
+      std::vector<long> ordered_dists = sort_indexes(row_dists, 1);
+      std::fill_n(i_vec.begin() + offset, kNN, i);
+      // std::copy_n(ordered_dists.begin(), kNN, j_vec.begin() + offset);
+
+      for (int k = 0; k < kNN; ++k) {
+        if (ordered_dists[k] != i) {
+          j_vec[offset + k] = ordered_dists[k];
+          dists[offset + k] = row_dists[ordered_dists[k]];
+        }
+      }
+    }
+  }
+
+  // Handle Ctrl-C from python
+  if (interrupt) {
+    throw pybind11::error_already_set();
+  }
+
+  return (std::make_tuple(i_vec, j_vec, dists));
 }
