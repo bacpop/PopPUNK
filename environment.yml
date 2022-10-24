@@ -20,7 +20,7 @@ dependencies:
   - rapidnj
   - h5py
   - requests
-  - pp-sketchlib >=2.0.0
+  - pp-sketchlib >=2.0.1
   - graph-tool >=2.35
   - networkx
   - xorg-libxi
