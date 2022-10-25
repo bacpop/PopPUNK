@@ -106,21 +106,11 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
     if fit_type == 'lineage':
         # Can't save multiple sparse matrices to the same file, so do some
         # file name processing
-#        fit_data = {}
         fit_file = os.path.basename(pkl_file)
         prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
         rank_file = os.path.dirname(pkl_file) + "/" + \
                       prefix.group(1) + '_sparse_dists.npz'
         fit_data = scipy.sparse.load_npz(rank_file)
-#        for rank in fit_object[0]:
-#            fit_file = os.path.basename(pkl_file)
-#            prefix = re.match(r"^(.+)_fit\.pkl$", fit_file)
-#            rank_file = os.path.dirname(pkl_file) + "/" + \
-#                        prefix.group(1) + rankFile(rank)
-#            if use_gpu:
-#                fit_data[rank] = scipy.sparse.load_npz(rank_file)
-#            else:
-#                fit_data[rank] = scipy.sparse.load_npz(rank_file)
     else:
         fit_data = np.load(npz_file)
 
@@ -136,10 +126,11 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
     elif fit_type == "lineage":
         sys.stderr.write("Loading lineage cluster model\n")
         load_obj = LineageFit(outPrefix,
-                                fit_object[0],
-                                fit_object[2],
-                                fit_object[3],
-                                fit_object[1])
+                                fit_object[0], # ranks
+                                fit_object[2], # max_search_depth
+                                fit_object[3], # reciprocal_only
+                                fit_object[4], # count_unique_distances
+                                fit_object[1]) # dist_col
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
@@ -1047,30 +1038,30 @@ class LineageFit(ClusterFit):
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype, is_nn_dist = False):
-      '''Save a sparse matrix in coo format
-      '''
-      if self.use_gpu:
-          data = cp.array(data)
-          data[data < epsilon] = epsilon
-          if is_nn_dist:
-            self.nn_dists = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
-                                                shape=(n_samples, n_samples),
-                                                dtype = dtype)
-          else:
-            self.lower_rank_dists[rank] = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
-                                                shape=(n_samples, n_samples),
-                                                dtype = dtype)
-      else:
-          data = np.array(data)
-          data[data < epsilon] = epsilon
-          if is_nn_dist:
-            self.nn_dists = scipy.sparse.coo_matrix((data, (row, col)),
-                                                shape=(n_samples, n_samples),
-                                                dtype = dtype)
-          else:
-            self.lower_rank_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
-                                                shape=(n_samples, n_samples),
-                                                dtype = dtype)
+        '''Save a sparse matrix in coo format
+        '''
+        if self.use_gpu:
+            data = cp.array(data)
+            data[data < epsilon] = epsilon
+            if is_nn_dist:
+                self.nn_dists = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
+                                                    shape=(n_samples, n_samples),
+                                                    dtype = dtype)
+            else:
+                self.lower_rank_dists[rank] = cupyx.scipy.sparse.coo_matrix((data, (cp.array(row), cp.array(col))),
+                                                    shape=(n_samples, n_samples),
+                                                    dtype = dtype)
+        else:
+            data = np.array(data)
+            data[data < epsilon] = epsilon
+            if is_nn_dist:
+                self.nn_dists = scipy.sparse.coo_matrix((data, (row, col)),
+                                                    shape=(n_samples, n_samples),
+                                                    dtype = dtype)
+            else:
+                self.lower_rank_dists[rank] = scipy.sparse.coo_matrix((data, (row, col)),
+                                                    shape=(n_samples, n_samples),
+                                                    dtype = dtype)
 
     def __reduce_rank__(self, higher_rank_sparse_mat, lower_rank, n_samples, dtype):
         '''Lowers the rank of a fit and saves it
@@ -1101,7 +1092,7 @@ class LineageFit(ClusterFit):
                 preprocess is set.
             accessory (bool)
                 Use accessory rather than core distances
-                
+
         Returns:
             y (numpy.array)
                 Cluster assignments of samples in X
@@ -1120,7 +1111,6 @@ class LineageFit(ClusterFit):
         else:
             self.dist_col = 0
 
-        print("Sparsify distances")
         row, col, data = \
             poppunk_refine.get_kNN_distances(
                 distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
