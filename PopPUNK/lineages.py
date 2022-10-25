@@ -10,8 +10,7 @@ import pickle
 import pandas as pd
 from collections import defaultdict
 
-import pp_sketchlib
-from .assign import assign_query, assign_query_hdf5
+from .assign import assign_query_hdf5
 from .network import construct_network_from_edge_list, printClusters, save_network
 from .models import LineageFit
 from .plot import writeClusterCsv
