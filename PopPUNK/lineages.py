@@ -65,7 +65,7 @@ def get_options():
                                         action='store_true')
     
     aGroup = parser.add_argument_group('Analysis options')
-    aGroup.add_argument('--poppunk_exe',help="Path to PopPUNK executable if not on path")
+    aGroup.add_argument('--poppunk-exe',help="Path to PopPUNK executable if not on path")
     aGroup.add_argument('--threads',    help="Number of CPUs to use in analysis",
                                         default=1,
                                         type=int)
