@@ -151,7 +151,6 @@ def create_db(args):
 
     sys.stderr.write("Identifying strains in existing database\n")
     # Read in strain information
-    strains = {}
     if args.model_dir is None:
         args.model_dir = args.db
     if args.external_clustering is None:
