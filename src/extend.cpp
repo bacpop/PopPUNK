@@ -229,11 +229,10 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
 sparse_coo get_kNN_distances(const NumpyMatrix &distMat, const int kNN,
                              const size_t dist_col, const size_t num_threads) {
 
-  int distance_val_size = sizeof(float);
   size_t dist_rows = distMat.rows();
-  std::vector<float> dists(distance_val_size * kNN);
-  std::vector<long> i_vec(distance_val_size * kNN);
-  std::vector<long> j_vec(distance_val_size * kNN);
+  std::vector<float> dists(dist_rows * kNN);
+  std::vector<long> i_vec(dist_rows * kNN);
+  std::vector<long> j_vec(dist_rows * kNN);
 
   bool interrupt = false;
 
