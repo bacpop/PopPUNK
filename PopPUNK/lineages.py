@@ -38,7 +38,7 @@ def get_options():
             
     # input/output options
     ioGroup = parser.add_argument_group('Input and output files')
-    ioGroup.add_argument('--db',        help="PopPUNK strain database (required to creaete database)")
+    ioGroup.add_argument('--db',        help="PopPUNK strain database (required to create database)")
     ioGroup.add_argument('--query',     help="File listing query input assemblies (required to query database)")
     ioGroup.add_argument('--db-scheme', help = "Pickle file describing database scheme, written by --create-db"
                                         " and read by --query-db",
