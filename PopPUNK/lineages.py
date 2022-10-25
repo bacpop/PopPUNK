@@ -193,7 +193,7 @@ def create_db(args):
             try:
                 os.makedirs(strain_db_name)
             except OSError:
-                sys.stderr.write("Cannot create output directory\n")
+                sys.stderr.write("Cannot create output directory " + strain_db_name + "\n")
                 sys.exit(1)
         # Make link to main database
         src_db = os.path.join(args.db,os.path.basename(args.db) + '.h5')
