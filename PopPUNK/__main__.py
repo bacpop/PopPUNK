@@ -247,6 +247,7 @@ def main():
     from .utils import setupDBFuncs
     from .utils import readPickle, storePickle
     from .utils import createOverallLineage
+    from .utils import get_match_search_depth
 
     # check kmer properties
     if args.min_k >= args.max_k:
@@ -510,7 +511,7 @@ def main():
                 if args.max_search_depth is not None:
                     max_search_depth = int(args.max_search_depth)
                 elif args.max_search_depth is None and (args.reciprocal_only or args.count_unique_distances):
-                    max_search_depth = max([int(0.1*len(refList)),int(1.1*max(rank_list)),int(1+max(rank_list))])
+                    max_search_depth = get_match_search_depth(rlist,rank_list)
                 else:
                     max_search_depth = max(rank_list)
 

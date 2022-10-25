@@ -17,7 +17,7 @@ from .models import LineageFit
 from .plot import writeClusterCsv
 from .sketchlib import readDBParams
 from .qc import prune_distance_matrix, sketchlibAssemblyQC
-from .utils import createOverallLineage, readPickle, setupDBFuncs
+from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs
 
 # command line parsing
 def get_options():
@@ -173,7 +173,7 @@ def create_db(args):
         else:
             max_search_depth = args.max_search_depth
     else:
-        max_search_depth = max([int(0.1*len(rlist)),int(1.1*max(rank_list)),int(1+max(rank_list))])
+        max_search_depth = get_match_search_depth(rlist,rank_list)
 
     sys.stderr.write("Generating databases for individual strains\n")
     # Dicts for storing typing information
