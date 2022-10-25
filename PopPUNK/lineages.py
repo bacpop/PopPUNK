@@ -23,7 +23,7 @@ from .utils import createOverallLineage, readPickle, setupDBFuncs
 def get_options():
 
     parser = argparse.ArgumentParser(description='Generate script and databases for lineage clustering across strains',
-                                     prog='lineages_within_strains')
+                                     prog='poppunk_lineages_within_strains')
 
     modeGroup = parser.add_argument_group('Mode of operation')
     mode = modeGroup.add_mutually_exclusive_group(required=True)
