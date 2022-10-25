@@ -219,18 +219,16 @@ def create_db(args):
         model.fit(strain_X,
                     args.use_accessory)
         # Lineage fit requires some iteration
-        assignments = {}
         indivNetworks = {}
         lineage_clusters = defaultdict(dict)
         # Iterate over ranks
         for rank in rank_list:
             if rank <= num_isolates:
-                assignments[rank] = \
-                    model.assign(rank)
+                assignments = model.assign(rank)
             # Generate networks
             indivNetworks[rank] = construct_network_from_edge_list(strain_rlist,
                                                         strain_rlist,
-                                                        assignments[rank],
+                                                        assignments,
                                                         weights = None,
                                                         betweenness_sample = None,
                                                         use_gpu = args.gpu_graph,
