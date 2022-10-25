@@ -27,18 +27,16 @@ def get_options():
     modeGroup = parser.add_argument_group('Mode of operation')
     mode = modeGroup.add_mutually_exclusive_group(required=True)
     mode.add_argument('--create-db',
-            help='Create lineage models for each strain in an existing database',
-            default=False,
-            action='store_true')
+            help='Strain database used to generate lineage databases',
+            type=str,
+            default=None)
     mode.add_argument('--query-db',
-            help='Query a set of strain and lineages models',
-            default=False,
-            action='store_true')
-            
+            help='File listing query input assemblies (required to query database)',
+            type=str,
+            default=None)
+
     # input/output options
     ioGroup = parser.add_argument_group('Input and output files')
-    ioGroup.add_argument('--db',        help="PopPUNK strain database (required to create database)")
-    ioGroup.add_argument('--query',     help="File listing query input assemblies (required to query database)")
     ioGroup.add_argument('--db-scheme', help = "Pickle file describing database scheme, written by --create-db"
                                         " and read by --query-db",
                                         required=True)
@@ -135,9 +133,9 @@ def main():
     # Check input ok
     args = get_options()
 
-    if args.create_db:
+    if args.create_db is not None:
         create_db(args)
-    elif args.query_db:
+    elif args.query_db is not None:
         query_db(args)
   
 
@@ -146,7 +144,7 @@ def create_db(args):
     sys.stderr.write("Identifying strains in existing database\n")
     # Read in strain information
     if args.model_dir is None:
-        args.model_dir = args.db
+        args.model_dir = args.create_db
     if args.external_clustering is None:
         clustering_file = os.path.join(args.model_dir,os.path.basename(args.model_dir) + '_clusters.csv')
     else:
@@ -156,13 +154,13 @@ def create_db(args):
     sys.stderr.write("Extracting properties of database\n")
     # Get rlist
     if args.distances is None:
-        distances = os.path.join(args.db,os.path.basename(args.db) + ".dists")
+        distances = os.path.join(args.create_db,os.path.basename(args.create_db) + ".dists")
     else:
         distances = args.distances
     # Get distances
     rlist, qlist, self, X = readPickle(distances, enforce_self=False, distances=True)
     # Get parameters
-    kmers, sketch_sizes, codon_phased = readDBParams(args.db)
+    kmers, sketch_sizes, codon_phased = readDBParams(args.create_db)
     # Ranks to use
     rank_list = [int(x) for x in args.ranks.split(',')]
     if args.max_search_depth is not None:
@@ -193,7 +191,7 @@ def create_db(args):
                 sys.stderr.write("Cannot create output directory " + strain_db_name + "\n")
                 sys.exit(1)
         # Make link to main database
-        src_db = os.path.join(args.db,os.path.basename(args.db) + '.h5')
+        src_db = os.path.join(args.create_db,os.path.basename(args.create_db) + '.h5')
         dest_db = os.path.join(strain_db_name,os.path.basename(strain_db_name) + '.h5')
         rel_path = os.path.relpath(src_db, os.path.dirname(dest_db))
         os.symlink(rel_path,dest_db)
@@ -266,7 +264,7 @@ def create_db(args):
 
     # Write scheme to file
     with open(args.db_scheme, 'wb') as pickle_file:
-        pickle.dump([args.db,
+        pickle.dump([args.create_db,
                       rlist,
                       args.model_dir,
                       clustering_file,
@@ -325,7 +323,7 @@ def query_db(args):
 
     # construct database
     createDatabaseDir(args.output, kmers)
-    qNames = constructDatabase(args.query,
+    qNames = constructDatabase(args.query_db,
                                 kmers,
                                 sketch_sizes,
                                 args.output,
