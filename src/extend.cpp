@@ -237,16 +237,14 @@ sparse_coo get_kNN_distances(const NumpyMatrix &distMat, const int kNN,
   bool interrupt = false;
 
 #pragma omp parallel for schedule(static) num_threads(num_threads)
-  for (size_t i = 0; i < dist_rows; i++) {
-    std::vector<float> row_dists(distMat.cols());
+  for (size_t i = 0; i < dist_rows; ++i) {
+    std::vector<float> row_dists(distMat.row(i).data(), distMat.row(i).data() + distMat.row(i).size());
     if (interrupt || PyErr_CheckSignals() != 0) {
       interrupt = true;
     } else {
       long offset = i * kNN;
       std::vector<long> ordered_dists = sort_indexes(row_dists, 1);
       std::fill_n(i_vec.begin() + offset, kNN, i);
-      // std::copy_n(ordered_dists.begin(), kNN, j_vec.begin() + offset);
-
       for (int k = 0; k < kNN; ++k) {
         if (ordered_dists[k] != i) {
           j_vec[offset + k] = ordered_dists[k];
