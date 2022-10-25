@@ -79,12 +79,17 @@ def get_options():
                                         type=int)
 
     qGroup = parser.add_argument_group('Strain model querying options')
-    qGroup.add_argument('--strand-preserved',
-                                    help="Treat input as being on the same strand, and ignore reverse complement",
+    strain_dist_type = qGroup.add_mutually_exclusive_group(required=False)
+    strain_dist_type.add_argument('--core',
+                                    help="Use core distances for strain definitions",
                                     action = 'store_true',
                                     default = False)
-    qGroup.add_argument('--accessory',
-                                    help="Use an accessory, rather than core, distances for lineage model fitting",
+    strain_dist_type.add_argument('--accessory',
+                                    help="Use accessory distances for strain definitions",
+                                    action = 'store_true',
+                                    default = False)
+    qGroup.add_argument('--strand-preserved',
+                                    help="Treat input as being on the same strand, and ignore reverse complement",
                                     action = 'store_true',
                                     default = False)
     qGroup.add_argument('--min-kmer-count',
@@ -276,6 +281,7 @@ def create_db(args):
                       args.count_unique_distances,
                       args.reciprocal_only,
                       args.strand_preserved,
+                      args.core,
                       args.accessory,
                       lineage_dbs],
                     pickle_file)
@@ -287,7 +293,7 @@ def query_db(args):
     with open(args.db_scheme, 'rb') as pickle_file:
         ref_db, rlist, model_dir, clustering_file, args.clustering_col_name, distances, \
         kmers, sketch_sizes, codon_phased, max_search_depth, rank_list, use_accessory, min_count, \
-        count_unique_distances, reciprocal_only, strand_preserved, accessory, lineage_dbs = \
+        count_unique_distances, reciprocal_only, strand_preserved, core, accessory, lineage_dbs = \
           pickle.load(pickle_file)
 
     dbFuncs = setupDBFuncs(args)
@@ -369,8 +375,9 @@ def query_db(args):
     # Process clustering
     query_strains = {}
     clustering_type = 'combined'
-    core = True
-    clustering_type = 'core'
+    if core:
+        core = True
+        clustering_type = 'core'
     if accessory:
         core = False
         clustering_type = 'accessory'
