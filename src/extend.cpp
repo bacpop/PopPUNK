@@ -4,11 +4,11 @@
  * Functions to extend a sparse distance matrix
  *
  */
+#include "extend.hpp"
 #include <cstddef> // size_t
 #include <cstdint>
-#include <vector>
 #include <pybind11/pybind11.h>
-#include "extend.hpp"
+#include <vector>
 
 const float epsilon = 1E-10;
 
@@ -52,8 +52,7 @@ std::vector<T> combine_vectors(const std::vector<std::vector<T>> &vec,
 
 sparse_coo extend(const sparse_coo &sparse_rr_mat,
                   const NumpyMatrix &qq_mat_square,
-                  const NumpyMatrix &qr_mat_rect,
-                  const size_t kNN,
+                  const NumpyMatrix &qr_mat_rect, const size_t kNN,
                   const size_t num_threads) {
   const size_t nr_samples = qr_mat_rect.rows();
   const size_t nq_samples = qr_mat_rect.cols();
@@ -79,7 +78,7 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
       long n_rr_dists = std::max(0L, start_difference);
       if (n_rr_dists > 0) {
         Eigen::Map<Eigen::VectorXf> rr_map(dist_vec.data() + row_start_idx[i],
-                                          n_rr_dists);
+                                           n_rr_dists);
         rr_dists = rr_map;
       }
     } else {
@@ -136,12 +135,9 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
-sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
-                      const size_t n_samples,
-                      const size_t kNN,
-                      bool reciprocal_only,
-                      bool count_unique_distances,
-                      size_t num_threads = 1) {
+sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
+                      const size_t kNN, bool reciprocal_only,
+                      bool count_unique_distances, size_t num_threads = 1) {
   // Data structures for iteration
   size_t len = 0;
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
@@ -177,13 +173,10 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
           j_vec[i].push_back(j);
           if (count_unique_distances)
             new_val = abs(dist - prev_value) >= epsilon;
-            if (new_val)
-            {
-              unique_neighbors++;
-              prev_value = dist;
-            }
-          else
-          {
+          if (new_val) {
+            unique_neighbors++;
+            prev_value = dist;
+          } else {
             unique_neighbors = j_vec[i].size();
           }
         } else {
@@ -198,45 +191,39 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
   std::vector<long> i_vec_all = combine_vectors(i_vec, len);
   std::vector<long> j_vec_all = combine_vectors(j_vec, len);
   // Only count reciprocal matches
-  if (reciprocal_only)
-  {
+  if (reciprocal_only) {
     std::vector<std::vector<float>> filtered_dists(n_samples);
     std::vector<std::vector<long>> filtered_i_vec(n_samples);
     std::vector<std::vector<long>> filtered_j_vec(n_samples);
     len = 0;
 #pragma omp parallel for schedule(static) num_threads(num_threads) reduction(+:len)
-    for (long x = 0; x < i_vec_all.size(); x++)
-    {
-      if (i_vec_all[x] < j_vec_all[x])
-      {
-          for (long y = 0; y < i_vec_all.size(); y++)
-          {
-              if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y])
-              {
-                  filtered_dists[i_vec_all[x]].push_back(dists_all[x]);
-                  filtered_i_vec[i_vec_all[x]].push_back(i_vec_all[x]);
-                  filtered_j_vec[i_vec_all[x]].push_back(j_vec_all[x]);
-                  break;
-              }
+    for (long x = 0; x < i_vec_all.size(); x++) {
+      if (i_vec_all[x] < j_vec_all[x]) {
+        for (long y = 0; y < i_vec_all.size(); y++) {
+          if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y]) {
+            filtered_dists[i_vec_all[x]].push_back(dists_all[x]);
+            filtered_i_vec[i_vec_all[x]].push_back(i_vec_all[x]);
+            filtered_j_vec[i_vec_all[x]].push_back(j_vec_all[x]);
+            break;
           }
+        }
       }
       len += filtered_dists[i_vec_all[x]].size();
     }
     // Combine the lists from each thread
-    std::vector<float> filtered_dists_all = combine_vectors(filtered_dists, len);
+    std::vector<float> filtered_dists_all =
+        combine_vectors(filtered_dists, len);
     std::vector<long> filtered_i_vec_all = combine_vectors(filtered_i_vec, len);
     std::vector<long> filtered_j_vec_all = combine_vectors(filtered_j_vec, len);
-    return (std::make_tuple(filtered_i_vec_all, filtered_j_vec_all, filtered_dists_all));
-  }
-  else
-  {
+    return (std::make_tuple(filtered_i_vec_all, filtered_j_vec_all,
+                            filtered_dists_all));
+  } else {
     return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
   }
 }
 
-sparse_coo get_kNN_distances(const NumpyMatrix &distMat,
-                     const int kNN, const size_t dist_col,
-                     const size_t num_threads) {
+sparse_coo get_kNN_distances(const NumpyMatrix &distMat, const int kNN,
+                             const size_t dist_col, const size_t num_threads) {
 
   int distance_val_size = sizeof(float);
   size_t dist_rows = distMat.rows();
