@@ -145,10 +145,6 @@ def main():
 
 def create_db(args):
 
-    # Data to save for scheme
-    lineage_dbs = {}
-    overall_lineage = {}
-
     sys.stderr.write("Identifying strains in existing database\n")
     # Read in strain information
     if args.model_dir is None:
@@ -181,6 +177,9 @@ def create_db(args):
         max_search_depth = max([int(0.1*len(rlist)),int(1.1*max(rank_list)),int(1+max(rank_list))])
 
     sys.stderr.write("Generating databases for individual strains\n")
+    # Dicts for storing typing information
+    lineage_dbs = {}
+    overall_lineage = {}
     for strain,isolates in strains:
       # Make new database directory
       sys.stderr.write("Making database for strain " + str(strain) + "\n")
@@ -254,7 +253,6 @@ def create_db(args):
             sys.stderr.write("Network for rank " + str(rank) + " has " +
                              str(n_clusters) + " lineages\n")
         # For each strain, print output of each rank as CSV
-        overall_lineage[strain] = {}
         overall_lineage[strain] = createOverallLineage(rank_list, lineage_clusters)
         writeClusterCsv(os.path.join(strain_db_name,os.path.basename(strain_db_name) + '_lineages.csv'),
             strain_rlist,
