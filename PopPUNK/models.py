@@ -126,11 +126,7 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
     elif fit_type == "lineage":
         sys.stderr.write("Loading lineage cluster model\n")
         load_obj = LineageFit(outPrefix,
-                                fit_object[0], # ranks
-                                fit_object[2], # max_search_depth
-                                fit_object[3], # reciprocal_only
-                                fit_object[4], # count_unique_distances
-                                fit_object[1]) # dist_col
+                                fit_object)
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
@@ -1153,10 +1149,10 @@ class LineageFit(ClusterFit):
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + \
                       '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([[self.ranks,
-                                self.dist_col,
                                 self.max_search_depth,
                                 self.reciprocal_only,
-                                self.count_unique_distances],
+                                self.count_unique_distances,
+                                self.dist_col],
                                 self.type],
                             pickle_file)
 
@@ -1169,7 +1165,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.dist_col, self.max_search_depth, self.reciprocal_only, self.count_unique_distances = fit_obj
+        self.ranks, self.max_search_depth, self.reciprocal_only, self.count_unique_distances, self.dist_col = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 
