@@ -310,9 +310,6 @@ def query_db(args):
     if clustering_file != previous_clustering_file:
         external_clustering = clustering_file
 
-    # Store clustering
-    overall_lineage = {}
-
     # Ignore QC at the moment
     qc_dict = {'run_qc': False, 'type_isolate': None }
 
@@ -396,6 +393,7 @@ def query_db(args):
               query_strains[strain] = [isolate]
 
     # Assign to lineage for each isolate
+    overall_lineage = {}
     for strain in query_strains:
         if strain in lineage_dbs.keys():
             lineage_distances = os.path.join(lineage_dbs[strain],os.path.basename(lineage_dbs[strain]) + '.dists')
@@ -422,7 +420,6 @@ def query_db(args):
                             args.gpu_dist,
                             args.gpu_graph,
                             save_partial_query_graph = False)
-            overall_lineage[strain] = {}
             overall_lineage[strain] = createOverallLineage(rank_list, lineageClustering)
     
     # Print combined strain and lineage clustering
