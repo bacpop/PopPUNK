@@ -348,6 +348,7 @@ def query_db(args):
                              f"{','.join(fail_assembly_qc.keys())}\n")
             qNames = [x for x in qNames if x in pass_assembly_qc]
             if len(qNames) == 0:
+                raise RuntimeError("No query sequences remaining after QC filters")
                 sys.exit(1)
 
     isolateClustering = \
