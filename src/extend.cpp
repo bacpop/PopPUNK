@@ -215,11 +215,15 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
         combine_vectors(filtered_dists, len);
     std::vector<long> filtered_i_vec_all = combine_vectors(filtered_i_vec, len);
     std::vector<long> filtered_j_vec_all = combine_vectors(filtered_j_vec, len);
-    return (std::make_tuple(filtered_i_vec_all, filtered_j_vec_all,
-                            filtered_dists_all));
-  } else {
-    return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
+    // Overwrite vectors
+    dists_all.resize(filtered_dists_all.size());
+    std::memcpy(dists_all.data(), filtered_dists_all.data(), sizeof(int) * filtered_dists_all.size());
+    i_vec_all.resize(filtered_i_vec_all.size());
+    std::memcpy(i_vec_all.data(), filtered_i_vec_all.data(), sizeof(int) * filtered_i_vec_all.size());
+    j_vec_all.resize(filtered_j_vec_all.size());
+    std::memcpy(j_vec_all.data(), filtered_j_vec_all.data(), sizeof(int) * filtered_j_vec_all.size());
   }
+  return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
 sparse_coo get_kNN_distances(const NumpyMatrix &distMat, const int kNN,
