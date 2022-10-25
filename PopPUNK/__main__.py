@@ -167,7 +167,7 @@ def get_options():
                                       'counting neighbours or using only reciprocal matches',
                                 type = int,
                                 default = None)
-    lineagesGroup.add_argument('--write-networks',
+    lineagesGroup.add_argument('--write-lineage-networks',
                                 help='Save all lineage networks',
                                 action = 'store_true',
                                 default = False)
