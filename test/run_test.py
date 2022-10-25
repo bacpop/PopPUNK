@@ -107,8 +107,14 @@ subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output
 
 # lineages from strains
 sys.stderr.write("Running poppunk_lineages_from_strains\n")
-subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --create-db --db example_db --db-scheme example_lineage_scheme.pkl --output lineage_creation_output", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --query-db --db-scheme example_lineage_scheme.pkl --query some_queries.txt --output lineage_querying_output", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --create-db example_db --db-scheme example_lineage_scheme.pkl --output lineage_creation_output --overwrite", shell=True, check=True)
+if not os.path.exists('lineage_creation_output.csv'):
+    sys.stderr.write('Failed to create lineages from strain database\n')
+    sys.exit(1)
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --query-db some_queries.txt --db-scheme example_lineage_scheme.pkl --output lineage_querying_output --overwrite", shell=True, check=True)
+if not os.path.exists('lineage_querying_output.csv'):
+    sys.stderr.write('Failed to query lineages from strain database\n')
+    sys.exit(1)
 
 # citations
 sys.stderr.write("Printing citations\n")

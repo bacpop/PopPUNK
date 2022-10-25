@@ -60,7 +60,11 @@ def get_options():
                                         help="Write networks for lineages",
                                         default=False,
                                         action='store_true')
-    
+    ioGroup.add_argument('--overwrite',
+                                        help="Overwrite existing analyses",
+                                        default=False,
+                                        action='store_true')
+
     aGroup = parser.add_argument_group('Analysis options')
     aGroup.add_argument('--threads',    help="Number of CPUs to use in analysis",
                                         default=1,
@@ -142,6 +146,13 @@ def main():
 
 def create_db(args):
 
+    # Check if output files exist
+    if not args.overwrite:
+        if os.path.exists(args.output + '.csv'):
+            sys.stderr.write('Output file ' + args.output + '.csv exists; use --overwrite to replace it\n')
+        if os.path.exists(args.db_scheme):
+            sys.stderr.write('Output file ' + args.db_scheme + ' exists; use --overwrite to replace it\n')
+
     sys.stderr.write("Identifying strains in existing database\n")
     # Read in strain information
     if args.model_dir is None:
@@ -185,6 +196,8 @@ def create_db(args):
       num_isolates = len(isolate_list)
       if num_isolates >= args.min_count:
         lineage_dbs[strain] = strain_db_name
+        if os.path.isdir(strain_db_name) and args.overwrite:
+            os.rmdir(strain_db_name)
         if not os.path.isdir(strain_db_name):
             try:
                 os.makedirs(strain_db_name)
@@ -195,7 +208,10 @@ def create_db(args):
         src_db = os.path.join(args.create_db,os.path.basename(args.create_db) + '.h5')
         dest_db = os.path.join(strain_db_name,os.path.basename(strain_db_name) + '.h5')
         rel_path = os.path.relpath(src_db, os.path.dirname(dest_db))
-        os.symlink(rel_path,dest_db)
+        if os.path.exists(dest_db) and args.overwrite:
+            os.remove(dest_db)
+        elif not os.path.exists(dest_db):
+            os.symlink(rel_path,dest_db)
         # Extract sparse distances
         prune_distance_matrix(rlist,
                         list(set(rlist) - set(isolate_list)),
