@@ -126,7 +126,7 @@ def loadClusterFit(pkl_file, npz_file, outPrefix = "", max_samples = 100000,
     elif fit_type == "lineage":
         sys.stderr.write("Loading lineage cluster model\n")
         load_obj = LineageFit(outPrefix,
-                                fit_object)
+                                *fit_object)
     else:
         raise RuntimeError("Undefined model type: " + str(fit_type))
 
