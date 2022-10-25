@@ -577,7 +577,7 @@ def main():
                                                                         summarise = False
                                                                        )
                 # Print individual networks if requested
-                if args.write_networks:
+                if args.write_lineage_networks:
                     save_network(indivNetworks[rank],
                                     prefix = output,
                                     suffix = '_rank_' + str(rank) + '_graph',
