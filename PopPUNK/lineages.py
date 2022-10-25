@@ -141,7 +141,6 @@ def main():
     elif args.query_db:
         query_db(args)
   
-    return 0
 
 def create_db(args):
 
@@ -291,7 +290,6 @@ def create_db(args):
                       lineage_dbs],
                     pickle_file)
 
-    return 0
 
 def query_db(args):
     
@@ -425,7 +423,6 @@ def query_db(args):
     # Print combined strain and lineage clustering
     print_overall_clustering(overall_lineage,args.output + '.csv',qNames)
     
-    return 0
 
 def print_overall_clustering(overall_lineage,output,include_list):
 
@@ -455,5 +452,4 @@ def print_overall_clustering(overall_lineage,output,include_list):
 
 if __name__ == '__main__':
     main()
-
     sys.exit(0)
