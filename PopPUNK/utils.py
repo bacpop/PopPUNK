@@ -608,4 +608,7 @@ def get_match_search_depth(rlist,rank_list):
     """
     # Defaults to maximum of 10% of database size, unless this is smaller than the maximum search rank
     max_search_depth = max([int(0.1*len(rlist)),int(1.1*max(rank_list)),int(1+max(rank_list))])
+    # Cannot be higher than the number of comparisons
+    if max_search_depth > len(rlist) - 1:
+        max_search_depth = len(rlist) - 1
     return max_search_depth

@@ -91,7 +91,6 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
     // See sparsify_dists in pp_sketchlib.
     // This is very similar, but merging two lists as input
-    float prev_value = -1;
     auto rr_it = rr_ordered_idx.cbegin();
     auto qr_it = qr_ordered_idx.cbegin();
     while (qr_it != qr_ordered_idx.cend() && rr_it != rr_ordered_idx.cend()) {
@@ -134,6 +133,14 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
   std::vector<long> j_vec_all = combine_vectors(j_vec, len);
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
+
+struct pair_hash {
+  std::size_t operator()(const std::pair<long,long> & v) const {
+    long hash_value = v.first;
+    hash_value ^= v.second + 0x9e3779b9 + (v.first << 6) + (v.first >> 2);
+    return hash_value;
+  }
+};
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
                       const size_t kNN, bool reciprocal_only,
@@ -192,23 +199,27 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
   std::vector<long> j_vec_all = combine_vectors(j_vec, len);
   // Only count reciprocal matches
   if (reciprocal_only) {
+    std::unordered_set< std::pair<long, long>, pair_hash> kNN_pairs;
+    for (long vector_index = 0; vector_index < i_vec_all.size(); ++vector_index) {
+      kNN_pairs.insert(std::make_pair(i_vec_all[vector_index],j_vec_all[vector_index]));
+    }
     std::vector<std::vector<float>> filtered_dists(n_samples);
     std::vector<std::vector<long>> filtered_i_vec(n_samples);
     std::vector<std::vector<long>> filtered_j_vec(n_samples);
     len = 0;
 #pragma omp parallel for schedule(static) num_threads(num_threads) reduction(+:len)
-    for (long x = 0; x < i_vec_all.size(); x++) {
-      if (i_vec_all[x] < j_vec_all[x]) {
-        for (long y = 0; y < i_vec_all.size(); y++) {
-          if (i_vec_all[x] == j_vec_all[y] && j_vec_all[x] == i_vec_all[y]) {
-            filtered_dists[i_vec_all[x]].push_back(dists_all[x]);
-            filtered_i_vec[i_vec_all[x]].push_back(i_vec_all[x]);
-            filtered_j_vec[i_vec_all[x]].push_back(j_vec_all[x]);
-            break;
+    for (long i = 0; i < n_samples; ++i) {
+      for (long j_index = 0; j_index < j_vec[i].size(); ++j_index) {
+        long j = (j_vec[i])[j_index];
+        if (i < j) {
+          if (kNN_pairs.find(std::make_pair(j,i)) != kNN_pairs.end()) {
+            filtered_dists[i].push_back((dists[i])[j_index]);
+            filtered_j_vec[i].push_back(j);
           }
         }
       }
-      len += filtered_dists[i_vec_all[x]].size();
+      filtered_i_vec[i].resize(filtered_j_vec[i].size(), i);
+      len += filtered_i_vec[i].size();
     }
     // Combine the lists from each thread
     std::vector<float> filtered_dists_all =
@@ -217,11 +228,11 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
     std::vector<long> filtered_j_vec_all = combine_vectors(filtered_j_vec, len);
     // Overwrite vectors
     dists_all.resize(filtered_dists_all.size());
-    std::memcpy(dists_all.data(), filtered_dists_all.data(), sizeof(int) * filtered_dists_all.size());
+    std::memcpy(dists_all.data(), filtered_dists_all.data(), sizeof(float) * filtered_dists_all.size());
     i_vec_all.resize(filtered_i_vec_all.size());
-    std::memcpy(i_vec_all.data(), filtered_i_vec_all.data(), sizeof(int) * filtered_i_vec_all.size());
+    std::memcpy(i_vec_all.data(), filtered_i_vec_all.data(), sizeof(long) * filtered_i_vec_all.size());
     j_vec_all.resize(filtered_j_vec_all.size());
-    std::memcpy(j_vec_all.data(), filtered_j_vec_all.data(), sizeof(int) * filtered_j_vec_all.size());
+    std::memcpy(j_vec_all.data(), filtered_j_vec_all.data(), sizeof(long) * filtered_j_vec_all.size());
   }
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
