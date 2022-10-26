@@ -243,12 +243,17 @@ sparse_coo get_kNN_distances(const NumpyMatrix &distMat, const int kNN,
       interrupt = true;
     } else {
       long offset = i * kNN;
-      std::vector<long> ordered_dists = sort_indexes(row_dists, 1);
+      std::vector<long> j_ordered_by_dists = sort_indexes(row_dists, 1);
       std::fill_n(i_vec.begin() + offset, kNN, i);
-      for (int k = 0; k < kNN; ++k) {
-        if (ordered_dists[k] != i) {
-          j_vec[offset + k] = ordered_dists[k];
-          dists[offset + k] = row_dists[ordered_dists[k]];
+      int k = 0;
+      for (long j_index = 0; j_index < j_ordered_by_dists.size(); ++j_index) {
+        if (j_ordered_by_dists[j_index] != i) {
+          j_vec[offset + k] = j_ordered_by_dists[j_index];
+          dists[offset + k] = row_dists[j_ordered_by_dists[j_index]];
+          ++k;
+          if (k == kNN) {
+            break;
+          }
         }
       }
     }
