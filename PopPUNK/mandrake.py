@@ -8,6 +8,7 @@ import numpy as np
 from functools import partial
 import random
 
+import poppunk_refine
 import pp_sketchlib
 from SCE import wtsne
 try:
