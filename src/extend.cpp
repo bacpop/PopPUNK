@@ -201,7 +201,9 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
   if (reciprocal_only) {
     std::unordered_set< std::pair<long, long>, pair_hash> kNN_pairs;
     for (long vector_index = 0; vector_index < i_vec_all.size(); ++vector_index) {
-      kNN_pairs.insert(std::make_pair(i_vec_all[vector_index],j_vec_all[vector_index]));
+      if (i_vec_all[vector_index] > j_vec_all[vector_index]) {
+        kNN_pairs.insert(std::make_pair(i_vec_all[vector_index],j_vec_all[vector_index]));
+      }
     }
     std::vector<std::vector<float>> filtered_dists(n_samples);
     std::vector<std::vector<long>> filtered_i_vec(n_samples);
