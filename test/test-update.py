@@ -94,7 +94,9 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
                                   True, False, 1, False, 0)
 
   # Check distances match
+  sys.stderr.write("Comparing core distances in dense matrix after first query\n")
   run_regression(X1[:, 0], X2[:, 0])
+  sys.stderr.write("Comparing accessory distances in dense matrix after first query\n")
   run_regression(X1[:, 1], X2[:, 1])
 
   # Check sparse distances after one query
@@ -102,11 +104,13 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
       rlist1, qlist1, self = pickle.load(pickle_file)
   S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
   S2 = scipy.sparse.load_npz("batch2/batch2_rank_2_fit.npz")
+  sys.stderr.write("Comparing sparse matrices at rank 2 after first query calculated with options " + lineage_option_string + "\n")
   compare_sparse_matrices(S1,S2,rlist1,rlist2)
 
   # Check rank 1
   S3 = scipy.sparse.load_npz("batch12/batch12_rank_1_fit.npz")
   S4 = scipy.sparse.load_npz("batch2/batch2_rank_1_fit.npz")
+  sys.stderr.write("Comparing sparse matrices at rank 1 after first query calculated with options " + lineage_option_string + "\n")
   compare_sparse_matrices(S3,S4,rlist1,rlist2)
 
   # Check distances after second query
@@ -132,7 +136,9 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
                                   True, False, 1, False, 0)
 
   # Check distances match
+  sys.stderr.write("Comparing core distances in dense matrix after second query\n")
   run_regression(X1[:, 0], X2[:, 0])
+  sys.stderr.write("Comparing accessory distances in dense matrix after second query\n")
   run_regression(X1[:, 1], X2[:, 1])
 
   # Check sparse distances after second query
@@ -140,10 +146,11 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
       rlist3, qlist, self = pickle.load(pickle_file)
   S5 = scipy.sparse.load_npz("batch123/batch123_rank_2_fit.npz")
   S6 = scipy.sparse.load_npz("batch3/batch3_rank_2_fit.npz")
-
+  sys.stderr.write("Comparing sparse matrices at rank 2 after second query calculated with options " + lineage_option_string + "\n")
   compare_sparse_matrices(S5,S6,rlist3,rlist4)
 
   # Check rank 1
   S7 = scipy.sparse.load_npz("batch123/batch123_rank_1_fit.npz")
   S8 = scipy.sparse.load_npz("batch3/batch3_rank_1_fit.npz")
+  sys.stderr.write("Comparing sparse matrices at rank 1 after second query calculated with options " + lineage_option_string + "\n")
   compare_sparse_matrices(S7,S8,rlist3,rlist4)
