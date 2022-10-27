@@ -22,6 +22,15 @@ def get_options():
 
     return parser.parse_args()
 
+def rename_and_copy(curr_dir, out_dir, exts=None, rename_refs=False):
+    onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
+    for file in onlyfiles:
+        if (rename_refs and ".refs" in file) or any(s in file for s in exts):
+            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
+            if rename_refs:
+                new_name = re.sub(rf"\.refs\.", ".", new_name)
+            shutil.copy(file, os.path.join(out_dir, new_name))
+
 if __name__ == "__main__":
     options = get_options()
 
@@ -62,57 +71,28 @@ if __name__ == "__main__":
 
     # database extensions
     db_exts = (".dists.npy", ".dists.pkl", ".h5", ".png", "_qcreport.txt")
+    fit_exts = (".refs", "_fit.npz", "_fit.pkl", "_graph.gt", ".csv", ".png")
     if lineage:
-        fit_exts = ("_fit.npz", "_fit.pkl", "_graph.gt", ".csv", ".png", "rank_k_fit.npz")
-    else:
-        fit_exts = ("_fit.npz", "_fit.pkl", "_graph.gt", ".csv", ".png")
-
-
-    #set current dir
-    curr_dir = db_dir
-    out_dir = out_full
+        fit_exts.append("rank_k_fit.npz")
 
     # get files in db_dir
-    onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
-    for file in onlyfiles:
-        if any(s in file for s in db_exts):
-            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
-            shutil.copy(file, os.path.join(out_dir, new_name))
+    rename_and_copy(db_dir, out_full, db_exts)
 
     # get files in fit_dir
-    curr_dir = fit_dir
-
-    onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
-    for file in onlyfiles:
-        if any(s in file for s in fit_exts):
-            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
-            shutil.copy(file, os.path.join(out_dir, new_name))
+    rename_and_copy(fit_dir, out_full, fit_exts)
 
     # repeat for refs, will be in fit_dir
     out_dir = out_refs
 
+    fit_exts = ("_fit.npz", "_fit.pkl", ".csv", ".png", "_qcreport.txt")
     if lineage:
-        fit_exts = ("_fit.npz", "_fit.pkl", ".csv", ".png", "_qcreport.txt", "rank_k_fit.npz")
-    else:
-        fit_exts = ("_fit.npz", "_fit.pkl", ".csv", ".png", "_qcreport.txt")
+        fit_exts.append("rank_k_fit.npz")
 
     # get files in db_dir
-    onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
-    for file in onlyfiles:
-        #print(file)
-        if ".refs" in file:
-            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
-            new_name = re.sub(rf"\.refs\.", ".", new_name)
-            shutil.copy(file, os.path.join(out_dir, new_name))
-
+    rename_and_copy(fit_dir, db_exts, db_exts, rename_refs=True)
 
     # get files in fit_dir
-    onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
-    for file in onlyfiles:
-        #print(file)
-        if any(s in file for s in fit_exts):
-            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
-            shutil.copy(file, os.path.join(out_dir, new_name))
+    rename_and_copy(fit_dir, out_refs, fit_exts)
 
     # compress fits
     if not options.no_compress:
