@@ -76,9 +76,8 @@ if __name__ == "__main__":
     onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
     for file in onlyfiles:
         if any(s in file for s in db_exts):
-            shutil.copy(file, out_dir)
-            new_name = re.sub(rf"^{db_dir}", out_dir, os.path.basename(file))
-            os.rename(os.path.join(out_dir, file), os.path.join(out_dir, new_name))
+            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
+            shutil.copy(file, os.path.join(out_dir, new_name))
 
     # get files in fit_dir
     curr_dir = fit_dir
@@ -86,9 +85,8 @@ if __name__ == "__main__":
     onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
     for file in onlyfiles:
         if any(s in file for s in fit_exts):
-            shutil.copy(file, out_dir)
-            new_name = re.sub(rf"^{db_dir}", out_dir, os.path.basename(file))
-            os.rename(os.path.join(out_dir, file), os.path.join(out_dir, new_name))
+            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
+            shutil.copy(file, os.path.join(out_dir, new_name))
 
     # repeat for refs, will be in fit_dir
     out_dir = out_refs
@@ -103,9 +101,9 @@ if __name__ == "__main__":
     for file in onlyfiles:
         #print(file)
         if ".refs" in file:
-            new_name = re.sub(rf"^{db_dir}", out_dir, os.path.basename(file))
+            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
             new_name = re.sub(rf"\.refs\.", ".", new_name)
-            os.rename(os.path.join(out_dir, file), os.path.join(out_dir, new_name))
+            shutil.copy(file, os.path.join(out_dir, new_name))
 
 
     # get files in fit_dir
@@ -113,9 +111,8 @@ if __name__ == "__main__":
     for file in onlyfiles:
         #print(file)
         if any(s in file for s in fit_exts):
-            shutil.copy(file, out_dir)
-            new_name = re.sub(rf"^{db_dir}", out_dir, os.path.basename(file))
-            os.rename(os.path.join(out_dir, file), os.path.join(out_dir, new_name))
+            new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
+            shutil.copy(file, os.path.join(out_dir, new_name))
 
     # compress fits
     if not options.no_compress:
