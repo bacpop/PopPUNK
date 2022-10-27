@@ -89,7 +89,7 @@ if __name__ == "__main__":
         fit_exts.append("rank_k_fit.npz")
 
     # get files in db_dir
-    rename_and_copy(fit_dir, db_exts, db_exts, rename_refs=True)
+    rename_and_copy(fit_dir, out_refs, rename_refs=True)
 
     # get files in fit_dir
     rename_and_copy(fit_dir, out_refs, fit_exts)
