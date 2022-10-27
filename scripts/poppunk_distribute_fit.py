@@ -95,7 +95,7 @@ if __name__ == "__main__":
     rename_and_copy(fit_dir, out_refs, fit_exts)
 
     # compress fits
-    sys.stderr.write("Compressing...")
+    sys.stderr.write("Compressing...\n")
     if not options.no_compress:
         # compress refs
         tar_out_list = os.path.split(out_dir)
