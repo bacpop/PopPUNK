@@ -25,7 +25,7 @@ def get_options():
 def rename_and_copy(curr_dir, out_dir, exts=None, rename_refs=False):
     onlyfiles = [os.path.join(curr_dir, f) for f in os.listdir(curr_dir) if os.path.isfile(os.path.join(curr_dir, f))]
     for file in onlyfiles:
-        if (rename_refs and ".refs" in file) or any(s in file for s in exts):
+        if (rename_refs and ".refs" in file) or (not rename_refs and any(s in file for s in exts)):
             new_name = re.sub(rf"^{os.path.basename(curr_dir)}", os.path.basename(out_dir), os.path.basename(file))
             if rename_refs:
                 new_name = re.sub(rf"\.refs\.", ".", new_name)
