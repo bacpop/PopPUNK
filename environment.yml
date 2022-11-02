@@ -40,4 +40,4 @@ dependencies:
   - boost-cpp
   - libgomp
   - tqdm
-  - joblib ==1.1.0  # until hdbscan updated
+  - joblib
