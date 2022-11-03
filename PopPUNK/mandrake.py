@@ -107,8 +107,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
         with open(mandrake_filename, 'w') as nFile:
             nFile.write("graph G { ")
             for s, seqLabel in enumerate(seqLabels):
-                nFile.write('"' + seqLabel + '"' +
-                            '[x='+str(5*float(embedding[s][0]))+',y='+str(5*float(embedding[s][1]))+']; ')
+                nFile.write(f'"{seqLabel}"[x="{str(5*float(embedding[s][0]))}",y="{str(5*float(embedding[s][1]))}"]; ')
             nFile.write("}\n")
 
     return mandrake_filename
