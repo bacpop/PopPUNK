@@ -214,7 +214,7 @@ class ClusterFit:
         self.threads = 1
 
     def set_threads(self, threads):
-      self.threads = threads
+        self.threads = threads
 
     def fit(self, X = None):
         '''Initial steps for all fit functions.

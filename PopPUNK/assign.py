@@ -565,7 +565,7 @@ def assign_query_hdf5(dbFuncs,
 
         else:
             # Assign these distances as within or between strain
-            if fit_type == 'core_refined' or model.threshold:
+            if fit_type == 'core_refined' or (model.type = 'refine' and model.threshold):
                 queryAssignments = model.assign(qrDistMat, slope = 0)
                 dist_type = 'core'
             elif fit_type == 'accessory_refined':
