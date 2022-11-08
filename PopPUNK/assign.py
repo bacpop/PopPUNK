@@ -565,15 +565,15 @@ def assign_query_hdf5(dbFuncs,
 
         else:
             # Assign these distances as within or between strain
-            if fit_type == 'default':
-                queryAssignments = model.assign(qrDistMat)
-                dist_type = 'euclidean'
-            elif fit_type == 'core_refined':
+            if fit_type == 'core_refined' or model.threshold:
                 queryAssignments = model.assign(qrDistMat, slope = 0)
                 dist_type = 'core'
             elif fit_type == 'accessory_refined':
                 queryAssignments = model.assign(qrDistMat, slope = 1)
                 dist_type = 'accessory'
+            else:
+                queryAssignments = model.assign(qrDistMat)
+                dist_type = 'euclidean'
 
             # QC assignments to check for multi-links
             if qc_dict['run_qc'] and qc_dict['max_merge'] > 1:
@@ -587,7 +587,7 @@ def assign_query_hdf5(dbFuncs,
                 failed_samples = frozenset(qNames) - seq_names_passing
                 if len(failed_samples) > 0:
                     sys.stderr.write(f"{len(failed_samples)} samples failed:\n"
-                                    f"{','.join(failed_samples)}\n")
+                                     f"{','.join(failed_samples)}\n")
                     if len(failed_samples) == len(qNames):
                         sys.exit(1)
                     else:

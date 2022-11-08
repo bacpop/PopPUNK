@@ -40,4 +40,3 @@ dependencies:
   - boost-cpp
   - libgomp
   - tqdm
-  - joblib <=1.1

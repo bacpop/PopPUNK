@@ -41,7 +41,7 @@ RUN pip install .
 
 RUN pip install cmake plotly ffmpeg
 
-RUN git clone -b bacpop-49 https://github.com/bacpop/mandrake.git && \
+RUN git clone https://github.com/bacpop/mandrake.git && \
     cd mandrake && \
     python setup.py install && \
     cd .. && rm -r mandrake

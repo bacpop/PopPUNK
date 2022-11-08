@@ -115,14 +115,14 @@ begin to fail.
 At the other end, choosing a :math:`k` which is too long will result in all k-mers
 mismatching. The greater the core distance :math:`\pi`, the lower the allowable maximum.
 
-Some k-mer ranges for ``--k-min`` and ``--k-max`` we have found to work for various genomes:
+Some k-mer ranges for ``--min-k`` and ``--max-k`` we have found to work for various genomes:
 
 .. table:: k-mer lengths by domain
    :widths: auto
    :align: center
 
    ==================  =================  ===========  =====  =====
-    Domain/pathogen    Typical :math:`l`  :math:`\pi`  k-min  k-max
+    Domain/pathogen    Typical :math:`l`  :math:`\pi`  min-k  max-k
    ==================  =================  ===========  =====  =====
    Beta-coronaviruses  20kb               0.1          6      15
    Bacteria            2-5Mb              ~0.01-0.04   13     29
@@ -130,7 +130,7 @@ Some k-mer ranges for ``--k-min`` and ``--k-max`` we have found to work for vari
    Plasmodium          23Mb               0.0005       17     31
    ==================  =================  ===========  =====  =====
 
-A ``--kmer-step`` of four is usually sufficient, but drop this to two or three
+A ``--k-step`` of four is usually sufficient, but drop this to two or three
 to give the best accuracy at the expense of increased execution time.
 
 A good model will have a straight line fit between :math:`\log(J)` and :math:`k`. Run

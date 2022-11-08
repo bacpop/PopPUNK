@@ -1296,7 +1296,9 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
 
     # do not calculate weights unless specified
     if weights is None:
-        distance_type = None
+        weights_type = None
+    else:
+        weights_type = distance_type
 
     # These are returned
     qqDistMat = None
@@ -1312,7 +1314,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
                                             previous_network = G,
                                             old_ids = rList,
                                             distMat = weights,
-                                            weights_type = distance_type,
+                                            weights_type = weights_type,
                                             summarise = False,
                                             use_gpu = use_gpu)
 
@@ -1357,7 +1359,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
                                                     old_ids = vertex_labels,
                                                     adding_qq_dists = True,
                                                     distMat = qqDistMat,
-                                                    weights_type = distance_type,
+                                                    weights_type = weights_type,
                                                     summarise = False,
                                                     use_gpu = use_gpu)
 
