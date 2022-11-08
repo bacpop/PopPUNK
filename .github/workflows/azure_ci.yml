@@ -21,13 +21,13 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        $CONDA/bin/conda env update --file environment.yml --name base
+    - name: Install Conda environment from environment.yml
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          cache-env: true
     - name: Install and run_test.py
+      shell: bash -l {0}
       run: |
-        PATH=$CONDA/bin/bin:$PATH
-        source $CONDA/bin/activate base
-        $CONDA/bin/python -m pip install --no-deps --ignore-installed .
-        cd test && export POPPUNK_PYTHON=$CONDA/bin/python && $CONDA/bin/python run_test.py
+        python -m pip install --no-deps --ignore-installed .
+        cd test && python run_test.py
 
