@@ -116,12 +116,13 @@ def main():
             sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
 
         # Select network file name
-        network_file = args.network
-        if network_file is None:
+        if args.network_file is None:
             if use_gpu:
-                args.network = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
+                network_file = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
             else:
-                args.network = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
+                network_file = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
+        else:
+            network_file = args.network_file
 
         # Open network file
         if network_file.endswith('.gt'):
