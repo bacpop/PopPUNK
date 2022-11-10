@@ -110,9 +110,9 @@ setup(
                       # 'mandrake', #uncomment when on PyPI
                       'networkx',
                       'pandas',
-                      'pp-sketchlib',
+                      'pp-sketchlib>=1.7.0',
                       'requests',
-                      'scikit-learn',
+                      'scikit-learn>=0.24',
                       'tqdm',
                       'treeswift',
                       ],
