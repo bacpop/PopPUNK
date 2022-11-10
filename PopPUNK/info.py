@@ -16,12 +16,7 @@ import graph_tool.all as gt
 
 # Load GPU libraries
 try:
-    import cupyx
     import cugraph
-    import cudf
-    import cupy
-    from numba import cuda
-    import rmm
     gpu_lib = True
 except ImportError as e:
     gpu_lib = False
@@ -36,24 +31,23 @@ def get_options():
     parser.add_argument('--db',
                         required = True,
                         help='PopPUNK database directory')
-    parser.add_argument('--network',
-                        required = False,
-                        default = None,
-                        help='Network or lineage fit file for analysis')
+    parser.add_argument('--simple',
+                        default = False,
+                        action='store_true',
+                        help='Do not run network/per-sample analysis')
+    parser.add_argument('--network-file',
+                        help='Specify file non-default network file')
+    parser.add_argument('--output',
+                        help='File to save full output (default /dev/stdout)')
     parser.add_argument('--threads',
                         default = 1,
-                        help='Number of cores to use in analysis')
+                        help='Number of cores to use in network analysis')
     parser.add_argument('--use-gpu',
                         default = False,
                         action = 'store_true',
-                        help='Whether GPU libraries should be used in analysis')
+                        help='Whether GPU libraries should be used in network analysis')
     parser.add_argument('--output',
-                        required = True,
                         help='Prefix for output files')
-    parser.add_argument('--simple',
-                        default = False,
-                        action = 'store_true',
-                        help='Do not print per sample information')
 
     return parser.parse_args()
 
@@ -61,7 +55,6 @@ def get_options():
 def main():
 
     # Import functions
-    from .network import add_self_loop
     from .network import load_network_file
     from .network import sparse_mat_to_network
     from .utils import check_and_set_gpu
@@ -79,7 +72,7 @@ def main():
     # Open and process sequence database
     h5_fn = os.path.join(args.db, os.path.basename(args.db) + '.h5')
     ref_db = h5py.File(h5_fn, 'r')
-    
+
     # Print overall database information
     print("PopPUNK database:\t\t" + args.db)
 
@@ -107,73 +100,70 @@ def main():
     except KeyError:
         codon_phased = False
     print("Codon phased seeds:\t\t" + str(codon_phased))
-    
+
     if 'use_rc' in ref_db.keys():
         use_rc = ref_db['sketches'].attrs['use_rc'] == 1
         print("Uses canonical k-mers:\t" + str(use_rc))
-    
-    # Stop if requested
-    if args.simple:
-        sys.exit(0)
-    
-    # Print sample information
-    sample_names = list(ref_db['sketches'].keys())
-    sample_sequence_length = {}
-    sample_missing_bases = {}
-    sample_base_frequencies = {name: [] for name in sample_names}
-    
-    for sample_name in sample_names:
-        sample_base_frequencies[sample_name] = ref_db['sketches/' + sample_name].attrs['base_freq']
-        sample_sequence_length[sample_name] = ref_db['sketches/' + sample_name].attrs['length']
-        sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
-    
-    # Select network file name
-    network_fn = args.network
-    if network_fn is None:
-        if use_gpu:
-            network_fn = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
-        else:
-            network_fn = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
-    
-    # Open network file
-    if network_fn.endswith('.gt'):
-        G = load_network_file(network_fn, use_gpu = False)
-    elif network_fn.endswith('.csv.gz'):
-        if use_gpu:
-            G = load_network_file(network_fn, use_gpu = True)
-        else:
-            sys.stderr.write('Unable to load necessary GPU libraries\n')
-            exit(1)
-    elif network_fn.endswith('.npz'):
-        sparse_mat = sparse.load_npz(network_fn)
-        G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
-    else:
-        sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
-        exit(1)
 
-    # Analyse network
-    if use_gpu:
-        component_assignments_df = cugraph.components.connectivity.connected_components(G)
-        component_counts_df = component_assignments_df.groupby('labels')['vertex'].count()
-        component_counts_df.name = 'component_count'
-        component_information_df = component_assignments_df.merge(component_counts_df, on = ['labels'], how = 'left')
-        outdegree_df = G.out_degree()
-        graph_properties_df = component_information_df.merge(outdegree_df, on = ['vertex'])
-    else:
-        graph_properties_df = pd.DataFrame()
-        graph_properties_df['vertex'] = np.arange(len(sample_names))
-        graph_properties_df['labels'] = gt.label_components(G)[0].a
-        graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
-        graph_properties_df['component_count'] = graph_properties_df.groupby('labels')['vertex'].transform('count')
-    graph_properties_df = graph_properties_df.sort_values('vertex', axis = 0) # inplace not implemented for cudf
-    graph_properties_df['vertex'] = sample_names
-    
-    # Merge data and print output
-    with open(args.output,'w') as out_file:
+    # Print sample information
+    if not args.simple:
+        sample_names = list(ref_db['sketches'].keys())
+        sample_sequence_length = {}
+        sample_missing_bases = {}
+        sample_base_frequencies = {name: [] for name in sample_names}
+
+        for sample_name in sample_names:
+            sample_base_frequencies[sample_name] = ref_db['sketches/' + sample_name].attrs['base_freq']
+            sample_sequence_length[sample_name] = ref_db['sketches/' + sample_name].attrs['length']
+            sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
+
+        # Select network file name
+        network_file = args.network
+        if network_file is None:
+            if use_gpu:
+                args.network = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
+            else:
+                args.network = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
+
+        # Open network file
+        if network_file.endswith('.gt'):
+            G = load_network_file(network_file, use_gpu = False)
+        elif network_file.endswith('.csv.gz'):
+            if use_gpu:
+                G = load_network_file(network_file, use_gpu = True)
+            else:
+                sys.stderr.write('Unable to load necessary GPU libraries\n')
+                sys.exit(1)
+        elif network_file.endswith('.npz'):
+            sparse_mat = sparse.load_npz(network_file)
+            G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
+        else:
+            sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
+            sys.exit(1)
+
+        # Analyse network
+        if use_gpu:
+            component_assignments_df = cugraph.components.connectivity.connected_components(G)
+            component_counts_df = component_assignments_df.groupby('labels')['vertex'].count()
+            component_counts_df.name = 'component_count'
+            component_information_df = component_assignments_df.merge(component_counts_df, on = ['labels'], how = 'left')
+            outdegree_df = G.out_degree()
+            graph_properties_df = component_information_df.merge(outdegree_df, on = ['vertex'])
+        else:
+            graph_properties_df = pd.DataFrame()
+            graph_properties_df['vertex'] = np.arange(len(sample_names))
+            graph_properties_df['labels'] = gt.label_components(G)[0].a
+            graph_properties_df['degree'] = G.get_out_degrees(G.get_vertices())
+            graph_properties_df['component_count'] = graph_properties_df.groupby('labels')['vertex'].transform('count')
+        graph_properties_df = graph_properties_df.sort_values('vertex', axis = 0) # inplace not implemented for cudf
+        graph_properties_df['vertex'] = sample_names
+
+        # Merge data and print output
+        out_file = open(args.output, 'w') if args.output is not None else sys.stdout
         out_file.write(
             'Sample,Length,Missing_bases,Frequency_A,Frequency_C,Frequency_G,Frequency_T,Component_label,Component_size,Node_degree\n'
         )
-        for i,sample_name in enumerate(sample_names):
+        for sample_name in sample_names:
             out_file.write(sample_name + ',' + str(sample_sequence_length[sample_name]) + ',' + str(sample_missing_bases[sample_name]) + ',')
             for frequency in sample_base_frequencies[sample_name]:
                 out_file.write(str(frequency) + ',')
@@ -182,8 +172,8 @@ def main():
             out_file.write(str(graph_properties_row['component_count'].values[0]) + ',')
             out_file.write(str(graph_properties_row['degree'].values[0]))
             out_file.write("\n")
-
-    sys.exit(0)
+        if out_file is not sys.stdout:
+            out_file.close()
 
 if __name__ == '__main__':
     main()
