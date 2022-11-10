@@ -46,8 +46,6 @@ def get_options():
                         default = False,
                         action = 'store_true',
                         help='Whether GPU libraries should be used in network analysis')
-    parser.add_argument('--output',
-                        help='Prefix for output files')
 
     return parser.parse_args()
 
