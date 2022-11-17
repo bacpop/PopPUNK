@@ -229,12 +229,9 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
     std::vector<long> filtered_i_vec_all = combine_vectors(filtered_i_vec, len);
     std::vector<long> filtered_j_vec_all = combine_vectors(filtered_j_vec, len);
     // Overwrite vectors
-    dists_all.resize(filtered_dists_all.size());
-    std::memcpy(dists_all.data(), filtered_dists_all.data(), sizeof(float) * filtered_dists_all.size());
-    i_vec_all.resize(filtered_i_vec_all.size());
-    std::memcpy(i_vec_all.data(), filtered_i_vec_all.data(), sizeof(long) * filtered_i_vec_all.size());
-    j_vec_all.resize(filtered_j_vec_all.size());
-    std::memcpy(j_vec_all.data(), filtered_j_vec_all.data(), sizeof(long) * filtered_j_vec_all.size());
+    dists_all = std::move(filtered_dists_all);
+    i_vec_all = std::move(filtered_i_vec_all);
+    j_vec_all = std::move(filtered_j_vec_all);
   }
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
