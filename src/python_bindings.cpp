@@ -115,10 +115,22 @@ PYBIND11_MODULE(poppunk_refine, m) {
   m.def("extend", &extend, py::return_value_policy::reference_internal,
         "Extend a sparse distance matrix keeping k nearest-neighbours",
         py::arg("rr_mat"), py::arg("qq_mat").noconvert(),
-        py::arg("qr_mat").noconvert(), py::arg("kNN"),
+        py::arg("qr_mat").noconvert(),
+        py::arg("kNN"),
         py::arg("num_threads") = 1);
 
   m.def("lowerRank", &lower_rank, py::return_value_policy::reference_internal,
-        "Extend a sparse distance matrix keeping k nearest-neighbours",
-        py::arg("rr_mat"), py::arg("n_samples"), py::arg("kNN"));
+        "Reduce a sparse distance matrix keeping k nearest-neighbours",
+        py::arg("rr_mat"), py::arg("n_samples"),
+        py::arg("kNN"),
+        py::arg("reciprocal_only") = false,
+        py::arg("count_unique_distances") = false,
+        py::arg("num_threads") = 1);
+
+  m.def("get_kNN_distances", &get_kNN_distances, py::return_value_policy::reference_internal,
+        "Identify k nearest-neighbours from a square distance matrix",
+        py::arg("distMat").noconvert(),
+        py::arg("kNN"),
+        py::arg("dist_col"),
+        py::arg("num_threads") = 1);
 }

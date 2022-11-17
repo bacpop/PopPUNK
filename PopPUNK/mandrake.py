@@ -8,6 +8,7 @@ import numpy as np
 from functools import partial
 import random
 
+import poppunk_refine
 import pp_sketchlib
 from SCE import wtsne
 try:
@@ -63,7 +64,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
     else:
         sys.stderr.write("Running mandrake\n")
         kNN = max(kNN, len(seqLabels) - 1)
-        I, J, dists = pp_sketchlib.sparsifyDists(distMat=accMat, distCutoff=0, kNN=kNN)
+        I, J, dists = poppunk_refine.get_kNN_distances(accMat, kNN, 1, n_threads)
 
         # Set up function call with either CPU or GPU
         weights = np.ones((len(seqLabels)))

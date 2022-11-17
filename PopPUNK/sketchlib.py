@@ -616,7 +616,8 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
                           raw_fit,
                           corrected[plot_idx],
                           corrected_fit,
-                          queryPrefix + "/" + queryPrefix + "_fit_example_" + str(plot_idx + 1),
+                          os.path.join(os.path.dirname(queryPrefix),
+                                       os.path.basename(queryPrefix) + "_fit_example_" + str(plot_idx + 1)),
                           "Example fit " + str(plot_idx + 1) + " - " +  ref_examples[plot_idx] + \
                           " vs. " + query_examples[plot_idx])
 

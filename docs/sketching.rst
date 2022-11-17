@@ -68,6 +68,8 @@ Viewing information about a database
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Use ``poppunk_info`` on a HDF5 file::
 
+    > poppunk_info --db e_coli --simple
+
     PopPUNK database:		ecoli.h5
     Sketch version:			9314bda28ed25a60dd40f9b9e896c0b269500fec
     Contains random matches:	True
@@ -81,12 +83,15 @@ Sketch size is always rounded to the nearest 64.
     The sketch version should match between databases you are comparing, but the program
     will still run with a warning if they don't. Check results carefully.
 
-Add ``--list-samples`` to get further information for every sample::
+Without ``--simple`` to get further information for every sample (``--output``
+to save results to a file; ``--network`` to use a non-default network file)::
 
-    Name:	upec-240
-	Base frequencies:	A:0.243987,C:0.247509,G:0.262923,T:0.24558
-	Length:			5193782
-	Missing bases:		2401
+    Sample,Length,Missing_bases,Frequency_A,Frequency_C,Frequency_G,Frequency_T,Component_label,Component_size,Node_degree
+    11657_5#1,4673808,2879,0.24679,0.257679,0.249401,0.24555,0,258,15
+    11657_5#10,4702152,4024,0.244373,0.252315,0.252617,0.249008,1,17,5
+    11657_5#12,5024448,5852,0.247563,0.245727,0.255955,0.24988,2,464,445
+    11657_5#13,5180468,5010,0.248152,0.251625,0.254893,0.244739,3,784,733
+    11657_5#14,5329972,13419,0.243371,0.260128,0.251946,0.244246,4,177,128
 
 .. _kmer-length:
 

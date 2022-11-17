@@ -27,12 +27,15 @@ typedef std::vector<std::tuple<long, long>> edge_tuple;
 template <typename T>
 std::vector<long> sort_indexes(const T &v, const uint32_t n_threads) {
   // initialize original index locations
-  std::vector<long> idx(v.size());
-  std::iota(idx.begin(), idx.end(), 0);
+  std::vector<long> idx;
+  if (v.size() > 0) {
+    idx.resize(v.size());
+    std::iota(idx.begin(), idx.end(), 0);
 
-  boost::sort::parallel_stable_sort(
-      idx.begin(), idx.end(), [&v](long i1, long i2) { return v[i1] < v[i2]; },
-      n_threads);
+    boost::sort::parallel_stable_sort(
+        idx.begin(), idx.end(), [&v](long i1, long i2) { return v[i1] < v[i2]; },
+        n_threads);
+  }
 
   return idx;
 }

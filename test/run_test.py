@@ -91,7 +91,7 @@ subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --distances example
 # MST
 sys.stderr.write("Running MST\n")
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db example_db --output example_mst --microreact --tree both", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db/example_db.dists.pkl --rank-fit example_lineages/example_lineages_rank_5_fit.npz --previous-clustering example_dbscan/example_dbscan_clusters.csv --output example_sparse_mst --no-plot", shell=True, check=True)
 
 # mandrake
 sys.stderr.write("Running mandrake viz\n")
@@ -103,7 +103,19 @@ subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_
 
 # info
 sys.stderr.write("Running poppunk_info\n")
-subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db --output example_db.info.csv", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_info-runner.py --simple --db example_db", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_info-runner.py --db example_db", shell=True, check=True)
+
+# lineages from strains
+sys.stderr.write("Running poppunk_lineages_from_strains\n")
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --create-db example_db --db-scheme example_lineage_scheme.pkl --output lineage_creation_output --overwrite", shell=True, check=True)
+if not os.path.exists('lineage_creation_output.csv'):
+    sys.stderr.write('Failed to create lineages from strain database\n')
+    sys.exit(1)
+subprocess.run(python_cmd + " ../poppunk_lineages-runner.py --query-db some_queries.txt --db-scheme example_lineage_scheme.pkl --output lineage_querying_output --overwrite", shell=True, check=True)
+if not os.path.exists('lineage_querying_output.csv'):
+    sys.stderr.write('Failed to query lineages from strain database\n')
+    sys.exit(1)
 
 # citations
 sys.stderr.write("Printing citations\n")

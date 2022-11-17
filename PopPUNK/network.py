@@ -1464,7 +1464,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
             component = component_assignments['labels'].iloc[isolate_index].item()
             component_rank_bool = component_frequencies.index == component
-            component_rank = np.argmax(component_rank_bool.to_array())
+            component_rank = int(cp.argmax(component_rank_bool))
             newClusters[component_rank].add(isolate_name)
     else:
         component_assignments, component_frequencies = gt.label_components(G)

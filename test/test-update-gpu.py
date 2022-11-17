@@ -33,6 +33,11 @@ def compare_sparse_matrices(d1,d2,r1,r2):
     d2_pairs = get_seq_tuples(d2.row,d2.col,r2)
     d1_dists = []
     d2_dists = []
+    if (len(d1_pairs) != len(d2_pairs)):
+        sys.stderr.write("Distance matrix number of entries differ!\n")
+        print(d1_pairs)
+        print(d2_pairs)
+        sys.exit(1)
 
     for (pair1,dist1) in zip(d1_pairs,d1.data):
         for (pair2,dist2) in zip(d2_pairs,d2.data):
@@ -87,9 +92,14 @@ run_regression(X1[:, 1], X2[:, 1])
 # Check sparse distances after one query
 with open("batch12/batch12.dists.pkl", 'rb') as pickle_file:
     rlist1, qlist1, self = pickle.load(pickle_file)
-S1 = scipy.sparse.load_npz("batch12/batch12_rank2_fit.npz")
-S2 = scipy.sparse.load_npz("batch2/batch2_rank2_fit.npz")
+S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
+S2 = scipy.sparse.load_npz("batch2/batch2_rank_2_fit.npz")
 compare_sparse_matrices(S1,S2,rlist1,rlist2)
+
+# Check rank 1
+S3 = scipy.sparse.load_npz("batch12/batch12_rank_1_fit.npz")
+S4 = scipy.sparse.load_npz("batch2/batch2_rank_1_fit.npz")
+compare_sparse_matrices(S3,S4,rlist1,rlist2)
 
 # Check distances after second query
 
@@ -118,7 +128,12 @@ run_regression(X1[:, 1], X2[:, 1])
 # Check sparse distances after second query
 with open("batch123/batch123.dists.pkl", 'rb') as pickle_file:
     rlist3, qlist, self = pickle.load(pickle_file)
-S3 = scipy.sparse.load_npz("batch123/batch123_rank2_fit.npz")
-S4 = scipy.sparse.load_npz("batch3/batch3_rank2_fit.npz")
+S5 = scipy.sparse.load_npz("batch123/batch123_rank_2_fit.npz")
+S6 = scipy.sparse.load_npz("batch3/batch3_rank_2_fit.npz")
 
-compare_sparse_matrices(S3,S4,rlist3,rlist4)
+compare_sparse_matrices(S5,S6,rlist3,rlist4)
+
+# Check rank 1
+S7 = scipy.sparse.load_npz("batch123/batch123_rank_1_fit.npz")
+S8 = scipy.sparse.load_npz("batch3/batch3_rank_1_fit.npz")
+compare_sparse_matrices(S7,S8,rlist3,rlist4)

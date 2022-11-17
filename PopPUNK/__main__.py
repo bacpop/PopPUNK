@@ -153,6 +153,24 @@ def get_options():
                                 help='Comma separated list of ranks used in lineage clustering [default = 1,2,3]',
                                 type = str,
                                 default = "1,2,3")
+    lineagesGroup.add_argument('--count-unique-distances',
+                                help='kNN enumerates number of unique distances rather than number of '
+                                'neighbours',
+                                action = 'store_true',
+                                default = False)
+    lineagesGroup.add_argument('--reciprocal-only',
+                                help='Only use reciprocal kNN matches for lineage definitions',
+                                action = 'store_true',
+                                default = False)
+    lineagesGroup.add_argument('--max-search-depth',
+                                help='Number of kNN distances per sequence to filter when '
+                                      'counting neighbours or using only reciprocal matches',
+                                type = int,
+                                default = None)
+    lineagesGroup.add_argument('--write-lineage-networks',
+                                help='Save all lineage networks',
+                                action = 'store_true',
+                                default = False)
     lineagesGroup.add_argument('--use-accessory',
                                 help='Use accessory distances for lineage definitions [default = use core distances]',
                                 action = 'store_true',
@@ -229,6 +247,7 @@ def main():
     from .utils import setupDBFuncs
     from .utils import readPickle, storePickle
     from .utils import createOverallLineage
+    from .utils import get_match_search_depth
 
     # check kmer properties
     if args.min_k >= args.max_k:
@@ -264,10 +283,11 @@ def main():
     if args.fit_model == 'lineage':
         rank_list = sorted([int(x) for x in args.ranks.split(',')])
         if int(min(rank_list)) == 0:
-            sys.stderr.write("Ranks must be >= 1\n")
-        if max(rank_list) > 100:
-            sys.stderr.write("WARNING: Ranks should be small non-zero integers for sensible lineage results\n")
-
+            sys.stderr.write("Ranks must be greater than 1\n")
+        if args.max_search_depth is not None and args.max_search_depth < max(rank_list):
+            sys.stderr.write("The maximum search depth must be greater than the highest lineage rank\n")
+            sys.exit(1)
+            
     if args.create_db == False:
         # Check and set required parameters for other modes
         if args.ref_db is None:
@@ -327,7 +347,8 @@ def main():
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
-                         args.output + "/" + os.path.basename(args.output) + "_distanceDistribution",
+                         os.path.join(os.path.dirname(args.output),
+                                      os.path.basename(args.output) + "_distanceDistribution"),
                          args.output + " distances")
 
     #******************************#
@@ -486,9 +507,24 @@ def main():
             elif args.fit_model == "lineage":
                 # run lineage clustering. Sparsity & low rank should keep memory
                 # usage of dict reasonable
-                model = LineageFit(output, rank_list, use_gpu = args.gpu_graph)
+                # Memory usage determined by maximum search depth
+                if args.max_search_depth is not None:
+                    max_search_depth = int(args.max_search_depth)
+                elif args.max_search_depth is None and (args.reciprocal_only or args.count_unique_distances):
+                    max_search_depth = get_match_search_depth(refList,rank_list)
+                else:
+                    max_search_depth = max(rank_list)
+
+                model = LineageFit(output,
+                                    rank_list,
+                                    max_search_depth,
+                                    args.reciprocal_only,
+                                    args.count_unique_distances,
+                                    1 if args.use_accessory else 0,
+                                    use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
-                model.fit(distMat, args.use_accessory)
+                model.fit(distMat,
+                            args.use_accessory)
 
                 assignments = {}
                 for rank in rank_list:
@@ -542,6 +578,14 @@ def main():
                                                                         use_gpu = args.gpu_graph,
                                                                         summarise = False
                                                                        )
+                # Print individual networks if requested
+                if args.write_lineage_networks:
+                    save_network(indivNetworks[rank],
+                                    prefix = output,
+                                    suffix = '_rank_' + str(rank) + '_graph',
+                                    use_gpu = args.gpu_graph)
+                
+                # Identify clusters from output
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
                                   refList,

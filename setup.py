@@ -126,7 +126,8 @@ setup(
             'poppunk_mst = PopPUNK.sparse_mst:main',
             'poppunk_references = PopPUNK.reference_pick:main',
             'poppunk_mandrake = PopPUNK.mandrake:main',
-            'poppunk_info = PopPUNK.info:main'
+            'poppunk_info = PopPUNK.info:main',
+            'poppunk_lineages_from_strains = PopPUNK.lineages:main'
             ]
     },
     scripts=['scripts/poppunk_calculate_rand_indices.py',
