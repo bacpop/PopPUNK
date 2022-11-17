@@ -34,7 +34,6 @@ dependencies:
   - xorg-libxfixes
   - pybind11
   - eigen
-  - openblas
   - cmake >= 3.18
   - libgfortran-ng
   - boost-cpp
