@@ -6,7 +6,7 @@ HERE=$(dirname $0)
 
 docker build --pull \
        --tag $TAG_SHA \
-       -f docker2/Dockerfile \
+       -f docker/Dockerfile \
        $PACKAGE_ROOT
 
 # We always push the SHA tagged versions, for debugging if the tests

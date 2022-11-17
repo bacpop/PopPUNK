@@ -1,13 +1,13 @@
 steps:
   - label: ":whale::python: Build"
-    command: docker2/build
+    command: docker/build
 
   - wait
 
   - label: ":hammer: Test image"
-    command: docker2/test
+    command: docker/test
 
   - wait
 
   - label: ":shipit: Push images"
-    command: docker2/push
+    command: docker/push
