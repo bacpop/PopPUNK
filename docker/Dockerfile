@@ -1,101 +1,47 @@
-# From https://github.com/kaust-vislab/python-data-science-project
-FROM ubuntu:20.04
+FROM python:3.10
 
-LABEL maintainer="johnlees <john@johnlees.me>"
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+                          cmake \
+                          gfortran \
+                          libarmadillo-dev \
+                          libeigen3-dev \
+                          libopenblas-dev \
+                          software-properties-common
 
-SHELL [ "/bin/bash", "--login", "-c" ]
+RUN git clone https://github.com/somme89/rapidNJ.git && \
+    cd rapidNJ && \
+    make && \
+    mv ./bin/rapidnj /usr/bin &&\
+    cd .. && rm -r rapidNJ
 
-RUN apt-get update --fix-missing && \
-    apt-get install -y wget bzip2 curl git && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Special snowflake treatment for graph_tool because the maintainer
+# refuses to make the package pip-installable, meaning we can't depend
+# on it in a sane way. Least pain seems to be to install via apt, even
+# though that might result in slightly incorrect versions (built
+# around system python).
+#
+# The alternative would be to build it from source
+# https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions#manual-compilation
+# but it takes over an hour to compile apparently, so that sounds not
+# ideal.
+RUN add-apt-repository https://downloads.skewed.de/apt && \
+    apt-key adv --keyserver keyserver.ubuntu.com \
+            --recv-key 612DEFB798507F25 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends python3-graph-tool && \
+    ln -s /usr/lib/python3/dist-packages/graph_tool \
+      /usr/local/lib/python3.10/site-packages
 
-# Install ssh
-ENV SSH_PASSWD "root:Docker!"
-ENV ROOT_PASSWD "Docker!"
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends dialog \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends openssh-server \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends sudo \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends build-essential zlib1g-dev automake autoconf \
-  && echo "$SSH_PASSWD" | chpasswd
-COPY docker/sshd_config /etc/ssh
-# Use root password for sudo access
-RUN echo "Defaults rootpw" >> /etc/sudoers
+RUN pip install pybind11[global]
 
-# Create a non-root user
-ARG username=poppunk-usr
-ARG uid=1000
-ARG gid=100
-ENV USER $username
-ENV UID $uid
-ENV GID $gid
-ENV HOME /home/$USER
+COPY . /src
+WORKDIR /src
+RUN pip install .
 
-RUN adduser --disabled-password \
-    --gecos "Non-root user" \
-    --uid $UID \
-    --gid $GID \
-    --home $HOME \
-    $USER
-RUN usermod -aG sudo $USER
+RUN pip install cmake plotly ffmpeg
 
-COPY environment.yml requirements.txt /tmp/
-RUN chown $UID:$GID /tmp/environment.yml /tmp/requirements.txt
-
-COPY docker/entrypoint.sh /usr/local/bin/
-RUN chown $UID:$GID /usr/local/bin/entrypoint.sh && \
-    chmod u+x /usr/local/bin/entrypoint.sh
-
-USER $USER
-
-# install miniconda
-ENV MINICONDA_VERSION latest
-ENV CONDA_DIR $HOME/miniconda3
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-$MINICONDA_VERSION-Linux-x86_64.sh -O ~/miniconda.sh && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p $CONDA_DIR && \
-    rm ~/miniconda.sh
-
-# make non-activate conda commands available
-ENV PATH=$CONDA_DIR/bin:$PATH
-
-# make conda activate command available from /bin/bash --login shells
-RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
-
-# make conda activate command available from /bin/bash --interative shells
-RUN conda init bash
-
-# create a project directory inside user home
-ENV PROJECT_DIR $HOME/app
-RUN mkdir $PROJECT_DIR
-# copy the code in
-COPY . $PROJECT_DIR
-WORKDIR $PROJECT_DIR
-
-# build the conda environment
-ENV ENV_PREFIX $PROJECT_DIR/env
-RUN conda update --name base --channel defaults conda && \
-    conda env create --prefix $ENV_PREFIX --file /tmp/environment.yml --force && \
-    conda clean --all --yes
-# build and install extensions
-RUN conda activate $ENV_PREFIX && python setup.py install && conda deactivate
-
-# use an entrypoint script to insure conda environment is properly activated at runtime
-USER root
-ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
-
-# default command will be to launch flask server for deployment
-# see https://pythonspeed.com/articles/gunicorn-in-docker/
-EXPOSE 8000 2222
-CMD [ "gunicorn", \
-      "-b", "0.0.0.0:8000", \
-      "--worker-tmp-dir", "/dev/shm", \
-      "--log-file=-", \
-      "--timeout", "600", \
-      "--workers=2", "--threads=2", "--worker-class=gthread", \
-      "--chdir", "PopPUNK", \
-      "web:app" ]
+RUN git clone https://github.com/bacpop/mandrake.git && \
+    cd mandrake && \
+    python setup.py install && \
+    cd .. && rm -r mandrake
