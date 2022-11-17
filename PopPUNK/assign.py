@@ -495,10 +495,6 @@ def assign_query_hdf5(dbFuncs,
                 else:
                     qNames, qrDistMat = \
                         prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)[0:2]
-                    if update_db:
-                        sys.stderr.write("Queries contained outlier distances, "
-                                         "not updating database\n")
-                        update_db = False
 
         # Load the network based on supplied options (never used for lineage models)
         if model.type != 'lineage':
@@ -594,10 +590,6 @@ def assign_query_hdf5(dbFuncs,
                         qNames, qrDistMat, queryAssignments = \
                             prune_query_distance_matrix(rNames, qNames,
                                 failed_samples, qrDistMat, queryAssignments)
-                        if update_db:
-                            sys.stderr.write("Queries contained too many links, "
-                                             "not updating database\n")
-                            update_db = False
 
             # Assign clustering by adding to network
             if graph_weights:
