@@ -507,9 +507,9 @@ def assign_query_hdf5(dbFuncs,
                              accessory_only = (fit_type == 'accessory_refined'),
                              use_gpu = gpu_graph)
 
-            if max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) != (len(rNames) - 1):
-                sys.stderr.write("There are " + str(max(get_vertex_list(genomeNetwork, use_gpu = gpu_graph)) + 1) + \
-                                 " vertices in the network but " + str(len(rNames)) + " reference names supplied; " + \
+            n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
+            if n_vertices != len(rNames):
+                sys.stderr.write(f"There are {n_vertices}  vertices in the network but {len(rNames)} reference names supplied; " + \
                                  "please check the '--model-dir' variable is pointing to the correct directory\n")
 
         if model.type == 'lineage':
