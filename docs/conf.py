@@ -114,6 +114,7 @@ html_theme = 'furo'
 # documentation.
 #
 # html_theme_options = {}
+html_logo = "images/poppunk_v2.png"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
