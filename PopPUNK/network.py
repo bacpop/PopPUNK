@@ -1716,7 +1716,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.size]
             G_seed_link_df['src'] = seed_vertices.iloc[0]
             G_seed_link_df['weights'] = seed_vertices.iloc[0]
-            G_df = G_df.append(G_seed_link_df)
+            G_df = cudf.concat([G_df,G_seed_link_df])
         else:
             # With graph-tool look to retrieve edges in larger graph
             connections = []

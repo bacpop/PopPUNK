@@ -363,7 +363,7 @@ def expand_cugraph_network(G, G_extra_df):
     G_original_df = G.view_edge_list()
     if 'src' in G_original_df.columns:
         G_original_df.columns = ['source','destination']
-    G_df = G_original_df.append(G_extra_df)
+    G_df = cudf.concat([G_original_df,G_extra_df])
     G = add_self_loop(G_df, G_vertex_count, weights = False, renumber = False)
     return G
 
