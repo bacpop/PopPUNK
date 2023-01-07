@@ -565,7 +565,7 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
     # Set memory management for large networks
     if use_gpu:
         rmm.reinitialize(managed_memory=True)
-        cudf.set_allocator("managed")
+        rmm.reinitialize(managed_memory=True)
         if "cupy" in sys.modules:
             cupy.cuda.set_allocator(rmm.rmm_cupy_allocator)
         if "cuda" in sys.modules:
