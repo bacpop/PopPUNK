@@ -83,10 +83,6 @@ subprocess.run(python_cmd + " ../poppunk_mst-runner.py --distance-pkl example_db
 sys.stderr.write("Running mandrake viz\n")
 subprocess.run(python_cmd + " ../poppunk_mandrake-runner.py --distances example_db/example_db.dists --output example_mandrake --perplexity 5 --use-gpu", shell=True, check=True)
 
-# prune
-sys.stderr.write("Running poppunk_prune\n")
-subprocess.run(python_cmd + " ../poppunk_prune-runner.py --distances example_db/example_db.dists --ref-db example_db --remove subset.txt --output example_prune", shell=True, check=True)
-
 # references
 sys.stderr.write("Running poppunk_references\n")
 subprocess.run(python_cmd + " ../poppunk_references-runner.py --network example_db/example_db_graph.csv.gz --distances example_db/example_db.dists --ref-db example_db --output example_refs --model example_db --use-gpu", shell=True, check=True)
