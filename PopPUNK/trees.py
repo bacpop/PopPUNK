@@ -234,9 +234,11 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
         mst_links_dst = mst_edges_df[['dst','weights']].loc[mst_edges_df['src']==parent_node_indices[i]]
         mst_links_src = mst_edges_df[['src','weights']].loc[mst_edges_df['dst']==parent_node_indices[i]]
         mst_links_src.columns = ['dst','weights']
-        mst_links = pd.concat([mst_links_dst, mst_links_src])
         if use_gpu:
+            mst_links = cudf.concat([mst_links_dst, mst_links_src])
             mst_links = mst_links.to_pandas()
+        else:
+            mst_links = pd.concat([mst_links_dst, mst_links_src])
         for (child_node, edge_length) in mst_links.itertuples(index=False, name=None):
             if child_node not in added_nodes:
                 tree_nodes[parent_node_indices[i]].add_child(tree_nodes[child_node])
