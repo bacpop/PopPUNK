@@ -211,8 +211,6 @@ def mst_to_phylogeny(mst_network, names, use_gpu = False):
     # MST graph -> phylogeny
     #
 
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
-
 
     # Identify edges
     if use_gpu:

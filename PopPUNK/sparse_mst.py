@@ -127,8 +127,6 @@ def main():
     args = get_options()
 
     import graph_tool.all as gt
-    # load CUDA libraries
-    args.gpu_graph = check_and_set_gpu(args.gpu_graph, gpu_lib)
 
     # Read in sample names
     if (args.distance_pkl is not None) ^ (args.previous_clustering is not None):

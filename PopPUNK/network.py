@@ -77,10 +77,6 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
 
-    # load CUDA libraries - here exit without switching to CPU libraries
-    # to avoid loading an unexpected file
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     if use_gpu:
         graph_suffix = '.csv.gz'
     else:
@@ -719,9 +715,6 @@ def construct_network_from_edge_list(rlist,
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     # data structures
     if rlist != qlist:
         vertex_labels = rlist + qlist
@@ -845,9 +838,6 @@ def construct_network_from_df(rlist,
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     # data structures
     if rlist != qlist:
         vertex_labels = rlist + qlist
@@ -952,9 +942,6 @@ def construct_network_from_sparse_matrix(rlist,
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     if use_gpu:
         G_df = cudf.DataFrame()
     else:
@@ -994,8 +981,6 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
         G (graph)
             The resulting network
     """
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
     vertex_labels = rlist
@@ -1090,9 +1075,6 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     # Filter weights to only the relevant edges
     if weights is not None:
         weights = weights[assignments == within_label]
@@ -1165,9 +1147,6 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
             List of scores
     """
     if use_gpu:
-
-        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
@@ -1457,7 +1436,6 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
     # get a sorted list of component assignments
     if use_gpu:
-        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]

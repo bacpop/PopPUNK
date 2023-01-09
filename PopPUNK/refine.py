@@ -103,8 +103,6 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
     # Optimize boundary - grid search for global minimum
     sys.stderr.write("Trying to optimise score globally\n")
 
-    # load CUDA libraries
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
 
     # Boundary is left of line normal to this point and first line
     gradient = (mean1[1] - mean0[1]) / (mean1[0] - mean0[0])
@@ -270,8 +268,6 @@ def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
         use_gpu (bool)
             Whether to use cugraph for graph analyses
     """
-    # load CUDA libraries
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
 
     # Set the range
     # Between optimised s and where line meets an axis
@@ -355,10 +351,6 @@ def expand_cugraph_network(G, G_extra_df):
         G (cugraph network)
             Expanded cugraph network
     """
-    # load CUDA libraries
-    if not gpu_lib:
-        sys.stderr.write('Unable to load GPU libraries; exiting\n')
-        sys.exit(1)
     G_vertex_count = G.number_of_vertices()-1
     G_original_df = G.view_edge_list()
     if 'src' in G_original_df.columns:
