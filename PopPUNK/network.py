@@ -1299,8 +1299,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
 
     # Check if any queries were not assigned, run qq dists if so
     if not queryQuery:
-        edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
-        if np.any(edge_count == 0):
+        if use_graph:
+            edge_count = G.degree(list(range(ref_count, ref_count + len(qList))))
+            new_query_clusters = edge_count['degree'].isin(0)
+        else:
+            edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
+            new_query_clusters = np.any(edge_count == 0)
+        if new_query_clusters:
             sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
             queryQuery = True
 
