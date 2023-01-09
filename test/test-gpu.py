@@ -96,9 +96,5 @@ sys.stderr.write("Printing citations\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --citation --fit-model bgmm --ref-db example_db --K 4", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --citation --query some_queries.txt --db example_db --output example_query", shell=True, check=True)
 
-# web API
-sys.stderr.write("Running API tests\n")
-subprocess.run(python_cmd + " test-web.py", shell=True, check=True)
-
 sys.stderr.write("Tests completed\n")
 
