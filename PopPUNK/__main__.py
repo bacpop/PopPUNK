@@ -310,6 +310,21 @@ def main():
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
 
+    # Check on initialisation of GPU libraries and memory
+    try:
+      import cupyx
+      import cugraph
+      import cudf
+      import cupy as cp
+      from numba import cuda
+      import rmm
+      gpu_lib = True
+    except ImportError as e:
+      gpu_lib = False
+    args.gpu_graph = check_and_set_gpu(args.gpu_graph,
+                                        gpu_lib,
+                                        quit_on_fail = True)
+
     #******************************#
     #*                            *#
     #* Create database            *#
