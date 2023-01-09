@@ -248,6 +248,7 @@ def main():
     from .utils import readPickle, storePickle
     from .utils import createOverallLineage
     from .utils import get_match_search_depth
+    from .utils import check_and_set_gpu
 
     # check kmer properties
     if args.min_k >= args.max_k:
