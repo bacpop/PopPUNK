@@ -1299,7 +1299,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
 
     # Check if any queries were not assigned, run qq dists if so
     if not queryQuery:
-        if use_graph:
+        if use_gpu:
             edge_count = G.degree(list(range(ref_count, ref_count + len(qList))))
             new_query_clusters = edge_count['degree'].isin(0)
         else:
