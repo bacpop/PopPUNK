@@ -1301,7 +1301,7 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
     if not queryQuery:
         if use_gpu:
             edge_count = G.degree(list(range(ref_count, ref_count + len(qList))))
-            new_query_clusters = edge_count['degree'].isin([0]).iloc(0)
+            new_query_clusters = edge_count['degree'].isin([0]).iloc[0]
         else:
             edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
             new_query_clusters = np.any(edge_count == 0)
