@@ -1,5 +1,5 @@
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 '''Sketchlib functions for database construction'''
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2022 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 import os
 import sys
