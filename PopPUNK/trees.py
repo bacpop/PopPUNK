@@ -24,10 +24,9 @@ try:
     import cudf
     import cupy as cp
     from numba import cuda
-    import rmm
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
+    import rmm    
+except ImportError:
+    pass
 
 def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
     """Use rapidNJ for more rapid tree building

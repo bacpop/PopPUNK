@@ -22,9 +22,8 @@ try:
     import rmm
     import cupy
     from numba import cuda
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
+except ImportError:
+    pass
 
 import poppunk_refine
 import pp_sketchlib
