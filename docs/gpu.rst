@@ -34,7 +34,7 @@ environment can be slow, and therefore we recommend mamba as a faster alternativ
     mamba create -n poppunk_gpu -c rapidsai -c nvidia -c conda-forge \
     -c bioconda -c defaults rapids=22.12 python>=3.8 cudatoolkit=$CUDA_VERSION \
     cuda-nvcc=$CUDA_VERSION cuda-cudart=$CUDA_VERSION networkx cupy numba cmake \
-    pybind11 highfive Eigen armadillo openblas libgomp libgfortran-ng poppunk>=2.6.0
+    pybind11 highfive Eigen openblas libgomp libgfortran-ng poppunk>=2.6.0
 
 .. note::
 
@@ -69,11 +69,6 @@ section <https://github.com/johnlees/pp-sketchlib/blob/master/CMakeLists.txt#L65
    A5000               86
    H100                90
    ==================  =================
-
-Ensure ``nvcc`` is on your PATH and the CUDA libraries are available through the
-``LD_LIBRARY_PATH`` variable::
-
-    export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:${LD_LIBRARY_PATH}
 
 The conda-installed version of ``pp-sketchlib`` can then be removed with the
 command::
