@@ -1,5 +1,5 @@
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 '''Sketchlib functions for database construction'''
 
@@ -113,7 +113,7 @@ def getSketchSize(dbPrefix):
 
     Args:
         dbprefix (str)
-            Prefix for mash databases
+            Prefix for databases
 
     Returns:
         sketchSize (int)
@@ -345,8 +345,7 @@ def constructDatabase(assemblyList, klist, sketch_size, oPrefix,
     """Sketch the input assemblies at the requested k-mer lengths
 
     A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch
-    processes for each klist value, or increase the threads used by each ``mash sketch`` process
-    if len(klist) > threads.
+    processes for each klist value.
 
     Also calculates random match probability based on length of first genome
     in assemblyList.
@@ -482,9 +481,9 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
         qNames (list)
             Names of queries
         dbPrefix (str)
-            Prefix for reference mash sketch database created by :func:`~constructDatabase`
+            Prefix for reference sketch database created by :func:`~constructDatabase`
         queryPrefix (str)
-            Prefix for query mash sketch database created by :func:`~constructDatabase`
+            Prefix for query sketch database created by :func:`~constructDatabase`
         klist (list)
             K-mer sizes to use in the calculation
         self (bool)
@@ -495,7 +494,7 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
             Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`
             (default = 0)
         threads (int)
-            Number of threads to use in the mash process
+            Number of threads to use in the process
             (default = 1)
         use_gpu (bool)
             Use a GPU for querying
@@ -653,7 +652,7 @@ def fitKmerCurve(pairwise, klist, jacobian):
         transformed_params = 1 - np.exp(distFit.x)
     except ValueError as e:
         sys.stderr.write("Fitting k-mer curve failed: " + format(e) +
-                         "\nWith mash input " +
+                         "\nWith k-mer match values " +
                          np.array2string(pairwise, precision=4, separator=',',suppress_small=True) +
                          "\nCheck for low quality input genomes\n")
         transformed_params = [0, 0]

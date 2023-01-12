@@ -1,5 +1,5 @@
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 '''Classes used for model fits'''
 
@@ -39,9 +39,8 @@ try:
     import cupy as cp
     from numba import cuda
     import rmm
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
+except ImportError:
+    pass
 
 import pp_sketchlib
 import poppunk_refine
@@ -758,9 +757,6 @@ class RefineFit(ClusterFit):
         self.min_move = min_move
         self.unconstrained = unconstrained
 
-        # load CUDA libraries
-        use_gpu = check_and_set_gpu(use_gpu, gpu_lib)
-
         # Get starting point
         model.no_scale()
         if startFile:
@@ -1093,8 +1089,6 @@ class LineageFit(ClusterFit):
             y (numpy.array)
                 Cluster assignments of samples in X
         '''
-        # Check if model requires GPU
-        check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
 
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
@@ -1241,8 +1235,6 @@ class LineageFit(ClusterFit):
             y (list of tuples)
                 Edges to include in network
         '''
-        # Check if model requires GPU
-        check_and_set_gpu(self.use_gpu, gpu_lib, quit_on_fail = True)
 
         # Convert data structures if using GPU
         if self.use_gpu:

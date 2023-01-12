@@ -1,5 +1,5 @@
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 '''Network functions'''
 
@@ -25,9 +25,8 @@ try:
     import cupy as cp
     from numba import cuda
     import rmm
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
+except ImportError:
+    pass
 
 import poppunk_refine
 
@@ -76,10 +75,6 @@ def fetchNetwork(network_dir, model, refList, ref_graph = False,
     """
     # If a refined fit, may use just core or accessory distances
     dir_prefix = network_dir + "/" + os.path.basename(network_dir)
-
-    # load CUDA libraries - here exit without switching to CPU libraries
-    # to avoid loading an unexpected file
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     if use_gpu:
         graph_suffix = '.csv.gz'
@@ -719,9 +714,6 @@ def construct_network_from_edge_list(rlist,
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     # data structures
     if rlist != qlist:
         vertex_labels = rlist + qlist
@@ -845,9 +837,6 @@ def construct_network_from_df(rlist,
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     # data structures
     if rlist != qlist:
         vertex_labels = rlist + qlist
@@ -952,9 +941,6 @@ def construct_network_from_sparse_matrix(rlist,
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     if use_gpu:
         G_df = cudf.DataFrame()
     else:
@@ -994,8 +980,6 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
         G (graph)
             The resulting network
     """
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
 
     # data structures
     vertex_labels = rlist
@@ -1090,9 +1074,6 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
             The resulting network
     """
 
-    # Check GPU library use
-    use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
     # Filter weights to only the relevant edges
     if weights is not None:
         weights = weights[assignments == within_label]
@@ -1165,9 +1146,6 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
             List of scores
     """
     if use_gpu:
-
-        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
-
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
@@ -1320,8 +1298,13 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
 
     # Check if any queries were not assigned, run qq dists if so
     if not queryQuery:
-        edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
-        if np.any(edge_count == 0):
+        if use_gpu:
+            edge_count = G.degree(list(range(ref_count, ref_count + len(qList))))
+            new_query_clusters = edge_count['degree'].isin([0]).iloc[0]
+        else:
+            edge_count = G.get_total_degrees(list(range(ref_count, ref_count + len(qList))))
+            new_query_clusters = np.any(edge_count == 0)
+        if new_query_clusters:
             sys.stderr.write("Found novel query clusters. Calculating distances between them.\n")
             queryQuery = True
 
@@ -1457,7 +1440,6 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
     # get a sorted list of component assignments
     if use_gpu:
-        use_gpu = check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = True)
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
         newClusters = [set() for rank in range(component_frequencies.size)]
@@ -1716,7 +1698,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             G_seed_link_df['dst'] = seed_vertices.iloc[1:seed_vertices.size]
             G_seed_link_df['src'] = seed_vertices.iloc[0]
             G_seed_link_df['weights'] = seed_vertices.iloc[0]
-            G_df = G_df.append(G_seed_link_df)
+            G_df = cudf.concat([G_df,G_seed_link_df])
         else:
             # With graph-tool look to retrieve edges in larger graph
             connections = []

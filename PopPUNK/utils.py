@@ -1,5 +1,5 @@
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 '''General utility functions for data read/writing/manipulation in PopPUNK'''
 
@@ -22,9 +22,8 @@ try:
     import rmm
     import cupy
     from numba import cuda
-    gpu_lib = True
-except ImportError as e:
-    gpu_lib = False
+except ImportError:
+    pass
 
 import poppunk_refine
 import pp_sketchlib
@@ -565,7 +564,6 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
     # Set memory management for large networks
     if use_gpu:
         rmm.reinitialize(managed_memory=True)
-        cudf.set_allocator("managed")
         if "cupy" in sys.modules:
             cupy.cuda.set_allocator(rmm.rmm_cupy_allocator)
         if "cuda" in sys.modules:

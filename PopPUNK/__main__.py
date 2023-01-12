@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # vim: set fileencoding=<utf-8> :
-# Copyright 2018-2020 John Lees and Nick Croucher
+# Copyright 2018-2023 John Lees and Nick Croucher
 
 # universal
 import os
@@ -248,6 +248,7 @@ def main():
     from .utils import readPickle, storePickle
     from .utils import createOverallLineage
     from .utils import get_match_search_depth
+    from .utils import check_and_set_gpu
 
     # check kmer properties
     if args.min_k >= args.max_k:
@@ -309,6 +310,21 @@ def main():
 
     # Check on parallelisation of graph-tools
     setGtThreads(args.threads)
+
+    # Check on initialisation of GPU libraries and memory
+    try:
+        import cupyx
+        import cugraph
+        import cudf
+        import cupy as cp
+        from numba import cuda
+        import rmm
+        gpu_lib = True
+    except ImportError as e:
+        gpu_lib = False
+    args.gpu_graph = check_and_set_gpu(args.gpu_graph,
+                                        gpu_lib,
+                                        quit_on_fail = True)
 
     #******************************#
     #*                            *#

@@ -7,22 +7,34 @@ configuring the required packages necessitates some extra steps, outlined below.
 
 Installing GPU packages
 -----------------------
-To use GPU acceleration, PopPUNK uses cupy, numba and packages from RAPIDS. Both
-cupy and numba can be installed as standard packages using conda. To install RAPIDS,
-see the `guide <https://rapids.ai/start.html#get-rapids>`__. We would recommend
-installing into a clean conda environment with a command such as::
+To use GPU acceleration, PopPUNK uses ``cupy``, ``numba`` and the ``cudatoolkit``
+packages from RAPIDS. Both ``cupy`` and ``numba`` can be installed as standard packages
+using conda. The ``cudatoolkit`` packages need to be matched to your CUDA version.
+The command ``nvidia-smi`` can be used to find the supported `CUDA version <https://stackoverflow.com/questions/53422407/different-cuda-versions-shown-by-nvcc-and-nvidia-smi>`__.
+Installation of the ``cudatoolkit`` with conda (or the faster conda alternative,
+`mamba <https://mamba.readthedocs.io/en/latest/installation.html>`__) should be guided
+by the RAPIDS `guide <https://rapids.ai/start.html#get-rapids>`__. This information
+will enable the installation of PopPUNK into a clean conda environment with a command
+such as (modify the ``CUDA_VERSION`` variable as appropriate)::
 
+    export CUDA_VERSION=11.3
     conda create -n poppunk_gpu -c rapidsai -c nvidia -c conda-forge \
-    -c bioconda -c defaults rapids=0.17 python=3.8 cudatoolkit=11.0 \
-    pp-sketchlib>=1.6.2 poppunk>=2.3.0 networkx cupy numba
+    -c bioconda -c defaults rapids>=22.12 python=3.8 cudatoolkit=$CUDA_VERSION \
+    pp-sketchlib>=2.0.1 poppunk>=2.6.0 networkx cupy numba
     conda activate poppunk_gpu
 
-The version of pp-sketchlib on conda only supports some GPUs. If this doesn't work
-for you, it is possible to install from source. Add the build dependencies to your
-conda environment::
+The version of ``pp-sketchlib`` on conda only supports some GPUs. A more general approach
+is to install from source. This requires the installation of extra packages needed for
+building packages from source. Additionally, it is sometimes necessary to install
+versions of the CUDA compiler (``cuda-nvcc``) and runtime API (``cuda-cudart``)
+that match the CUDA version. Although conda can be used, creating such a complex
+environment can be slow, and therefore we recommend mamba as a faster alternative::
 
-    conda install cmake pybind11 highfive Eigen armadillo openblas libgomp libgfortran-ng
-
+    export CUDA_VERSION=11.3
+    mamba create -n poppunk_gpu -c rapidsai -c nvidia -c conda-forge \
+    -c bioconda -c defaults rapids=22.12 python>=3.8 cudatoolkit=$CUDA_VERSION \
+    cuda-nvcc=$CUDA_VERSION cuda-cudart=$CUDA_VERSION networkx cupy numba cmake \
+    pybind11 highfive Eigen openblas libgomp libgfortran-ng poppunk>=2.6.0
 
 .. note::
 
@@ -31,11 +43,16 @@ conda environment::
 
 Clone the sketchlib repository::
 
-    git clone https://github.com/johnlees/pp-sketchlib.git
+    git clone https://github.com/bacpop/pp-sketchlib.git
     cd pp-sketchlib
 
-Edit the ``CMakeLists.txt`` if necessary to change the compute version used by your GPU.
-See `the CMAKE_CUDA_COMPILER_VERSION section <https://github.com/johnlees/pp-sketchlib/blob/master/CMakeLists.txt#L65-L68>`__.
+To correctly build ``pp-sketchlib``, the GPU architecture needs to be correctly
+specified. The ``nvidia-smi`` command can be used to display the GPUs available
+to you. This can be used to identify the corresponding compute version needed for
+compilation (typically of the form ``sm_*``) using this `guide <https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/>`__
+or the more limited table below. Edit the ``CMakeLists.txt`` if necessary to change
+the compute version to that used by your GPU. See `the CMAKE_CUDA_COMPILER_VERSION
+section <https://github.com/johnlees/pp-sketchlib/blob/master/CMakeLists.txt#L65-L68>`__.
 
 .. table:: GPU compute versions
    :widths: auto
@@ -46,15 +63,17 @@ See `the CMAKE_CUDA_COMPILER_VERSION section <https://github.com/johnlees/pp-ske
    ==================  =================
    20xx series         75
    30xx series         86
+   40xx series         89
    V100                70
    A100                80
+   A5000               86
+   H100                90
    ==================  =================
 
-Make sure you have CUDA toolkit installed (this is available via conda as ``cudatoolkit``)
-and ``nvcc`` is on your PATH::
+The conda-installed version of ``pp-sketchlib`` can then be removed with the
+command::
 
-    export PATH=/usr/local/cuda-11.1/bin${PATH:+:${PATH}}
-    export LD_LIBRARY_PATH=/usr/local/cuda-11.1/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+    conda remove --force pp-sketchlib
 
 Then run::
 
