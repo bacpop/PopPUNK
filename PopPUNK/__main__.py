@@ -288,7 +288,7 @@ def main():
         if args.max_search_depth is not None and args.max_search_depth < max(rank_list):
             sys.stderr.write("The maximum search depth must be greater than the highest lineage rank\n")
             sys.exit(1)
-            
+
     if args.create_db == False:
         # Check and set required parameters for other modes
         if args.ref_db is None:
@@ -363,8 +363,7 @@ def main():
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
-                         os.path.join(os.path.dirname(args.output),
-                                      os.path.basename(args.output) + "_distanceDistribution"),
+                         f"{args.output}/{os.path.basename(args.output)}_distanceDistribution",
                          args.output + " distances")
 
     #******************************#
@@ -600,7 +599,7 @@ def main():
                                     prefix = output,
                                     suffix = '_rank_' + str(rank) + '_graph',
                                     use_gpu = args.gpu_graph)
-                
+
                 # Identify clusters from output
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
