@@ -42,7 +42,6 @@ in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
    visualisation.rst
    mst.rst
    subclustering.rst
-   online.rst
    gpu.rst
    troubleshooting.rst
    scripts.rst
@@ -74,7 +73,7 @@ The advantages of PopPUNK are broadly that:
   `phandango <http://jameshadfield.github.io/phandango/>`_.
 - Everything is available within a single python executable.
 
-Citation:
+Citation
 ---------
 If you find PopPUNK useful, please cite as:
 
@@ -84,7 +83,7 @@ doi:`10.1101/gr.241455.118 <https://dx.doi.org/10.1101/gr.241455.118>`__
 
 See :doc:`citing` for more details.
 
-Index:
+Index
 ------
 
 * :ref:`genindex`
