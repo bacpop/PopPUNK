@@ -17,7 +17,7 @@ are the current minimum supported versions.
 
 Use query assignment mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-If a database is available for your species (see https://poppunk.net/pages/databases.html)
+If a database is available for your species (see https://www.bacpop.org/poppunk/)
 we would strongly recommend downloading it to use to cluster your genomes. This
 has many advantages:
 
@@ -65,13 +65,9 @@ See :doc:`visualisation` for details on options.
 Use an online interface
 -----------------------
 If available, you may want to use one of the browser-based interfaces to
-PopPUNK. These include `PopPUNK-web <https://web.poppunk.net/>`__ and
+PopPUNK. These include `beebop <https://beebop.dide.ic.ac.uk/>`__ and
 `pathogen.watch <https://pathogen.watch/genomes/all?genusId=1301&speciesId=1313>`__
 (*S. pneumoniae* only).
-
-.. warning::
-   PopPUNK-web is temporarily down while we work on an updated and better supported
-   version.
 
 Using these interfaces requires nothing to be installed or set up, doesn't require any
 genome data to be shared with us, and will return interactive visualisations. If your

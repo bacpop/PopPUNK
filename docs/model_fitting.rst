@@ -5,7 +5,7 @@ Fitting new models (``--fit-model``)
    :trim:
 
 If you cannot find an existing model for your species in the
-`list <https://poppunk.net/pages/databases.html>`__ you will want to fit your own.
+`list <https://www.bacpop.org/poppunk/>`__ you will want to fit your own.
 This process is flexible, and there are five different models you can use depending
 on the population structure of your dataset.
 

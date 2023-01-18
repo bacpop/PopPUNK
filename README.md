@@ -8,12 +8,10 @@
 [![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
 <!-- badges: end -->
 
-See our website: <https://www.poppunk.net>
-
 ## Description
 
-See the [documentation](http://poppunk.readthedocs.io/en/latest/) and the
-[paper](https://doi.org/10.1101/gr.241455.118).
+See the [documentation](http://poppunk.readthedocs.io/en/latest/) the
+[paper](https://doi.org/10.1101/gr.241455.118), and [databases](https://www.bacpop.org/poppunk/).
 
 If you find PopPUNK useful, please cite us:
 
@@ -25,6 +23,11 @@ You can also run your command with `--citation` to get a [list of citations](htt
 suggested methods paragraph.
 
 ## News
+
+### 2023-01-18
+
+We will retire the PopPUNK website. Databases have been expanded, and can be
+found here: https://www.bacpop.org/poppunk/.
 
 ### 2022-08-04
 The change in scikit-learn's API in v1.0.0 and above mean that HDBSCAN models

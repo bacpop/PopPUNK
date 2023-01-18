@@ -3,14 +3,14 @@ Query assignment (``poppunk_assign``)
 This is the recommended mode to use PopPUNK, as long as a database is available for
 your species. If there is no database available, you can fit your own (:doc:`model_fitting`).
 
-Briefly, `download your reference database <https://poppunk.net/pages/databases.html>`__ and run::
+Briefly, `download your reference database <https://www.bacpop.org/poppunk/>`__ and run::
 
     poppunk_assign --db database --query qfile.txt \
     --output poppunk_clusters --threads 8
 
 Downloading a database
 ----------------------
-Current PopPUNK databases can be found here: https://poppunk.net/pages/databases.html
+Current PopPUNK databases can be found here: https://www.bacpop.org/poppunk/
 
 We refer to sequences in the database as references, and those being added
 as queries. The clusters assigned by PopPUNK are variable-length-k-mer clusters (VLKCs).

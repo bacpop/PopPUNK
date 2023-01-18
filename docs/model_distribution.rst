@@ -4,7 +4,7 @@ If you have fitted a model yourself, you may be interested in distributing it so
 others can use it for your species. This will give consistent cluster names across datasets,
 mean the high-quality tested fit can be reused, and speeds up future analysis.
 
-Please contact us at poppunk@poppunk.net. We would be happy to add your sketches and
+Please contact us at poppunk@bacpop.org. We would be happy to add your sketches and
 fitted model to our other `databases <https://poppunk.net/pages/databases.html>`__.
 
 Database contents
