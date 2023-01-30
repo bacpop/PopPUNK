@@ -240,6 +240,7 @@ def main():
 
     from .plot import writeClusterCsv
     from .plot import plot_scatter
+    from .plot import plot_database_evaluations
 
     from .qc import prune_distance_matrix, qcDistMat, sketchlibAssemblyQC, remove_qc_fail
 
@@ -363,8 +364,9 @@ def main():
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
-                         f"{args.output}/{os.path.basename(args.output)}_distanceDistribution",
+                         args.output,
                          args.output + " distances")
+            plot_database_evaluations(args.output)
 
     #******************************#
     #*                            *#

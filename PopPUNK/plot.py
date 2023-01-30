@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import itertools
 # for other outputs
 import pandas as pd
+import h5py
 from collections import defaultdict
 from sklearn import utils
 try:  # sklearn >= 0.22
@@ -77,7 +78,63 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
-    plt.savefig(os.path.join(out_prefix, out_prefix + '.png'))
+    plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + '_distanceDistribution.png'))
+    plt.close()
+
+def plot_database_evaluations(prefix):
+    """Plot histograms of sequence characteristics for database evaluation.
+
+    Args:
+        prefix (str)
+            Prefix of database
+    """
+    db_file = prefix + "/" + os.path.basename(prefix) + ".h5"
+    ref_db = h5py.File(db_file, 'r')
+
+    genome_lengths = []
+    ambiguous_bases = []
+    for sample_name in list(ref_db['sketches'].keys()):
+        genome_lengths.append(ref_db['sketches/' + sample_name].attrs['length'])
+        ambiguous_bases.append(ref_db['sketches/' + sample_name].attrs['missing_bases'])
+    plot_evaluation_histogram(genome_lengths,
+                              n_bins = 100,
+                              prefix = prefix,
+                              suffix = 'genome_lengths',
+                              plt_title = 'Distribution of sequence lengths',
+                              xlab = 'Sequence length (nt)')
+    plot_evaluation_histogram(ambiguous_bases,
+                              n_bins = 100,
+                              prefix = prefix,
+                              suffix = 'ambiguous_base_counts',
+                              plt_title = 'Distribution of ambiguous base counts',
+                              xlab = 'Number of ambiguous bases')
+
+def plot_evaluation_histogram(input_data, n_bins = 100, prefix = 'hist',
+    suffix = '', plt_title = 'histogram', xlab = 'x'):
+    """Plot histograms of sequence characteristics for database evaluation.
+
+    Args:
+        input_data (list)
+            Input data (list of numbers)
+        n_bins (int)
+            Number of bins to use for the histogram
+        prefix (str)
+            Prefix of database
+        suffix (str)
+            Suffix specifying plot type
+        plt_title (str)
+            Title for plot
+        xlab (str)
+            Title for the horizontal axis
+    """
+    plt.figure(figsize=(8, 8), dpi=160, facecolor='w', edgecolor='k')
+    counts, bins = np.histogram(input_data, bins = n_bins)
+    plt.stairs(counts, bins, fill = True)
+    plt.title(plt_title)
+    plt.xlabel(xlab)
+    plt.ylabel('Frequency')
+    plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + suffix + '.png'))
+    plt.savefig(os.path.join(prefix,prefix + '.png'))
     plt.close()
 
 def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, out_prefix, title):
