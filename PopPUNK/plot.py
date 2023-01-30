@@ -133,7 +133,7 @@ def plot_evaluation_histogram(input_data, n_bins = 100, prefix = 'hist',
     plt.title(plt_title)
     plt.xlabel(xlab)
     plt.ylabel('Frequency')
-    plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + suffix + '.png'))
+    plt.savefig(os.path.join(prefix, os.path.basename(prefix) + suffix + '.png'))
     plt.savefig(os.path.join(prefix,prefix + '.png'))
     plt.close()
 
