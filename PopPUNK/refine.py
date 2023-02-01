@@ -51,7 +51,8 @@ from .utils import check_and_set_gpu
 def refineFit(distMat, sample_names, mean0, mean1, scale,
               max_move, min_move, slope = 2, score_idx = 0,
               unconstrained = False, no_local = False, num_processes = 1,
-              betweenness_sample = betweenness_sample_default, use_gpu = False):
+              betweenness_sample = betweenness_sample_default, sample_size = None,
+              use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -443,8 +444,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
             # Add score into vector for any offsets passed (should usually just be one)
             G_summary = networkSummary(G,
                                 score_idx > 0,
-                                subsample = sample_size,
                                 betweenness_sample = betweenness_sample,
+                                subsample = sample_size,
                                 use_gpu = use_gpu)
             latest_score = -G_summary[1][score_idx]
             for s in range(prev_idx, idx):

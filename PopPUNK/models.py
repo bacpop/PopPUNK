@@ -702,7 +702,7 @@ class RefineFit(ClusterFit):
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
             unconstrained = False, multi_boundary = 0, score_idx = 0, no_local = False,
-            sample_size = None, betweenness_sample = betweenness_sample_default, use_gpu = False):
+            betweenness_sample = betweenness_sample_default, sample_size = None, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling

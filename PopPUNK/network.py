@@ -1133,17 +1133,20 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
 
     return G
 
-def networkSummary(G, subsample = None, calc_betweenness=True,
-                    betweenness_sample = betweenness_sample_default, use_gpu = False):
+def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sample_default,
+                    subsample = None, use_gpu = False):
     """Provides summary values about the network
 
     Args:
         G (graph)
             The network of strains
-        subsample (int)
-            Number of vertices to randomly subsample from graph
         calc_betweenness (bool)
             Whether to calculate betweenness stats
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        subsample (int)
+            Number of vertices to randomly subsample from graph
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -1178,7 +1181,7 @@ def networkSummary(G, subsample = None, calc_betweenness=True,
         if subsample is None:
             S = G
         else:
-            vfilt = g.new_vertex_property('bool', val = False)
+            vfilt = G.new_vertex_property('bool', val = False)
             vertex_subsample = np.random.choice(np.arange(0,len(list(G.vertices())) - 1),
                                                 size = subsample,
                                                 replace = False)
