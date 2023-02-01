@@ -439,9 +439,9 @@ def main():
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
-                         args.output,
-                         args.output + " distances")
-            plot_database_evaluations(args.output)
+                         output,
+                         output + " distances")
+            plot_database_evaluations(output)
 
     #******************************#
     #*                            *#
