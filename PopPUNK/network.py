@@ -1181,11 +1181,12 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
         if subsample is None:
             S = G
         else:
-            vfilt = G.new_vertex_property('bool', val = False)
             vertex_subsample = np.random.choice(np.arange(0,len(list(G.vertices())) - 1),
                                                 size = subsample,
                                                 replace = False)
-            vfilt[vertex_subsample] = True
+            vfilt_bool = np.full(len(list(G.vertices())) - 1, False)
+            vfilt_bool[vertex_subsample] = True
+            vfilt = G.new_vertex_property('bool', vals = vfilt_bool)
             S = gt.GraphView(G, vfilt=vfilt)
         component_assignments, component_frequencies = gt.label_components(S)
         components = len(component_frequencies)
