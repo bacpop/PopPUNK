@@ -121,7 +121,7 @@ def get_options():
     modelGroup.add_argument('--threshold', help='Cutoff if using --fit-model threshold', type=float)
 
     # model refinement
-    refinementGroup = parser.add_argument_group('Refine model options')
+    refinementGroup = parser.add_argument_group('Network analysis and model refinement options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary right past between-strain mean',
             type=float, default = 0)
     refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary left past within-strain mean]',
@@ -133,6 +133,9 @@ def get_options():
     refinementGroup.add_argument('--score-idx',
             help='Index of score to use [default = 0]',
             type=int, default = 0, choices=[0, 1, 2])
+    refinementGroup.add_argument('--summary-sample',
+            help='Number of sequences used to estimate graph properties [default = all]',
+            type=int, default = None)
     refinementGroup.add_argument('--betweenness-sample',
             help='Number of sequences used to estimate betweeness with a GPU [default = 100]',
             type = int, default = betweenness_sample_default)
@@ -518,6 +521,7 @@ def main():
                                             args.score_idx,
                                             args.no_local,
                                             args.betweenness_sample,
+                                            args.summary_sample,
                                             args.gpu_graph)
                 model = new_model
             elif args.fit_model == "threshold":
@@ -581,6 +585,7 @@ def main():
                                                      model.within_label,
                                                      distMat = distMat,
                                                      weights_type = weights_type,
+                                                     sample_size = args.summary_sample,
                                                      betweenness_sample = args.betweenness_sample,
                                                      use_gpu = args.gpu_graph)
         else:
@@ -596,6 +601,7 @@ def main():
                                                                         refList,
                                                                         assignments[rank],
                                                                         weights = weights,
+                                                                        sample_size = args.summary_sample,
                                                                         betweenness_sample = args.betweenness_sample,
                                                                         use_gpu = args.gpu_graph,
                                                                         summarise = False
@@ -653,6 +659,7 @@ def main():
                                                              queryList,
                                                              indivAssignments,
                                                              model.within_label,
+                                                             sample_size = args.summary_sample,
                                                              betweenness_sample = args.betweenness_sample,
                                                              use_gpu = args.gpu_graph)
                     isolateClustering[dist_type] = \

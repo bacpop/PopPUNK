@@ -548,12 +548,14 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
     else:
         return source_ids, target_ids
 
-def print_network_summary(G, betweenness_sample = betweenness_sample_default, use_gpu = False):
+def print_network_summary(G, sample_size = None, betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Wrapper function for printing network information
 
     Args:
         G (graph)
             List of reference sequence labels
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         betweenness_sample (int)
             Number of sequences per component used to estimate betweenness using
             a GPU. Smaller numbers are faster but less precise [default = 100]
@@ -561,7 +563,10 @@ def print_network_summary(G, betweenness_sample = betweenness_sample_default, us
             Whether to use GPUs for network construction
     """
     # print some summaries
-    (metrics, scores) = networkSummary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+    (metrics, scores) = networkSummary(G,
+                                        subsample = sample_size,
+                                        betweenness_sample = betweenness_sample,
+                                        use_gpu = use_gpu)
     sys.stderr.write("Network summary:\n" + "\n".join(["\tComponents\t\t\t\t" + str(metrics[0]),
                                                    "\tDensity\t\t\t\t\t" + "{:.4f}".format(metrics[1]),
                                                    "\tTransitivity\t\t\t\t" + "{:.4f}".format(metrics[2]),
@@ -672,6 +677,7 @@ def construct_network_from_edge_list(rlist,
                                         previous_pkl = None,
                                         betweenness_sample = betweenness_sample_default,
                                         summarise = True,
+                                        sample_size = None,
                                         use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
@@ -706,6 +712,8 @@ def construct_network_from_edge_list(rlist,
         summarise (bool)
             Whether to calculate and print network summaries with :func:`~networkSummary`
             (default = True)
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -780,7 +788,10 @@ def construct_network_from_edge_list(rlist,
         else:
             G.add_edge_list(edge_list)
     if summarise:
-        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+        print_network_summary(G,
+                              sample_size = sample_size,
+                              betweenness_sample = betweenness_sample,
+                              use_gpu = use_gpu)
 
     return G
 
@@ -795,6 +806,7 @@ def construct_network_from_df(rlist,
                                 previous_pkl = None,
                                 betweenness_sample = betweenness_sample_default,
                                 summarise = True,
+                                sample_size = None,
                                 use_gpu = False):
     """Construct an undirected network using a data frame of edges. Nodes are samples and
     edges where samples are within the same cluster
@@ -829,6 +841,8 @@ def construct_network_from_df(rlist,
         summarise (bool)
             Whether to calculate and print network summaries with :func:`~networkSummary`
             (default = True)
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -894,7 +908,10 @@ def construct_network_from_df(rlist,
                                             summarise = False,
                                             use_gpu = use_gpu)
     if summarise:
-        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+        print_network_summary(G,
+                              sample_size = sample_size,
+                              betweenness_sample = betweenness_sample,
+                              use_gpu = use_gpu)
     return G
 
 def construct_network_from_sparse_matrix(rlist,
@@ -905,6 +922,7 @@ def construct_network_from_sparse_matrix(rlist,
                                             previous_pkl = None,
                                             betweenness_sample = betweenness_sample_default,
                                             summarise = True,
+                                            sample_size = None,
                                             use_gpu = False):
     """Construct an undirected network using a sparse matrix. Nodes are samples and
     edges where samples are within the same cluster
@@ -933,6 +951,8 @@ def construct_network_from_sparse_matrix(rlist,
         summarise (bool)
             Whether to calculate and print network summaries with :func:`~networkSummary`
             (default = True)
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -956,7 +976,10 @@ def construct_network_from_sparse_matrix(rlist,
                                     summarise = False,
                                     use_gpu = use_gpu)
     if summarise:
-        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+        print_network_summary(G,
+                              sample_size = sample_size,
+                              betweenness_sample = betweenness_sample,
+                              use_gpu = use_gpu)
     return G
 
 def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gpu = False):
@@ -1024,7 +1047,7 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
 def construct_network_from_assignments(rlist, qlist, assignments, within_label = 1, int_offset = 0,
     weights = None, distMat = None, weights_type = None, previous_network = None, old_ids = None,
     adding_qq_dists = False, previous_pkl = None, betweenness_sample = betweenness_sample_default,
-    summarise = True, use_gpu = False):
+    summarise = True, sample_size = None, use_gpu = False):
     """Construct an undirected network using sequence lists, assignments of pairwise distances
     to clusters, and the identifier of the cluster assigned to within-strain distances.
     Nodes are samples and edges where samples are within the same cluster
@@ -1066,6 +1089,8 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
         summarise (bool)
             Whether to calculate and print network summaries with :func:`~networkSummary`
             (default = True)
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use GPUs for network construction
 
@@ -1101,17 +1126,22 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
                                             summarise = False,
                                             use_gpu = use_gpu)
     if summarise:
-        print_network_summary(G, betweenness_sample = betweenness_sample, use_gpu = use_gpu)
+        print_network_summary(G,
+                              sample_size = sample_size,
+                              betweenness_sample = betweenness_sample,
+                              use_gpu = use_gpu)
 
     return G
 
-def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sample_default,
-                    use_gpu = False):
+def networkSummary(G, subsample = None, calc_betweenness=True,
+                    betweenness_sample = betweenness_sample_default, use_gpu = False):
     """Provides summary values about the network
 
     Args:
         G (graph)
             The network of strains
+        subsample (int)
+            Number of vertices to randomly subsample from graph
         calc_betweenness (bool)
             Whether to calculate betweenness stats
         use_gpu (bool)
@@ -1125,6 +1155,13 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
             List of scores
     """
     if use_gpu:
+        if subsample is None:
+            S = G
+        else:
+            vertex_subsample = cp.random.choice(cp.arange(0,G.number_of_vertices() - 1),
+                                                size = subsample,
+                                                replace = False)
+            S = cugraph.subgraph(G, vertex_subsample)
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
@@ -1138,6 +1175,15 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
         else:
             transitivity = 0.0
     else:
+        if subsample is None:
+            S = G
+        else:
+            vfilt = g.new_vertex_property('bool', val = False)
+            vertex_subsample = np.random.choice(np.arange(0,len(list(G.vertices())) - 1),
+                                                size = subsample,
+                                                replace = False)
+            vfilt[vertex_subsample] = True
+            S = gt.GraphView(G, vfilt=vfilt)
         component_assignments, component_frequencies = gt.label_components(G)
         components = len(component_frequencies)
         density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
