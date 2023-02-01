@@ -155,7 +155,7 @@ def sketchlibAssemblyQC(prefix, names, qc_dict):
 
     # Make user aware of all filters being used (including defaults)
     sys.stderr.write("Running QC on sketches\n")
-    if (qc_dict['upper_n'] is not None:
+    if qc_dict['upper_n'] is not None:
         sys.stderr.write("Using count cutoff for ambiguous bases: " + str(qc_dict['upper_n']) + "\n")
     else:
         sys.stderr.write("Using proportion cutoff for ambiguous bases: " + str(qc_dict['prop_n']) + "\n")
