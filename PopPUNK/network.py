@@ -1169,7 +1169,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
         density = S.number_of_edges()/(0.5 * S.number_of_vertices() * S.number_of_vertices() - 1)
-        triangle_count = cugraph.triangle_count(S)/3
+        triangle_count = cugraph.triangle_count(S)['counts'].sum()/3
         degree_df = S.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
