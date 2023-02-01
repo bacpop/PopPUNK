@@ -405,7 +405,6 @@ def main():
                     fail_unconditionally[line.rstrip] = ["removed"]
 
         # assembly qc
-        sys.stderr.write("Running sequence QC\n")
         pass_assembly_qc, fail_assembly_qc = \
             sketchlibAssemblyQC(args.ref_db,
                                 refList,
@@ -413,7 +412,6 @@ def main():
         sys.stderr.write(f"{len(fail_assembly_qc)} samples failed\n")
 
         # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
-        sys.stderr.write("Running distance QC\n")
         pass_dist_qc, fail_dist_qc = \
             qcDistMat(distMat,
                       refList,
@@ -430,13 +428,20 @@ def main():
             raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
                                ' not found in isolates after QC; check '
                                'name of type isolate and QC options\n')
-
+        
+        sys.stderr.write(f"{len(passed)} samples passed QC\n")
         if len(passed) < len(refList):
             remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
                            args.strand_preserved, args.threads)
 
+        # Plot results
+        if not args.no_plot:
+            plot_scatter(distMat,
+                         args.output,
+                         args.output + " distances")
+            plot_database_evaluations(args.output)
 
     #******************************#
     #*                            *#
