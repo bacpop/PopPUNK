@@ -809,6 +809,8 @@ class RefineFit(ClusterFit):
                         multi_boundary,
                         self.outPrefix,
                         num_processes = self.threads,
+                        betweenness_sample = betweenness_sample,
+                        sample_size = sample_size,
                         use_gpu = use_gpu)
 
         # Try and do a 1D refinement for both core and accessory

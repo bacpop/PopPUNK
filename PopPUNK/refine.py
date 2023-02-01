@@ -247,8 +247,9 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
     return optimal_x, optimal_y, optimised_s
 
 def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
-                 n_boundary_points, output_prefix,
-                 num_processes = 1, use_gpu = False):
+                 n_boundary_points, output_prefix, num_processes = 1,
+                 betweenness_sample = betweenness_sample_default, sample_size = None,
+                 use_gpu = False):
     """Move the refinement boundary between the optimum and where it meets an
     axis. Discrete steps, output the clusers at each step
 
@@ -270,6 +271,11 @@ def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
         num_processes (int)
             Number of threads to use in the global optimisation step.
             (default = 1)
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use cugraph for graph analyses
     """
@@ -301,6 +307,7 @@ def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
                 s_range,
                 0,
                 write_clusters = output_prefix,
+                betweenness_sample = betweenness_sample,
                 sample_size = sample_size,
                 use_gpu = use_gpu)
 
