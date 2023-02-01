@@ -1165,12 +1165,12 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                                                 size = subsample,
                                                 replace = False)
             S = cugraph.subgraph(G, vertex_subsample)
-        component_assignments = cugraph.components.connectivity.connected_components(G)
+        component_assignments = cugraph.components.connectivity.connected_components(S)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
-        density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
-        triangle_count = cugraph.triangle_count(G)/3
-        degree_df = G.in_degree()
+        density = S.number_of_edges()/(0.5 * S.number_of_vertices() * S.number_of_vertices() - 1)
+        triangle_count = cugraph.triangle_count(S)/3
+        degree_df = S.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
         if triad_count > 0:
@@ -1187,10 +1187,10 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                                                 replace = False)
             vfilt[vertex_subsample] = True
             S = gt.GraphView(G, vfilt=vfilt)
-        component_assignments, component_frequencies = gt.label_components(G)
+        component_assignments, component_frequencies = gt.label_components(S)
         components = len(component_frequencies)
-        density = len(list(G.edges()))/(0.5 * len(list(G.vertices())) * (len(list(G.vertices())) - 1))
-        transitivity = gt.global_clustering(G)[0]
+        density = len(list(S.edges()))/(0.5 * len(list(S.vertices())) * (len(list(S.vertices())) - 1))
+        transitivity = gt.global_clustering(S)[0]
 
     mean_bt = 0
     weighted_mean_bt = 0
@@ -1204,7 +1204,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                 size = component_frequencies[component_frequencies.index == component].iloc[0].astype(int)
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
-                    subgraph = cugraph.subgraph(G, component_vertices)
+                    subgraph = cugraph.subgraph(S, component_vertices)
                     if len(component_vertices) >= betweenness_sample:
                         component_betweenness = cugraph.betweenness_centrality(subgraph,
                                                                                 k = betweenness_sample,
@@ -1218,7 +1218,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
             for component, size in enumerate(component_frequencies):
                 if size > 3:
                     vfilt = component_assignments.a == component
-                    subgraph = gt.GraphView(G, vfilt=vfilt)
+                    subgraph = gt.GraphView(S, vfilt=vfilt)
                     betweenness.append(max(vertex_betweenness(subgraph, norm=True)))
                     sizes.append(size)
 
