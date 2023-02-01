@@ -1105,27 +1105,6 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
 
     return G
 
-def get_cugraph_triangles(G):
-    """Counts the number of triangles in a cugraph
-    network. Can be removed when the cugraph issue
-    https://github.com/rapidsai/cugraph/issues/1043 is fixed.
-
-    Args:
-        G (cugraph network)
-            Network to be analysed
-
-    Returns:
-        triangle_count (int)
-            Count of triangles in graph
-    """
-    nlen = G.number_of_vertices()
-    df = G.view_edge_list()
-    A = cp.full((nlen, nlen), 0, dtype = cp.int32)
-    A[df.src.values, df.dst.values] = 1
-    A = cp.maximum( A, A.transpose() )
-    triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
-    return triangle_count
-
 def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sample_default,
                     use_gpu = False):
     """Provides summary values about the network
@@ -1150,11 +1129,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
-        # consistent with graph-tool for small graphs - triangle counts differ for large graphs
-        # could reflect issue https://github.com/rapidsai/cugraph/issues/1043
-        # this command can be restored once the above issue is fixed - scheduled for cugraph 0.20
-#        triangle_count = cugraph.community.triangle_count.triangles(G)/3
-        triangle_count = 3*get_cugraph_triangles(G)
+        triangle_count = cugraph.community.triangle_count.triangles(G)/3
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
