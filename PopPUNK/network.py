@@ -689,8 +689,8 @@ def construct_network_from_edge_list(rlist,
             List of reference sequence labels
         qlist (list)
             List of query sequence labels
-        G_df (cudf or pandas data frame)
-            Data frame in which the first two columns are the nodes linked by edges
+        edge_list (list of tuples)
+            List of connections in the network
         weights (list)
             List of edge weights
         distMat (2 column ndarray)
