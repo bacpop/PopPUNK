@@ -28,7 +28,7 @@ try:
 except ImportError:
     pass
 
-def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
+def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tmp = None, threads = 1):
     """Use rapidNJ for more rapid tree building
 
     Creates a phylip of core distances, system call to rapidnj executable, loads tree as
@@ -43,6 +43,8 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
             NxN core distance matrix produced in :func:`~outputsForMicroreact`
         outPrefix (str)
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
+        tmp (str)
+            Directory in which to create large temporary pairwise distance file
         threads (int)
             Number of threads to use
 
@@ -51,12 +53,15 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, threads = 1):
             Newick-formatted NJ tree from core distances
     """
     # generate phylip matrix
-    phylip_name = outPrefix + "/" + os.path.basename(outPrefix) + "_core_distances.phylip"
+    if tmp is not None:
+        phylip_name = tmp + "/" + os.path.basename(outPrefix) + "_core_distances.phylip"
+    else:
+        phylip_name = outPrefix + "/" + os.path.basename(outPrefix) + "_core_distances.phylip"
     with open(phylip_name, 'w') as pFile:
         pFile.write(str(len(refList))+"\n")
         for coreDist, ref in zip(coreMat, refList):
             pFile.write(ref)
-            pFile.write(' '+' '.join(map(str, coreDist)))
+            pFile.write(' '+' '.join(map('{:.4f}'.format, coreDist)))
             pFile.write("\n")
 
     # construct tree
@@ -176,19 +181,7 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, tmp = None, rapidnj = None, 
     # calculate phylogeny
     sys.stderr.write("Building phylogeny\n")
     if rapidnj is not None:
-        if tmp is None:
-            core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
-        else:
-            core_dist_file = tmp + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
-        np.savetxt(core_dist_file,
-                  coreMat,
-                  fmt='%.4e',
-                  delimiter=",",
-                  header = ",".join(seqLabels),
-                  comments=""
-        )
-        tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, threads = threads)
-        os.remove(core_dist_file)
+        tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tmp = tmp, threads = threads)
     else:
         matrix = []
         for row, idx in enumerate(coreMat):
