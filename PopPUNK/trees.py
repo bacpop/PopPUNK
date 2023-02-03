@@ -147,7 +147,7 @@ def load_tree(prefix, type, distances = 'core'):
 
     return tree_string
 
-def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
+def generate_nj_tree(coreMat, seqLabels, outPrefix, tmp = None, rapidnj = None, threads = 1):
     """Generate phylogeny using dendropy or RapidNJ
 
     Writes a neighbour joining tree (.nwk) from core distances.
@@ -159,6 +159,8 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
             Processed names of sequences being analysed.
         outPrefix (str)
             Output prefix for core distances file
+        tmp (str)
+            Directory in which to create large temporary pairwise distance file
         rapidnj (str)
             A string with the location of the rapidnj executable for tree-building. If None, will
             use dendropy by default
@@ -174,7 +176,10 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, rapidnj, threads):
     # calculate phylogeny
     sys.stderr.write("Building phylogeny\n")
     if rapidnj is not None:
-        core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
+        if tmp is None:
+            core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
+        else:
+            core_dist_file = tmp + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
         np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
         tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, threads = threads)
         os.remove(core_dist_file)
