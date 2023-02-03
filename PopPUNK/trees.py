@@ -180,7 +180,13 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, tmp = None, rapidnj = None, 
             core_dist_file = outPrefix + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
         else:
             core_dist_file = tmp + "/" + os.path.basename(outPrefix) + "_core_dists.csv"
-        np.savetxt(core_dist_file, coreMat, delimiter=",", header = ",".join(seqLabels), comments="")
+        np.savetxt(core_dist_file,
+                  coreMat,
+                  fmt='%.4e',
+                  delimiter=",",
+                  header = ",".join(seqLabels),
+                  comments=""
+        )
         tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, threads = threads)
         os.remove(core_dist_file)
     else:
