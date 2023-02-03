@@ -217,6 +217,8 @@ def create_db(args):
                             list(set(rlist) - set(isolate_list)),
                             X,
                             os.path.join(strain_db_name,strain_db_name + '.dists'))
+            # Prune rank list
+            pruned_rank_list = [r for r in rank_list if r <= num_isolates]
             # Initialise model
             model = LineageFit(strain_db_name,
                       rank_list,
