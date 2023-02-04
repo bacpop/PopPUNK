@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import itertools
 # for other outputs
 import pandas as pd
+from pandas.errors import DataError
 import h5py
 from collections import defaultdict
 from sklearn import utils
@@ -728,17 +729,19 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
     sys.stderr.write("Parsed data, now writing to CSV\n")
     try:
         pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
-    except subprocess.CalledProcessError as e:
-        sys.stderr.write("Problem with epidemiological data CSV; returned code: " + str(e.returncode) + "\n")
+    except (ValueError,DataError) as e:
+        sys.stderr.write("Problem with epidemiological data CSV; returned code: " + str(e) + "\n")
         # check CSV
         prev_col_items = -1
         prev_col_name = "unknown"
         for col in d:
             this_col_items = len(d[col])
+            sys.stderr.write(col + ' has length ' + str(this_col_items) + '\n')
             if prev_col_items > -1 and prev_col_items != this_col_items:
                 sys.stderr.write("Discrepant length between " + prev_col_name + \
-                                 " (length of " + prev_col_items + ") and " + \
-                                 col + "(length of " + this_col_items + ")\n")
+                                 " (length of " + str(prev_col_items) + ") and " + \
+                                 col + "(length of " + str(this_col_items) + ")\n")
+            prev_col_items = this_col_items
         sys.exit(1)
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
