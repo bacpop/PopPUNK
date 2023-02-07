@@ -53,6 +53,7 @@ from .utils import check_and_set_gpu
 # BGMM
 from .bgmm import fit2dMultiGaussian
 from .bgmm import findWithinLabel
+from .bgmm import findBetweenLabel_bgmm
 from .bgmm import log_likelihood
 from .plot import plot_results
 from .plot import plot_contours
@@ -328,7 +329,7 @@ class BGMMFit(ClusterFit):
 
         y = self.assign(X)
         self.within_label = findWithinLabel(self.means, y)
-        self.between_label = findWithinLabel(self.means, y, 1)
+        self.between_label = findBetweenLabel_bgmm(self.means, y)
         return y
 
 

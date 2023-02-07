@@ -388,12 +388,13 @@ def plot_contours(model, assignments, title, out_prefix):
     # avoid recursive import
     from .bgmm import log_likelihood
     from .bgmm import findWithinLabel
+    from .bgmm import findBetweenLabel_bgmm
 
     xx, yy, xy = get_grid(0, 1, 100)
 
     # for likelihood boundary
     z = model.assign(xy, values=True, progress=False)
-    z_diff = z[:,findWithinLabel(model.means, assignments, 0)] - z[:,findWithinLabel(model.means, assignments, 1)]
+    z_diff = z[:,findWithinLabel(model.means, assignments, 0)] - z[:,findBetweenLabel_bgmm(model.means, assignments)]
     z = z_diff.reshape(xx.shape).T
 
     # For full likelihood surface
