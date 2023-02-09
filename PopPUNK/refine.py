@@ -114,8 +114,8 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
 
         global_grid_resolution = 20
-        x_max_start, y_max_start = decisionBoundary(mean0, gradient)
-        x_max_end, y_max_end = decisionBoundary(mean1, gradient)
+        x_max_start, y_max_start = decisionBoundary(mean0, gradient, adj = -1*min_move)
+        x_max_end, y_max_end = decisionBoundary(mean1, gradient, adj = -max_move)
 
         if x_max_start < 0 or y_max_start < 0:
             raise RuntimeError("Boundary range below zero")
