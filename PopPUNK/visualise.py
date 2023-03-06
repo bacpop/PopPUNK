@@ -126,6 +126,9 @@ def get_options():
     faGroup.add_argument('--perplexity',
                          type=float, default = 20.0,
                          help='Perplexity used to calculate mandrake projection (with --microreact) [default=20.0]')
+    faGroup.add_argument('--maxIter',
+                         type=int, default = 10000000,
+                         help='Iterations used to calculate mandrake projection (with --microreact) [default=10000000]')
     faGroup.add_argument('--info-csv',
                          help='Epidemiological information CSV formatted for microreact (can be used with other outputs)')
 
@@ -169,6 +172,7 @@ def generate_visualisations(query_db,
                             grapetree,
                             cytoscape,
                             perplexity,
+                            maxIter,
                             strand_preserved,
                             include_files,
                             model_dir,
@@ -551,6 +555,7 @@ def generate_visualisations(query_db,
                                                 mst_tree,
                                                 acc_distMat,
                                                 perplexity,
+                                                maxIter,
                                                 output,
                                                 info_csv,
                                                 queryList=qlist,
@@ -635,6 +640,7 @@ def main():
                             args.grapetree,
                             args.cytoscape,
                             args.perplexity,
+                            args.maxIter,
                             args.strand_preserved,
                             args.include_files,
                             args.model_dir,
