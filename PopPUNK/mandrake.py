@@ -20,7 +20,7 @@ except ImportError:
 from .utils import readPickle
 
 def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN = 50,
-                       maxIter = 1000000, n_threads = 1, use_gpu = False, device_id = 0):
+                       maxIter = 10000000, n_threads = 1, use_gpu = False, device_id = 0):
     """Generate t-SNE projection using accessory distances
 
     Writes a plot of t-SNE clustering of accessory distances (.dot)
@@ -127,7 +127,7 @@ def get_options():
     parser.add_argument('--output', required=True, help='Name of output file')
     parser.add_argument('--perplexity', help='Perplexity used to generate projection [default = 30]', type=int, default=30)
     parser.add_argument('--knn', help='Number of neighbours used to generate t-SNE projection [default = 50]', type=int, default=50)
-    parser.add_argument('--iter', help='Number of iterations [default = 1000000]', type=int, default=1000000)
+    parser.add_argument('--iter', help='Number of iterations [default = 1000000]', type=int, default=10000000)
     parser.add_argument('--cpus', help="Number of CPU threads", type=int, default=1)
     parser.add_argument('--use-gpu', help='Whether to use GPU libraries for t-SNE calculation', default = False, action='store_true')
     parser.add_argument('--device-id', help="Device ID of GPU to use", type=int, default=0)
