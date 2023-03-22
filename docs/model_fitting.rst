@@ -706,7 +706,7 @@ between the origin and the refined boundary position.
 Trivial cluster sets, where every sample is in its own cluster, will be excluded, so
 the final number of clusters may be less than ``<n>``.
 
-For a use of these cluster sets, see the :ref:`poppunk-iterate` section.
+For a use of these cluster sets, see the :doc:`poppunk_iterate` section.
 
 threshold
 ---------
