@@ -284,7 +284,7 @@ if __name__ == "__main__":
     for selected_node in cut_clusters:
         for parent in selected_node.traverse_ancestors(include_self=False):
             if parent.get_label() in cut_clusters:
-                unwanted_parents.add(parent.get_label())
+                unwanted_parents.add(parent)
                 break
     cut_clusters -= unwanted_parents
 
