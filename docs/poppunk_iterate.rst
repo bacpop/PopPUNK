@@ -4,11 +4,11 @@ Iterative PopPUNK
 Running with multiple boundary positions
 ----------------------------------------
 To create clusters at equally spaced positions across the refinement range, 
-add the ``--multi-boundary <n>`` argument, with the number of positions specifie by ``<n>``. 
+add the ``--multi-boundary <n>`` argument, with the number of positions specified by ``<n>``. 
 This will create up to ``<n>`` sets of clusters, with boundaries equally spaced between 
 the origin and the refined boundary position.
 
-Trival cluster sets, where every sample is in its own cluster, will be excluded, 
+Trivial cluster sets, where every sample is in its own cluster, will be excluded, 
 so the final number of clusters may be less than ``<n>``. The script to analyse these is 
 ``poppunk_iterate.py``. Basic usage is to provide the output directory as ``--db``, 
 but run ``--help`` for other common options. This replies on finding files 
@@ -35,24 +35,24 @@ Step-by-Step Tutorial
 **Step 1: Sketching (--create-db)**
 
 First, use ``poppunk --create-db`` to sketch input data and calculate distances between samples. 
-For the details, refer to :doc:`sketching`. To run this, using the folowing command::
+For the details, refer to :doc:`sketching`. To run this, using the following command::
 	
 	poppunk --create-db --r-files rlist.txt --output <database> --threads 8
 
 
 **Step 2: Initial model fitting (--fit-model)**
 
-In iterative-PopPUNK, a universal model recommended for fitting the initial model is GMM with 2 or 3 componnets (K=2 or K=3), 
+In iterative-PopPUNK, a universal model recommended for fitting the initial model is GMM with 2 or 3 components (K=2 or K=3), 
 because more datasets can be analysed using this setting (DBSCAN fits sometimes fail to coverage). 
 The details for model fitting can be found in :doc:`model_fitting`. To run this, using the following command::
 
 	poppunk --fit-model bgmm --K 2 --ref-db <database> --output <database> --threads 16
 
 
-**Step 3: Multi-level clustering by Moving Decision Boundary Iteratively (--fit-model refine --multi-boundary)**
+**Step 3: Multi-level clustering by moving decision boundary iteratively (--fit-model refine --multi-boundary)**
 
 After fitting the initial model with GMM (with 2 or 3 components), refine it by moving the decision boundary 
-to mulitple poistions between the origin and the combined decision boundary using the ``--multi-boundary`` option. 
+to multiple positions between the origin and the combined decision boundary using the ``--multi-boundary`` option. 
 To expand within-strain component, use ``--neg-shift``. Details can be found in :doc:`model_fitting` (the **refine** section). 
 To run this, use the following command::
 
@@ -61,7 +61,7 @@ To run this, use the following command::
 
 **Step 4: Choosing clusters under given similarity cutoffs (poppunk_iterate.py)**
 
-With ``<n>`` sets of clusters created in Step 3, **poppunk_iterate.py** is used to assemble a hierachical tree 
+With ``<n>`` sets of clusters created in Step 3, ``poppunk_iterate.py`` is used to assemble a hierarchical tree 
 of iterative-PopPUNK clusters, while also calculating the average core distance within each cluster set. To run this step, 
 use the following command::
 
@@ -70,8 +70,8 @@ use the following command::
 
 **Outputs:**
 
-- <prefix>_iterate.tree.nwk: this is the hierachical tree of iterative-PopPUNK clusters.
-- <prefix>_iterate.clusters.csv: this file contains all cluster sets from ``<n>`` positions, along with their coresponding average core distances
+- <prefix>_iterate.tree.nwk: this is the hierarchical tree of iterative-PopPUNK clusters.
+- <prefix>_iterate.clusters.csv: this file contains all cluster sets from ``<n>`` positions, along with their corresponding average core distances.
 - <prefix>_iterative.cutoff_clusters.csv: this file contains a single set of clusters that meets a specified similarity cutoff.
 
 
@@ -82,7 +82,7 @@ use the following command::
 Examples
 --------
 
-The following example demonstrate how to use iterative-PopPUNK with 500 E.coli representative genomes from Horesh et al. 2021. 
+The following example demonstrate how to use iterative-PopPUNK with 500 *E.coli* representative genomes from `Horesh et al. 2021 <https://doi.org/10.1099/mgen.0.000499>`__. 
 You can download the genomes at https://doi.org/10.6084/m9.figshare.13270073.
 
 **Step 1**::
@@ -90,13 +90,13 @@ You can download the genomes at https://doi.org/10.6084/m9.figshare.13270073.
     paste <(ls *fa) <(ls *fa) > rlist.txt
     poppunk --create-db --r-files rlist.txt --output ecoli --threads 16
     
-This will create a PopPUNK database named "ecoli" by skectching the input genomes using 16 threads. 
+This will create a PopPUNK database named "ecoli" by sketching the input genomes using 16 threads. 
 The program will calculate random match chances using Monte Carlo and calculate distances using 16 threads. 
 Once complete, the sketches will be written to a local file.
 
 **Step 2**
 
-Next, fit a Bayesian Gaussian Mixture Model (bgmm) to reference databae using the following commands::
+Next, fit a Bayesian Gaussian Mixture Model (bgmm) to reference database using the following commands::
 
     poppunk --fit-model bgmm --K 2 --ref-db ecoli --output ecoli --threads 16
     
@@ -128,7 +128,7 @@ Common questions
 **1. How can I use Iterative-PopPUNK to achieve sublineage clustering from a large outbreak dataset?**
 
 To demonstrate how to achieve multi-level clustering from a large outbreak setting using Iterative-PopPUNK, 
-we will use another example dataset consisting of 2,640 pathogenic Vibrio parahaemolyticus genomes from Yang et al. 2022.
+we will use another example dataset consisting of 2,640 pathogenic *Vibrio parahaemolyticus* genomes from `Yang et al. 2022 <https://doi.org/10.1038/s41564-022-01182-0>`__.
 
 
 **Step 1: Creating a PopPUNK database**
@@ -142,8 +142,8 @@ First, we need to create a reference database and fit a PopPUNK model using the 
 	poppunk_iterate.py --db VP --cpus 16 --cutoff 0.5 --output 0.5_VP
 
 
-After running Step 1, iterative-PopPUNK produces a result file *0.5_iterative.cutoff_clusters.csv*, 
-which gives 9 PopPUNK clusters extactly corresponding to 9 clonal groups described in Yang et al. 2022.
+After running Step 1, iterative-PopPUNK produces a result file ``0.5_iterative.cutoff_clusters.csv``, 
+which gives 9 PopPUNK clusters exactly corresponding to 9 clonal groups described in Yang et al. 2022.
 
 
 .. note::
@@ -174,14 +174,13 @@ Sublineage clustering for clonal group CG189::
 **Results**:
 
 .. image:: images/vp_ipp_result.png
-	:scale: 50%
 	:alt:  Iterative-PopPUNK multi-level clustering results from Clonal Groups to Outbreak level
 	:align: center
 
 The results demonstrate the effectiveness of using iterative-PopPUNK for sublineage clustering in large outbreak datasets. 
 For example, in clonal group CG3, we extracted 274 outbreak groups (after removal of non-pathogenic isolates), 
 while iterative-PopPUNK identified 80 clusters with a 40% MACD cutoff. The concordance of iterative-PopPUNK clustering 
-with the identified outbreak groups was 60% (48/80), indicating that iterative-PopPUNK is able to achive a finer resolution 
+with the identified outbreak groups was 60% (48/80), indicating that iterative-PopPUNK is able to achieve a finer resolution 
 than clonal level. Moreover, the isolate clustering concordance (i.e. isolates assigned to a same group by both methods) was 90% (1596/1768), 
 indicating high agreement between iterative-PopPUNK and outbreak groups at the isolate level. For clonal group CG189, 
 iterative-PopPUNK identified 25 clusters with a 20% MACD cutoff, which showed a cluster concordance of 80% (20/25) with outbreak groups, 
@@ -232,7 +231,6 @@ which may cause it to be split into multiple singletons at higher cutoff values.
 Consider the following simplified iterative-PopPUNK tree:
 
 .. image:: images/ipp_tree_example.png
-	:scale: 50%
 	:alt:  simplified iterative-PopPUNK tree
 	:align: center
 
@@ -240,8 +238,8 @@ In Figure A, a very small cutoff value results in no nodes being selected, leavi
 When the cutoff is increased to 0.5 in Figure B, only one cluster, Cluster2, is selected. However, when a higher cutoff value of 0.95 is adopted, 
 Cluster3 is selected, and the remaining six isolates are left as singletons, resulting in a total of 7 clusters.
 
-To address this issue, you can check the "[prefix].clusters.csv" file to identify small clusters with extreme high ACD values. 
-If present, check the PopPUNK distribution plot ("[prefix]_distanceDistribution.png") to determine if there are any distanced components. 
+To address this issue, you can check the "<prefix>.clusters.csv" file to identify small clusters with extreme high ACD values. 
+If present, check the PopPUNK distribution plot ("<prefix>_distanceDistribution.png") to determine if there are any distanced components. 
 You can remove low-quality or distanced samples from your dataset using the "--qc-db" option (please refer to :doc:`qc`).
 
 In the examples given above, removing the two isolates from Cluster3 would help to solve the problem and lead to a more accurate clustering result.
