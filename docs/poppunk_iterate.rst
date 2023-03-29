@@ -40,7 +40,7 @@ For the details, refer to :doc:`sketching`. To run this, using the folowing comm
 	poppunk --create-db --r-files rlist.txt --output <database> --threads 8
 
 
-**Step 2: Initial model fittinig (--fit-model)**
+**Step 2: Initial model fitting (--fit-model)**
 
 In iterative-PopPUNK, a universal model recommended for fitting the initial model is GMM with 2 or 3 componnets (K=2 or K=3), 
 because more datasets can be analysed using this setting (DBSCAN fits sometimes fail to coverage). 
