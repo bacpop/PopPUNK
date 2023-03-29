@@ -53,7 +53,7 @@ The details for model fitting can be found in :doc:`model_fitting`. To run this,
 
 After fitting the initial model with GMM (with 2 or 3 components), refine it by moving the decision boundary 
 to mulitple poistions between the origin and the combined decision boundary using the ``--multi-boundary`` option. 
-To expand within-strain component, use ``--neg-shift``. Details can be found in :doc:`Fitting new models` (the **refine** section). 
+To expand within-strain component, use ``--neg-shift``. Details can be found in :doc:`model_fitting` (the **refine** section). 
 To run this, use the following command::
 
 	poppunk --fit-model refine --multi-boundary 30 --ref-db <database> --output <database> --threads 16
