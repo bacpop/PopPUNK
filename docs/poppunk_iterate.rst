@@ -44,7 +44,7 @@ For the details, refer to :doc:`sketching`. To run this, using the folowing comm
 
 In iterative-PopPUNK, a universal model recommended for fitting the initial model is GMM with 2 or 3 componnets (K=2 or K=3), 
 because more datasets can be analysed using this setting (DBSCAN fits sometimes fail to coverage). 
-The details for model fitting can be found in :doc:`Fitting new models`. To run this, using the following command::
+The details for model fitting can be found in :doc:`model_fitting`. To run this, using the following command::
 
 	poppunk --fit-model bgmm --K 2 --ref-db <database> --output <database> --threads 16
 
