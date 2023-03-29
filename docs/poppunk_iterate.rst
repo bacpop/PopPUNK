@@ -78,8 +78,6 @@ use the following command::
 .. note::
 	We recommend using same name for <database> as in steps 1-3 (``--ref-db`` and ``--output``) to save the outputs from each step in a same folder
     
-.. contents::
-   :local:
   
 Examples
 --------
