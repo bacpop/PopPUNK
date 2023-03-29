@@ -59,7 +59,7 @@ To run this, use the following command::
 	poppunk --fit-model refine --multi-boundary 30 --ref-db <database> --output <database> --threads 16
 
 
-**Step 4: Chossing clusters under given similarity cutoffs (poppunk_iterate.py)**
+**Step 4: Choosing clusters under given similarity cutoffs (poppunk_iterate.py)**
 
 With ``<n>`` sets of clusters created in Step 3, **poppunk_iterate.py** is used to assemble a hierachical tree 
 of iterative-PopPUNK clusters, while also calculating the average core distance within each cluster set. To run this step, 
