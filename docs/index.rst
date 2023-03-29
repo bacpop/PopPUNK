@@ -45,6 +45,7 @@ in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
    gpu.rst
    troubleshooting.rst
    scripts.rst
+   poppunk_iterate.rst
    citing.rst
    api.rst
    miscellaneous.rst
