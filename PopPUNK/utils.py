@@ -331,7 +331,7 @@ def joinClusterDicts(d1, d2):
     """
     matching_cols = set(d1.keys()).intersection(d2.keys())
     if len(matching_cols) == 0:
-        sys.stderr.write("Cluster columns not compatible\n")
+        sys.stderr.write("Cluster columns do not match between sets being combined\n")
         sys.stderr.write(f"{d1.keys()} {d2.keys()}\n")
         sys.exit(1)
 
