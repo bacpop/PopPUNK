@@ -39,7 +39,12 @@ COPY . /src
 WORKDIR /src
 RUN pip install .
 
-RUN pip install cmake plotly ffmpeg
+# Install dependencies, including those required by graph_tool
+RUN pip install \
+    cmake \
+    ffmpeg \
+    plotly \
+    pycairo
 
 RUN git clone https://github.com/bacpop/mandrake.git && \
     cd mandrake && \
