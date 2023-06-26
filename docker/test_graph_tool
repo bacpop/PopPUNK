@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -ex
+
+HERE=$(dirname $0)
+. $HERE/graph_tool_common
+
+NAME=graph_tool_test
+
+## Just check that we can bring up the container
+docker run -it --name=$NAME $GRAPH_TOOL_TAG_SHA
+
+docker rm $NAME

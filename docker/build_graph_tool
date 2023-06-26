@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -ex
+
+HERE=$(dirname $0)
+. $HERE/graph_tool_common
+
+docker build --pull \
+       --tag $GRAPH_TOOL_TAG_SHA \
+       -f docker/graphTool.Dockerfile \
+       $PACKAGE_ROOT
