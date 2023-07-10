@@ -22,9 +22,10 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Conda environment from environment.yml
-      uses: mamba-org/provision-with-micromamba@main
+      uses: mamba-org/setup-micromamba@v1
       with:
-        cache-env: true
+        environment-file: environment.yml
+        cache-environment: true
     - name: Install and run_test.py
       shell: bash -l {0}
       run: |
