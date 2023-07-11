@@ -24,6 +24,7 @@ jobs:
     - name: Install Conda environment from environment.yml
       uses: mamba-org/setup-micromamba@v1
       with:
+        micromamba-version: '1.4.6'
         environment-file: environment.yml
         cache-environment: true
     - name: Install and run_test.py
