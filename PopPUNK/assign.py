@@ -386,7 +386,7 @@ def assign_query_hdf5(dbFuncs,
     readDBParams = dbFuncs['readDBParams']
     getSeqsInDb = dbFuncs['getSeqsInDb']
 
-    if ref_db == output:
+    if ref_db == output and overwrite == False:
         sys.stderr.write("--output and --ref-db must be different to "
                          "prevent overwrite.\n")
         sys.exit(1)
