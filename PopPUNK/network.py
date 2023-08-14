@@ -529,6 +529,11 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
                 exit(1)
             edge_weights = list(prev_G.ep['weight'])
 
+    if len(old_ids) != max(old_source_ids, old_target_ids) + 1:
+        sys.stderr.write(f"Network size {max(old_source_ids, old_target_ids) + 1} does "
+                         f"not match rlist/qlist size {len(old_ids)}\n")
+        sys.exit(1)
+
     # If appending queries to an existing network, then the recovered links can be left
     # unchanged, as the new IDs are the queries, and the existing sequences will not be found
     # in the list of IDs
