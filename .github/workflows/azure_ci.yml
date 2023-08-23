@@ -30,7 +30,12 @@ jobs:
     - name: Rebuild HDBSCAN libraries
       shell: bash -l {0}
       run: |
-        pip install --upgrade git+https://github.com/scikit-learn-contrib/hdbscan.git#egg=hdbscan
+        wget https://github.com/scikit-learn-contrib/hdbscan/archive/master.zip
+        unzip master.zip
+        rm master.zip
+        pushd hdbscan-master
+        python setup.py install
+        popd
     - name: Install and run_test.py
       shell: bash -l {0}
       run: |
