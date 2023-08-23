@@ -27,6 +27,10 @@ jobs:
         micromamba-version: '1.4.6-0'
         environment-file: environment.yml
         cache-environment: true
+    - name: Rebuild HDBSCAN libraries
+      shell: bash -l {0}
+      run: |
+        pip install --upgrade git+https://github.com/scikit-learn-contrib/hdbscan.git#egg=hdbscan
     - name: Install and run_test.py
       shell: bash -l {0}
       run: |
