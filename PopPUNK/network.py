@@ -529,8 +529,9 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
                 exit(1)
             edge_weights = list(prev_G.ep['weight'])
 
-    if len(old_ids) != max(old_source_ids, old_target_ids) + 1:
-        sys.stderr.write(f"Network size {max(old_source_ids, old_target_ids) + 1} does "
+    network_size = max(len(old_source_ids), len(old_target_ids)) + 1
+    if len(old_ids) != network_size:
+        sys.stderr.write(f"Network size {network_size} does "
                          f"not match rlist/qlist size {len(old_ids)}\n")
         sys.exit(1)
 

@@ -26,7 +26,7 @@ jobs:
       with:
         micromamba-version: '1.4.6-0'
         environment-file: environment.yml
-        cache-environment: true
+        cache-environment: false
     - name: Install and run_test.py
       shell: bash -l {0}
       run: |
