@@ -517,10 +517,12 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
         G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
         old_source_ids = G_df['source'].astype('int32').to_arrow().to_pylist()
         old_target_ids = G_df['destination'].astype('int32').to_arrow().to_pylist()
+        network_size = max(max(old_source_ids), max(old_target_ids)) + 1
     else:
         # get the source and target nodes
         old_source_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "source")
         old_target_ids = gt.edge_endpoint_property(prev_G, prev_G.vertex_index, "target")
+        network_size = max(max(old_source_ids.a), max(old_target_ids.a)) + 1
         # get the weights
         if weights:
             if prev_G.edge_properties.keys() is None or 'weight' not in prev_G.edge_properties.keys():
@@ -529,7 +531,6 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
                 exit(1)
             edge_weights = list(prev_G.ep['weight'])
 
-    network_size = max(len(old_source_ids), len(old_target_ids)) + 1
     if len(old_ids) != network_size:
         sys.stderr.write(f"Network size {network_size} does "
                          f"not match rlist/qlist size {len(old_ids)}\n")
