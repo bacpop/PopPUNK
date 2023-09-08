@@ -271,8 +271,8 @@ def assign_query(dbFuncs,
     constructDatabase = dbFuncs['constructDatabase']
     readDBParams = dbFuncs['readDBParams']
 
-    if ref_db == output:
-        sys.stderr.write("--output and --ref-db must be different to "
+    if ref_db == output and overwrite == False:
+        sys.stderr.write("--output and --db must be different to "
                          "prevent overwrite.\n")
         sys.exit(1)
 
@@ -387,7 +387,7 @@ def assign_query_hdf5(dbFuncs,
     getSeqsInDb = dbFuncs['getSeqsInDb']
 
     if ref_db == output and overwrite == False:
-        sys.stderr.write("--output and --ref-db must be different to "
+        sys.stderr.write("--output and --db must be different to "
                          "prevent overwrite.\n")
         sys.exit(1)
     if (update_db and not distances):
