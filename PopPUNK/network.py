@@ -536,11 +536,16 @@ def network_to_edges(prev_G_fn, rlist, adding_qq_dists = False,
         source_ids = old_source_ids
         target_ids = old_target_ids
     else:
-        # Update IDs to new versions
-        old_id_indices = [rlist.index(x) for x in old_ids]
-        # translate to indices
-        source_ids = [old_id_indices[x] for x in old_source_ids]
-        target_ids = [old_id_indices[x] for x in old_target_ids]
+        try:
+            # Update IDs to new versions
+            old_id_indices = [rlist.index(x) for x in old_ids]
+            # translate to indices
+            source_ids = [old_id_indices[x] for x in old_source_ids]
+            target_ids = [old_id_indices[x] for x in old_target_ids]
+        except ValueError:
+            sys.stderr.write(f"Network size mismatch. Previous network nodes: {max(old_id_indices)}."
+                             f"New network nodes: {max(old_source_ids.a)}/{max(old_target_ids.a)}\n")
+            sys.exit(1)
 
     # return values
     if weights:

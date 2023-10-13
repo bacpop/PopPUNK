@@ -271,8 +271,8 @@ def assign_query(dbFuncs,
     constructDatabase = dbFuncs['constructDatabase']
     readDBParams = dbFuncs['readDBParams']
 
-    if ref_db == output:
-        sys.stderr.write("--output and --ref-db must be different to "
+    if ref_db == output and overwrite == False:
+        sys.stderr.write("--output and --db must be different to "
                          "prevent overwrite.\n")
         sys.exit(1)
 
@@ -386,8 +386,8 @@ def assign_query_hdf5(dbFuncs,
     readDBParams = dbFuncs['readDBParams']
     getSeqsInDb = dbFuncs['getSeqsInDb']
 
-    if ref_db == output:
-        sys.stderr.write("--output and --ref-db must be different to "
+    if ref_db == output and overwrite == False:
+        sys.stderr.write("--output and --db must be different to "
                          "prevent overwrite.\n")
         sys.exit(1)
     if (update_db and not distances):
@@ -509,8 +509,9 @@ def assign_query_hdf5(dbFuncs,
 
             n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
             if n_vertices != len(rNames):
-                sys.stderr.write(f"There are {n_vertices}  vertices in the network but {len(rNames)} reference names supplied; " + \
+                sys.stderr.write(f"ERROR: There are {n_vertices} vertices in the network but {len(rNames)} reference names supplied; " + \
                                  "please check the '--model-dir' variable is pointing to the correct directory\n")
+                sys.exit(1)
 
         if model.type == 'lineage':
             # Assign lineages by calculating query-query information
