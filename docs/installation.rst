@@ -58,12 +58,14 @@ Clone the code
 --------------
 You can also clone the github to run the latest version, which is executed by::
 
-    git clone https://github.com/johnlees/PopPUNK.git && cd PopPUNK
+    git clone https://github.com/bacpop/PopPUNK.git && cd PopPUNK
+    python3 setup.py build
+    python3 setup.py install
     python3 poppunk-runner.py
 
 This will also give access to the :ref:`scripts`.
 
 You will need to install the dependencies yourself (you can still use
-conda or pip for this purpose). See ``environment.yml``.
-
-
+conda or pip for this purpose). See ``environment.yml``::
+    mamba env create -f environment.yml
+    conda activate pp_env

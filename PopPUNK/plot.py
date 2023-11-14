@@ -229,7 +229,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
         # Plot an ellipse to show the Gaussian component
         angle = np.arctan(u[1] / u[0])
         angle = 180. * angle / np.pi  # convert to degrees
-        ell = mpl.patches.Ellipse(mean*scale, v[0], v[1], 180. + angle, color=color)
+        ell = mpl.patches.Ellipse(mean*scale, v[0], v[1], angle=180. + angle, color=color)
         ell.set_clip_box(splot.bbox)
         ell.set_alpha(0.5)
         splot.add_artist(ell)
@@ -746,7 +746,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
             prev_col_items = this_col_items
         sys.exit(1)
 
-def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity,
+def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity, maxIter,
                          outPrefix, epiCsv, queryList = None, overwrite = False, n_threads = 1,
                          use_gpu = False, device_id = 0):
     """Generate files for microreact
@@ -768,7 +768,9 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
         accMat (numpy.array)
             n x n array of accessory distances for n samples.
         perplexity (int)
-            Perplexity parameter passed to t-SNE
+            Perplexity parameter passed to mandrake
+        maxIter (int)
+            Maximum iterations for mandrake
         outPrefix (str)
             Prefix for all generated output files, which will be placed in `outPrefix` subdirectory
         epiCsv (str)
@@ -803,7 +805,7 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
 
     # write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv
     embedding_file = generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite,
-                       kNN=100, maxIter=1000000, n_threads=n_threads,
+                       kNN=100, maxIter=maxIter, n_threads=n_threads,
                        use_gpu=use_gpu, device_id=device_id)
     outfiles.append(embedding_file)
 

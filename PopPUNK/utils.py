@@ -329,14 +329,23 @@ def joinClusterDicts(d1, d2):
         d1 (dict of dicts)
             d1 with d2 appended
     """
-    if d1.keys() != d2.keys():
-        sys.stderr.write("Cluster columns not compatible\n")
+    matching_cols = set(d1.keys()).intersection(d2.keys())
+    if len(matching_cols) == 0:
+        sys.stderr.write("Cluster columns do not match between sets being combined\n")
+        sys.stderr.write(f"{d1.keys()} {d2.keys()}\n")
         sys.exit(1)
 
+    missing_cols = []
     for column in d1.keys():
-        # Combine dicts: https://stackoverflow.com/a/15936211
-        d1[column] = \
-            dict(chain.from_iterable(d.items() for d in (d1[column], d2[column])))
+        if column in matching_cols:
+            # Combine dicts: https://stackoverflow.com/a/15936211
+            d1[column] = \
+                dict(chain.from_iterable(d.items() for d in (d1[column], d2[column])))
+        else:
+            missing_cols.append(column)
+
+    for missing in missing_cols:
+        del d1[missing]
 
     return d1
 
