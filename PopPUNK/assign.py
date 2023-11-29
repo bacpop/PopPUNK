@@ -753,7 +753,7 @@ def assign_query_hdf5(dbFuncs,
                     postpruning_combined_seq, newDistMat = \
                         prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                               output + "/" + os.path.basename(output) + dists_suffix)
-                    graph_suffix = file_extension_string + '_refs_graph'
+                    graph_suffix = file_extension_string + '.refs_graph'
                     save_network(genomeNetwork,
                                     prefix = output,
                                     suffix = graph_suffix,
