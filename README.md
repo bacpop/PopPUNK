@@ -22,7 +22,9 @@ doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 You can also run your command with `--citation` to get a [list of citations](https://poppunk.readthedocs.io/en/latest/citing.html) and a
 suggested methods paragraph.
 
-## News
+## News and roadmap
+
+The [roadmap](https://poppunk.readthedocs.io/en/latest/roadmap.html) can be found in the documentation.
 
 ### 2023-01-18
 
