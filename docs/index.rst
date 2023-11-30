@@ -48,6 +48,7 @@ in the `paper <https://doi.org/10.1101/gr.241455.118>`_.
    poppunk_iterate.rst
    citing.rst
    api.rst
+   roadmap.rst
    miscellaneous.rst
 
 Why use PopPUNK?
