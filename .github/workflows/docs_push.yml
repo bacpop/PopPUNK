@@ -17,28 +17,25 @@ jobs:
       with:
         docs-folder: "docs/"
 
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-pages-artifact@v2
       with:
-        name: DocumentationHTML
+        name: github-pages
         path: docs/_build/html/
+        retention-days: 1
 
-    # Publish built docs to gh-pages branch.
-    # ===============================
-    - name: Commit documentation changes
-      run: |
-        git clone https://github.com/bacpop/PopPUNK.git --branch gh-pages --single-branch gh-pages
-        cp -r docs/_build/html/* gh-pages/
-        cd gh-pages
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "Update documentation" -a || true
-        # The above command will fail if no changes were present, so we ignore
-        # the return code.
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        branch: gh-pages
-        directory: gh-pages
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-    # ===============================
+  deploy:
+    needs: build
+
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v3 # or specific "vX.X.X" version tag for this action
