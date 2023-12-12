@@ -1,0 +1,915 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>PopPUNK.visualise - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for PopPUNK.visualise</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># vim: set fileencoding=&lt;utf-8&gt; :</span>
+<span class="c1"># Copyright 2018-2023 John Lees and Nick Croucher</span>
+
+<span class="c1"># universal</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="c1"># additional</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cudf</span>
+    <span class="kn">import</span> <span class="nn">rmm</span>
+    <span class="kn">import</span> <span class="nn">cupy</span>
+    <span class="kn">import</span> <span class="nn">cugraph</span>
+    <span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">cuda</span>
+    <span class="n">gpu_lib</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">gpu_lib</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># required from v2.1.1 onwards (no mash support)</span>
+<span class="kn">import</span> <span class="nn">pp_sketchlib</span>
+
+<span class="c1"># import poppunk package</span>
+<span class="kn">from</span> <span class="nn">.__init__</span> <span class="kn">import</span> <span class="n">__version__</span>
+
+<span class="c1">#******************************#</span>
+<span class="c1">#*                            *#</span>
+<span class="c1">#* Command line parsing       *#</span>
+<span class="c1">#*                            *#</span>
+<span class="c1">#******************************#</span>
+<span class="k">def</span> <span class="nf">get_options</span><span class="p">():</span>
+
+    <span class="kn">import</span> <span class="nn">argparse</span>
+    <span class="kn">from</span> <span class="nn">.__main__</span> <span class="kn">import</span> <span class="n">accepted_weights_types</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Create visualisations from PopPUNK results&#39;</span><span class="p">,</span>
+                                     <span class="n">prog</span><span class="o">=</span><span class="s1">&#39;poppunk_visualise&#39;</span><span class="p">)</span>
+
+    <span class="c1"># input options</span>
+    <span class="n">iGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Input files&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--ref-db&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Location of built reference database&#39;</span><span class="p">,</span>
+                        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--query-db&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Location of query database, if distances &#39;</span>
+                             <span class="s1">&#39;are from ref-query&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--distances&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Prefix of input pickle of pre-calculated distances&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--rank-fit&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Location of rank fit, a sparse matrix (*_rank*_fit.npz)&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--include-files&#39;</span><span class="p">,</span>
+                         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File with list of sequences to include in visualisation. &#39;</span>
+                              <span class="s1">&#39;Default is to use all sequences in database.&#39;</span><span class="p">,</span>
+                         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--external-clustering&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File with cluster definitions or other labels &#39;</span>
+                             <span class="s1">&#39;generated with any other method.&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--model-dir&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Directory containing model to use for assigning queries &#39;</span>
+                             <span class="s1">&#39;to clusters [default = reference database directory]&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--previous-clustering&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File containing previous cluster definitions &#39;</span>
+                             <span class="s1">&#39;and network [default = use that in the directory &#39;</span>
+                             <span class="s1">&#39;containing the model]&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--previous-query-clustering&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File containing previous cluster definitions &#39;</span>
+                             <span class="s1">&#39;from poppunk_assign [default = use that in the directory &#39;</span>
+                             <span class="s1">&#39;of the query database]&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--previous-mst&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File containing previous minimum spanning tree&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--previous-distances&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Prefix of distance files used to generate the previous &#39;</span>
+                        <span class="s1">&#39;minimum spanning tree&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--network-file&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Specify a file to use for any graph visualisations&#39;</span><span class="p">,</span>
+                        <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--display-cluster&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Column of clustering CSV to use for plotting&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># output options</span>
+    <span class="n">oGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Output options&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--output&#39;</span><span class="p">,</span>
+                        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Prefix for output files (required)&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--overwrite&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Overwrite any existing visualisation files&#39;</span><span class="p">,</span>
+                        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+
+    <span class="c1"># query options</span>
+    <span class="n">queryingGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Database querying options&#39;</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--core-only&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;(with a </span><span class="se">\&#39;</span><span class="s1">refine</span><span class="se">\&#39;</span><span class="s1"> model) &#39;</span>
+                                                   <span class="s1">&#39;Use a core-distance only model for assigning queries &#39;</span>
+                                                   <span class="s1">&#39;[default = False]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--accessory-only&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;(with a </span><span class="se">\&#39;</span><span class="s1">refine</span><span class="se">\&#39;</span><span class="s1"> or </span><span class="se">\&#39;</span><span class="s1">lineage</span><span class="se">\&#39;</span><span class="s1"> model) &#39;</span>
+                                                        <span class="s1">&#39;Use an accessory-distance only model for assigning queries &#39;</span>
+                                                        <span class="s1">&#39;[default = False]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+
+    <span class="c1"># plot output</span>
+    <span class="n">faGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Visualisation options&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--microreact&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Generate output files for microreact visualisation&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--cytoscape&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Generate network output files for Cytoscape&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--phandango&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Generate phylogeny and TSV for Phandango visualisation&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--grapetree&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Generate phylogeny and CSV for grapetree visualisation&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--tree&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Type of tree to calculate (not for cytoscape) [default = nj]&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;nj&#39;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;nj&#39;</span><span class="p">,</span> <span class="s1">&#39;mst&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">])</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--mst-distances&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Distances used to calculate a minimum spanning tree [default = core]&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;core&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">accepted_weights_types</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--rapidnj&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Path to rapidNJ binary to build NJ tree for Microreact&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;rapidnj&#39;</span><span class="p">)</span>
+
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--api-key&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;API key for www.microreact.org, to directly create a visualisation&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--perplexity&#39;</span><span class="p">,</span>
+                         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">20.0</span><span class="p">,</span>
+                         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Perplexity used to calculate mandrake projection (with --microreact) [default=20.0]&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--maxIter&#39;</span><span class="p">,</span>
+                         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">10000000</span><span class="p">,</span>
+                         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Iterations used to calculate mandrake projection (with --microreact) [default=10000000]&#39;</span><span class="p">)</span>
+    <span class="n">faGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--info-csv&#39;</span><span class="p">,</span>
+                         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Epidemiological information CSV formatted for microreact (can be used with other outputs)&#39;</span><span class="p">)</span>
+
+    <span class="n">other</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Other options&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--threads&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Number of threads to use [default = 1]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--gpu-dist&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Use a GPU when calculating distances [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--gpu-graph&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Use a GPU when calculating graphs [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--deviceid&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;CUDA device ID, if using GPU [default = 0]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--strand-preserved&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                       <span class="n">help</span><span class="o">=</span><span class="s1">&#39;If distances being calculated, treat strand as known when calculating random &#39;</span>
+                            <span class="s1">&#39;match chances [default = False]&#39;</span><span class="p">)</span>
+
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--version&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;version&#39;</span><span class="p">,</span>
+                       <span class="n">version</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(prog)s</span><span class="s1"> &#39;</span><span class="o">+</span><span class="n">__version__</span><span class="p">)</span>
+
+
+    <span class="c1"># combine</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># ensure directories do not have trailing forward slash</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">ref_db</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">external_clustering</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">previous_clustering</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">arg</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">rapidnj</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">rapidnj</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">args</span>
+
+<span class="k">def</span> <span class="nf">generate_visualisations</span><span class="p">(</span><span class="n">query_db</span><span class="p">,</span>
+                            <span class="n">ref_db</span><span class="p">,</span>
+                            <span class="n">distances</span><span class="p">,</span>
+                            <span class="n">rank_fit</span><span class="p">,</span>
+                            <span class="n">threads</span><span class="p">,</span>
+                            <span class="n">output</span><span class="p">,</span>
+                            <span class="n">gpu_dist</span><span class="p">,</span>
+                            <span class="n">deviceid</span><span class="p">,</span>
+                            <span class="n">external_clustering</span><span class="p">,</span>
+                            <span class="n">microreact</span><span class="p">,</span>
+                            <span class="n">phandango</span><span class="p">,</span>
+                            <span class="n">grapetree</span><span class="p">,</span>
+                            <span class="n">cytoscape</span><span class="p">,</span>
+                            <span class="n">perplexity</span><span class="p">,</span>
+                            <span class="n">maxIter</span><span class="p">,</span>
+                            <span class="n">strand_preserved</span><span class="p">,</span>
+                            <span class="n">include_files</span><span class="p">,</span>
+                            <span class="n">model_dir</span><span class="p">,</span>
+                            <span class="n">previous_clustering</span><span class="p">,</span>
+                            <span class="n">previous_query_clustering</span><span class="p">,</span>
+                            <span class="n">previous_mst</span><span class="p">,</span>
+                            <span class="n">previous_distances</span><span class="p">,</span>
+                            <span class="n">network_file</span><span class="p">,</span>
+                            <span class="n">gpu_graph</span><span class="p">,</span>
+                            <span class="n">info_csv</span><span class="p">,</span>
+                            <span class="n">rapidnj</span><span class="p">,</span>
+                            <span class="n">api_key</span><span class="p">,</span>
+                            <span class="n">tree</span><span class="p">,</span>
+                            <span class="n">mst_distances</span><span class="p">,</span>
+                            <span class="n">overwrite</span><span class="p">,</span>
+                            <span class="n">display_cluster</span><span class="p">):</span>
+
+    <span class="kn">from</span> <span class="nn">.models</span> <span class="kn">import</span> <span class="n">loadClusterFit</span>
+
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">construct_network_from_assignments</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">generate_minimum_spanning_tree</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">load_network_file</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">cugraph_to_graph_tool</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">save_network</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">sparse_mat_to_network</span>
+
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">drawMST</span>
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">outputsForMicroreact</span>
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">outputsForCytoscape</span>
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">outputsForPhandango</span>
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">outputsForGrapetree</span>
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">createMicroreact</span>
+
+    <span class="kn">from</span> <span class="nn">.sketchlib</span> <span class="kn">import</span> <span class="n">readDBParams</span>
+    <span class="kn">from</span> <span class="nn">.sketchlib</span> <span class="kn">import</span> <span class="n">addRandom</span>
+
+    <span class="kn">from</span> <span class="nn">.sparse_mst</span> <span class="kn">import</span> <span class="n">generate_mst_from_sparse_input</span>
+
+    <span class="kn">from</span> <span class="nn">.trees</span> <span class="kn">import</span> <span class="n">load_tree</span><span class="p">,</span> <span class="n">generate_nj_tree</span><span class="p">,</span> <span class="n">mst_to_phylogeny</span>
+
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">isolateNameToLabel</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">readPickle</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">setGtThreads</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">update_distance_matrices</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">readIsolateTypeFromCsv</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">joinClusterDicts</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">read_rlist_from_distance_pickle</span>
+
+    <span class="c1">#******************************#</span>
+    <span class="c1">#*                            *#</span>
+    <span class="c1">#* Initial checks and set up  *#</span>
+    <span class="c1">#*                            *#</span>
+    <span class="c1">#******************************#</span>
+
+    <span class="c1"># Check on parallelisation of graph-tools</span>
+    <span class="n">setGtThreads</span><span class="p">(</span><span class="n">threads</span><span class="p">)</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;PopPUNK: visualise</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">microreact</span> <span class="ow">or</span> <span class="n">phandango</span> <span class="ow">or</span> <span class="n">grapetree</span> <span class="ow">or</span> <span class="n">cytoscape</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Must specify at least one type of visualisation to output</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cytoscape</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">microreact</span> <span class="ow">or</span> <span class="n">phandango</span> <span class="ow">or</span> <span class="n">grapetree</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">rank_fit</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">network_file</span><span class="p">):</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;For cytoscape, specify either a network file to visualise &quot;</span>
+                             <span class="s2">&quot;with --network-file or a lineage model with --rank-fit</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">tree</span> <span class="o">=</span> <span class="s1">&#39;none&#39;</span>
+
+    <span class="c1"># make directory for new output files</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Cannot create output directory</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1">#******************************#</span>
+    <span class="c1">#*                            *#</span>
+    <span class="c1">#* Process dense or sparse    *#</span>
+    <span class="c1">#* distances                  *#</span>
+    <span class="c1">#*                            *#</span>
+    <span class="c1">#******************************#</span>
+
+    <span class="k">if</span> <span class="n">distances</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">query_db</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">distances</span> <span class="o">=</span> <span class="n">ref_db</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ref_db</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.dists&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">distances</span> <span class="o">=</span> <span class="n">query_db</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">query_db</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.dists&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">distances</span>
+
+    <span class="c1"># Determine whether to use sparse distances</span>
+    <span class="n">combined_seq</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">use_sparse</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">use_dense</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">tree</span> <span class="o">==</span> <span class="s2">&quot;mst&quot;</span> <span class="ow">or</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">rank_fit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Set flag</span>
+        <span class="n">use_sparse</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Read list of sequence names and sparse distance matrix</span>
+        <span class="n">rlist</span> <span class="o">=</span> <span class="n">read_rlist_from_distance_pickle</span><span class="p">(</span><span class="n">distances</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span><span class="p">)</span>
+        <span class="n">sparse_mat</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">load_npz</span><span class="p">(</span><span class="n">rank_fit</span><span class="p">)</span>
+        <span class="n">combined_seq</span> <span class="o">=</span> <span class="n">rlist</span>
+        <span class="c1"># Check previous distances have been supplied if building on a previous MST</span>
+        <span class="n">old_rlist</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">previous_distances</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">old_rlist</span> <span class="o">=</span> <span class="n">read_rlist_from_distance_pickle</span><span class="p">(</span><span class="n">previous_distances</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">previous_mst</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;The prefix of the distance files used to create the previous MST&#39;</span>
+                             <span class="s1">&#39; is needed to use the network&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">tree</span> <span class="o">==</span> <span class="s2">&quot;nj&quot;</span> <span class="ow">or</span> <span class="n">tree</span> <span class="o">==</span> <span class="s2">&quot;both&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">rank_fit</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">use_dense</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Process dense distance matrix</span>
+        <span class="n">rlist</span><span class="p">,</span> <span class="n">qlist</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">complete_distMat</span> <span class="o">=</span> <span class="n">readPickle</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">qr_distMat</span> <span class="o">=</span> <span class="n">complete_distMat</span>
+            <span class="n">combined_seq</span> <span class="o">=</span> <span class="n">rlist</span> <span class="o">+</span> <span class="n">qlist</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rr_distMat</span> <span class="o">=</span> <span class="n">complete_distMat</span>
+            <span class="n">combined_seq</span> <span class="o">=</span> <span class="n">rlist</span>
+
+        <span class="c1"># Fill in qq-distances if required</span>
+        <span class="k">if</span> <span class="bp">self</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Note: Distances in &quot;</span> <span class="o">+</span> <span class="n">distances</span> <span class="o">+</span> <span class="s2">&quot; are from assign mode</span><span class="se">\n</span><span class="s2">&quot;</span>
+                             <span class="s2">&quot;Note: Distance will be extended to full all-vs-all distances</span><span class="se">\n</span><span class="s2">&quot;</span>
+                             <span class="s2">&quot;Note: Re-run poppunk_assign with --update-db to avoid this</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">ref_db_loc</span> <span class="o">=</span> <span class="n">ref_db</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ref_db</span><span class="p">)</span>
+            <span class="n">rlist_original</span><span class="p">,</span> <span class="n">qlist_original</span><span class="p">,</span> <span class="n">self_ref</span><span class="p">,</span> <span class="n">rr_distMat</span> <span class="o">=</span> <span class="n">readPickle</span><span class="p">(</span><span class="n">ref_db_loc</span> <span class="o">+</span> <span class="s2">&quot;.dists&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">self_ref</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Distances in &quot;</span> <span class="o">+</span> <span class="n">ref_db</span> <span class="o">+</span> <span class="s2">&quot; not self all-vs-all either</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">kmers</span><span class="p">,</span> <span class="n">sketch_sizes</span><span class="p">,</span> <span class="n">codon_phased</span> <span class="o">=</span> <span class="n">readDBParams</span><span class="p">(</span><span class="n">query_db</span><span class="p">)</span>
+            <span class="n">addRandom</span><span class="p">(</span><span class="n">query_db</span><span class="p">,</span> <span class="n">qlist</span><span class="p">,</span> <span class="n">kmers</span><span class="p">,</span>
+                      <span class="n">strand_preserved</span> <span class="o">=</span> <span class="n">strand_preserved</span><span class="p">,</span> <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">)</span>
+            <span class="n">query_db_loc</span> <span class="o">=</span> <span class="n">query_db</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">query_db</span><span class="p">)</span>
+            <span class="n">qq_distMat</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">query_db_loc</span><span class="p">,</span>
+                                                    <span class="n">query_db_name</span><span class="o">=</span><span class="n">query_db_loc</span><span class="p">,</span>
+                                                    <span class="n">rList</span><span class="o">=</span><span class="n">qlist</span><span class="p">,</span>
+                                                    <span class="n">qList</span><span class="o">=</span><span class="n">qlist</span><span class="p">,</span>
+                                                    <span class="n">klist</span><span class="o">=</span><span class="n">kmers</span><span class="p">,</span>
+                                                    <span class="n">random_correct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                    <span class="n">jaccard</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                    <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                    <span class="n">use_gpu</span><span class="o">=</span><span class="n">gpu_dist</span><span class="p">,</span>
+                                                    <span class="n">device_id</span><span class="o">=</span><span class="n">deviceid</span><span class="p">)</span>
+
+            <span class="c1"># If the assignment was run with references, qrDistMat will be incomplete</span>
+            <span class="k">if</span> <span class="n">rlist</span> <span class="o">!=</span> <span class="n">rlist_original</span><span class="p">:</span>
+                <span class="n">rlist</span> <span class="o">=</span> <span class="n">rlist_original</span>
+                <span class="n">qr_distMat</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db_loc</span><span class="p">,</span>
+                                                        <span class="n">query_db_name</span><span class="o">=</span><span class="n">query_db_loc</span><span class="p">,</span>
+                                                        <span class="n">rList</span><span class="o">=</span><span class="n">rlist</span><span class="p">,</span>
+                                                        <span class="n">qList</span><span class="o">=</span><span class="n">qlist</span><span class="p">,</span>
+                                                        <span class="n">klist</span><span class="o">=</span><span class="n">kmers</span><span class="p">,</span>
+                                                        <span class="n">random_correct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                        <span class="n">jaccard</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                        <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                        <span class="n">use_gpu</span><span class="o">=</span><span class="n">gpu_dist</span><span class="p">,</span>
+                                                        <span class="n">device_id</span><span class="o">=</span><span class="n">deviceid</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">qlist</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">qr_distMat</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">qq_distMat</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Turn long form matrices into square form</span>
+        <span class="n">combined_seq</span><span class="p">,</span> <span class="n">core_distMat</span><span class="p">,</span> <span class="n">acc_distMat</span> <span class="o">=</span> \
+                <span class="n">update_distance_matrices</span><span class="p">(</span><span class="n">rlist</span><span class="p">,</span> <span class="n">rr_distMat</span><span class="p">,</span>
+                                         <span class="n">qlist</span><span class="p">,</span> <span class="n">qr_distMat</span><span class="p">,</span> <span class="n">qq_distMat</span><span class="p">,</span>
+                                         <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">)</span>
+
+    <span class="c1">#*******************************#</span>
+    <span class="c1">#*                             *#</span>
+    <span class="c1">#* Extract subset of sequences *#</span>
+    <span class="c1">#*                             *#</span>
+    <span class="c1">#*******************************#</span>
+
+    <span class="c1"># extract subset of distances if requested</span>
+    <span class="n">all_seq</span> <span class="o">=</span> <span class="n">combined_seq</span>
+    <span class="k">if</span> <span class="n">include_files</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">viz_subset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">include_files</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">assemblyFiles</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">assembly</span> <span class="ow">in</span> <span class="n">assemblyFiles</span><span class="p">:</span>
+                <span class="n">viz_subset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">assembly</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">viz_subset</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;--include-files contains names not in --distances</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Only keep found rows</span>
+        <span class="n">row_slice</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">viz_subset</span> <span class="k">else</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">combined_seq</span><span class="p">]</span>
+        <span class="n">combined_seq</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">combined_seq</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">viz_subset</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">use_sparse</span><span class="p">:</span>
+            <span class="n">sparse_mat</span> <span class="o">=</span> <span class="n">sparse_mat</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">row_slice</span><span class="p">,</span> <span class="n">row_slice</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">use_dense</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">qlist</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">qlist</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">viz_subset</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">qlist</span><span class="p">))</span>
+            <span class="n">core_distMat</span> <span class="o">=</span> <span class="n">core_distMat</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">row_slice</span><span class="p">,</span> <span class="n">row_slice</span><span class="p">)]</span>
+            <span class="n">acc_distMat</span> <span class="o">=</span> <span class="n">acc_distMat</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">row_slice</span><span class="p">,</span> <span class="n">row_slice</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">viz_subset</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">#**********************************#</span>
+    <span class="c1">#*                                *#</span>
+    <span class="c1">#* Process clustering information *#</span>
+    <span class="c1">#*                                *#</span>
+    <span class="c1">#**********************************#</span>
+
+    <span class="c1"># Either use strain definitions, lineage assignments or external clustering</span>
+    <span class="n">isolateClustering</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="c1"># Use external clustering if specified</span>
+    <span class="k">if</span> <span class="n">external_clustering</span><span class="p">:</span>
+        <span class="n">cluster_file</span> <span class="o">=</span> <span class="n">external_clustering</span>
+        <span class="n">isolateClustering</span> <span class="o">=</span> <span class="n">readIsolateTypeFromCsv</span><span class="p">(</span><span class="n">cluster_file</span><span class="p">,</span>
+                                                   <span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;external&#39;</span><span class="p">,</span>
+                                                   <span class="n">return_dict</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># identify existing model and cluster files</span>
+    <span class="k">if</span> <span class="n">model_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model_prefix</span> <span class="o">=</span> <span class="n">model_dir</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model_prefix</span> <span class="o">=</span> <span class="n">ref_db</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">model_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">))</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">loadClusterFit</span><span class="p">(</span><span class="n">model_file</span> <span class="o">+</span> <span class="s1">&#39;_fit.pkl&#39;</span><span class="p">,</span>
+                               <span class="n">model_file</span> <span class="o">+</span> <span class="s1">&#39;_fit.npz&#39;</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">set_threads</span><span class="p">(</span><span class="n">threads</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Unable to locate previous model fit in &#39;</span> <span class="o">+</span> <span class="n">model_prefix</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Load previous clusters</span>
+    <span class="k">if</span> <span class="n">previous_clustering</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prev_clustering</span> <span class="o">=</span> <span class="n">previous_clustering</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;clusters&quot;</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;_clusters.csv&quot;</span>
+        <span class="k">if</span> <span class="n">prev_clustering</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_lineages.csv&#39;</span><span class="p">):</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;lineages&quot;</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;_lineages.csv&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Identify type of clustering based on model</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;clusters&quot;</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;_clusters.csv&quot;</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;lineage&quot;</span><span class="p">:</span>
+            <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;lineages&quot;</span>
+            <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;_lineages.csv&quot;</span>
+        <span class="n">prev_clustering</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">)</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">)</span>
+    <span class="n">isolateClustering</span> <span class="o">=</span> <span class="n">readIsolateTypeFromCsv</span><span class="p">(</span><span class="n">prev_clustering</span><span class="p">,</span>
+                                               <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">,</span>
+                                               <span class="n">return_dict</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Add individual refinement clusters if they exist</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">indiv_fitted</span><span class="p">:</span>
+        <span class="k">for</span> <span class="nb">type</span><span class="p">,</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">([</span><span class="s1">&#39;Core&#39;</span><span class="p">,</span><span class="s1">&#39;Accessory&#39;</span><span class="p">],[</span><span class="s1">&#39;_core_clusters.csv&#39;</span><span class="p">,</span><span class="s1">&#39;_accessory_clusters.csv&#39;</span><span class="p">]):</span>
+            <span class="n">indiv_clustering</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">)</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">indiv_clustering</span><span class="p">):</span>
+                <span class="n">indiv_isolateClustering</span> <span class="o">=</span> <span class="n">readIsolateTypeFromCsv</span><span class="p">(</span><span class="n">indiv_clustering</span><span class="p">,</span>
+                                                                   <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">,</span>
+                                                                   <span class="n">return_dict</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+                <span class="n">isolateClustering</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="n">indiv_isolateClustering</span><span class="p">[</span><span class="s1">&#39;Cluster&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Join clusters with query clusters if required</span>
+    <span class="k">if</span> <span class="n">use_dense</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">previous_query_clustering</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">prev_query_clustering</span> <span class="o">=</span> <span class="n">previous_query_clustering</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prev_query_clustering</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_db</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">query_db</span><span class="p">)</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">)</span>
+
+            <span class="n">queryIsolateClustering</span> <span class="o">=</span> <span class="n">readIsolateTypeFromCsv</span><span class="p">(</span>
+                    <span class="n">prev_query_clustering</span><span class="p">,</span>
+                    <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span><span class="p">,</span>
+                    <span class="n">return_dict</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="n">isolateClustering</span> <span class="o">=</span> <span class="n">joinClusterDicts</span><span class="p">(</span><span class="n">isolateClustering</span><span class="p">,</span> <span class="n">queryIsolateClustering</span><span class="p">)</span>
+
+    <span class="c1">#*******************#</span>
+    <span class="c1">#*                 *#</span>
+    <span class="c1">#* Generate trees  *#</span>
+    <span class="c1">#*                 *#</span>
+    <span class="c1">#*******************#</span>
+
+    <span class="c1"># Generate trees</span>
+    <span class="n">mst_tree</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">mst_graph</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">nj_tree</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">tree</span> <span class="o">!=</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># MST tree</span>
+            <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s1">&#39;mst&#39;</span> <span class="ow">or</span> <span class="n">tree</span> <span class="o">==</span> <span class="s1">&#39;both&#39;</span><span class="p">:</span>
+                <span class="n">existing_tree</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+                    <span class="n">existing_tree</span> <span class="o">=</span> <span class="n">load_tree</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;MST&quot;</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="n">mst_distances</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">existing_tree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># Check selecting clustering type is in CSV</span>
+                    <span class="n">clustering_name</span> <span class="o">=</span> <span class="s1">&#39;Cluster&#39;</span>
+                    <span class="k">if</span> <span class="n">display_cluster</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">display_cluster</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">isolateClustering</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                            <span class="n">clustering_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">isolateClustering</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Unable to find clustering column &#39;</span> <span class="o">+</span> <span class="n">display_cluster</span> <span class="o">+</span> <span class="s1">&#39; in file &#39;</span> <span class="o">+</span>
+                                            <span class="n">prev_clustering</span> <span class="o">+</span> <span class="s1">&#39;; instead using &#39;</span> <span class="o">+</span> <span class="n">clustering_name</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">clustering_name</span> <span class="o">=</span> <span class="n">display_cluster</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">clustering_name</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">isolateClustering</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">use_sparse</span><span class="p">:</span>
+                        <span class="n">G</span> <span class="o">=</span> <span class="n">generate_mst_from_sparse_input</span><span class="p">(</span><span class="n">sparse_mat</span><span class="p">,</span>
+                                                            <span class="n">rlist</span><span class="p">,</span>
+                                                            <span class="n">old_rlist</span> <span class="o">=</span> <span class="n">old_rlist</span><span class="p">,</span>
+                                                            <span class="n">previous_mst</span> <span class="o">=</span> <span class="n">previous_mst</span><span class="p">,</span>
+                                                            <span class="n">gpu_graph</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">use_dense</span><span class="p">:</span>
+                        <span class="c1"># Get distance matrix</span>
+                        <span class="n">complete_distMat</span> <span class="o">=</span> \
+                            <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">squareToLong</span><span class="p">(</span><span class="n">core_distMat</span><span class="p">,</span> <span class="n">threads</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                    <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">squareToLong</span><span class="p">(</span><span class="n">acc_distMat</span><span class="p">,</span> <span class="n">threads</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+                        <span class="c1"># Dense network may be slow</span>
+                        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Generating MST from dense distances (may be slow)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">G</span> <span class="o">=</span> <span class="n">construct_network_from_assignments</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">,</span>
+                                                                <span class="n">combined_seq</span><span class="p">,</span>
+                                                                <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">complete_distMat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                                                <span class="n">within_label</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                                                                <span class="n">distMat</span> <span class="o">=</span> <span class="n">complete_distMat</span><span class="p">,</span>
+                                                                <span class="n">weights_type</span> <span class="o">=</span> <span class="n">mst_distances</span><span class="p">,</span>
+                                                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">,</span>
+                                                                <span class="n">summarise</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">gpu_graph</span><span class="p">:</span>
+                            <span class="n">G</span> <span class="o">=</span> <span class="n">cugraph</span><span class="o">.</span><span class="n">minimum_spanning_tree</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;weights&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Need either sparse or dense distances matrix to construct MST</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">mst_graph</span> <span class="o">=</span> <span class="n">generate_minimum_spanning_tree</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                    <span class="k">del</span> <span class="n">G</span>
+                    <span class="c1"># save outputs</span>
+                    <span class="n">save_network</span><span class="p">(</span><span class="n">mst_graph</span><span class="p">,</span>
+                                    <span class="n">prefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                    <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_mst&#39;</span><span class="p">,</span>
+                                    <span class="n">use_graphml</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                    <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">gpu_graph</span><span class="p">:</span>
+                        <span class="n">mst_graph</span> <span class="o">=</span> <span class="n">cugraph_to_graph_tool</span><span class="p">(</span><span class="n">mst_graph</span><span class="p">,</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">vid</span> <span class="o">=</span> <span class="n">mst_graph</span><span class="o">.</span><span class="n">new_vertex_property</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">,</span>
+                                                    <span class="n">vals</span> <span class="o">=</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">))</span>
+                        <span class="n">mst_graph</span><span class="o">.</span><span class="n">vp</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">vid</span>
+                    <span class="n">mst_as_tree</span> <span class="o">=</span> <span class="n">mst_to_phylogeny</span><span class="p">(</span><span class="n">mst_graph</span><span class="p">,</span>
+                                                    <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">),</span>
+                                                    <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+                    <span class="n">mst_as_tree</span> <span class="o">=</span> <span class="n">mst_as_tree</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_mst.nwk&#39;</span><span class="p">),</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tree_out</span><span class="p">:</span>
+                        <span class="n">tree_out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mst_as_tree</span><span class="p">)</span>
+                    <span class="n">drawMST</span><span class="p">(</span><span class="n">mst_graph</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">isolateClustering</span><span class="p">,</span> <span class="n">clustering_name</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">mst_tree</span> <span class="o">=</span> <span class="n">existing_tree</span>
+
+            <span class="c1"># Generate NJ tree</span>
+            <span class="k">if</span> <span class="n">tree</span> <span class="o">==</span> <span class="s1">&#39;nj&#39;</span> <span class="ow">or</span> <span class="n">tree</span> <span class="o">==</span> <span class="s1">&#39;both&#39;</span><span class="p">:</span>
+                <span class="n">existing_tree</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+                    <span class="n">existing_tree</span> <span class="o">=</span> <span class="n">load_tree</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;NJ&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">existing_tree</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">nj_tree</span> <span class="o">=</span> <span class="n">generate_nj_tree</span><span class="p">(</span><span class="n">core_distMat</span><span class="p">,</span>
+                                                <span class="n">combined_seq</span><span class="p">,</span>
+                                                <span class="n">output</span><span class="p">,</span>
+                                                <span class="n">rapidnj</span><span class="p">,</span>
+                                                <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">nj_tree</span> <span class="o">=</span> <span class="n">existing_tree</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Fewer than three sequences, not drawing trees</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1">#****************#</span>
+    <span class="c1">#*              *#</span>
+    <span class="c1">#* Write output *#</span>
+    <span class="c1">#*              *#</span>
+    <span class="c1">#****************#</span>
+
+    <span class="c1"># Now have all the objects needed to generate selected visualisations</span>
+    <span class="k">if</span> <span class="n">microreact</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Writing microreact output</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">microreact_files</span> <span class="o">=</span> <span class="n">outputsForMicroreact</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">,</span>
+                                                <span class="n">isolateClustering</span><span class="p">,</span>
+                                                <span class="n">nj_tree</span><span class="p">,</span>
+                                                <span class="n">mst_tree</span><span class="p">,</span>
+                                                <span class="n">acc_distMat</span><span class="p">,</span>
+                                                <span class="n">perplexity</span><span class="p">,</span>
+                                                <span class="n">maxIter</span><span class="p">,</span>
+                                                <span class="n">output</span><span class="p">,</span>
+                                                <span class="n">info_csv</span><span class="p">,</span>
+                                                <span class="n">queryList</span><span class="o">=</span><span class="n">qlist</span><span class="p">,</span>
+                                                <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">,</span>
+                                                <span class="n">n_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                <span class="n">use_gpu</span><span class="o">=</span><span class="n">gpu_graph</span><span class="p">,</span>
+                                                <span class="n">device_id</span><span class="o">=</span><span class="n">deviceid</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">createMicroreact</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">microreact_files</span><span class="p">,</span> <span class="n">api_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">url</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Microreact: &quot;</span> <span class="o">+</span> <span class="n">url</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Provide --api-key to create microreact automatically</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">phandango</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Writing phandango output</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">outputsForPhandango</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">,</span>
+                            <span class="n">isolateClustering</span><span class="p">,</span>
+                            <span class="n">nj_tree</span><span class="p">,</span>
+                            <span class="n">mst_tree</span><span class="p">,</span>
+                            <span class="n">output</span><span class="p">,</span>
+                            <span class="n">info_csv</span><span class="p">,</span>
+                            <span class="n">queryList</span> <span class="o">=</span> <span class="n">qlist</span><span class="p">,</span>
+                            <span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">grapetree</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Writing grapetree output</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">outputsForGrapetree</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">,</span>
+                            <span class="n">isolateClustering</span><span class="p">,</span>
+                            <span class="n">nj_tree</span><span class="p">,</span>
+                            <span class="n">mst_tree</span><span class="p">,</span>
+                            <span class="n">output</span><span class="p">,</span>
+                            <span class="n">info_csv</span><span class="p">,</span>
+                            <span class="n">queryList</span> <span class="o">=</span> <span class="n">qlist</span><span class="p">,</span>
+                            <span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">cytoscape</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Writing cytoscape output</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="kn">import</span> <span class="nn">graph_tool.all</span> <span class="k">as</span> <span class="nn">gt</span>
+        <span class="k">if</span> <span class="n">network_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">genomeNetwork</span> <span class="o">=</span> <span class="n">load_network_file</span><span class="p">(</span><span class="n">network_file</span><span class="p">,</span> <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">gpu_graph</span><span class="p">:</span>
+                <span class="n">genomeNetwork</span> <span class="o">=</span> <span class="n">cugraph_to_graph_tool</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">all_seq</span><span class="p">))</span>
+            <span class="c1"># Hard delete from network to remove samples (mask doesn&#39;t work neatly)</span>
+            <span class="k">if</span> <span class="n">viz_subset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">remove_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">keep</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row_slice</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">keep</span><span class="p">:</span>
+                        <span class="n">remove_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                <span class="n">genomeNetwork</span><span class="o">.</span><span class="n">remove_vertex</span><span class="p">(</span><span class="n">remove_list</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">rank_fit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">genomeNetwork</span> <span class="o">=</span> <span class="n">sparse_mat_to_network</span><span class="p">(</span><span class="n">sparse_mat</span><span class="p">,</span> <span class="n">combined_seq</span><span class="p">,</span> <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Cytoscape output requires a network file or lineage rank fit to be provided</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">outputsForCytoscape</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span>
+                            <span class="n">mst_graph</span><span class="p">,</span>
+                            <span class="n">combined_seq</span><span class="p">,</span>
+                            <span class="n">isolateClustering</span><span class="p">,</span>
+                            <span class="n">output</span><span class="p">,</span>
+                            <span class="n">info_csv</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;lineage&#39;</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Note: Only support for output of cytoscape graph at lowest rank</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Done</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../api.html#PopPUNK.visualise.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Main function. Parses cmd line args and runs in the specified mode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">get_options</span><span class="p">()</span>
+
+    <span class="n">generate_visualisations</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">query_db</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">ref_db</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">distances</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">rank_fit</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">threads</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">gpu_dist</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">deviceid</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">external_clustering</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">microreact</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">phandango</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">grapetree</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">cytoscape</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">perplexity</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">maxIter</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">strand_preserved</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">include_files</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">previous_clustering</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">previous_query_clustering</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">previous_mst</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">previous_distances</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">network_file</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">gpu_graph</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">info_csv</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">rapidnj</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">api_key</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">tree</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">mst_distances</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">overwrite</span><span class="p">,</span>
+                            <span class="n">args</span><span class="o">.</span><span class="n">display_cluster</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

@@ -1,0 +1,459 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Scripts" href="scripts.html" /><link rel="prev" title="Using GPUs" href="gpu.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Troubleshooting - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="troubleshooting">
+<h1>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this heading">#</a></h1>
+<p>This page deals with common issues in running the analysis. For issues with
+installing or running the software please raise an issue on github.</p>
+<section id="most-all-of-my-samples-merge-when-i-run-a-query">
+<h2>Most/all of my samples merge when I run a query<a class="headerlink" href="#most-all-of-my-samples-merge-when-i-run-a-query" title="Permalink to this heading">#</a></h2>
+<p>If you see a gigantic merge when running <code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>, for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Clusters</span> <span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">14</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">16</span> <span class="n">have</span> <span class="n">merged</span> <span class="n">into</span> <span class="mi">1_2_3_4_5_6_7_8_9_10_11_12_13_14_15_16</span>
+</pre></div>
+</div>
+<p>This might be caused by:</p>
+<ul class="simple">
+<li><p>A single/a few ‘bad’ genome(s) with artificial zero/close-to-zero distances to many other samples, which links much of the network together.</p></li>
+<li><p>A boundary which is actually a bit lax, and when more isolates are added,
+they have distances just below the boundary between a few clusters,
+and there are enough of these to link more and more clusters together.</p></li>
+</ul>
+<p>The first issue should be easy to fix with one of the following methods:</p>
+<ul>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--run-qc</span></code> (see <a class="reference internal" href="qc.html"><span class="doc">Data quality control (--qc-db)</span></a>) with one or more of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--max-pi-dist</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--max-a-dist</span></code> to remove outlier distances.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--max-zero-dist</span></code> which sets the maximum proportion of zeros to other samples. Poor quality genomes often end up with zero distances to many samples, linking them together.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--max-merge</span></code> which sets the maximum number of clusters a single query can cause to merge.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--betweenness</span></code> which will print all queries in order which have high stress in the network, and are likely causing merges.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--serial</span></code> to run samples through one-by-one. This is a little less
+efficient than fully batched querying, but much faster than running independent
+jobs. Note, lineage models and updating the database are not supported with
+this mode.</p></li>
+</ul>
+<p>The second issue above is potentially more insidiuous, and may require a refit to all the
+data to obtain a tighter boundary. You can (mostly) keep old cluster IDs via
+the use of <code class="docutils literal notranslate"><span class="pre">--external-clustering</span></code> if you do this.
+Alternatively, you can add the <code class="docutils literal notranslate"><span class="pre">--serial</span></code> command to type samples one at a time
+as above.</p>
+<p>See <a class="reference external" href="https://github.com/bacpop/PopPUNK/issues/194">issue 194</a> for more discussion.</p>
+</section>
+<section id="memory-run-time-issues">
+<h2>Memory/run-time issues<a class="headerlink" href="#memory-run-time-issues" title="Permalink to this heading">#</a></h2>
+<p>Here are some tips based on experiences analysing larger datasets:</p>
+<ul class="simple">
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">--threads</span></code> – they are used fairly efficiently throughout.</p></li>
+<li><p>Consider the <code class="docutils literal notranslate"><span class="pre">--gpu-sketch</span></code> and <code class="docutils literal notranslate"><span class="pre">--gpu-dists</span></code> options is applicable,
+and a GPU is available.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">--refine-model</span></code> set <code class="docutils literal notranslate"><span class="pre">--pos-shift</span> <span class="pre">0</span></code> to avoid creating huge networks
+with close to <span class="math notranslate nohighlight">\(N^2\)</span> edges. Mixture models normally need to be pruned.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">--refine-model</span></code> you may add the <code class="docutils literal notranslate"><span class="pre">--no-local</span></code> option to skip that step
+and decrease run-time, though gains are likely marginal.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--rapid-nj</span></code>, if producing microreact output.</p></li>
+</ul>
+<p>Another option for scaling is to run <code class="docutils literal notranslate"><span class="pre">--create-db</span></code> with a smaller initial set (not
+using the <code class="docutils literal notranslate"><span class="pre">--full-db</span></code> command), then use <code class="docutils literal notranslate"><span class="pre">--assign-query</span></code> to add to this.</p>
+</section>
+<section id="known-bugs">
+<h2>Known bugs<a class="headerlink" href="#known-bugs" title="Permalink to this heading">#</a></h2>
+<section id="calculating-query-query-distances-when-unnecessary">
+<h3>Calculating query-query distances when unnecessary<a class="headerlink" href="#calculating-query-query-distances-when-unnecessary" title="Permalink to this heading">#</a></h3>
+<p>A bug in v2.4.0 only, (fixed in v2.5.0 and not in previous versions).</p>
+<p>You will always see <code class="docutils literal notranslate"><span class="pre">Found</span> <span class="pre">novel</span> <span class="pre">query</span> <span class="pre">clusters.</span> <span class="pre">Calculating</span> <span class="pre">distances</span> <span class="pre">between</span> <span class="pre">them.</span></code>
+when running <code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code> with more than one input sample. This should only
+happen when unassigned isolates/novel clusters are found. Our check on this condition
+became invalid.</p>
+<p>Additionally, this <em>may</em> have affected typing when query-query links were present,
+this appeared as invalid merges in some tests. If you used this, you may wish to
+re-run with v2.5.0 or higher.</p>
+</section>
+<section id="older-hdbscan-models-fail-to-load">
+<h3>Older HDBSCAN models fail to load<a class="headerlink" href="#older-hdbscan-models-fail-to-load" title="Permalink to this heading">#</a></h3>
+<p>tl;dr if you see an error <code class="docutils literal notranslate"><span class="pre">ModuleNotFoundError:</span> <span class="pre">No</span> <span class="pre">module</span> <span class="pre">named</span> <span class="pre">'sklearn.neighbors._dist_metrics'</span></code>
+you probably need to downgrade <code class="docutils literal notranslate"><span class="pre">sklearn</span></code> to v0.24.</p>
+<p>The change in scikit-learn’s API in v1.0.0 and above mean that HDBSCAN models
+fitted with <code class="docutils literal notranslate"><span class="pre">`sklearn</span> <span class="pre">&lt;=v0.24`</span></code> will give an error when loaded. If you run into this,
+the solution is one of:
+- Downgrade sklearn to v0.24.
+- Run model refinement to turn your model into a boundary model instead (this will
+change clusters).
+- Refit your model in an environment with <code class="docutils literal notranslate"><span class="pre">`sklearn</span> <span class="pre">&gt;=v1.0</span></code>.</p>
+<p>If this is a common problem let us know, as we could write a script to ‘upgrade’
+HDBSCAN models.
+See issue [#213](<a class="reference external" href="https://github.com/bacpop/PopPUNK/issues/213">https://github.com/bacpop/PopPUNK/issues/213</a>) for more details.</p>
+</section>
+<section id="when-i-look-at-my-clusters-on-a-tree-they-make-no-sense">
+<h3>When I look at my clusters on a tree, they make no sense<a class="headerlink" href="#when-i-look-at-my-clusters-on-a-tree-they-make-no-sense" title="Permalink to this heading">#</a></h3>
+<p>This is a bug caused by alphabetic sorting of labels in <code class="docutils literal notranslate"><span class="pre">PopPUNK</span> <span class="pre">&gt;=v2.0.0</span></code>
+with <code class="docutils literal notranslate"><span class="pre">pp-sketchlib</span> <span class="pre">&lt;v1.5.1</span></code>. There are three ways to fix this:</p>
+<ul class="simple">
+<li><p>Upgrade to <code class="docutils literal notranslate"><span class="pre">PopPUNK</span> <span class="pre">&gt;=v2.2</span></code> and <code class="docutils literal notranslate"><span class="pre">pp-sketchlib</span> <span class="pre">&gt;=v1.5.1</span></code> (preferred).</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">scripts/poppunk_pickle_fix.py</span></code> on your <code class="docutils literal notranslate"><span class="pre">.dists.pkl</span></code> file and re-run
+model fits.</p></li>
+<li><p>Create the database with <code class="docutils literal notranslate"><span class="pre">poppunk_sketch</span> <span class="pre">--sketch</span></code> and
+<code class="docutils literal notranslate"><span class="pre">poppunk_sketch</span> <span class="pre">--query</span></code> directly, rather than <code class="docutils literal notranslate"><span class="pre">PopPUNK</span> <span class="pre">--create-db</span></code>.</p></li>
+</ul>
+</section>
+<section id="i-have-updated-poppunk-and-my-clusters-still-seemed-scrambled">
+<h3>I have updated PopPUNK, and my clusters still seemed scrambled<a class="headerlink" href="#i-have-updated-poppunk-and-my-clusters-still-seemed-scrambled" title="Permalink to this heading">#</a></h3>
+<p>This is possible using query assignment with <code class="docutils literal notranslate"><span class="pre">--update-db</span></code>, or in some cases
+with <code class="docutils literal notranslate"><span class="pre">--gpu-dists</span></code>. Please update to <code class="docutils literal notranslate"><span class="pre">PopPUNK</span> <span class="pre">&gt;=v2.4.0</span></code>
+with <code class="docutils literal notranslate"><span class="pre">pp-sketchlib</span> <span class="pre">&gt;=v1.7.0</span></code></p>
+</section>
+<section id="calculating-distances-using-0-thread-s">
+<h3>Calculating distances using 0 thread(s)<a class="headerlink" href="#calculating-distances-using-0-thread-s" title="Permalink to this heading">#</a></h3>
+<p>This will lead to an error later on in execution. This is due to a version
+mismatch between PopPUNK and <code class="docutils literal notranslate"><span class="pre">pp-sketchlib</span></code>. Installation of both packages
+via conda should keep the versions compatible, but there are ways they can get out of sync.</p>
+<p>The solution is as above: upgrade to <code class="docutils literal notranslate"><span class="pre">PopPUNK</span> <span class="pre">&gt;=v2.2</span></code> and <code class="docutils literal notranslate"><span class="pre">pp-sketchlib</span> <span class="pre">&gt;=v1.5.1</span></code>.</p>
+</section>
+</section>
+<section id="error-warning-messages">
+<h2>Error/warning messages<a class="headerlink" href="#error-warning-messages" title="Permalink to this heading">#</a></h2>
+<section id="row-name-mismatch">
+<h3>Row name mismatch<a class="headerlink" href="#row-name-mismatch" title="Permalink to this heading">#</a></h3>
+<p>PopPUNK may throw:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ne">RuntimeError</span><span class="p">:</span> <span class="n">Row</span> <span class="n">name</span> <span class="n">mismatch</span><span class="o">.</span> <span class="n">Old</span><span class="p">:</span> <span class="mi">6999_2</span><span class="c1">#17.fa,6259_5#6.fa</span>
+<span class="n">New</span><span class="p">:</span> <span class="mi">6952_7</span><span class="c1">#16.fa,6259_5#6.fa</span>
+</pre></div>
+</div>
+<p>This is an error where the mash output order does not match the order in stored
+databases (<code class="docutils literal notranslate"><span class="pre">.pkl</span></code>). Most likely, the input files are from different runs, possibly
+due to using <code class="docutils literal notranslate"><span class="pre">--overwrite</span></code>. Run again, giving each step its own output directory.</p>
+</section>
+<section id="samples-are-missing-from-the-final-network">
+<h3>Samples are missing from the final network<a class="headerlink" href="#samples-are-missing-from-the-final-network" title="Permalink to this heading">#</a></h3>
+<p>When running <code class="docutils literal notranslate"><span class="pre">--assign-query</span></code> an error such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WARNING</span><span class="p">:</span> <span class="n">Samples</span> <span class="mi">7553_5</span><span class="c1">#54.fa,6999_5#1.fa are missing from the final network</span>
+</pre></div>
+</div>
+<p>Means that samples present in <code class="docutils literal notranslate"><span class="pre">--distances</span></code> and or <code class="docutils literal notranslate"><span class="pre">--ref-db</span></code> are not present
+in the loaded network. This should be considered an error as it will likely lead to other
+errors and warnings. Make sure the provided network is the one created by applying
+the <code class="docutils literal notranslate"><span class="pre">--model-dir</span></code> to <code class="docutils literal notranslate"><span class="pre">--distances</span></code>, and that the same output directory has
+not been used and overwriten by different steps or inputs.</p>
+</section>
+<section id="old-cluster-split-across-multiple-new-clusters">
+<h3>Old cluster split across multiple new clusters<a class="headerlink" href="#old-cluster-split-across-multiple-new-clusters" title="Permalink to this heading">#</a></h3>
+<p>When running <code class="docutils literal notranslate"><span class="pre">--assign-query</span></code>, after distances have been calculated and queries are being
+assigned warnings such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">WARNING</span><span class="p">:</span> <span class="n">Old</span> <span class="n">cluster</span> <span class="mi">1</span> <span class="n">split</span> <span class="n">across</span> <span class="n">multiple</span> <span class="n">new</span> <span class="n">clusters</span>
+</pre></div>
+</div>
+<p>Mean that a single cluster in the original clustering is now split into more than one
+cluster. This means something has gone wrong, as the addition of new queries should only
+be able to merge existing clusters, not cause them to split.</p>
+<p>Most likely, the <code class="docutils literal notranslate"><span class="pre">--previous-clustering</span></code> directory is inconsistent with the <code class="docutils literal notranslate"><span class="pre">--ref-db</span></code>
+and/or <code class="docutils literal notranslate"><span class="pre">--model-dir</span></code>. Make sure the clusters are those created from the network being
+used to assign new queries.</p>
+<p>If you want to change cluster names or assign queries to your own cluster definitions
+you can use the <code class="docutils literal notranslate"><span class="pre">--external-clustering</span></code> argument instead.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="scripts.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Scripts</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="gpu.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Using GPUs</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Troubleshooting</a><ul>
+<li><a class="reference internal" href="#most-all-of-my-samples-merge-when-i-run-a-query">Most/all of my samples merge when I run a query</a></li>
+<li><a class="reference internal" href="#memory-run-time-issues">Memory/run-time issues</a></li>
+<li><a class="reference internal" href="#known-bugs">Known bugs</a><ul>
+<li><a class="reference internal" href="#calculating-query-query-distances-when-unnecessary">Calculating query-query distances when unnecessary</a></li>
+<li><a class="reference internal" href="#older-hdbscan-models-fail-to-load">Older HDBSCAN models fail to load</a></li>
+<li><a class="reference internal" href="#when-i-look-at-my-clusters-on-a-tree-they-make-no-sense">When I look at my clusters on a tree, they make no sense</a></li>
+<li><a class="reference internal" href="#i-have-updated-poppunk-and-my-clusters-still-seemed-scrambled">I have updated PopPUNK, and my clusters still seemed scrambled</a></li>
+<li><a class="reference internal" href="#calculating-distances-using-0-thread-s">Calculating distances using 0 thread(s)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#error-warning-messages">Error/warning messages</a><ul>
+<li><a class="reference internal" href="#row-name-mismatch">Row name mismatch</a></li>
+<li><a class="reference internal" href="#samples-are-missing-from-the-final-network">Samples are missing from the final network</a></li>
+<li><a class="reference internal" href="#old-cluster-split-across-multiple-new-clusters">Old cluster split across multiple new clusters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

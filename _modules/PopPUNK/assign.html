@@ -1,0 +1,1037 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>PopPUNK.assign - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for PopPUNK.assign</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># vim: set fileencoding=&lt;utf-8&gt; :</span>
+<span class="c1"># Copyright 2018-2023 John Lees and Nick Croucher</span>
+
+<span class="c1"># universal</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="c1"># additional</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+
+<span class="c1"># required from v2.1.1 onwards (no mash support)</span>
+<span class="kn">import</span> <span class="nn">pp_sketchlib</span>
+
+<span class="c1"># import poppunk package</span>
+<span class="kn">from</span> <span class="nn">.__init__</span> <span class="kn">import</span> <span class="n">__version__</span>
+<span class="kn">from</span> <span class="nn">.__main__</span> <span class="kn">import</span> <span class="n">default_prop_n</span><span class="p">,</span> <span class="n">default_length_sigma</span><span class="p">,</span> <span class="n">default_max_a_dist</span><span class="p">,</span> \
+    <span class="n">default_max_pi_dist</span><span class="p">,</span> <span class="n">default_max_zero</span><span class="p">,</span> <span class="n">default_max_merge</span>
+
+<span class="c1">#******************************#</span>
+<span class="c1">#*                            *#</span>
+<span class="c1">#* Command line parsing       *#</span>
+<span class="c1">#*                            *#</span>
+<span class="c1">#******************************#</span>
+<span class="k">def</span> <span class="nf">get_options</span><span class="p">():</span>
+
+    <span class="kn">import</span> <span class="nn">argparse</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;Assign isolates to strains (by POPulation Partitioning Using Nucleotide Kmers)&#39;</span><span class="p">,</span>
+                                     <span class="n">prog</span><span class="o">=</span><span class="s1">&#39;poppunk_assign&#39;</span><span class="p">)</span>
+
+    <span class="c1"># input options</span>
+    <span class="n">iGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Input files&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--db&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Location of built reference database&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--query&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File listing query input assemblies&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--distances&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Prefix of input pickle of pre-calculated distances (if not in --db)&#39;</span><span class="p">)</span>
+    <span class="n">iGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--external-clustering&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;File with cluster definitions or other labels &#39;</span>
+                                                      <span class="s1">&#39;generated with any other method.&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># output options</span>
+    <span class="n">oGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Output options&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--output&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Prefix for output files (required)&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--plot-fit&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Create this many plots of some fits relating k-mer to core/accessory distances &#39;</span>
+                                            <span class="s1">&#39;[default = 0]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--write-references&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Write reference database isolates</span><span class="se">\&#39;</span><span class="s1"> cluster assignments out too&#39;</span><span class="p">,</span>
+                                              <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--update-db&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Update reference database with query sequences&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--overwrite&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Overwrite any existing database files&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">oGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--graph-weights&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Save within-strain Euclidean distances into the graph&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+
+    <span class="c1"># comparison metrics</span>
+    <span class="n">kmerGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Kmer comparison options&#39;</span><span class="p">)</span>
+    <span class="n">kmerGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--min-kmer-count&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Minimum k-mer count when using reads as input [default = 0]&#39;</span><span class="p">)</span>
+    <span class="n">kmerGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--exact-count&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                           <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Use the exact k-mer counter with reads &#39;</span>
+                                <span class="s1">&#39;[default = use countmin counter]&#39;</span><span class="p">)</span>
+    <span class="n">kmerGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--strand-preserved&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                           <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Treat input as being on the same strand, and ignore reverse complement &#39;</span>
+                                <span class="s1">&#39;k-mers [default = use canonical k-mers]&#39;</span><span class="p">)</span>
+
+    <span class="c1"># qc options</span>
+    <span class="n">qcGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Quality control options for distances&#39;</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--run-qc&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run the QC steps&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--retain-failures&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Retain sketches of genomes that do not pass QC filters in &#39;</span>
+                                                <span class="s1">&#39;separate database [default = False]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--max-a-dist&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Maximum accessory distance to permit [default = </span><span class="si">{</span><span class="n">default_max_a_dist</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">,</span>
+                                                <span class="n">default</span> <span class="o">=</span> <span class="n">default_max_a_dist</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--max-pi-dist&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Maximum core distance to permit [default = </span><span class="si">{</span><span class="n">default_max_pi_dist</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">,</span>
+                                                <span class="n">default</span> <span class="o">=</span> <span class="n">default_max_pi_dist</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--max-zero-dist&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Maximum proportion of zero distances to permit [default = </span><span class="si">{</span><span class="n">default_max_zero</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">,</span>
+                                                <span class="n">default</span> <span class="o">=</span> <span class="n">default_max_zero</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--max-merge&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Maximum number of cluster merges a sample can cause [default = </span><span class="si">{</span><span class="n">default_max_merge</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">,</span>
+                                                <span class="n">default</span> <span class="o">=</span> <span class="n">default_max_merge</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--betweenness&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Report the betweenness of all the query nodes [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--type-isolate&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Isolate from which distances can be calculated for pruning [default = None]&#39;</span><span class="p">,</span>
+                                                <span class="n">default</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--length-sigma&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Number of standard deviations of length distribution beyond &#39;</span>
+                                                <span class="s1">&#39;which sequences will be excluded [default = 5]&#39;</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--length-range&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Allowed length range, outside of which sequences will be excluded &#39;</span>
+                                                <span class="s1">&#39;[two values needed - lower and upper bounds]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span><span class="kc">None</span><span class="p">],</span>
+                                                <span class="nb">type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nargs</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--prop-n&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Threshold ambiguous base proportion above which sequences will be excluded&#39;</span>
+                                                <span class="s1">&#39; [default = None]&#39;</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                                <span class="nb">type</span> <span class="o">=</span> <span class="nb">float</span><span class="p">)</span>
+    <span class="n">qcGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--upper-n&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Threshold ambiguous base count above which sequences will be excluded&#39;</span><span class="p">,</span>
+                                                <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># sequence querying</span>
+    <span class="n">queryingGroup</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Database querying options&#39;</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--serial&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Do assignment one-by-one, not in batches (see docs) [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--model-dir&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Directory containing model to use for assigning queries &#39;</span>
+                                                   <span class="s1">&#39;to clusters [default = reference database directory]&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--previous-clustering&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Directory containing previous cluster definitions &#39;</span>
+                                                             <span class="s1">&#39;and network [default = use that in the directory &#39;</span>
+                                                             <span class="s1">&#39;containing the model]&#39;</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--core&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;(with a </span><span class="se">\&#39;</span><span class="s1">refine</span><span class="se">\&#39;</span><span class="s1"> model) &#39;</span>
+                                                   <span class="s1">&#39;Use a core-distance only model for assigning queries &#39;</span>
+                                                   <span class="s1">&#39;[default = False]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+    <span class="n">queryingGroup</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--accessory&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;(with a </span><span class="se">\&#39;</span><span class="s1">refine</span><span class="se">\&#39;</span><span class="s1"> or </span><span class="se">\&#39;</span><span class="s1">lineage</span><span class="se">\&#39;</span><span class="s1"> model) &#39;</span>
+                                                        <span class="s1">&#39;Use an accessory-distance only model for assigning queries &#39;</span>
+                                                        <span class="s1">&#39;[default = False]&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">)</span>
+
+    <span class="c1"># processing</span>
+    <span class="n">other</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s1">&#39;Other options&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--threads&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Number of threads to use [default = 1]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--gpu-sketch&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Use a GPU when calculating sketches (read data only) [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--gpu-dist&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Use a GPU when calculating distances [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--gpu-graph&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Use a GPU when constructing networks [default = False]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--deviceid&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s1">&#39;CUDA device ID, if using GPU [default = 0]&#39;</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--version&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;version&#39;</span><span class="p">,</span>
+                       <span class="n">version</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(prog)s</span><span class="s1"> &#39;</span><span class="o">+</span><span class="n">__version__</span><span class="p">)</span>
+    <span class="n">other</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--citation&#39;</span><span class="p">,</span>
+                       <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                       <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Give a citation, and possible methods paragraph&#39;</span>
+                            <span class="s1">&#39; based on the command line&#39;</span><span class="p">)</span>
+
+
+    <span class="c1"># combine</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># ensure directories do not have trailing forward slash</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">db</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">previous_clustering</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">arg</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">args</span>
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../api.html#PopPUNK.assign.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Main function. Parses cmd line args and runs in the specified mode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1">#******************************#</span>
+    <span class="c1">#*                            *#</span>
+    <span class="c1">#* Check command options      *#</span>
+    <span class="c1">#*                            *#</span>
+    <span class="c1">#******************************#</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">get_options</span><span class="p">()</span>
+
+    <span class="c1"># May just want to print the citation</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">citation</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">.citation</span> <span class="kn">import</span> <span class="n">print_citation</span>
+        <span class="n">print_citation</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.sketchlib</span> <span class="kn">import</span> <span class="n">checkSketchlibLibrary</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">setGtThreads</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">setupDBFuncs</span>
+
+    <span class="c1"># Dict of QC options for passing to database construction and querying functions</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">run_qc</span><span class="p">:</span>
+        <span class="c1"># define defaults if one QC parameter given</span>
+        <span class="c1"># length_sigma</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">length_sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">length_sigma</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">length_sigma</span>
+        <span class="k">elif</span> <span class="kc">None</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">length_range</span><span class="p">:</span>
+            <span class="n">length_sigma</span> <span class="o">=</span> <span class="n">default_length_sigma</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">length_sigma</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># prop_n</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">prop_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prop_n</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">prop_n</span>
+        <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">upper_n</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prop_n</span> <span class="o">=</span> <span class="n">default_prop_n</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prop_n</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">qc_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;run_qc&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">&#39;retain_failures&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">retain_failures</span><span class="p">,</span>
+            <span class="s1">&#39;length_sigma&#39;</span><span class="p">:</span> <span class="n">length_sigma</span><span class="p">,</span>
+            <span class="s1">&#39;length_range&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">length_range</span><span class="p">,</span>
+            <span class="s1">&#39;prop_n&#39;</span><span class="p">:</span> <span class="n">prop_n</span><span class="p">,</span>
+            <span class="s1">&#39;upper_n&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">upper_n</span><span class="p">,</span>
+            <span class="s1">&#39;max_pi_dist&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">max_pi_dist</span><span class="p">,</span>
+            <span class="s1">&#39;max_a_dist&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">max_a_dist</span><span class="p">,</span>
+            <span class="s1">&#39;prop_zero&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">max_zero_dist</span><span class="p">,</span>
+            <span class="s1">&#39;max_merge&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">max_merge</span><span class="p">,</span>
+            <span class="s1">&#39;betweenness&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">betweenness</span><span class="p">,</span>
+            <span class="s1">&#39;type_isolate&#39;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">type_isolate</span>
+        <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">qc_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;run_qc&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;type_isolate&#39;</span><span class="p">:</span> <span class="kc">None</span> <span class="p">}</span>
+
+    <span class="c1"># Dict of DB access functions for assign_query (which is out of scope)</span>
+    <span class="n">dbFuncs</span> <span class="o">=</span> <span class="n">setupDBFuncs</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;PopPUNK: assign</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">(with backend: &quot;</span> <span class="o">+</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;backend&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; v&quot;</span> <span class="o">+</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;backend_version&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1"> sketchlib: &#39;</span> <span class="o">+</span> <span class="n">checkSketchlibLibrary</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;)</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Mode: Assigning clusters of query sequences</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Check on parallelisation of graph-tools</span>
+    <span class="n">setGtThreads</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">threads</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">distances</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">db</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">db</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.dists&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">distances</span>
+
+    <span class="c1">#*******************************#</span>
+    <span class="c1">#*                             *#</span>
+    <span class="c1">#* query assignment            *#</span>
+    <span class="c1">#*                             *#</span>
+    <span class="c1">#*******************************#</span>
+    <span class="n">assign_query</span><span class="p">(</span><span class="n">dbFuncs</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">db</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">output</span><span class="p">,</span>
+                 <span class="n">qc_dict</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">update_db</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">write_references</span><span class="p">,</span>
+                 <span class="n">distances</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">serial</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">threads</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">overwrite</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">plot_fit</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">graph_weights</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">model_dir</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">strand_preserved</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">previous_clustering</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">external_clustering</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">core</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">accessory</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">gpu_sketch</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">gpu_dist</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">gpu_graph</span><span class="p">,</span>
+                 <span class="n">args</span><span class="o">.</span><span class="n">deviceid</span><span class="p">,</span>
+                 <span class="n">save_partial_query_graph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Done</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+<span class="c1">#*******************************#</span>
+<span class="c1">#*                             *#</span>
+<span class="c1">#* query assignment            *#</span>
+<span class="c1">#*                             *#</span>
+<span class="c1">#*******************************#</span>
+<div class="viewcode-block" id="assign_query"><a class="viewcode-back" href="../../api.html#PopPUNK.assign.assign_query">[docs]</a><span class="k">def</span> <span class="nf">assign_query</span><span class="p">(</span><span class="n">dbFuncs</span><span class="p">,</span>
+                 <span class="n">ref_db</span><span class="p">,</span>
+                 <span class="n">q_files</span><span class="p">,</span>
+                 <span class="n">output</span><span class="p">,</span>
+                 <span class="n">qc_dict</span><span class="p">,</span>
+                 <span class="n">update_db</span><span class="p">,</span>
+                 <span class="n">write_references</span><span class="p">,</span>
+                 <span class="n">distances</span><span class="p">,</span>
+                 <span class="n">serial</span><span class="p">,</span>
+                 <span class="n">threads</span><span class="p">,</span>
+                 <span class="n">overwrite</span><span class="p">,</span>
+                 <span class="n">plot_fit</span><span class="p">,</span>
+                 <span class="n">graph_weights</span><span class="p">,</span>
+                 <span class="n">model_dir</span><span class="p">,</span>
+                 <span class="n">strand_preserved</span><span class="p">,</span>
+                 <span class="n">previous_clustering</span><span class="p">,</span>
+                 <span class="n">external_clustering</span><span class="p">,</span>
+                 <span class="n">core</span><span class="p">,</span>
+                 <span class="n">accessory</span><span class="p">,</span>
+                 <span class="n">gpu_sketch</span><span class="p">,</span>
+                 <span class="n">gpu_dist</span><span class="p">,</span>
+                 <span class="n">gpu_graph</span><span class="p">,</span>
+                 <span class="n">deviceid</span><span class="p">,</span>
+                 <span class="n">save_partial_query_graph</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Code for assign query mode for CLI&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.qc</span> <span class="kn">import</span> <span class="n">sketchlibAssemblyQC</span>
+
+    <span class="n">createDatabaseDir</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;createDatabaseDir&#39;</span><span class="p">]</span>
+    <span class="n">constructDatabase</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;constructDatabase&#39;</span><span class="p">]</span>
+    <span class="n">readDBParams</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;readDBParams&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">ref_db</span> <span class="o">==</span> <span class="n">output</span> <span class="ow">and</span> <span class="n">overwrite</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;--output and --db must be different to &quot;</span>
+                         <span class="s2">&quot;prevent overwrite.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Find distances to reference db</span>
+    <span class="n">kmers</span><span class="p">,</span> <span class="n">sketch_sizes</span><span class="p">,</span> <span class="n">codon_phased</span> <span class="o">=</span> <span class="n">readDBParams</span><span class="p">(</span><span class="n">ref_db</span><span class="p">)</span>
+
+    <span class="c1"># construct database</span>
+    <span class="n">createDatabaseDir</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">kmers</span><span class="p">)</span>
+    <span class="n">qNames</span> <span class="o">=</span> <span class="n">constructDatabase</span><span class="p">(</span><span class="n">q_files</span><span class="p">,</span>
+                                <span class="n">kmers</span><span class="p">,</span>
+                                <span class="n">sketch_sizes</span><span class="p">,</span>
+                                <span class="n">output</span><span class="p">,</span>
+                                <span class="n">threads</span><span class="p">,</span>
+                                <span class="n">overwrite</span><span class="p">,</span>
+                                <span class="n">codon_phased</span> <span class="o">=</span> <span class="n">codon_phased</span><span class="p">,</span>
+                                <span class="n">calc_random</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_sketch</span><span class="p">,</span>
+                                <span class="n">deviceid</span> <span class="o">=</span> <span class="n">deviceid</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s2">&quot;run_qc&quot;</span><span class="p">]:</span>
+        <span class="n">pass_assembly_qc</span><span class="p">,</span> <span class="n">fail_assembly_qc</span> <span class="o">=</span> \
+                <span class="n">sketchlibAssemblyQC</span><span class="p">(</span><span class="n">output</span><span class="p">,</span>
+                                    <span class="n">qNames</span><span class="p">,</span>
+                                    <span class="n">qc_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fail_assembly_qc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">fail_assembly_qc</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples failed:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fail_assembly_qc</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">qNames</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">qNames</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pass_assembly_qc</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">qNames</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">isolateClustering</span> <span class="o">=</span> <span class="n">assign_query_hdf5</span><span class="p">(</span><span class="n">dbFuncs</span><span class="p">,</span>
+                    <span class="n">ref_db</span><span class="p">,</span>
+                    <span class="n">qNames</span><span class="p">,</span>
+                    <span class="n">output</span><span class="p">,</span>
+                    <span class="n">qc_dict</span><span class="p">,</span>
+                    <span class="n">update_db</span><span class="p">,</span>
+                    <span class="n">write_references</span><span class="p">,</span>
+                    <span class="n">distances</span><span class="p">,</span>
+                    <span class="n">serial</span><span class="p">,</span>
+                    <span class="n">threads</span><span class="p">,</span>
+                    <span class="n">overwrite</span><span class="p">,</span>
+                    <span class="n">plot_fit</span><span class="p">,</span>
+                    <span class="n">graph_weights</span><span class="p">,</span>
+                    <span class="n">model_dir</span><span class="p">,</span>
+                    <span class="n">strand_preserved</span><span class="p">,</span>
+                    <span class="n">previous_clustering</span><span class="p">,</span>
+                    <span class="n">external_clustering</span><span class="p">,</span>
+                    <span class="n">core</span><span class="p">,</span>
+                    <span class="n">accessory</span><span class="p">,</span>
+                    <span class="n">gpu_dist</span><span class="p">,</span>
+                    <span class="n">gpu_graph</span><span class="p">,</span>
+                    <span class="n">save_partial_query_graph</span><span class="p">)</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">isolateClustering</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="assign_query_hdf5"><a class="viewcode-back" href="../../api.html#PopPUNK.assign.assign_query_hdf5">[docs]</a><span class="k">def</span> <span class="nf">assign_query_hdf5</span><span class="p">(</span><span class="n">dbFuncs</span><span class="p">,</span>
+                 <span class="n">ref_db</span><span class="p">,</span>
+                 <span class="n">qNames</span><span class="p">,</span>
+                 <span class="n">output</span><span class="p">,</span>
+                 <span class="n">qc_dict</span><span class="p">,</span>
+                 <span class="n">update_db</span><span class="p">,</span>
+                 <span class="n">write_references</span><span class="p">,</span>
+                 <span class="n">distances</span><span class="p">,</span>
+                 <span class="n">serial</span><span class="p">,</span>
+                 <span class="n">threads</span><span class="p">,</span>
+                 <span class="n">overwrite</span><span class="p">,</span>
+                 <span class="n">plot_fit</span><span class="p">,</span>
+                 <span class="n">graph_weights</span><span class="p">,</span>
+                 <span class="n">model_dir</span><span class="p">,</span>
+                 <span class="n">strand_preserved</span><span class="p">,</span>
+                 <span class="n">previous_clustering</span><span class="p">,</span>
+                 <span class="n">external_clustering</span><span class="p">,</span>
+                 <span class="n">core</span><span class="p">,</span>
+                 <span class="n">accessory</span><span class="p">,</span>
+                 <span class="n">gpu_dist</span><span class="p">,</span>
+                 <span class="n">gpu_graph</span><span class="p">,</span>
+                 <span class="n">save_partial_query_graph</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Code for assign query mode taking hdf5 as input. Written as a separate function so it can be called</span>
+<span class="sd">    by web APIs&quot;&quot;&quot;</span>
+    <span class="c1"># Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)</span>
+    <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+    <span class="kn">from</span> <span class="nn">.models</span> <span class="kn">import</span> <span class="n">loadClusterFit</span>
+
+    <span class="kn">from</span> <span class="nn">.sketchlib</span> <span class="kn">import</span> <span class="n">removeFromDB</span>
+
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">fetchNetwork</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">construct_network_from_edge_list</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">extractReferences</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">addQueryToNetwork</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">printClusters</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">save_network</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">get_vertex_list</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">printExternalClusters</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">vertex_betweenness</span>
+
+
+    <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">writeClusterCsv</span>
+
+    <span class="kn">from</span> <span class="nn">.qc</span> <span class="kn">import</span> <span class="n">qcDistMat</span><span class="p">,</span> <span class="n">qcQueryAssignments</span><span class="p">,</span> <span class="n">prune_distance_matrix</span><span class="p">,</span> \
+        <span class="n">prune_query_distance_matrix</span>
+
+    <span class="kn">from</span> <span class="nn">.sketchlib</span> <span class="kn">import</span> <span class="n">addRandom</span>
+
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">storePickle</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">readPickle</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">update_distance_matrices</span>
+    <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">createOverallLineage</span>
+
+    <span class="n">joinDBs</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;joinDBs&#39;</span><span class="p">]</span>
+    <span class="n">queryDatabase</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;queryDatabase&#39;</span><span class="p">]</span>
+    <span class="n">readDBParams</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;readDBParams&#39;</span><span class="p">]</span>
+    <span class="n">getSeqsInDb</span> <span class="o">=</span> <span class="n">dbFuncs</span><span class="p">[</span><span class="s1">&#39;getSeqsInDb&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">ref_db</span> <span class="o">==</span> <span class="n">output</span> <span class="ow">and</span> <span class="n">overwrite</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;--output and --db must be different to &quot;</span>
+                         <span class="s2">&quot;prevent overwrite.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">update_db</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">distances</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;--update-db requires --distances to be provided</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">serial</span> <span class="ow">and</span> <span class="n">update_db</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;--update-db cannot be used with --serial&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Load the previous model</span>
+    <span class="n">model_prefix</span> <span class="o">=</span> <span class="n">ref_db</span>
+    <span class="k">if</span> <span class="n">model_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model_prefix</span> <span class="o">=</span> <span class="n">model_dir</span>
+    <span class="n">model_file</span> <span class="o">=</span> <span class="n">model_prefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_fit&quot;</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">loadClusterFit</span><span class="p">(</span><span class="n">model_file</span> <span class="o">+</span> <span class="s1">&#39;.pkl&#39;</span><span class="p">,</span>
+                           <span class="n">model_file</span> <span class="o">+</span> <span class="s1">&#39;.npz&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;lineage&quot;</span> <span class="ow">and</span> <span class="n">serial</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;lineage models cannot be used with --serial&quot;</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">set_threads</span><span class="p">(</span><span class="n">threads</span><span class="p">)</span>
+
+    <span class="c1"># Set directories of previous fit</span>
+    <span class="k">if</span> <span class="n">previous_clustering</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prev_clustering</span> <span class="o">=</span> <span class="n">previous_clustering</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">prev_clustering</span> <span class="o">=</span> <span class="n">model_prefix</span>
+
+    <span class="c1"># Find distances to reference db</span>
+    <span class="n">kmers</span> <span class="o">=</span> <span class="n">readDBParams</span><span class="p">(</span><span class="n">ref_db</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Iterate through different types of model fit with a refined model when specified</span>
+    <span class="c1"># Core and accessory assignments use the same model and same overall set of distances</span>
+    <span class="c1"># but have different networks, references, reference distances and assignments</span>
+    <span class="n">fit_type_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;refine&#39;</span> <span class="ow">and</span> <span class="n">model</span><span class="o">.</span><span class="n">indiv_fitted</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">core</span><span class="p">:</span>
+            <span class="n">fit_type_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;core_refined&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">accessory</span><span class="p">:</span>
+            <span class="n">fit_type_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;accessory_refined&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">fit_type</span> <span class="ow">in</span> <span class="n">fit_type_list</span><span class="p">:</span>
+        <span class="c1"># Define file name extension</span>
+        <span class="n">file_extension_string</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">fit_type</span> <span class="o">!=</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+            <span class="n">file_extension_string</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">fit_type</span>
+        <span class="c1"># Find distances vs ref seqs</span>
+        <span class="n">rNames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ref_file_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">,</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">model_prefix</span><span class="p">)</span> <span class="o">+</span> <span class="n">file_extension_string</span> <span class="o">+</span> <span class="s2">&quot;.refs&quot;</span><span class="p">)</span>
+        <span class="n">use_ref_graph</span> <span class="o">=</span> \
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">ref_file_name</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">update_db</span> <span class="ow">and</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;lineage&#39;</span>
+        <span class="k">if</span> <span class="n">use_ref_graph</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">ref_file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">refFile</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">reference</span> <span class="ow">in</span> <span class="n">refFile</span><span class="p">:</span>
+                    <span class="n">rNames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reference</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">distances</span> <span class="o">+</span> <span class="s2">&quot;.pkl&quot;</span><span class="p">):</span>
+                <span class="n">rNames</span> <span class="o">=</span> <span class="n">readPickle</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">enforce_self</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">update_db</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Reference distances missing, cannot use --update-db</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">rNames</span> <span class="o">=</span> <span class="n">getSeqsInDb</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ref_db</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">ref_db</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span><span class="p">))</span>
+
+        <span class="c1"># Deal with name clash</span>
+        <span class="n">same_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">rNames</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">qNames</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">same_names</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Names of queries match names in reference database</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">write_references</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Not running -- change names or add --write-references to override this behaviour</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">query_db</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span><span class="p">,</span> <span class="s1">&#39;r+&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">))</span>
+                <span class="n">sketch_grp</span> <span class="o">=</span> <span class="n">query_db</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">query</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qNames</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">same_names</span><span class="p">:</span>
+                        <span class="n">new_name</span> <span class="o">=</span> <span class="n">query</span> <span class="o">+</span> <span class="s2">&quot;_query&quot;</span>
+                        <span class="n">qNames</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_name</span>
+                        <span class="n">sketch_grp</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
+                <span class="n">query_db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">fit_type</span> <span class="o">!=</span> <span class="s1">&#39;default&#39;</span> <span class="ow">and</span> <span class="n">use_ref_graph</span><span class="p">)):</span>
+            <span class="c1"># run query</span>
+            <span class="n">qrDistMat</span> <span class="o">=</span> <span class="n">queryDatabase</span><span class="p">(</span><span class="n">rNames</span> <span class="o">=</span> <span class="n">rNames</span><span class="p">,</span>
+                                      <span class="n">qNames</span> <span class="o">=</span> <span class="n">qNames</span><span class="p">,</span>
+                                      <span class="n">dbPrefix</span> <span class="o">=</span> <span class="n">ref_db</span><span class="p">,</span>
+                                      <span class="n">queryPrefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                      <span class="n">klist</span> <span class="o">=</span> <span class="n">kmers</span><span class="p">,</span>
+                                      <span class="bp">self</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                      <span class="n">number_plot_fits</span> <span class="o">=</span> <span class="n">plot_fit</span><span class="p">,</span>
+                                      <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">,</span>
+                                      <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_dist</span><span class="p">)</span>
+
+        <span class="c1"># QC distance matrix</span>
+        <span class="k">if</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;run_qc&#39;</span><span class="p">]:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Running QC on distance matrix</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">seq_names_passing</span> <span class="o">=</span> \
+                <span class="nb">frozenset</span><span class="p">(</span><span class="n">qcDistMat</span><span class="p">(</span><span class="n">qrDistMat</span><span class="p">,</span> <span class="n">rNames</span><span class="p">,</span> <span class="n">qNames</span><span class="p">,</span> <span class="n">ref_db</span><span class="p">,</span> <span class="n">qc_dict</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">failed_samples</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">qNames</span><span class="p">)</span> <span class="o">-</span> <span class="n">seq_names_passing</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples failed:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">qNames</span><span class="p">):</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">qNames</span><span class="p">,</span> <span class="n">qrDistMat</span> <span class="o">=</span> \
+                        <span class="n">prune_query_distance_matrix</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">qNames</span><span class="p">,</span> <span class="n">failed_samples</span><span class="p">,</span> <span class="n">qrDistMat</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># Load the network based on supplied options (never used for lineage models)</span>
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;lineage&#39;</span><span class="p">:</span>
+            <span class="n">genomeNetwork</span><span class="p">,</span> <span class="n">old_cluster_file</span> <span class="o">=</span> \
+                <span class="n">fetchNetwork</span><span class="p">(</span><span class="n">prev_clustering</span><span class="p">,</span>
+                             <span class="n">model</span><span class="p">,</span>
+                             <span class="n">rNames</span><span class="p">,</span>
+                             <span class="n">ref_graph</span> <span class="o">=</span> <span class="n">use_ref_graph</span><span class="p">,</span>
+                             <span class="n">core_only</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;core_refined&#39;</span><span class="p">),</span>
+                             <span class="n">accessory_only</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;accessory_refined&#39;</span><span class="p">),</span>
+                             <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+
+            <span class="n">n_vertices</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">get_vertex_list</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span> <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">n_vertices</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">):</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR: There are </span><span class="si">{</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> vertices in the network but </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">)</span><span class="si">}</span><span class="s2"> reference names supplied; &quot;</span> <span class="o">+</span> \
+                                 <span class="s2">&quot;please check the &#39;--model-dir&#39; variable is pointing to the correct directory</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;lineage&#39;</span><span class="p">:</span>
+            <span class="c1"># Assign lineages by calculating query-query information</span>
+            <span class="n">addRandom</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">qNames</span><span class="p">,</span> <span class="n">kmers</span><span class="p">,</span> <span class="n">strand_preserved</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">,</span> <span class="n">threads</span><span class="p">)</span>
+            <span class="n">qqDistMat</span> <span class="o">=</span> <span class="n">queryDatabase</span><span class="p">(</span><span class="n">rNames</span> <span class="o">=</span> <span class="n">qNames</span><span class="p">,</span>
+                                      <span class="n">qNames</span> <span class="o">=</span> <span class="n">qNames</span><span class="p">,</span>
+                                      <span class="n">dbPrefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                      <span class="n">queryPrefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                      <span class="n">klist</span> <span class="o">=</span> <span class="n">kmers</span><span class="p">,</span>
+                                      <span class="bp">self</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                                      <span class="n">number_plot_fits</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                                      <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">,</span>
+                                      <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_dist</span><span class="p">)</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">qqDistMat</span><span class="p">,</span> <span class="n">qrDistMat</span><span class="p">)</span>
+
+            <span class="n">genomeNetwork</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">isolateClustering</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">rank</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">ranks</span><span class="p">:</span>
+                <span class="n">assignment</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span>
+                <span class="c1"># Overwrite the network loaded above</span>
+                <span class="k">if</span> <span class="n">graph_weights</span><span class="p">:</span>
+                    <span class="n">weights</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">edge_weights</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">genomeNetwork</span><span class="p">[</span><span class="n">rank</span><span class="p">]</span> <span class="o">=</span> <span class="n">construct_network_from_edge_list</span><span class="p">(</span><span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span><span class="p">,</span>
+                                                                       <span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span><span class="p">,</span>
+                                                                       <span class="n">edge_list</span> <span class="o">=</span> <span class="n">assignment</span><span class="p">,</span>
+                                                                       <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">,</span>
+                                                                       <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">,</span>
+                                                                       <span class="n">summarise</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+                <span class="n">isolateClustering</span><span class="p">[</span><span class="n">rank</span><span class="p">]</span> <span class="o">=</span> \
+                    <span class="n">printClusters</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">[</span><span class="n">rank</span><span class="p">],</span>
+                                  <span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span><span class="p">,</span>
+                                  <span class="n">printCSV</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                  <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+
+            <span class="n">overall_lineage</span> <span class="o">=</span> <span class="n">createOverallLineage</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ranks</span><span class="p">,</span> <span class="n">isolateClustering</span><span class="p">)</span>
+            <span class="n">writeClusterCsv</span><span class="p">(</span>
+                <span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_lineages.csv&#39;</span><span class="p">,</span>
+                <span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span><span class="p">,</span>
+                <span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span><span class="p">,</span>
+                <span class="n">overall_lineage</span><span class="p">,</span>
+                <span class="n">output_format</span> <span class="o">=</span> <span class="s1">&#39;phandango&#39;</span><span class="p">,</span>
+                <span class="n">epiCsv</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">queryNames</span> <span class="o">=</span> <span class="n">qNames</span><span class="p">,</span>
+                <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_Lineage&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Assign these distances as within or between strain</span>
+            <span class="k">if</span> <span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;core_refined&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;refine&#39;</span> <span class="ow">and</span> <span class="n">model</span><span class="o">.</span><span class="n">threshold</span><span class="p">):</span>
+                <span class="n">queryAssignments</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">qrDistMat</span><span class="p">,</span> <span class="n">slope</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="n">dist_type</span> <span class="o">=</span> <span class="s1">&#39;core&#39;</span>
+            <span class="k">elif</span> <span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;accessory_refined&#39;</span><span class="p">:</span>
+                <span class="n">queryAssignments</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">qrDistMat</span><span class="p">,</span> <span class="n">slope</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">dist_type</span> <span class="o">=</span> <span class="s1">&#39;accessory&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">queryAssignments</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">qrDistMat</span><span class="p">)</span>
+                <span class="n">dist_type</span> <span class="o">=</span> <span class="s1">&#39;euclidean&#39;</span>
+
+            <span class="c1"># QC assignments to check for multi-links</span>
+            <span class="k">if</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;run_qc&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;max_merge&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Running QC on model assignments</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">seq_names_passing</span> <span class="o">=</span> \
+                    <span class="nb">frozenset</span><span class="p">(</span><span class="n">qcQueryAssignments</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span>
+                                                 <span class="n">qNames</span><span class="p">,</span>
+                                                 <span class="n">queryAssignments</span><span class="p">,</span>
+                                                 <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;max_merge&#39;</span><span class="p">],</span>
+                                                 <span class="n">old_cluster_file</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">failed_samples</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">qNames</span><span class="p">)</span> <span class="o">-</span> <span class="n">seq_names_passing</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples failed:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">failed_samples</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">qNames</span><span class="p">):</span>
+                        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">qNames</span><span class="p">,</span> <span class="n">qrDistMat</span><span class="p">,</span> <span class="n">queryAssignments</span> <span class="o">=</span> \
+                            <span class="n">prune_query_distance_matrix</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">qNames</span><span class="p">,</span>
+                                <span class="n">failed_samples</span><span class="p">,</span> <span class="n">qrDistMat</span><span class="p">,</span> <span class="n">queryAssignments</span><span class="p">)</span>
+
+            <span class="c1"># Assign clustering by adding to network</span>
+            <span class="k">if</span> <span class="n">graph_weights</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">qrDistMat</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">output_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="n">file_extension_string</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">serial</span><span class="p">:</span>
+                <span class="n">genomeNetwork</span><span class="p">,</span> <span class="n">qqDistMat</span> <span class="o">=</span> \
+                    <span class="n">addQueryToNetwork</span><span class="p">(</span><span class="n">dbFuncs</span><span class="p">,</span>
+                                        <span class="n">rNames</span><span class="p">,</span>
+                                        <span class="n">qNames</span><span class="p">,</span>
+                                        <span class="n">genomeNetwork</span><span class="p">,</span>
+                                        <span class="n">queryAssignments</span><span class="p">,</span>
+                                        <span class="n">model</span><span class="p">,</span>
+                                        <span class="n">output</span><span class="p">,</span>
+                                        <span class="n">kmers</span> <span class="o">=</span> <span class="n">kmers</span><span class="p">,</span>
+                                        <span class="n">distance_type</span> <span class="o">=</span> <span class="n">dist_type</span><span class="p">,</span>
+                                        <span class="n">queryQuery</span> <span class="o">=</span> <span class="p">(</span><span class="n">update_db</span> <span class="ow">and</span>
+                                                        <span class="p">(</span><span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span> <span class="ow">or</span>
+                                                        <span class="p">(</span><span class="n">fit_type</span> <span class="o">!=</span> <span class="s1">&#39;default&#39;</span> <span class="ow">and</span> <span class="n">use_ref_graph</span><span class="p">)</span>
+                                                        <span class="p">)</span>
+                                                    <span class="p">),</span>
+                                        <span class="n">strand_preserved</span> <span class="o">=</span> <span class="n">strand_preserved</span><span class="p">,</span>
+                                        <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">,</span>
+                                        <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">,</span>
+                                        <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;run_qc&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;betweenness&#39;</span><span class="p">]:</span>
+                    <span class="n">betweenness</span> <span class="o">=</span> <span class="n">vertex_betweenness</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">)[</span><span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">):</span><span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">qNames</span><span class="p">)]</span>
+                    <span class="n">query_betweenness</span> <span class="o">=</span> <span class="p">{</span><span class="n">query</span><span class="p">:</span> <span class="n">b</span> <span class="k">for</span> <span class="n">query</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">qNames</span><span class="p">,</span> <span class="n">betweenness</span><span class="p">)}</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;query</span><span class="se">\t</span><span class="s2">betweenness&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">query</span><span class="p">,</span> <span class="n">q_betweenness</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">query_betweenness</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">q_betweenness</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="n">isolateClustering</span> <span class="o">=</span> \
+                    <span class="p">{</span><span class="s1">&#39;combined&#39;</span><span class="p">:</span> <span class="n">printClusters</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span>
+                                                <span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span><span class="p">,</span>
+                                                <span class="n">output_fn</span><span class="p">,</span>
+                                                <span class="n">old_cluster_file</span><span class="p">,</span>
+                                                <span class="n">external_clustering</span><span class="p">,</span>
+                                                <span class="n">write_references</span> <span class="ow">or</span> <span class="n">update_db</span><span class="p">,</span>
+                                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Assigning serially</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">G_copy</span> <span class="o">=</span> <span class="n">genomeNetwork</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">isolateClustering</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">qNames</span><span class="p">),</span> <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">qNames</span><span class="p">)):</span>
+                    <span class="n">genomeNetwork</span> <span class="o">=</span> \
+                        <span class="n">addQueryToNetwork</span><span class="p">(</span><span class="n">dbFuncs</span><span class="p">,</span>
+                                        <span class="n">rNames</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="n">sample</span><span class="p">],</span>
+                                        <span class="n">genomeNetwork</span><span class="p">,</span>
+                                        <span class="n">queryAssignments</span><span class="p">[(</span><span class="n">idx</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">)):((</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">))],</span>
+                                        <span class="n">model</span><span class="p">,</span>
+                                        <span class="n">output</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">isolate_cluster</span> <span class="o">=</span> <span class="n">printClusters</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span>
+                                                <span class="n">rNames</span> <span class="o">+</span> <span class="p">[</span><span class="n">sample</span><span class="p">],</span>
+                                                <span class="n">output_fn</span><span class="p">,</span>
+                                                <span class="n">old_cluster_file</span><span class="p">,</span>
+                                                <span class="n">external_clustering</span><span class="p">,</span>
+                                                <span class="n">printRef</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                <span class="n">printCSV</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                <span class="n">write_unwords</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                    <span class="n">cluster</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">isolate_cluster</span><span class="p">[</span><span class="n">sample</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">cluster</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">rNames</span><span class="p">):</span>
+                        <span class="n">cluster</span> <span class="o">=</span> <span class="s2">&quot;novel&quot;</span>
+                    <span class="n">isolateClustering</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span>
+                    <span class="c1"># Reset for next sample</span>
+                    <span class="n">genomeNetwork</span> <span class="o">=</span> <span class="n">G_copy</span>
+
+                <span class="c1"># Write out the results</span>
+                <span class="n">cluster_f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span><span class="si">}</span><span class="s2">_clusters.csv&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+                <span class="n">cluster_f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Taxon,Cluster</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">sample</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">isolateClustering</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">cluster_f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">sample</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">cluster</span><span class="p">)))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">cluster_f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">external_clustering</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">printExternalClusters</span><span class="p">(</span><span class="n">isolateClustering</span><span class="p">,</span> <span class="n">external_clustering</span><span class="p">,</span>
+                                          <span class="n">output</span><span class="p">,</span> <span class="n">rNames</span><span class="p">,</span> <span class="n">printRef</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Update DB as requested</span>
+        <span class="n">dists_out</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.dists&quot;</span>
+        <span class="k">if</span> <span class="n">update_db</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Updating reference database to &quot;</span> <span class="o">+</span> <span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Update the network + ref list (everything) - no need to duplicate for core/accessory</span>
+            <span class="k">if</span> <span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+                <span class="n">joinDBs</span><span class="p">(</span><span class="n">ref_db</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span>
+                        <span class="p">{</span><span class="s2">&quot;threads&quot;</span><span class="p">:</span> <span class="n">threads</span><span class="p">,</span> <span class="s2">&quot;strand_preserved&quot;</span><span class="p">:</span> <span class="n">strand_preserved</span><span class="p">})</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;lineage&#39;</span><span class="p">:</span>
+                <span class="n">save_network</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ranks</span><span class="p">)],</span>
+                                <span class="n">prefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_graph&#39;</span><span class="p">,</span>
+                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                <span class="c1"># Save sparse distance matrices and updated model</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">outPrefix</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">graph_suffix</span> <span class="o">=</span> <span class="n">file_extension_string</span> <span class="o">+</span> <span class="s1">&#39;_graph&#39;</span>
+                <span class="n">save_network</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span>
+                                <span class="n">prefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                <span class="n">suffix</span> <span class="o">=</span> <span class="n">graph_suffix</span><span class="p">,</span>
+                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+            <span class="c1"># Load the previous distances</span>
+            <span class="n">refList_loaded</span><span class="p">,</span> <span class="n">refList_copy</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">rrDistMat</span> <span class="o">=</span> \
+                <span class="n">readPickle</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span>
+                           <span class="n">enforce_self</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># This should now always be true, otherwise both qrDistMat and sparse matrix</span>
+            <span class="c1"># may need reordering</span>
+            <span class="k">assert</span><span class="p">(</span><span class="n">refList_loaded</span> <span class="o">==</span> <span class="n">rNames</span><span class="p">)</span>
+            <span class="n">combined_seq</span><span class="p">,</span> <span class="n">core_distMat</span><span class="p">,</span> <span class="n">acc_distMat</span> <span class="o">=</span> \
+                <span class="n">update_distance_matrices</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">rrDistMat</span><span class="p">,</span>
+                                         <span class="n">qNames</span><span class="p">,</span> <span class="n">qrDistMat</span><span class="p">,</span>
+                                         <span class="n">qqDistMat</span><span class="p">,</span> <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">combined_seq</span> <span class="o">==</span> <span class="n">rNames</span> <span class="o">+</span> <span class="n">qNames</span>
+
+            <span class="c1"># Get full distance matrix and save</span>
+            <span class="n">complete_distMat</span> <span class="o">=</span> \
+                <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">squareToLong</span><span class="p">(</span><span class="n">distMat</span><span class="o">=</span><span class="n">core_distMat</span><span class="p">,</span> <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                           <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">squareToLong</span><span class="p">(</span><span class="n">distMat</span><span class="o">=</span><span class="n">acc_distMat</span><span class="p">,</span> <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="n">storePickle</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">,</span> <span class="n">combined_seq</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">complete_distMat</span><span class="p">,</span> <span class="n">dists_out</span><span class="p">)</span>
+
+            <span class="c1"># Copy model if needed</span>
+            <span class="k">if</span> <span class="n">output</span> <span class="o">!=</span> <span class="n">model</span><span class="o">.</span><span class="n">outPrefix</span> <span class="ow">and</span> <span class="n">fit_type</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+            <span class="c1"># Clique pruning</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;lineage&#39;</span><span class="p">:</span>
+
+                <span class="n">existing_ref_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">ref_file_name</span><span class="p">)</span> <span class="k">as</span> <span class="n">refFile</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">reference</span> <span class="ow">in</span> <span class="n">refFile</span><span class="p">:</span>
+                        <span class="n">existing_ref_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reference</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+
+                <span class="c1"># Extract references from graph</span>
+                <span class="n">newRepresentativesIndices</span><span class="p">,</span> <span class="n">newRepresentativesNames</span><span class="p">,</span> \
+                    <span class="n">newRepresentativesFile</span><span class="p">,</span> <span class="n">genomeNetwork</span> <span class="o">=</span> \
+                        <span class="n">extractReferences</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span>
+                                            <span class="n">combined_seq</span><span class="p">,</span>
+                                            <span class="n">output</span><span class="p">,</span>
+                                            <span class="n">outSuffix</span> <span class="o">=</span> <span class="n">file_extension_string</span><span class="p">,</span>
+                                            <span class="n">existingRefs</span> <span class="o">=</span> <span class="n">existing_ref_list</span><span class="p">,</span>
+                                            <span class="n">type_isolate</span> <span class="o">=</span> <span class="n">qc_dict</span><span class="p">[</span><span class="s1">&#39;type_isolate&#39;</span><span class="p">],</span>
+                                            <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">,</span>
+                                            <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+
+                <span class="c1"># intersection that maintains order</span>
+                <span class="n">newQueries</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">qNames</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">newRepresentativesNames</span><span class="p">)]</span>
+
+                <span class="c1"># could also have newRepresentativesNames in this diff (should be the same) - but want</span>
+                <span class="c1"># to ensure consistency with the network in case of bad input/bugs</span>
+                <span class="n">nodes_to_remove</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">)))</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">newRepresentativesIndices</span><span class="p">)</span>
+                <span class="n">names_to_remove</span> <span class="o">=</span> <span class="p">[</span><span class="n">combined_seq</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">nodes_to_remove</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names_to_remove</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                    <span class="c1"># This function also writes out the new ref distance matrix</span>
+                    <span class="n">dists_suffix</span> <span class="o">=</span> <span class="n">file_extension_string</span> <span class="o">+</span> <span class="s1">&#39;.refs.dists&#39;</span>
+                    <span class="n">postpruning_combined_seq</span><span class="p">,</span> <span class="n">newDistMat</span> <span class="o">=</span> \
+                        <span class="n">prune_distance_matrix</span><span class="p">(</span><span class="n">combined_seq</span><span class="p">,</span> <span class="n">names_to_remove</span><span class="p">,</span> <span class="n">complete_distMat</span><span class="p">,</span>
+                                              <span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="n">dists_suffix</span><span class="p">)</span>
+                    <span class="n">graph_suffix</span> <span class="o">=</span> <span class="n">file_extension_string</span> <span class="o">+</span> <span class="s1">&#39;.refs_graph&#39;</span>
+                    <span class="n">save_network</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span>
+                                    <span class="n">prefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span>
+                                    <span class="n">suffix</span> <span class="o">=</span> <span class="n">graph_suffix</span><span class="p">,</span>
+                                    <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                    <span class="n">removeFromDB</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">names_to_remove</span><span class="p">)</span>
+                    <span class="n">db_suffix</span> <span class="o">=</span> <span class="n">file_extension_string</span> <span class="o">+</span> <span class="s1">&#39;.refs.h5&#39;</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.tmp.h5&quot;</span><span class="p">,</span>
+                              <span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="o">+</span> <span class="n">db_suffix</span><span class="p">)</span>
+
+                    <span class="c1"># Check that the updated set of references includes all old references, and references added from</span>
+                    <span class="c1"># queries; there may be further new references, even from the original database, where paths are</span>
+                    <span class="c1"># added between reference isolates in the same component, or new cliques formed</span>
+                    <span class="n">added_references</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">existing_ref_list</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">newQueries</span><span class="p">))</span>
+                    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">postpruning_combined_seq</span><span class="p">)</span><span class="o">.</span><span class="n">issuperset</span><span class="p">(</span><span class="n">added_references</span><span class="p">),</span> <span class="s2">&quot;Error identifying references&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">storePickle</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">qNames</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">qrDistMat</span><span class="p">,</span> <span class="n">dists_out</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">save_partial_query_graph</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">serial</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;lineage&#39;</span><span class="p">:</span>
+                    <span class="n">save_network</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ranks</span><span class="p">)],</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_graph&#39;</span><span class="p">,</span> <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">graph_suffix</span> <span class="o">=</span> <span class="n">file_extension_string</span> <span class="o">+</span> <span class="s1">&#39;_graph&#39;</span>
+                    <span class="n">save_network</span><span class="p">(</span><span class="n">genomeNetwork</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="n">graph_suffix</span><span class="p">,</span> <span class="n">use_gpu</span> <span class="o">=</span> <span class="n">gpu_graph</span><span class="p">)</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">isolateClustering</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

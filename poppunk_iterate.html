@@ -1,0 +1,503 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Citing PopPUNK" href="citing.html" /><link rel="prev" title="Scripts" href="scripts.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Iterative PopPUNK - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="iterative-poppunk">
+<h1>Iterative PopPUNK<a class="headerlink" href="#iterative-poppunk" title="Permalink to this heading">#</a></h1>
+<section id="running-with-multiple-boundary-positions">
+<h2>Running with multiple boundary positions<a class="headerlink" href="#running-with-multiple-boundary-positions" title="Permalink to this heading">#</a></h2>
+<p>To create clusters at equally spaced positions across the refinement range,
+add the <code class="docutils literal notranslate"><span class="pre">--multi-boundary</span> <span class="pre">&lt;n&gt;</span></code> argument, with the number of positions specified by <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code>.
+This will create up to <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code> sets of clusters, with boundaries equally spaced between
+the origin and the refined boundary position.</p>
+<p>Trivial cluster sets, where every sample is in its own cluster, will be excluded,
+so the final number of clusters may be less than <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code>. The script to analyse these is
+<code class="docutils literal notranslate"><span class="pre">poppunk_iterate.py</span></code>. Basic usage is to provide the output directory as <code class="docutils literal notranslate"><span class="pre">--db</span></code>,
+but run <code class="docutils literal notranslate"><span class="pre">--help</span></code> for other common options. This replies on finding files
+named <code class="docutils literal notranslate"><span class="pre">&lt;db&gt;/&lt;db&gt;_boundary&lt;n&gt;_clusters.csv</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code> is the boundary iteration number
+(continuous integers increasing from zero). Clusters must contain at least two samples.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">poppunk_iterate.py</span></code> script performs the following steps:</p>
+<ol class="arabic">
+<li><p>Starting from the most specific clusters (nearest the origin), it will iteratively add new clusters which are either:</p>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li><p>Total new clusters</p></li>
+<li><p>Subsets of existing clusters</p></li>
+<li><p>Existing clusters are subset of the new cluster.</p></li>
+</ol>
+</div></blockquote>
+</li>
+<li><p>Remove duplicate clusters.</p></li>
+<li><p>Calculate average core distance within this cluster set.</p></li>
+<li><p>Create a tree by nesting smaller clusters within larger clusters whey are subsets of.</p></li>
+<li><p>Output the combined clusters, average core distances, and tree.</p></li>
+<li><p>Cut this tree to pick a set of clusters under a similarity given by a <code class="docutils literal notranslate"><span class="pre">--cutoff</span></code>.</p></li>
+</ol>
+</section>
+<section id="step-by-step-tutorial">
+<h2>Step-by-Step Tutorial<a class="headerlink" href="#step-by-step-tutorial" title="Permalink to this heading">#</a></h2>
+<p><strong>Step 1: Sketching (–create-db)</strong></p>
+<p>First, use <code class="docutils literal notranslate"><span class="pre">poppunk</span> <span class="pre">--create-db</span></code> to sketch input data and calculate distances between samples.
+For the details, refer to <a class="reference internal" href="sketching.html"><span class="doc">Sketching (--create-db)</span></a>. To run this, using the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">rlist</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="o">&lt;</span><span class="n">database</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">8</span>
+</pre></div>
+</div>
+<p><strong>Step 2: Initial model fitting (–fit-model)</strong></p>
+<p>In iterative-PopPUNK, a universal model recommended for fitting the initial model is GMM with 2 or 3 components (K=2 or K=3),
+because more datasets can be analysed using this setting (DBSCAN fits sometimes fail to coverage).
+The details for model fitting can be found in <a class="reference internal" href="model_fitting.html"><span class="doc">Fitting new models (--fit-model)</span></a>. To run this, using the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">K</span> <span class="mi">2</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="o">&lt;</span><span class="n">database</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">output</span> <span class="o">&lt;</span><span class="n">database</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+</pre></div>
+</div>
+<p><strong>Step 3: Multi-level clustering by moving decision boundary iteratively (–fit-model refine –multi-boundary)</strong></p>
+<p>After fitting the initial model with GMM (with 2 or 3 components), refine it by moving the decision boundary
+to multiple positions between the origin and the combined decision boundary using the <code class="docutils literal notranslate"><span class="pre">--multi-boundary</span></code> option.
+To expand within-strain component, use <code class="docutils literal notranslate"><span class="pre">--neg-shift</span></code>. Details can be found in <a class="reference internal" href="model_fitting.html"><span class="doc">Fitting new models (--fit-model)</span></a> (the <strong>refine</strong> section).
+To run this, use the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">multi</span><span class="o">-</span><span class="n">boundary</span> <span class="mi">30</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="o">&lt;</span><span class="n">database</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">output</span> <span class="o">&lt;</span><span class="n">database</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+</pre></div>
+</div>
+<p><strong>Step 4: Choosing clusters under given similarity cutoffs (poppunk_iterate.py)</strong></p>
+<p>With <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code> sets of clusters created in Step 3, <code class="docutils literal notranslate"><span class="pre">poppunk_iterate.py</span></code> is used to assemble a hierarchical tree
+of iterative-PopPUNK clusters, while also calculating the average core distance within each cluster set. To run this step,
+use the following command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_iterate</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">db</span> <span class="o">&lt;</span><span class="n">database</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">cutoff</span> <span class="mf">0.2</span>  <span class="o">--</span><span class="n">output</span> <span class="o">&lt;</span><span class="n">prefix</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">16</span>
+</pre></div>
+</div>
+<p><strong>Outputs:</strong></p>
+<ul class="simple">
+<li><p>&lt;prefix&gt;_iterate.tree.nwk: this is the hierarchical tree of iterative-PopPUNK clusters.</p></li>
+<li><p>&lt;prefix&gt;_iterate.clusters.csv: this file contains all cluster sets from <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code> positions, along with their corresponding average core distances.</p></li>
+<li><p>&lt;prefix&gt;_iterative.cutoff_clusters.csv: this file contains a single set of clusters that meets a specified similarity cutoff.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We recommend using same name for &lt;database&gt; as in steps 1-3 (<code class="docutils literal notranslate"><span class="pre">--ref-db</span></code> and <code class="docutils literal notranslate"><span class="pre">--output</span></code>) to save the outputs from each step in a same folder</p>
+</div>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">#</a></h2>
+<p>The following example demonstrate how to use iterative-PopPUNK with 500 <em>E.coli</em> representative genomes from <a class="reference external" href="https://doi.org/10.1099/mgen.0.000499">Horesh et al. 2021</a>.
+You can download the genomes at <a class="reference external" href="https://doi.org/10.6084/m9.figshare.13270073">https://doi.org/10.6084/m9.figshare.13270073</a>.</p>
+<p><strong>Step 1</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">paste</span> <span class="o">&lt;</span><span class="p">(</span><span class="n">ls</span> <span class="o">*</span><span class="n">fa</span><span class="p">)</span> <span class="o">&lt;</span><span class="p">(</span><span class="n">ls</span> <span class="o">*</span><span class="n">fa</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">rlist</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">rlist</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">ecoli</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+</pre></div>
+</div>
+<p>This will create a PopPUNK database named “ecoli” by sketching the input genomes using 16 threads.
+The program will calculate random match chances using Monte Carlo and calculate distances using 16 threads.
+Once complete, the sketches will be written to a local file.</p>
+<p><strong>Step 2</strong></p>
+<p>Next, fit a Bayesian Gaussian Mixture Model (bgmm) to reference database using the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">K</span> <span class="mi">2</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">ecoli</span> <span class="o">--</span><span class="n">output</span> <span class="n">ecoli</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+</pre></div>
+</div>
+<p>This will fit the bgmm model to the <code class="docutils literal notranslate"><span class="pre">ecoli</span></code> database, assign distances with the model, and summarize the fit.
+The output will include the scaled component means and network summary.</p>
+<p><strong>Step 3</strong></p>
+<p>After fitting the bgmm model, refine the model using the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">ecoli</span> <span class="o">--</span><span class="n">output</span> <span class="n">ecoli</span> <span class="o">--</span><span class="n">multi</span><span class="o">-</span><span class="n">boundary</span> <span class="mi">30</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+</pre></div>
+</div>
+<p>This will load the previous bgmm model, construct an initial model-based network, and optimize the score globally.
+The program will then create multiple boundary fits and summarize the network. The output will include the components,
+density, transitivity, mean betweenness, weighted-mean betweenness, score, score with betweenness and score with weighted-betweenness.</p>
+<p><strong>Step 4</strong></p>
+<p>Finally, run <code class="docutils literal notranslate"><span class="pre">poppunk_iterate.py</span></code> with the following command to iterate over the PopPUNK analysis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_iterate</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">db</span> <span class="n">ecoli</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">16</span> <span class="o">--</span><span class="n">cutoff</span> <span class="mf">0.2</span> <span class="o">--</span><span class="n">output</span> <span class="mf">0.2</span><span class="n">_ecoli</span>
+</pre></div>
+</div>
+<p>This will run iteraive-PopPUNK with a cutoff 0.2 and output the results to files with prefix <code class="docutils literal notranslate"><span class="pre">0.2_ecoli</span></code>.</p>
+</section>
+<section id="common-questions">
+<h2>Common questions<a class="headerlink" href="#common-questions" title="Permalink to this heading">#</a></h2>
+<p><strong>1. How can I use Iterative-PopPUNK to achieve sublineage clustering from a large outbreak dataset?</strong></p>
+<p>To demonstrate how to achieve multi-level clustering from a large outbreak setting using Iterative-PopPUNK,
+we will use another example dataset consisting of 2,640 pathogenic <em>Vibrio parahaemolyticus</em> genomes from <a class="reference external" href="https://doi.org/10.1038/s41564-022-01182-0">Yang et al. 2022</a>.</p>
+<p><strong>Step 1: Creating a PopPUNK database</strong></p>
+<p>First, we need to create a reference database and fit a PopPUNK model using the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">paste</span> <span class="o">&lt;</span><span class="p">(</span><span class="n">ls</span> <span class="o">*</span><span class="n">fa</span><span class="p">)</span> <span class="o">&lt;</span><span class="p">(</span><span class="n">ls</span> <span class="o">*</span><span class="n">fa</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">rlist</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">rlist</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">K</span> <span class="mi">2</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">VP</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">VP</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP</span> <span class="o">--</span><span class="n">multi</span><span class="o">-</span><span class="n">boundary</span> <span class="mi">30</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span> <span class="o">--</span><span class="n">neg</span><span class="o">-</span><span class="n">shift</span> <span class="o">-</span><span class="mi">1</span>
+<span class="n">poppunk_iterate</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">db</span> <span class="n">VP</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">16</span> <span class="o">--</span><span class="n">cutoff</span> <span class="mf">0.5</span> <span class="o">--</span><span class="n">output</span> <span class="mf">0.5</span><span class="n">_VP</span>
+</pre></div>
+</div>
+<p>After running Step 1, iterative-PopPUNK produces a result file <code class="docutils literal notranslate"><span class="pre">0.5_iterative.cutoff_clusters.csv</span></code>,
+which gives 9 PopPUNK clusters exactly corresponding to 9 clonal groups described in Yang et al. 2022.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For closely related genomes (e.g. genomes within clonal group), we need to increase the sketch size for more precise distance calculation. In this example, we increase the sketching size to 100000. For more information, please refer to sketching section for details</p>
+</div>
+<p><strong>Step 2: Sublineage clustering for clonal groups</strong></p>
+<p>Next, we extract the clonal groups estimated by Iterative-PoPUNK in Step 1 and run Iterative-PopPUNK again for sublineage clustering.
+For example, we use the two largest clonal groups estimated in Step 1 for downstream analysis.</p>
+<p>Sublineage clustering for clonal group CG3:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">cg3_rlist</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP_cg3</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span> <span class="o">--</span><span class="n">sketch</span><span class="o">-</span><span class="n">size</span> <span class="mi">100000</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">K</span> <span class="mi">2</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">VP_cg3</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP_cg3</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">VP_cg3</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP_cg3</span> <span class="o">--</span><span class="n">multi</span><span class="o">-</span><span class="n">boundary</span> <span class="mi">30</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk_iterate</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">db</span> <span class="n">VP</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">16</span> <span class="o">--</span><span class="n">cutoff</span> <span class="mf">0.4</span> <span class="o">--</span><span class="n">output</span> <span class="mf">0.4</span><span class="n">_VP_cg3</span>
+</pre></div>
+</div>
+<p>Sublineage clustering for clonal group CG189:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">cg189_rlist</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP_cg189</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span> <span class="o">--</span><span class="n">sketch</span><span class="o">-</span><span class="n">size</span> <span class="mi">100000</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">K</span> <span class="mi">2</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">VP_cg189</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP_cg189</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">VP_cg189</span> <span class="o">--</span><span class="n">output</span> <span class="n">VP_cg189</span> <span class="o">--</span><span class="n">multi</span><span class="o">-</span><span class="n">boundary</span> <span class="mi">30</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk_iterate</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">db</span> <span class="n">VP</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">16</span> <span class="o">--</span><span class="n">cutoff</span> <span class="mf">0.2</span> <span class="o">--</span><span class="n">output</span> <span class="mf">0.2</span><span class="n">_VP_cg189</span>
+</pre></div>
+</div>
+<p><strong>Results</strong>:</p>
+<img alt="Iterative-PopPUNK multi-level clustering results from Clonal Groups to Outbreak level" class="align-center" src="_images/vp_ipp_result.png" />
+<p>The results demonstrate the effectiveness of using iterative-PopPUNK for sublineage clustering in large outbreak datasets.
+For example, in clonal group CG3, we extracted 274 outbreak groups (after removal of non-pathogenic isolates),
+while iterative-PopPUNK identified 80 clusters with a 40% MACD cutoff. The concordance of iterative-PopPUNK clustering
+with the identified outbreak groups was 60% (48/80), indicating that iterative-PopPUNK is able to achieve a finer resolution
+than clonal level. Moreover, the isolate clustering concordance (i.e. isolates assigned to a same group by both methods) was 90% (1596/1768),
+indicating high agreement between iterative-PopPUNK and outbreak groups at the isolate level. For clonal group CG189,
+iterative-PopPUNK identified 25 clusters with a 20% MACD cutoff, which showed a cluster concordance of 80% (20/25) with outbreak groups,
+and an isolate clustering concordance of 95% (259/273). It is worth noting that different genetic distance measurements can
+account for inconsistencies between iterative-PopPUNK clusters and outbreak groups.</p>
+<p><strong>2. How can I determine when I should add “–neg-shift” or “–pos-shift” ?</strong></p>
+<p>Iterative-PopPUNK allows for the use of “–neg-shift” and “–pos-shift” parameters to refine the initial model fit
+and estimate more clusters in either a higher or lower genetic level. These parameters adjust the decision boundary ranges for cluster estimation.</p>
+<p>By default, adding “–neg-shift” with a value below zero moves the initial decision boundary line towards a higher genetic level,
+while a positive value for “–pos-shift” moves the line towards the origin. The value chosen for these parameters should align with
+the research interests of the user.</p>
+<p>For instance, consider the E. coli dataset. Without adding “–neg-shift”, iterative-PopPUNK may fail to find phylogroups.
+Figure 1 shows the distribution plot for this dataset with default settings, while Figure 2 shows the same plot after adding
+a value of -0.25 for “–neg-shift”:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><figure class="align-default" id="id1">
+<img alt="_images/ecoli_refined_fit.png" src="_images/ecoli_refined_fit.png" />
+<figcaption>
+<p><span class="caption-text">Figure 1: refine fit with default settings</span><a class="headerlink" href="#id1" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+<td><figure class="align-default" id="id2">
+<img alt="_images/ecoli_refined_fit_with_neg.png" src="_images/ecoli_refined_fit_with_neg.png" />
+<figcaption>
+<p><span class="caption-text">Figure 2: refine fit with default settings after adding -0.25 neg-shift</span><a class="headerlink" href="#id2" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>In summary, users should determine whether to add “–neg-shift” or “–pos-shift” based on their research interests, and adjust the value accordingly.</p>
+<p><strong>3. why does the number of clusters increase with larger cutoff values?</strong></p>
+<p>In iterative PopPUNK, the choice of cutoff value has a significant impact on the resulting number and composition of clusters. In general,
+increasing the cutoff value leads to fewer and larger clusters, while decreasing the cutoff value leads to more and smaller clusters.
+However, in some cases, increasing the cutoff value can paradoxically lead to an increase in the number of clusters, which may seem counterintuitive.</p>
+<p>To understand why this happens, we need to look at the role of average core distance (ACD) in cluster formation.
+ACD is a measure of the average genetic distance between all pairs of isolates within a cluster. When the ACD is low,
+it means that the isolates within the cluster are genetically similar to each other, while a high ACD indicates that there are
+significant genetic differences between the isolates.</p>
+<p>In a large dataset, the ACD of one cluster’s parent cluster is greatly affected by small clusters or singleton isolates.
+This is because the ACD of a parent cluster is calculated as the average ACD of all the clusters it contains. As a result,
+if a parent cluster contains one or more small clusters with extreme high ACD values, its own ACD value will be inflated,
+which may cause it to be split into multiple singletons at higher cutoff values.</p>
+<p>Consider the following simplified iterative-PopPUNK tree:</p>
+<img alt="simplified iterative-PopPUNK tree" class="align-center" src="_images/ipp_tree_example.png" />
+<p>In Figure A, a very small cutoff value results in no nodes being selected, leaving a set of 8 clusters or singletons.
+When the cutoff is increased to 0.5 in Figure B, only one cluster, Cluster2, is selected. However, when a higher cutoff value of 0.95 is adopted,
+Cluster3 is selected, and the remaining six isolates are left as singletons, resulting in a total of 7 clusters.</p>
+<p>To address this issue, you can check the “&lt;prefix&gt;.clusters.csv” file to identify small clusters with extreme high ACD values.
+If present, check the PopPUNK distribution plot (“&lt;prefix&gt;_distanceDistribution.png”) to determine if there are any distanced components.
+You can remove low-quality or distanced samples from your dataset using the “–qc-db” option (please refer to <a class="reference internal" href="qc.html"><span class="doc">Data quality control (--qc-db)</span></a>).</p>
+<p>In the examples given above, removing the two isolates from Cluster3 would help to solve the problem and lead to a more accurate clustering result.</p>
+<p>By carefully selecting the cutoff value and performing quality control on the input data, you can obtain robust and
+biologically meaningful clusterings with iterative PopPUNK.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="citing.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Citing PopPUNK</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="scripts.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Scripts</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Iterative PopPUNK</a><ul>
+<li><a class="reference internal" href="#running-with-multiple-boundary-positions">Running with multiple boundary positions</a></li>
+<li><a class="reference internal" href="#step-by-step-tutorial">Step-by-Step Tutorial</a></li>
+<li><a class="reference internal" href="#examples">Examples</a></li>
+<li><a class="reference internal" href="#common-questions">Common questions</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

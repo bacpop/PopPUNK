@@ -1,0 +1,912 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>PopPUNK.sketchlib - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for PopPUNK.sketchlib</h1><div class="highlight"><pre>
+<span></span><span class="c1"># vim: set fileencoding=&lt;utf-8&gt; :</span>
+<span class="c1"># Copyright 2018-2023 John Lees and Nick Croucher</span>
+
+<span class="sd">&#39;&#39;&#39;Sketchlib functions for database construction&#39;&#39;&#39;</span>
+
+<span class="c1"># universal</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="c1"># additional</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">sample</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">optimize</span>
+
+<span class="kn">import</span> <span class="nn">pp_sketchlib</span>
+<span class="kn">import</span> <span class="nn">h5py</span>
+
+<span class="kn">from</span> <span class="nn">.__init__</span> <span class="kn">import</span> <span class="n">SKETCHLIB_MAJOR</span><span class="p">,</span> <span class="n">SKETCHLIB_MINOR</span><span class="p">,</span> <span class="n">SKETCHLIB_PATCH</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">readRfile</span><span class="p">,</span> <span class="n">stderr_redirected</span>
+<span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">plot_fit</span>
+
+<span class="n">sketchlib_exe</span> <span class="o">=</span> <span class="s2">&quot;sketchlib&quot;</span>
+
+<div class="viewcode-block" id="checkSketchlibVersion"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.checkSketchlibVersion">[docs]</a><span class="k">def</span> <span class="nf">checkSketchlibVersion</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Checks that sketchlib can be run, and returns version</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        version (str)</span>
+<span class="sd">            Version string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sketchlib_version</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">version</span>
+
+    <span class="c1"># Older versions didn&#39;t export attributes</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">([</span><span class="n">sketchlib_exe</span> <span class="o">+</span> <span class="s1">&#39; --version&#39;</span><span class="p">],</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">version</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">break</span>
+
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;WARNING: Sketchlib version could not be found</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">version</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^v&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span> <span class="c1"># Remove leading v</span>
+    <span class="n">sketchlib_version</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">sketchlib_version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">SKETCHLIB_MAJOR</span> <span class="ow">or</span> \
+        <span class="n">sketchlib_version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">SKETCHLIB_MAJOR</span> <span class="ow">and</span> <span class="n">sketchlib_version</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">SKETCHLIB_MINOR</span> <span class="ow">or</span> \
+        <span class="n">sketchlib_version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">SKETCHLIB_MAJOR</span> <span class="ow">and</span> <span class="n">sketchlib_version</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">SKETCHLIB_MINOR</span> <span class="ow">and</span> <span class="n">sketchlib_version</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">SKETCHLIB_PATCH</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;This version of PopPUNK requires sketchlib &quot;</span>
+                            <span class="s2">&quot;v&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">SKETCHLIB_MAJOR</span><span class="p">)</span> <span class="o">+</span> \
+                            <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">SKETCHLIB_MINOR</span><span class="p">)</span> <span class="o">+</span> \
+                            <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">SKETCHLIB_PATCH</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; or higher</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Continuing... but safety not guaranteed</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">version</span></div>
+
+<div class="viewcode-block" id="checkSketchlibLibrary"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.checkSketchlibLibrary">[docs]</a><span class="k">def</span> <span class="nf">checkSketchlibLibrary</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gets the location of the sketchlib library</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        lib (str)</span>
+<span class="sd">            Location of sketchlib .so/.dyld</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sketchlib_loc</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="vm">__file__</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">sketchlib_loc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="createDatabaseDir"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.createDatabaseDir">[docs]</a><span class="k">def</span> <span class="nf">createDatabaseDir</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">,</span> <span class="n">kmers</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates the directory to write sketches to, removing old files if unnecessary</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        outPrefix (str)</span>
+<span class="sd">            output db prefix</span>
+<span class="sd">        kmers (list)</span>
+<span class="sd">            k-mer sizes in db</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check for writing</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">):</span>
+        <span class="c1"># remove old database files if not needed</span>
+        <span class="n">db_file</span> <span class="o">=</span> <span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">db_file</span><span class="p">):</span>
+            <span class="n">ref_db</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">db_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">sample_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">knum</span> <span class="o">=</span> <span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches/&#39;</span> <span class="o">+</span> <span class="n">sample_name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;kmers&#39;</span><span class="p">]</span>
+                <span class="n">remove_prev_db</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">for</span> <span class="n">kmer_length</span> <span class="ow">in</span> <span class="n">knum</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">kmer_length</span> <span class="ow">in</span> <span class="n">knum</span><span class="p">):</span>
+                        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Previously-calculated k-mer size &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">kmer_length</span><span class="p">)</span> <span class="o">+</span>
+                                        <span class="s2">&quot; not in requested range (&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">knum</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="n">remove_prev_db</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">break</span>
+                <span class="k">if</span> <span class="n">remove_prev_db</span><span class="p">:</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Removing old database &quot;</span> <span class="o">+</span> <span class="n">db_file</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">db_file</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Cannot create output directory</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="getSketchSize"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.getSketchSize">[docs]</a><span class="k">def</span> <span class="nf">getSketchSize</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Determine sketch size, and ensures consistent in whole database</span>
+
+<span class="sd">    ``sys.exit(1)`` is called if DBs have different sketch sizes</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dbprefix (str)</span>
+<span class="sd">            Prefix for databases</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        sketchSize (int)</span>
+<span class="sd">            sketch size (64x C++ definition)</span>
+<span class="sd">        codonPhased (bool)</span>
+<span class="sd">            whether the DB used codon phased seeds</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db_file</span> <span class="o">=</span> <span class="n">dbPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+    <span class="n">ref_db</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">db_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">codon_phased</span> <span class="o">=</span> <span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;codon_phased&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">codon_phased</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">prev_sketch</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">sample_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">sketch_size</span> <span class="o">=</span> <span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches/&#39;</span> <span class="o">+</span> <span class="n">sample_name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;sketchsize64&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">prev_sketch</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">prev_sketch</span> <span class="o">=</span> <span class="n">sketch_size</span>
+        <span class="k">elif</span> <span class="n">sketch_size</span> <span class="o">!=</span> <span class="n">prev_sketch</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Problem with database; sketch sizes for sample &quot;</span> <span class="o">+</span>
+                             <span class="n">sample_name</span> <span class="o">+</span> <span class="s2">&quot; is &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">prev_sketch</span><span class="p">)</span> <span class="o">+</span>
+                             <span class="s2">&quot;, but smaller kmers have sketch sizes of &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sketch_size</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">sketch_size</span><span class="p">),</span> <span class="n">codon_phased</span></div>
+
+<div class="viewcode-block" id="getKmersFromReferenceDatabase"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.getKmersFromReferenceDatabase">[docs]</a><span class="k">def</span> <span class="nf">getKmersFromReferenceDatabase</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get kmers lengths from existing database</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dbPrefix (str)</span>
+<span class="sd">            Prefix for sketch DB files</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        kmers (list)</span>
+<span class="sd">            List of k-mer lengths used in database</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db_file</span> <span class="o">=</span> <span class="n">dbPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+    <span class="n">ref_db</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">db_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">prev_kmer_sizes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sample_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">kmer_size</span> <span class="o">=</span> <span class="n">ref_db</span><span class="p">[</span><span class="s1">&#39;sketches/&#39;</span> <span class="o">+</span> <span class="n">sample_name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;kmers&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_kmer_sizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">prev_kmer_sizes</span> <span class="o">=</span> <span class="n">kmer_size</span>
+        <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">kmer_size</span> <span class="o">!=</span> <span class="n">prev_kmer_sizes</span><span class="p">):</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Problem with database; kmer lengths inconsistent: &quot;</span> <span class="o">+</span>
+                             <span class="nb">str</span><span class="p">(</span><span class="n">kmer_size</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; vs &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">prev_kmer_sizes</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">prev_kmer_sizes</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="n">kmers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">prev_kmer_sizes</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">kmers</span></div>
+
+<div class="viewcode-block" id="readDBParams"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.readDBParams">[docs]</a><span class="k">def</span> <span class="nf">readDBParams</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get kmers lengths and sketch sizes from existing database</span>
+
+<span class="sd">    Calls :func:`~getKmersFromReferenceDatabase` and :func:`~getSketchSize`</span>
+<span class="sd">    Uses passed values if db missing</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dbPrefix (str)</span>
+<span class="sd">            Prefix for sketch DB files</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        kmers (list)</span>
+<span class="sd">            List of k-mer lengths used in database</span>
+<span class="sd">        sketch_sizes (list)</span>
+<span class="sd">            List of sketch sizes used in database</span>
+<span class="sd">        codonPhased (bool)</span>
+<span class="sd">            whether the DB used codon phased seeds</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db_kmers</span> <span class="o">=</span> <span class="n">getKmersFromReferenceDatabase</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">db_kmers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find sketches in &quot;</span> <span class="o">+</span> <span class="n">dbPrefix</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sketch_sizes</span><span class="p">,</span> <span class="n">codon_phased</span> <span class="o">=</span> <span class="n">getSketchSize</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">db_kmers</span><span class="p">,</span> <span class="n">sketch_sizes</span><span class="p">,</span> <span class="n">codon_phased</span></div>
+
+
+<div class="viewcode-block" id="getSeqsInDb"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.getSeqsInDb">[docs]</a><span class="k">def</span> <span class="nf">getSeqsInDb</span><span class="p">(</span><span class="n">dbname</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return an array with the sequences in the passed database</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dbname (str)</span>
+<span class="sd">            Sketches database filename</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        seqs (list)</span>
+<span class="sd">            List of sequence names in sketch DB</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seqs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">dbname</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">sample_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">seqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sample_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">seqs</span></div>
+
+<div class="viewcode-block" id="joinDBs"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.joinDBs">[docs]</a><span class="k">def</span> <span class="nf">joinDBs</span><span class="p">(</span><span class="n">db1</span><span class="p">,</span> <span class="n">db2</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">update_random</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Join two sketch databases with the low-level HDF5 copy interface</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db1 (str)</span>
+<span class="sd">            Prefix for db1</span>
+<span class="sd">        db2 (str)</span>
+<span class="sd">            Prefix for db2</span>
+<span class="sd">        output (str)</span>
+<span class="sd">            Prefix for joined output</span>
+<span class="sd">        update_random (dict)</span>
+<span class="sd">            Whether to re-calculate the random object. May contain</span>
+<span class="sd">            control arguments strand_preserved and threads (see :func:`addRandom`)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">join_prefix</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+    <span class="n">db1_name</span> <span class="o">=</span> <span class="n">db1</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">db1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+    <span class="n">db2_name</span> <span class="o">=</span> <span class="n">db2</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">db2</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+
+    <span class="n">hdf1</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">db1_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">hdf2</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">db2_name</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">hdf_join</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">join_prefix</span> <span class="o">+</span> <span class="s2">&quot;.tmp.h5&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="c1"># add .tmp in case join_name exists</span>
+
+    <span class="c1"># Can only copy into new group, so for second file these are appended one at a time</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">hdf1</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="s1">&#39;sketches&#39;</span><span class="p">,</span> <span class="n">hdf_join</span><span class="p">)</span>
+
+        <span class="n">join_grp</span> <span class="o">=</span> <span class="n">hdf_join</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span>
+        <span class="n">read_grp</span> <span class="o">=</span> <span class="n">hdf2</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">read_grp</span><span class="p">:</span>
+            <span class="n">join_grp</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">read_grp</span><span class="p">[</span><span class="n">dataset</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
+
+        <span class="c1"># Copy or update random matches</span>
+        <span class="k">if</span> <span class="n">update_random</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">threads</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">strand_preserved</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">update_random</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="s2">&quot;threads&quot;</span> <span class="ow">in</span> <span class="n">update_random</span><span class="p">:</span>
+                    <span class="n">threads</span> <span class="o">=</span> <span class="n">update_random</span><span class="p">[</span><span class="s2">&quot;threads&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;strand_preserved&quot;</span> <span class="ow">in</span> <span class="n">update_random</span><span class="p">:</span>
+                    <span class="n">strand_preserved</span> <span class="o">=</span> <span class="n">update_random</span><span class="p">[</span><span class="s2">&quot;strand_preserved&quot;</span><span class="p">]</span>
+
+            <span class="n">sequence_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hdf_join</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">kmer_size</span> <span class="o">=</span> <span class="n">hdf_join</span><span class="p">[</span><span class="s1">&#39;sketches/&#39;</span> <span class="o">+</span> <span class="n">sequence_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;kmers&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Need to close before adding random</span>
+            <span class="n">hdf_join</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Updating random match chances</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">addRandom</span><span class="p">(</span><span class="n">db_name</span><span class="o">=</span><span class="n">join_prefix</span> <span class="o">+</span> <span class="s2">&quot;.tmp&quot;</span><span class="p">,</span>
+                                       <span class="n">samples</span><span class="o">=</span><span class="n">sequence_names</span><span class="p">,</span>
+                                       <span class="n">klist</span><span class="o">=</span><span class="n">kmer_size</span><span class="p">,</span>
+                                       <span class="n">use_rc</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">strand_preserved</span><span class="p">),</span>
+                                       <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="s1">&#39;random&#39;</span> <span class="ow">in</span> <span class="n">hdf1</span><span class="p">:</span>
+            <span class="n">hdf1</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">hdf_join</span><span class="p">)</span>
+
+        <span class="c1"># Clean up</span>
+        <span class="n">hdf1</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">hdf2</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">update_random</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hdf_join</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;ERROR: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Joining sketches failed, try running without --update-db</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Rename results to correct location</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">join_prefix</span> <span class="o">+</span> <span class="s2">&quot;.tmp.h5&quot;</span><span class="p">,</span> <span class="n">join_prefix</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="removeFromDB"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.removeFromDB">[docs]</a><span class="k">def</span> <span class="nf">removeFromDB</span><span class="p">(</span><span class="n">db_name</span><span class="p">,</span> <span class="n">out_name</span><span class="p">,</span> <span class="n">removeSeqs</span><span class="p">,</span> <span class="n">full_names</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove sketches from the DB the low-level HDF5 copy interface</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db_name (str)</span>
+<span class="sd">            Prefix for hdf database</span>
+<span class="sd">        out_name (str)</span>
+<span class="sd">            Prefix for output (pruned) database</span>
+<span class="sd">        removeSeqs (list)</span>
+<span class="sd">            Names of sequences to remove from database</span>
+<span class="sd">        full_names (bool)</span>
+<span class="sd">            If True, db_name and out_name are the full paths to h5 files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">removeSeqs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">removeSeqs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">full_names</span><span class="p">:</span>
+        <span class="n">db_file</span> <span class="o">=</span> <span class="n">db_name</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">db_name</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+        <span class="n">out_file</span> <span class="o">=</span> <span class="n">out_name</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">out_name</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.tmp.h5&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">db_file</span> <span class="o">=</span> <span class="n">db_name</span>
+        <span class="n">out_file</span> <span class="o">=</span> <span class="n">out_name</span>
+
+    <span class="n">hdf_in</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">db_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+    <span class="n">hdf_out</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">out_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;random&#39;</span> <span class="ow">in</span> <span class="n">hdf_in</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">hdf_in</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="s1">&#39;random&#39;</span><span class="p">,</span> <span class="n">hdf_out</span><span class="p">)</span>
+        <span class="n">out_grp</span> <span class="o">=</span> <span class="n">hdf_out</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s1">&#39;sketches&#39;</span><span class="p">)</span>
+        <span class="n">read_grp</span> <span class="o">=</span> <span class="n">hdf_in</span><span class="p">[</span><span class="s1">&#39;sketches&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_val</span> <span class="ow">in</span> <span class="n">read_grp</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">out_grp</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">attr_name</span><span class="p">,</span> <span class="n">attr_val</span><span class="p">)</span>
+
+        <span class="n">removed</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">read_grp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dataset</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">removeSeqs</span><span class="p">:</span>
+                <span class="n">out_grp</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">read_grp</span><span class="p">[</span><span class="n">dataset</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">removed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;ERROR: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Error while deleting sequence &quot;</span> <span class="o">+</span> <span class="n">dataset</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">missed</span> <span class="o">=</span> <span class="n">removeSeqs</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">removed</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;WARNING: Did not find samples to remove:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missed</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Clean up</span>
+    <span class="n">hdf_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">hdf_out</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="constructDatabase"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.constructDatabase">[docs]</a><span class="k">def</span> <span class="nf">constructDatabase</span><span class="p">(</span><span class="n">assemblyList</span><span class="p">,</span> <span class="n">klist</span><span class="p">,</span> <span class="n">sketch_size</span><span class="p">,</span> <span class="n">oPrefix</span><span class="p">,</span>
+                        <span class="n">threads</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">,</span>
+                        <span class="n">strand_preserved</span><span class="p">,</span> <span class="n">min_count</span><span class="p">,</span>
+                        <span class="n">use_exact</span><span class="p">,</span> <span class="n">calc_random</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                        <span class="n">codon_phased</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">deviceid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sketch the input assemblies at the requested k-mer lengths</span>
+
+<span class="sd">    A multithread wrapper around :func:`~runSketch`. Threads are used to either run multiple sketch</span>
+<span class="sd">    processes for each klist value.</span>
+
+<span class="sd">    Also calculates random match probability based on length of first genome</span>
+<span class="sd">    in assemblyList.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        assemblyList (str)</span>
+<span class="sd">            File with locations of assembly files to be sketched</span>
+<span class="sd">        klist (list)</span>
+<span class="sd">            List of k-mer sizes to sketch</span>
+<span class="sd">        sketch_size (int)</span>
+<span class="sd">            Size of sketch (``-s`` option)</span>
+<span class="sd">        oPrefix (str)</span>
+<span class="sd">            Output prefix for resulting sketch files</span>
+<span class="sd">        threads (int)</span>
+<span class="sd">            Number of threads to use (default = 1)</span>
+<span class="sd">        overwrite (bool)</span>
+<span class="sd">            Whether to overwrite sketch DBs, if they already exist.</span>
+<span class="sd">            (default = False)</span>
+<span class="sd">        strand_preserved (bool)</span>
+<span class="sd">            Ignore reverse complement k-mers (default = False)</span>
+<span class="sd">        min_count (int)</span>
+<span class="sd">            Minimum count of k-mer in reads to include</span>
+<span class="sd">            (default = 0)</span>
+<span class="sd">        use_exact (bool)</span>
+<span class="sd">            Use exact count of k-mer appearance in reads</span>
+<span class="sd">            (default = False)</span>
+<span class="sd">        calc_random (bool)</span>
+<span class="sd">            Add random match chances to DB (turn off for queries)</span>
+<span class="sd">        codon_phased (bool)</span>
+<span class="sd">            Use codon phased seeds</span>
+<span class="sd">            (default = False)</span>
+<span class="sd">        use_gpu (bool)</span>
+<span class="sd">            Use GPU for read sketching</span>
+<span class="sd">            (default = False)</span>
+<span class="sd">        deviceid (int)</span>
+<span class="sd">            GPU device id</span>
+<span class="sd">            (default = 0)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        names (list)</span>
+<span class="sd">            List of names included in the database (from rfile)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># read file names</span>
+    <span class="n">names</span><span class="p">,</span> <span class="n">sequences</span> <span class="o">=</span> <span class="n">readRfile</span><span class="p">(</span><span class="n">assemblyList</span><span class="p">)</span>
+
+    <span class="c1"># create directory</span>
+    <span class="n">dbname</span> <span class="o">=</span> <span class="n">oPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">oPrefix</span><span class="p">)</span>
+    <span class="n">dbfilename</span> <span class="o">=</span> <span class="n">dbname</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">dbfilename</span><span class="p">)</span> <span class="ow">and</span> <span class="n">overwrite</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Overwriting db: &quot;</span> <span class="o">+</span> <span class="n">dbfilename</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">dbfilename</span><span class="p">)</span>
+
+    <span class="c1"># generate sketches</span>
+    <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">constructDatabase</span><span class="p">(</span><span class="n">db_name</span><span class="o">=</span><span class="n">dbname</span><span class="p">,</span>
+                                   <span class="n">samples</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+                                   <span class="n">files</span><span class="o">=</span><span class="n">sequences</span><span class="p">,</span>
+                                   <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                   <span class="n">sketch_size</span><span class="o">=</span><span class="n">sketch_size</span><span class="p">,</span>
+                                   <span class="n">codon_phased</span><span class="o">=</span><span class="n">codon_phased</span><span class="p">,</span>
+                                   <span class="n">calc_random</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                   <span class="n">use_rc</span><span class="o">=</span><span class="ow">not</span> <span class="n">strand_preserved</span><span class="p">,</span>
+                                   <span class="n">min_count</span><span class="o">=</span><span class="n">min_count</span><span class="p">,</span>
+                                   <span class="n">exact</span><span class="o">=</span><span class="n">use_exact</span><span class="p">,</span>
+                                   <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                   <span class="n">use_gpu</span><span class="o">=</span><span class="n">use_gpu</span><span class="p">,</span>
+                                   <span class="n">device_id</span><span class="o">=</span><span class="n">deviceid</span><span class="p">)</span>
+
+    <span class="c1"># Add random matches if required</span>
+    <span class="c1"># (typically on for reference, off for query)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">calc_random</span><span class="p">):</span>
+        <span class="n">addRandom</span><span class="p">(</span><span class="n">oPrefix</span><span class="p">,</span>
+                  <span class="n">names</span><span class="p">,</span>
+                  <span class="n">klist</span><span class="p">,</span>
+                  <span class="n">strand_preserved</span><span class="p">,</span>
+                  <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                  <span class="n">threads</span> <span class="o">=</span> <span class="n">threads</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">names</span></div>
+
+
+<div class="viewcode-block" id="addRandom"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.addRandom">[docs]</a><span class="k">def</span> <span class="nf">addRandom</span><span class="p">(</span><span class="n">oPrefix</span><span class="p">,</span> <span class="n">sequence_names</span><span class="p">,</span> <span class="n">klist</span><span class="p">,</span>
+              <span class="n">strand_preserved</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">threads</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add chance of random match to a HDF5 sketch DB</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        oPrefix (str)</span>
+<span class="sd">            Sketch database prefix</span>
+<span class="sd">        sequence_names (list)</span>
+<span class="sd">            Names of sequences to include in calculation</span>
+<span class="sd">        klist (list)</span>
+<span class="sd">            List of k-mer sizes to sketch</span>
+<span class="sd">        strand_preserved (bool)</span>
+<span class="sd">            Set true to ignore rc k-mers</span>
+<span class="sd">        overwrite (str)</span>
+<span class="sd">            Set true to overwrite existing random match chances</span>
+<span class="sd">        threads (int)</span>
+<span class="sd">            Number of threads to use (default = 1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence_names</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Cannot add random match chances with this few genomes</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dbname</span> <span class="o">=</span> <span class="n">oPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">oPrefix</span><span class="p">)</span>
+        <span class="n">hdf_in</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">dbname</span> <span class="o">+</span> <span class="s2">&quot;.h5&quot;</span><span class="p">,</span> <span class="s1">&#39;r+&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;random&#39;</span> <span class="ow">in</span> <span class="n">hdf_in</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">hdf_in</span><span class="p">[</span><span class="s1">&#39;random&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Using existing random match chances in DB</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="n">hdf_in</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">addRandom</span><span class="p">(</span><span class="n">db_name</span><span class="o">=</span><span class="n">dbname</span><span class="p">,</span>
+                               <span class="n">samples</span><span class="o">=</span><span class="n">sequence_names</span><span class="p">,</span>
+                               <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                               <span class="n">use_rc</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">strand_preserved</span><span class="p">),</span>
+                               <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="queryDatabase"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.queryDatabase">[docs]</a><span class="k">def</span> <span class="nf">queryDatabase</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">qNames</span><span class="p">,</span> <span class="n">dbPrefix</span><span class="p">,</span> <span class="n">queryPrefix</span><span class="p">,</span> <span class="n">klist</span><span class="p">,</span> <span class="bp">self</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">number_plot_fits</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+                  <span class="n">threads</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">deviceid</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate core and accessory distances between query sequences and a sketched database</span>
+
+<span class="sd">    For a reference database, runs the query against itself to find all pairwise</span>
+<span class="sd">    core and accessory distances.</span>
+
+<span class="sd">    Uses the relation :math:`pr(a, b) = (1-a)(1-c)^k`</span>
+
+<span class="sd">    To get the ref and query name for each row of the returned distances, call to the iterator</span>
+<span class="sd">    :func:`~PopPUNK.utils.iterDistRows` with the returned refList and queryList</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rNames (list)</span>
+<span class="sd">            Names of references to query</span>
+<span class="sd">        qNames (list)</span>
+<span class="sd">            Names of queries</span>
+<span class="sd">        dbPrefix (str)</span>
+<span class="sd">            Prefix for reference sketch database created by :func:`~constructDatabase`</span>
+<span class="sd">        queryPrefix (str)</span>
+<span class="sd">            Prefix for query sketch database created by :func:`~constructDatabase`</span>
+<span class="sd">        klist (list)</span>
+<span class="sd">            K-mer sizes to use in the calculation</span>
+<span class="sd">        self (bool)</span>
+<span class="sd">            Set true if query = ref</span>
+<span class="sd">            (default = True)</span>
+<span class="sd">        number_plot_fits (int)</span>
+<span class="sd">            If &gt; 0, the number of k-mer length fits to plot (saved as pdfs).</span>
+<span class="sd">            Takes random pairs of comparisons and calls :func:`~PopPUNK.plot.plot_fit`</span>
+<span class="sd">            (default = 0)</span>
+<span class="sd">        threads (int)</span>
+<span class="sd">            Number of threads to use in the process</span>
+<span class="sd">            (default = 1)</span>
+<span class="sd">        use_gpu (bool)</span>
+<span class="sd">            Use a GPU for querying</span>
+<span class="sd">            (default = False)</span>
+<span class="sd">        deviceid (int)</span>
+<span class="sd">            Index of the CUDA GPU device to use</span>
+<span class="sd">            (default = 0)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">         distMat (numpy.array)</span>
+<span class="sd">            Core distances (column 0) and accessory distances (column 1) between</span>
+<span class="sd">            refList and queryList</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ref_db</span> <span class="o">=</span> <span class="n">dbPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">dbPrefix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dbPrefix</span> <span class="o">!=</span> <span class="n">queryPrefix</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Must use same db for self query&quot;</span><span class="p">)</span>
+        <span class="n">qNames</span> <span class="o">=</span> <span class="n">rNames</span>
+
+        <span class="c1"># Calls to library</span>
+        <span class="n">distMat</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                             <span class="n">query_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                             <span class="n">rList</span><span class="o">=</span><span class="n">rNames</span><span class="p">,</span>
+                                             <span class="n">qList</span><span class="o">=</span><span class="n">rNames</span><span class="p">,</span>
+                                             <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                             <span class="n">random_correct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                             <span class="n">jaccard</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                             <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                             <span class="n">use_gpu</span><span class="o">=</span><span class="n">use_gpu</span><span class="p">,</span>
+                                             <span class="n">device_id</span><span class="o">=</span><span class="n">deviceid</span><span class="p">)</span>
+
+        <span class="c1"># option to plot core/accessory fits. Choose a random number from cmd line option</span>
+        <span class="k">if</span> <span class="n">number_plot_fits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">jacobian</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">klist</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">klist</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="k">for</span> <span class="n">plot_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_plot_fits</span><span class="p">):</span>
+                <span class="n">example</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">klist</span><span class="p">))</span>
+                <span class="n">corrected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">klist</span><span class="p">))</span>
+                <span class="k">with</span> <span class="n">stderr_redirected</span><span class="p">():</span> <span class="c1"># Hide the many progress bars</span>
+                    <span class="n">raw</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                                    <span class="n">query_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                                    <span class="n">rList</span><span class="o">=</span><span class="p">[</span><span class="n">example</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+                                                    <span class="n">qList</span><span class="o">=</span><span class="p">[</span><span class="n">example</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                                                    <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                                    <span class="n">random_correct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                    <span class="n">jaccard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                    <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                    <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+                    <span class="n">corrected</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                                        <span class="n">query_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                                        <span class="n">rList</span><span class="o">=</span><span class="p">[</span><span class="n">example</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+                                                        <span class="n">qList</span><span class="o">=</span><span class="p">[</span><span class="n">example</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                                                        <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                                        <span class="n">random_correct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                        <span class="n">jaccard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                        <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                        <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">raw_fit</span> <span class="o">=</span> <span class="n">fitKmerCurve</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">klist</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">)</span>
+                <span class="n">corrected_fit</span> <span class="o">=</span> <span class="n">fitKmerCurve</span><span class="p">(</span><span class="n">corrected</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">klist</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">)</span>
+                <span class="n">plot_fit</span><span class="p">(</span><span class="n">klist</span><span class="p">,</span>
+                         <span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                         <span class="n">raw_fit</span><span class="p">,</span>
+                         <span class="n">corrected</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                         <span class="n">corrected_fit</span><span class="p">,</span>
+                         <span class="n">ref_db</span> <span class="o">+</span> <span class="s2">&quot;_fit_example_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">plot_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                         <span class="s2">&quot;Example fit &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">plot_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; - &quot;</span> <span class="o">+</span>  <span class="n">example</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; vs. &quot;</span> <span class="o">+</span> <span class="n">example</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">duplicated</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">rNames</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">qNames</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">duplicated</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Sample names in query are contained in reference database:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">duplicated</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Unique names are required!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Calls to library</span>
+        <span class="n">query_db</span> <span class="o">=</span> <span class="n">queryPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">queryPrefix</span><span class="p">)</span>
+        <span class="n">distMat</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                             <span class="n">query_db_name</span><span class="o">=</span><span class="n">query_db</span><span class="p">,</span>
+                                             <span class="n">rList</span><span class="o">=</span><span class="n">rNames</span><span class="p">,</span>
+                                             <span class="n">qList</span><span class="o">=</span><span class="n">qNames</span><span class="p">,</span>
+                                             <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                             <span class="n">random_correct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                             <span class="n">jaccard</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                             <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                             <span class="n">use_gpu</span><span class="o">=</span><span class="n">use_gpu</span><span class="p">,</span>
+                                             <span class="n">device_id</span><span class="o">=</span><span class="n">deviceid</span><span class="p">)</span>
+
+        <span class="c1"># option to plot core/accessory fits. Choose a random number from cmd line option</span>
+        <span class="k">if</span> <span class="n">number_plot_fits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">jacobian</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">klist</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">klist</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+            <span class="n">ref_examples</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">rNames</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">number_plot_fits</span><span class="p">)</span>
+            <span class="n">query_examples</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">qNames</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">number_plot_fits</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">stderr_redirected</span><span class="p">():</span> <span class="c1"># Hide the many progress bars</span>
+                <span class="n">raw</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                                <span class="n">query_db_name</span><span class="o">=</span><span class="n">query_db</span><span class="p">,</span>
+                                                <span class="n">rList</span><span class="o">=</span><span class="n">ref_examples</span><span class="p">,</span>
+                                                <span class="n">qList</span><span class="o">=</span><span class="n">query_examples</span><span class="p">,</span>
+                                                <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                                <span class="n">random_correct</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                                <span class="n">jaccard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="n">corrected</span> <span class="o">=</span> <span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">queryDatabase</span><span class="p">(</span><span class="n">ref_db_name</span><span class="o">=</span><span class="n">ref_db</span><span class="p">,</span>
+                                                    <span class="n">query_db_name</span><span class="o">=</span><span class="n">query_db</span><span class="p">,</span>
+                                                    <span class="n">rList</span><span class="o">=</span><span class="n">ref_examples</span><span class="p">,</span>
+                                                    <span class="n">qList</span><span class="o">=</span><span class="n">query_examples</span><span class="p">,</span>
+                                                    <span class="n">klist</span><span class="o">=</span><span class="n">klist</span><span class="p">,</span>
+                                                    <span class="n">random_correct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                    <span class="n">jaccard</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                                    <span class="n">num_threads</span><span class="o">=</span><span class="n">threads</span><span class="p">,</span>
+                                                    <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">plot_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_plot_fits</span><span class="p">):</span>
+                <span class="n">raw_fit</span> <span class="o">=</span> <span class="n">fitKmerCurve</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="n">plot_idx</span><span class="p">],</span> <span class="n">klist</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">)</span>
+                <span class="n">corrected_fit</span> <span class="o">=</span> <span class="n">fitKmerCurve</span><span class="p">(</span><span class="n">corrected</span><span class="p">[</span><span class="n">plot_idx</span><span class="p">],</span> <span class="n">klist</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">)</span>
+                <span class="n">plot_fit</span><span class="p">(</span><span class="n">klist</span><span class="p">,</span>
+                          <span class="n">raw</span><span class="p">[</span><span class="n">plot_idx</span><span class="p">],</span>
+                          <span class="n">raw_fit</span><span class="p">,</span>
+                          <span class="n">corrected</span><span class="p">[</span><span class="n">plot_idx</span><span class="p">],</span>
+                          <span class="n">corrected_fit</span><span class="p">,</span>
+                          <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">queryPrefix</span><span class="p">),</span>
+                                       <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">queryPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_fit_example_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">plot_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
+                          <span class="s2">&quot;Example fit &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">plot_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; - &quot;</span> <span class="o">+</span>  <span class="n">ref_examples</span><span class="p">[</span><span class="n">plot_idx</span><span class="p">]</span> <span class="o">+</span> \
+                          <span class="s2">&quot; vs. &quot;</span> <span class="o">+</span> <span class="n">query_examples</span><span class="p">[</span><span class="n">plot_idx</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">distMat</span></div>
+
+
+<div class="viewcode-block" id="fitKmerCurve"><a class="viewcode-back" href="../../api.html#PopPUNK.sketchlib.fitKmerCurve">[docs]</a><span class="k">def</span> <span class="nf">fitKmerCurve</span><span class="p">(</span><span class="n">pairwise</span><span class="p">,</span> <span class="n">klist</span><span class="p">,</span> <span class="n">jacobian</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fit the function :math:`pr = (1-a)(1-c)^k`</span>
+
+<span class="sd">    Supply ``jacobian = -np.hstack((np.ones((klist.shape[0], 1)), klist.reshape(-1, 1)))``</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pairwise (numpy.array)</span>
+<span class="sd">            Proportion of shared k-mers at k-mer values in klist</span>
+<span class="sd">        klist (list)</span>
+<span class="sd">            k-mer sizes used</span>
+<span class="sd">        jacobian (numpy.array)</span>
+<span class="sd">            Should be set as above (set once to try and save memory)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        transformed_params (numpy.array)</span>
+<span class="sd">            Column with core and accessory distance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># curve fit pr = (1-a)(1-c)^k</span>
+    <span class="c1"># log pr = log(1-a) + k*log(1-c)</span>
+    <span class="c1"># a = p[0]; c = p[1] (will flip on return)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">distFit</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">least_squares</span><span class="p">(</span><span class="n">fun</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">y</span> <span class="o">-</span> <span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">),</span>
+                                     <span class="n">x0</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01</span><span class="p">],</span>
+                                     <span class="n">jac</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">jacobian</span><span class="p">,</span>
+                                     <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">klist</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pairwise</span><span class="p">)),</span>
+                                     <span class="n">bounds</span><span class="o">=</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+        <span class="n">transformed_params</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">distFit</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Fitting k-mer curve failed: &quot;</span> <span class="o">+</span> <span class="nb">format</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">+</span>
+                         <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">With k-mer match values &quot;</span> <span class="o">+</span>
+                         <span class="n">np</span><span class="o">.</span><span class="n">array2string</span><span class="p">(</span><span class="n">pairwise</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span><span class="n">suppress_small</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span>
+                         <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Check for low quality input genomes</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">transformed_params</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Return core, accessory</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">transformed_params</span><span class="p">))</span></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

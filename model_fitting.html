@@ -1,0 +1,1113 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Distributing PopPUNK models" href="model_distribution.html" /><link rel="prev" title="Data quality control (--qc-db)" href="qc.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Fitting new models (--fit-model) - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="fitting-new-models-fit-model">
+<h1>Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)<a class="headerlink" href="#fitting-new-models-fit-model" title="Permalink to this heading">#</a></h1>
+<p>If you cannot find an existing model for your species in the
+<a class="reference external" href="https://www.bacpop.org/poppunk/">list</a> you will want to fit your own.
+This process is flexible, and there are five different models you can use depending
+on the population structure of your dataset.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>After fitting a model to a new species we would like to share it on our website,
+so others can use it for assigning queries. If you are open to this, please read
+<a class="reference internal" href="model_distribution.html"><span class="doc">Distributing PopPUNK models</span></a> after this page.</p>
+</div>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">#</a></h2>
+<p>First, use <code class="docutils literal notranslate"><span class="pre">poppunk</span> <span class="pre">--create-db</span></code> to sketch your input data and calculate distances
+between all samples. This is detailed in <a class="reference internal" href="sketching.html"><span class="doc">Sketching (--create-db)</span></a>.</p>
+<p>Then, use <code class="docutils literal notranslate"><span class="pre">poppunk</span> <span class="pre">--fit-model</span> <span class="pre">&lt;model_name&gt;</span></code> with one of the following model names:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bgmm</span></code> – Bayesian Gaussian Mixture Model. Best for small sample collections
+with strain-structure. Works best when distance distribution components are clearly
+separated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dbscan</span></code> – HDBSCAN. A good general method for larger sample collections with
+strain-structure. Some points will always be designated as noise, so a subsequent run
+of model refinement may help improve the fit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">refine</span></code> – Model refinement. Requires a model already fitted with <code class="docutils literal notranslate"><span class="pre">bgmm</span></code> or <code class="docutils literal notranslate"><span class="pre">dbscan</span></code>
+and attempts to improve it by maximising the network score. Particularly useful when
+components overlap significantly (often due to recombination), or when the strain boundary
+is thought to lie somewhere within a component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threshold</span></code> – Apply a given core or accessory distance threshold to define VLKCs. Useful if
+a cutoff threshold is already known/calculated, is estimated from a plot, or to compare a threshold
+between datasets or species.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lineage</span></code> – Lineage clustering. To find lineages within a strain (subclustering), or
+find clusters in a population without strain structure. Uses a simple nearest neighbour approach
+so is more of a heuristic. Network scores are not meaningful in this mode.</p></li>
+</ul>
+<p>The most useful guide to deciding which model to use is the <code class="docutils literal notranslate"><span class="pre">_distanceDistribution.png</span></code> file
+showing the core and accessory distances. More details on each of these models is given
+further down this page.</p>
+<p>A completed fit will consist of:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_clusters.csv</span></code> file, which gives the VLKC (strain) for each sample in the database.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_unword_clusters.csv</span></code> file, which gives an English-pronounceable name instead of a number
+to each VLKC.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">_fit.npz</span></code> and <code class="docutils literal notranslate"><span class="pre">_fit.pkl</span></code> files, which contain numeric data and metadata for the fit.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">_graph.gt</span></code> file, which is the network defining the fit in graph-tool format.</p></li>
+<li><p>Some plots of the fit, which depend on the specific model used.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">.refs</span></code> file, which lists the samples kept as ‘references’ for assigning
+future samples (see <a class="reference internal" href="model_distribution.html"><span class="doc">Distributing PopPUNK models</span></a> for more details).</p></li>
+</ul>
+<p>This page will use 128 <em>Listeria</em> <em>monocytogenes</em> genomes from <a class="reference external" href="https://doi.org/10.1016/j.cmi.2016.12.008">Kremer et al</a>,
+which can be downloaded from <a class="reference external" href="https://doi.org/10.6084/m9.figshare.7083389">figshare</a>. The distribution of
+core and accessory distances from the <code class="docutils literal notranslate"><span class="pre">--create-db</span></code> step is as follows:</p>
+<img alt="Core and accessory distances for the example data" class="align-center" src="_images/listeria_dists.png" />
+<p>We also show some examples with 616 <em>Streptococcus</em> <em>pneumoniae</em> genomes, which are more complex.
+These genomes were collected from Massachusetts,
+first reported <a class="reference external" href="https://www.nature.com/articles/ng.2625">here</a> and can be accessed
+<a class="reference external" href="https://www.nature.com/articles/sdata201558">here</a>.</p>
+</section>
+<section id="common-arguments">
+<h2>Common arguments<a class="headerlink" href="#common-arguments" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--ref-db</span></code>: the output prefix used with <code class="docutils literal notranslate"><span class="pre">--create-db</span></code> i.e. the directory where the .h5 file is located</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--output</span></code>: where to save the model. If not specified this defaults to <code class="docutils literal notranslate"><span class="pre">ref-db</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--overwrite</span></code>: overwrite any existing files in the output directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--external-clustering</span></code>: any additional labels to add to the cluster output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--graph-weights</span></code>: save the edges weights in the network as their Euclidean core-accessory
+distances, rather than as 0 or 1 (useful for visualising the network).</p></li>
+</ul>
+<p>External clusters may be other cluster names, such as serotype, sequence type, cgMLST etc.
+VLKCs are mapped as one-to-many, so that each strain is labelled with all of
+the clusters any of its members is assigned to in this file. This input file must
+be comma separated, one sample per line, with the sample name as the first column, and
+other clusters as subsequent columns. A header line with ‘sample’ and the names of other cluster
+types is required. Output is to <code class="docutils literal notranslate"><span class="pre">output/output_external_clusters.csv</span></code>.</p>
+</section>
+<section id="how-good-is-my-fit">
+<h2>How good is my fit?<a class="headerlink" href="#how-good-is-my-fit" title="Permalink to this heading">#</a></h2>
+<p>We have found the best way to assess this is to use <a class="reference internal" href="visualisation.html"><span class="doc">Creating visualisations</span></a> on your output
+and look at your assigned VLKCs against a tree, to determine whether they have
+the specificity required.</p>
+<p>You can also compare models with their network score, and
+whether the output plots look as expected. Typically the key thing is that
+<strong>your spatial component nearest the origin is accurate</strong>. More detail is given for each model below.</p>
+<section id="interpreting-the-network-summary">
+<h3>Interpreting the network summary<a class="headerlink" href="#interpreting-the-network-summary" title="Permalink to this heading">#</a></h3>
+<p>All fits will output a network summary which looks similar to this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>                              <span class="mi">59</span>
+    <span class="n">Density</span>                                 <span class="mf">0.0531</span>
+    <span class="n">Transitivity</span>                            <span class="mf">0.9966</span>
+    <span class="n">Mean</span> <span class="n">betweenness</span>                        <span class="mf">0.0331</span>
+    <span class="n">Weighted</span><span class="o">-</span><span class="n">mean</span> <span class="n">betweenness</span>               <span class="mf">0.0454</span>
+    <span class="n">Score</span>                                   <span class="mf">0.9438</span>
+    <span class="n">Score</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">betweenness</span><span class="p">)</span>                  <span class="mf">0.9126</span>
+    <span class="n">Score</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">weighted</span><span class="o">-</span><span class="n">betweenness</span><span class="p">)</span>         <span class="mf">0.9009</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Components are the number of VLKCs (strains) found using this model.</p></li>
+<li><p>Density is the proportion of distances assigned as ‘within-strain’. Generally
+smaller is better as this gives more specific clusters, but too close to zero
+may be an over-specific model.</p></li>
+<li><p>Transitivity measures whether every member of each strain is connected to every
+other member. Closer to 1 is better, but this can be achieved with very loose fits.</p></li>
+<li><p>Score synthesises the above as <span class="math notranslate nohighlight">\((1 - \mathrm{density}) * \mathrm{transitivity}\)</span>,
+which gives a single number between 0 (bad) and 1 (good) which in many cases is
+at a maximum when it accurately describes strains in the data.</p></li>
+<li><p>Two further scores for larger networks. See <a class="reference internal" href="#alt-scores"><span class="std std-ref">Alternative network scores</span></a> for more information
+on these.</p></li>
+</ul>
+</section>
+</section>
+<section id="bgmm">
+<span id="id1"></span><h2>bgmm<a class="headerlink" href="#bgmm" title="Permalink to this heading">#</a></h2>
+<p>This mode fits a <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.mixture.BayesianGaussianMixture.html">Bayesian Gaussian mixture model</a>
+to the core and accessory distances. With few points, methods such as DBSCAN may struggle to find
+clusters due to the sparsity, whereas a BGMM can often find a good fit. A further advantage
+is that the equation for the posterior is known, so all points will have an assignment and a non-linear
+boundary found exactly.</p>
+<p>However, when there are a very large number of points the likelihood has a tendency
+to totally override the prior in the estimated posterior, meaning many overlapping components
+may be fitted, which may give poor clusters, and is less robust to adding more data. It is possible
+for this mode to fail to converge, but it is more likely to produce a bad fit in difficult cases.</p>
+<p>The key parameter to specify is the maximum number of components <code class="docutils literal notranslate"><span class="pre">--K</span></code>. You should
+choose a number based on the number of components you can see on your distance plot. This
+may be automatically reduced if there is insufficent evidence for this many components. As a rule of thumb,
+if you have under 150 samples or under 1000 samples and clear components then this mode should give
+a good fit.</p>
+<p>A better network score is evidence of a better fit, but the output files should also be used to
+judge this. With the test dataset, four components are visible:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">K</span> <span class="mi">4</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">bgmm</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Fit</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Avg</span><span class="o">.</span> <span class="n">entropy</span> <span class="n">of</span> <span class="n">assignment</span>      <span class="mf">0.0042</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">components</span> <span class="n">used</span>       <span class="mi">4</span>
+
+<span class="n">Scaled</span> <span class="n">component</span> <span class="n">means</span><span class="p">:</span>
+    <span class="p">[</span><span class="mf">0.9415286</span>  <span class="mf">0.90320047</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.11542755</span> <span class="mf">0.24570244</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.20966101</span> <span class="mf">0.37694884</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.00527421</span> <span class="mf">0.07043826</span><span class="p">]</span>
+
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.9103</span>
+<span class="n">Removing</span> <span class="mi">97</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>In the output to the terminal:</p>
+<ul class="simple">
+<li><p>The average entropy of assignment is a measure of the certainty of assignment
+of each point. Lower is better. Higher values may indicate overlapping components,
+perhaps due to high amounts of recombination between strains.</p></li>
+<li><p>Number of components used is how many components from <code class="docutils literal notranslate"><span class="pre">K</span></code> were actually used
+in the spatial fit. This is usually equal to <code class="docutils literal notranslate"><span class="pre">K</span></code>, but may be reduced in small datasets.</p></li>
+<li><p>Scaled component means are the centres of the fitted components in the model, where
+the core and accessory distances have been rescaled between 0 and 1. These can be
+used with <a class="reference internal" href="#manual-start"><span class="std std-ref">Using fit refinement when mixture model totally fails</span></a>.</p></li>
+</ul>
+<p>The fit actually just uses the component closest to the origin – any distances
+assigned to this component are within-strain. This is the most important part of the
+fit in this mode.</p>
+<p>You can see that this gives a good network score, and fits the data well:</p>
+<img alt="BGMM fit with K = 4" class="align-center" src="_images/bgmm_k4_fit.png" />
+<p>The position of the boundary is also produced (in red), along with contours of
+the fitted mixture components:</p>
+<img alt="BGMM fit with K = 4" class="align-center" src="_images/bgmm_k4_boundary.png" />
+<p>If you make K too low, some components will be merged, resulting in a less-specific
+fit with fewer clusters, that do not fully delineate all of the strains (in this
+case just finding the two main lineages of <em>Listeria</em> in this data):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">K</span> <span class="mi">2</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">bgmm</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Fit</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Avg</span><span class="o">.</span> <span class="n">entropy</span> <span class="n">of</span> <span class="n">assignment</span>      <span class="mf">0.0007</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">components</span> <span class="n">used</span>       <span class="mi">2</span>
+
+<span class="n">Scaled</span> <span class="n">component</span> <span class="n">means</span><span class="p">:</span>
+    <span class="p">[</span><span class="mf">0.11627304</span> <span class="mf">0.2432584</span> <span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.9415286</span>  <span class="mf">0.90320047</span><span class="p">]</span>
+
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">2</span>
+    <span class="n">Density</span> <span class="mf">0.5405</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.4595</span>
+<span class="n">Removing</span> <span class="mi">126</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<img alt="BGMM fit with K = 2" class="align-center" src="_images/bgmm_k2_fit.png" />
+<p>Too many components in a small dataset are automatically reduced to an
+appropriate number, obtaining the same good fit as above:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">bgmm</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">K</span> <span class="mi">10</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+     <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">bgmm</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Fit</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Avg</span><span class="o">.</span> <span class="n">entropy</span> <span class="n">of</span> <span class="n">assignment</span>      <span class="mf">0.3195</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">components</span> <span class="n">used</span>       <span class="mi">4</span>
+
+<span class="n">Scaled</span> <span class="n">component</span> <span class="n">means</span><span class="p">:</span>
+    <span class="p">[</span><span class="mf">0.9415286</span>  <span class="mf">0.90320047</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">3.72458739e-07</span> <span class="mf">4.73196248e-07</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.00527421</span> <span class="mf">0.07043826</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.20966682</span> <span class="mf">0.37695524</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.11542849</span> <span class="mf">0.2457043</span> <span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.68940242e-11</span> <span class="mf">2.14632815e-11</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">7.66987488e-16</span> <span class="mf">9.74431443e-16</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">3.48211781e-20</span> <span class="mf">4.42391191e-20</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">1.58087904e-24</span> <span class="mf">2.00845290e-24</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">7.17717973e-29</span> <span class="mf">9.11836205e-29</span><span class="p">]</span>
+
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.9103</span>
+<span class="n">Removing</span> <span class="mi">97</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>In a dataset with more points, and less clear components, too many components can lead to
+a bad fit:</p>
+<img alt="BGMM fit with K = 10" class="align-center" src="_images/bgmm_fit_K10.png" />
+<p>This is clearly a poor fit. The real issue is that the component whose mean is nearest
+the origin is unclear, and doesn’t include all of the smallest distances.</p>
+</section>
+<section id="dbscan">
+<span id="id2"></span><h2>dbscan<a class="headerlink" href="#dbscan" title="Permalink to this heading">#</a></h2>
+<p>This mode uses <a class="reference external" href="https://hdbscan.readthedocs.io/en/latest/">HDBSCAN</a> to find clusters
+in the core and accessory distances. This is a versatile clustering algorithm capable of
+finding non-linear structure in the data, and can represent irregularly shaped components
+well. Possible drawbacks are that a fit cannot always be found (this can happen
+for small datasets with sparse points, or for datasets without much structure in the core
+and accessory), and that some points are classified as ‘noise’ so not all of their
+edges are included in the network (these are the small black points).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>HDBSCAN models are not backwards compatible from sklearn v1.0 onwards. We
+would recommend using at least this version. Even better would be to then run
+model refinement (<a class="reference internal" href="#refine-models"><span class="std std-ref">refine</span></a>) to get a simpler and faster model
+for onward query assignment.</p>
+</div>
+<p>dbscan usually needs little modification to run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">dbscan</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+     <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">dbscan</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Fit</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">clusters</span>      <span class="mi">5</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">datapoints</span>    <span class="mi">8128</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">assignments</span>   <span class="mi">7804</span>
+
+<span class="n">Scaled</span> <span class="n">component</span> <span class="n">means</span>
+    <span class="p">[</span><span class="mf">0.94155383</span> <span class="mf">0.90322459</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.00527493</span> <span class="mf">0.07044794</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.20945986</span> <span class="mf">0.37491995</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.12876077</span> <span class="mf">0.34294888</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.11413982</span> <span class="mf">0.24224743</span><span class="p">]</span>
+
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.9103</span>
+<span class="n">Removing</span> <span class="mi">97</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>In the output to the terminal:</p>
+<ul class="simple">
+<li><p>The number of clusters is the number of spatial components found in the data.</p></li>
+<li><p>Number of datapoints is the number of points used (all-vs-all distances), which
+may have been subsampled from the maximum.</p></li>
+<li><p>Number of assignments is the number of points assign to one of the spatial components,
+so excluding noise points.</p></li>
+<li><p>Scaled component means are the centres of the fitted components in the model, where
+the core and accessory distances have been rescaled between 0 and 1. These can be
+used with <a class="reference internal" href="#manual-start"><span class="std std-ref">Using fit refinement when mixture model totally fails</span></a>.</p></li>
+</ul>
+<p>The fit actually just uses the component closest to the origin – any distances
+assigned to this component are within-strain. This is the most important part of the
+fit in this mode. In this case the identification of this component is identical to the bgmm
+fit, so they produce the same strains. Note there is a small yellow cluster which is poorly
+defined, but as it does not impact the within-strain cluster the fit is unaffected:</p>
+<img alt="DBSCAN fit" class="align-center" src="_images/dbscan_fit.png" />
+<p>You can alter the fit with <code class="docutils literal notranslate"><span class="pre">--D</span></code>, which sets a maximum number of clusters, and
+<code class="docutils literal notranslate"><span class="pre">--min-cluster-prop</span></code> which sets the minimum number of points a cluster can have (as
+a proportion of ‘Number of datapoints). If the means of both of the core and accessory are not
+strictly increasing between the within-strain and next further component, the clustering
+fails. In this case the minimum number of samples per cluster is halved, and the fit is
+tried again. If this goes below ten, no fit can be found.</p>
+<p>Increasing <code class="docutils literal notranslate"><span class="pre">--min-cluster-prop</span></code> or decreasing <code class="docutils literal notranslate"><span class="pre">--D</span></code> gets rid of the errant cluster above:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">dbscan</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">cluster</span><span class="o">-</span><span class="n">prop</span> <span class="mf">0.01</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">dbscan</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Fit</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">clusters</span>      <span class="mi">4</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">datapoints</span>    <span class="mi">8128</span>
+    <span class="n">Number</span> <span class="n">of</span> <span class="n">assignments</span>   <span class="mi">7805</span>
+
+<span class="n">Scaled</span> <span class="n">component</span> <span class="n">means</span>
+    <span class="p">[</span><span class="mf">0.94155383</span> <span class="mf">0.90322459</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.00522549</span> <span class="mf">0.06876396</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.11515678</span> <span class="mf">0.24488282</span><span class="p">]</span>
+    <span class="p">[</span><span class="mf">0.21152104</span> <span class="mf">0.37635505</span><span class="p">]</span>
+
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0886</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.9953</span>
+    <span class="n">Score</span>   <span class="mf">0.9071</span>
+<span class="n">Removing</span> <span class="mi">95</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>But note that a few more noise points are generated, and fewer samples are removed
+when pruning cliques:</p>
+<img alt="DBSCAN fit increasing assignments per cluster" class="align-center" src="_images/dbscan_fit_min_prop.png" />
+<p>Setting either <code class="docutils literal notranslate"><span class="pre">--min-cluster-prop</span></code> or <code class="docutils literal notranslate"><span class="pre">--D</span></code> too low can cause the fit to fail:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">dbscan</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="nb">min</span><span class="o">-</span><span class="n">cluster</span><span class="o">-</span><span class="n">prop</span> <span class="mf">0.05</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">dbscan</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Failed</span> <span class="n">to</span> <span class="n">find</span> <span class="n">distinct</span> <span class="n">clusters</span> <span class="ow">in</span> <span class="n">this</span> <span class="n">dataset</span>
+</pre></div>
+</div>
+</section>
+<section id="refine">
+<span id="refine-models"></span><h2>refine<a class="headerlink" href="#refine" title="Permalink to this heading">#</a></h2>
+<p>Model refinement is slightly different: it takes a model already fitted by <a class="reference internal" href="#bgmm"><span class="std std-ref">bgmm</span></a>
+or <a class="reference internal" href="#dbscan"><span class="std std-ref">dbscan</span></a> and tries to improve it by optimising the network score. This starts
+with a parallelised global optimisation step, followed by a serial local optimisation
+step (which can be turned off with <code class="docutils literal notranslate"><span class="pre">--no-local</span></code>). Use of multiple <code class="docutils literal notranslate"><span class="pre">--cpus</span></code> is
+effective for these model fits.</p>
+<p>Briefly:</p>
+<ul class="simple">
+<li><p>A line between the within- and between-strain means is constructed</p></li>
+<li><p>The point on this line where samples go from being assigned as within-strain to between-strain is used as the starting point</p></li>
+<li><p>A line normal to the first line, passing through this point is constructed. The triangle formed by this line and the x- and y-axes is now the decision boundary. Points within this line are within-strain.</p></li>
+<li><p>The starting point is shifted by a distance along the first line, and a new decision boundary formed in the same way. The network is reconstructed.</p></li>
+<li><p>The shift of the starting point is optimised, as judged by the network score. First globally by a grid search, then locally near the global optimum.</p></li>
+</ul>
+<p>Applying this to the <em>Listeria</em> DBSCAN fit (noting that you may specify a separate
+directory to load the model from with <code class="docutils literal notranslate"><span class="pre">--model-dir</span></code>, if multiple model fits are available):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">model</span><span class="o">-</span><span class="nb">dir</span> <span class="n">dbscan</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">refine</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Loading</span> <span class="n">DBSCAN</span> <span class="n">model</span>
+<span class="n">Loaded</span> <span class="n">previous</span> <span class="n">model</span> <span class="n">of</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dbscan</span>
+<span class="n">Initial</span> <span class="n">model</span><span class="o">-</span><span class="n">based</span> <span class="n">network</span> <span class="n">construction</span> <span class="n">based</span> <span class="n">on</span> <span class="n">DBSCAN</span> <span class="n">fit</span>
+<span class="n">Initial</span> <span class="n">boundary</span> <span class="n">based</span> <span class="n">network</span> <span class="n">construction</span>
+<span class="n">Decision</span> <span class="n">boundary</span> <span class="n">starts</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.63</span><span class="p">,</span><span class="mf">0.62</span><span class="p">)</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">globally</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">locally</span>
+
+<span class="n">Optimization</span> <span class="n">terminated</span> <span class="n">successfully</span><span class="p">;</span>
+<span class="n">The</span> <span class="n">returned</span> <span class="n">value</span> <span class="n">satisfies</span> <span class="n">the</span> <span class="n">termination</span> <span class="n">criteria</span>
+<span class="p">(</span><span class="n">using</span> <span class="n">xtol</span> <span class="o">=</span>  <span class="mf">1e-05</span> <span class="p">)</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">29</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.9984</span>
+    <span class="n">Score</span>   <span class="mf">0.9088</span>
+<span class="n">Removing</span> <span class="mi">93</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>As this model was already well fitted, this doesn’t change much, and finds very similar
+VLKC assignments (though noise points are eliminated):</p>
+<img alt="A refine fit on Listeria" class="align-center" src="_images/listeria_refined.png" />
+<p>The default is to search along the entire range between the within- and between-strain clusters,
+but sometimes this can include undesired optima, particularly near the origin. To exclude these,
+use <code class="docutils literal notranslate"><span class="pre">--pos-shift</span></code> to alter the distance between the end of the search range and the origin
+and <code class="docutils literal notranslate"><span class="pre">--neg-shift</span></code> for the start of the search range.</p>
+<p>This mode is more useful in species with a relatively high recombination rate the distinction between
+the within- and between-strain distributions may be blurred in core and
+accessory space. This does not give the mixture model enough information to
+draw a good boundary as the likelihood is very flat in this region:</p>
+<img alt="A bad DPGMM fit" class="align-center" src="_images/pneumo_unrefined.png" />
+<p>Although the score of this fit looks ok (0.904), inspection of the network and
+microreact reveals that it is too liberal and VLKCs/strains have been merged. This
+is because some of the blur between the origin and the central distribution has
+been included, and connected clusters together erroneously.</p>
+<p>The likelihood of the model fit and the decision boundary looks like this:</p>
+<img alt="The likelihood and decision boundary of the above fit" class="align-center" src="_images/pneumo_likelihood.png" />
+<p>Using the core and accessory distributions alone does not give much information
+about exactly where to put the boundary, and the only way to fix this would be
+by specifying strong priors on the weights of the distributions. Fortunately
+the network properties give information in the region, and we can use
+<code class="docutils literal notranslate"><span class="pre">--refine-fit</span></code> to tweak the existing fit and pick a better boundary.</p>
+<p>Here is the refined fit, which has a score of 0.939, and 62 rather than 32
+components:</p>
+<img alt="The refined fit" class="align-center" src="_images/pneumo_refined.png" />
+<p>Which, looking at the <a class="reference external" href="https://microreact.org/project/SJxxLMcaf">microreact output</a>, is much better:</p>
+<img alt="The refined fit, in microreact" class="align-center" src="_images/refined_microreact.png" />
+<section id="alternative-network-scores">
+<span id="alt-scores"></span><h3>Alternative network scores<a class="headerlink" href="#alternative-network-scores" title="Permalink to this heading">#</a></h3>
+<p>Two additional network scores are now available using node betweenness. We have observed
+that in some refined fits to large datasets, some clusters are merged with a single high-stress
+edge at a relatively large distance. These scores aim to create a more conservative boundary that splits
+these clusters.</p>
+<p>For these scores:</p>
+<ul class="simple">
+<li><p>The network is split into <span class="math notranslate nohighlight">\(S\)</span> connected components (the strains) each of size <span class="math notranslate nohighlight">\(w_i\)</span></p></li>
+<li><p>For each component with at least four nodes, the betweenness of the nodes are calculated</p></li>
+<li><p>Each component is summarised by the maximum betweenness of any member node <span class="math notranslate nohighlight">\(b^{\mathrm{max}}_i\)</span></p></li>
+</ul>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathrm{score}_1 &amp;= \mathrm{score}_0 \cdot (1 - \frac{1}{S} \sum_{i = 1}^S  b^{\mathrm{max}}_i) \\
+\mathrm{score}_2 &amp;= \mathrm{score}_0 \cdot (1 - \frac{1}{S \cdot \Sigma w_i} \sum_{i = 1}^S  \left[ b^{\mathrm{max}}_i \cdot w_i \right])\end{split}\]</div>
+</div>
+<p>Score 1 is printed as score (w/ betweenness) and score 2 as score (w/ weighted-betweenness). Use <code class="docutils literal notranslate"><span class="pre">--score-idx</span></code>
+with 0 (default), 1 (betweenness) or 2 (weighted-betweenness) to choose which score to optimise in refine
+mode. The default is the original score 0. Note that scores 1 and 2 may take longer to compute due to
+the betweenness calculation, though this can take advantage of multiple <code class="docutils literal notranslate"><span class="pre">--threads</span></code>.</p>
+</section>
+<section id="unconstrained-two-dimensional-optimisation">
+<h3>Unconstrained (two-dimensional) optimisation<a class="headerlink" href="#unconstrained-two-dimensional-optimisation" title="Permalink to this heading">#</a></h3>
+<p>In the default mode described above, the boundary gradient is set from the identified
+means in the input model, and the position of the intercept is optimised (one-dimensional optimisation).</p>
+<p>In cases where the gradient of the boundary is not well set by the two means in the
+plot, you can optimise both the intercept and the gradient by adding the <code class="docutils literal notranslate"><span class="pre">--unconstrained</span></code> option
+(which is incompatible with <code class="docutils literal notranslate"><span class="pre">--indiv-refine</span></code>). This will perform a global search
+of 20 x 20 (400 total) x- and y-intercept positions, followed by a 1D local search
+to further optimise the intercept (unless <code class="docutils literal notranslate"><span class="pre">--no-local</span></code> is added).</p>
+<p>As this calculates the boundary at ten times as many positions, it is generally expected to
+take ten times longer. However, you can effectively parallelise this with up to 20 <code class="docutils literal notranslate"><span class="pre">--threads</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">model</span><span class="o">-</span><span class="nb">dir</span> <span class="n">dbscan</span> <span class="o">--</span><span class="n">unconstrained</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">4</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.2</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">Documents</span><span class="o">/</span><span class="n">Imperial</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">sketchlib</span><span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">lib</span><span class="o">.</span><span class="n">macosx</span><span class="o">-</span><span class="mf">10.9</span><span class="o">-</span><span class="n">x86_64</span><span class="o">-</span><span class="mf">3.8</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">4</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">refine</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Loading</span> <span class="n">BGMM</span> <span class="mi">2</span><span class="n">D</span> <span class="n">Gaussian</span> <span class="n">model</span>
+<span class="n">Loaded</span> <span class="n">previous</span> <span class="n">model</span> <span class="n">of</span> <span class="nb">type</span><span class="p">:</span> <span class="n">bgmm</span>
+<span class="n">Initial</span> <span class="n">model</span><span class="o">-</span><span class="n">based</span> <span class="n">network</span> <span class="n">construction</span> <span class="n">based</span> <span class="n">on</span> <span class="n">Gaussian</span> <span class="n">fit</span>
+<span class="n">Initial</span> <span class="n">boundary</span> <span class="n">based</span> <span class="n">network</span> <span class="n">construction</span>
+<span class="n">Decision</span> <span class="n">boundary</span> <span class="n">starts</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.52</span><span class="p">,</span><span class="mf">0.43</span><span class="p">)</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">globally</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">locally</span>
+
+<span class="n">Optimization</span> <span class="n">terminated</span> <span class="n">successfully</span><span class="p">;</span>
+<span class="n">The</span> <span class="n">returned</span> <span class="n">value</span> <span class="n">satisfies</span> <span class="n">the</span> <span class="n">termination</span> <span class="n">criteria</span>
+<span class="p">(</span><span class="n">using</span> <span class="n">xtol</span> <span class="o">=</span>  <span class="mf">1e-05</span> <span class="p">)</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>                              <span class="mi">59</span>
+    <span class="n">Density</span>                                 <span class="mf">0.0531</span>
+    <span class="n">Transitivity</span>                            <span class="mf">0.9966</span>
+    <span class="n">Mean</span> <span class="n">betweenness</span>                        <span class="mf">0.0331</span>
+    <span class="n">Weighted</span><span class="o">-</span><span class="n">mean</span> <span class="n">betweenness</span>               <span class="mf">0.0454</span>
+    <span class="n">Score</span>                                   <span class="mf">0.9438</span>
+    <span class="n">Score</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">betweenness</span><span class="p">)</span>                  <span class="mf">0.9126</span>
+    <span class="n">Score</span> <span class="p">(</span><span class="n">w</span><span class="o">/</span> <span class="n">weighted</span><span class="o">-</span><span class="n">betweenness</span><span class="p">)</span>         <span class="mf">0.9009</span>
+<span class="n">Removing</span> <span class="mi">545</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>Which gives a slightly higher network score, though overall similar clusters:</p>
+<img alt="Refining fit with --unconstrained" class="align-center" src="_images/unconstrained_refine.png" />
+<p>This is because the gradient from the 1D optimisation was well set. Unconstrained optimisation
+can be useful with clusters which aren’t parallel to the line that connects them. This is an
+example in <em>E.</em> <em>coli</em>:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><figure class="align-default" id="id3">
+<img alt="_images/ecoli_refine_constrained.png" src="_images/ecoli_refine_constrained.png" />
+<figcaption>
+<p><span class="caption-text">1D refine fit between DBSCAN cluster centroids</span><a class="headerlink" href="#id3" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+<td><figure class="align-default" id="id4">
+<img alt="_images/ecoli_refine_unconstrained.png" src="_images/ecoli_refine_unconstrained.png" />
+<figcaption>
+<p><span class="caption-text">Unconstrained 2D fit over a greater range</span><a class="headerlink" href="#id4" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The search range will always be defined by a trapezium in light red – bounded by
+the two axes, and two lines passing through the means which are normal to the line
+which connects the means.</p>
+</section>
+<section id="using-fit-refinement-when-mixture-model-totally-fails">
+<span id="manual-start"></span><h3>Using fit refinement when mixture model totally fails<a class="headerlink" href="#using-fit-refinement-when-mixture-model-totally-fails" title="Permalink to this heading">#</a></h3>
+<p>If the mixture model does not give any sort of reasonable fit to the points,
+you can manually provide a file with <code class="docutils literal notranslate"><span class="pre">--manual-start</span></code> to give the starting parameters to
+<code class="docutils literal notranslate"><span class="pre">--refine-fit</span></code> mode. The format of this file is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">start</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+<span class="n">end</span> <span class="mf">0.5</span><span class="p">,</span><span class="mf">0.6</span>
+<span class="n">scaled</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p>A key, followed by its value (space separated).</p>
+<p><code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code> define the points (x,y) to draw the line between.
+These define the two red points (and therefore the
+search range) in the output plot.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scaled</span></code> defines whether these are on the [0,1] scale. If these have been set
+using means from the terminal output this should be <code class="docutils literal notranslate"><span class="pre">True</span></code>. Otherwise, if you
+have set them based on the plot (unscaled space), set to <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+</section>
+<section id="using-core-accessory-only">
+<span id="indiv-refine"></span><h3>Using core/accessory only<a class="headerlink" href="#using-core-accessory-only" title="Permalink to this heading">#</a></h3>
+<p>In some cases, such as analysis within a lineage, it may be desirable to use
+only core or accessory distances to classify further queries. This can be
+achieved by adding the <code class="docutils literal notranslate"><span class="pre">--indiv-refine</span> <span class="pre">both</span></code> option, which will allow these boundaries to be
+placed independently, allowing the best fit in each case:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">refine</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">model</span><span class="o">-</span><span class="nb">dir</span> <span class="n">dbscan</span> <span class="o">--</span><span class="n">indiv</span><span class="o">-</span><span class="n">refine</span> <span class="n">both</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">refine</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Loading</span> <span class="n">DBSCAN</span> <span class="n">model</span>
+<span class="n">Loaded</span> <span class="n">previous</span> <span class="n">model</span> <span class="n">of</span> <span class="nb">type</span><span class="p">:</span> <span class="n">dbscan</span>
+<span class="n">Initial</span> <span class="n">model</span><span class="o">-</span><span class="n">based</span> <span class="n">network</span> <span class="n">construction</span> <span class="n">based</span> <span class="n">on</span> <span class="n">DBSCAN</span> <span class="n">fit</span>
+<span class="n">Initial</span> <span class="n">boundary</span> <span class="n">based</span> <span class="n">network</span> <span class="n">construction</span>
+<span class="n">Decision</span> <span class="n">boundary</span> <span class="n">starts</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.63</span><span class="p">,</span><span class="mf">0.62</span><span class="p">)</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">globally</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">locally</span>
+
+<span class="n">Optimization</span> <span class="n">terminated</span> <span class="n">successfully</span><span class="p">;</span>
+<span class="n">The</span> <span class="n">returned</span> <span class="n">value</span> <span class="n">satisfies</span> <span class="n">the</span> <span class="n">termination</span> <span class="n">criteria</span>
+<span class="p">(</span><span class="n">using</span> <span class="n">xtol</span> <span class="o">=</span>  <span class="mf">1e-05</span> <span class="p">)</span>
+<span class="n">Refining</span> <span class="n">core</span> <span class="ow">and</span> <span class="n">accessory</span> <span class="n">separately</span>
+<span class="n">Initial</span> <span class="n">boundary</span> <span class="n">based</span> <span class="n">network</span> <span class="n">construction</span>
+<span class="n">Decision</span> <span class="n">boundary</span> <span class="n">starts</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.63</span><span class="p">,</span><span class="mf">0.62</span><span class="p">)</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">globally</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">locally</span>
+
+<span class="n">Optimization</span> <span class="n">terminated</span> <span class="n">successfully</span><span class="p">;</span>
+<span class="n">The</span> <span class="n">returned</span> <span class="n">value</span> <span class="n">satisfies</span> <span class="n">the</span> <span class="n">termination</span> <span class="n">criteria</span>
+<span class="p">(</span><span class="n">using</span> <span class="n">xtol</span> <span class="o">=</span>  <span class="mf">1e-05</span> <span class="p">)</span>
+<span class="n">Initial</span> <span class="n">boundary</span> <span class="n">based</span> <span class="n">network</span> <span class="n">construction</span>
+<span class="n">Decision</span> <span class="n">boundary</span> <span class="n">starts</span> <span class="n">at</span> <span class="p">(</span><span class="mf">0.63</span><span class="p">,</span><span class="mf">0.62</span><span class="p">)</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">globally</span>
+<span class="n">Trying</span> <span class="n">to</span> <span class="n">optimise</span> <span class="n">score</span> <span class="n">locally</span>
+
+<span class="n">Optimization</span> <span class="n">terminated</span> <span class="n">successfully</span><span class="p">;</span>
+<span class="n">The</span> <span class="n">returned</span> <span class="n">value</span> <span class="n">satisfies</span> <span class="n">the</span> <span class="n">termination</span> <span class="n">criteria</span>
+<span class="p">(</span><span class="n">using</span> <span class="n">xtol</span> <span class="o">=</span>  <span class="mf">1e-05</span> <span class="p">)</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">29</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.9984</span>
+    <span class="n">Score</span>   <span class="mf">0.9088</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.9103</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0808</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.9862</span>
+    <span class="n">Score</span>   <span class="mf">0.9064</span>
+<span class="n">Removing</span> <span class="mi">93</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>There are three different networks, and the core and accessory boundaries will
+also be shown on the _refined_fit.png plot as dashed gray lines:</p>
+<img alt="Refining fit with core and accessory individuals independently" class="align-center" src="_images/indiv_refine.png" />
+<p>To use one of these for your saved model, rerun, but instead setting
+<code class="docutils literal notranslate"><span class="pre">--indiv-refine</span> <span class="pre">core</span></code> or <code class="docutils literal notranslate"><span class="pre">--indiv-refine</span> <span class="pre">accessory</span></code>.</p>
+</section>
+<section id="running-with-multiple-boundary-positions">
+<span id="multi-boundary"></span><h3>Running with multiple boundary positions<a class="headerlink" href="#running-with-multiple-boundary-positions" title="Permalink to this heading">#</a></h3>
+<p>To create clusters at equally spaced positions across the refinement range, add
+the <code class="docutils literal notranslate"><span class="pre">--multi-boundary</span> <span class="pre">&lt;n&gt;</span></code> argument, with the number of positions specified by
+<code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code>. This will create up to <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code> sets of clusters, with boundaries equally spaced
+between the origin and the refined boundary position.</p>
+<p>Trivial cluster sets, where every sample is in its own cluster, will be excluded, so
+the final number of clusters may be less than <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code>.</p>
+<p>For a use of these cluster sets, see the <a class="reference internal" href="poppunk_iterate.html"><span class="doc">Iterative PopPUNK</span></a> section.</p>
+</section>
+</section>
+<section id="threshold">
+<h2>threshold<a class="headerlink" href="#threshold" title="Permalink to this heading">#</a></h2>
+<p>In this mode no model is fitted. You provide the threshold at which within- and
+between-strain distances is drawn. This can be useful if <code class="docutils literal notranslate"><span class="pre">refine</span></code> cannot find a boundary
+due to a poorly performing network score, but one can clearly be seen from the plot.
+It may also be useful to compare with other fits from related species where a boundary
+has been identified using one of the fitting procedures.</p>
+<p>Currently only a core-distance boundary is supported (if you would like an accessory or
+combined mode available, please <a class="reference external" href="https://github.com/johnlees/PopPUNK/issues">raise an issue</a>).
+Provide the cutoff with <code class="docutils literal notranslate"><span class="pre">--threshold</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">threshold</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">threshold</span> <span class="mf">0.003</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">threshold</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.9103</span>
+<span class="n">Removing</span> <span class="mi">97</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<img alt="A threshold fit on Listeria" class="align-center" src="_images/listeria_threshold.png" />
+</section>
+<section id="lineage">
+<span id="lineage-fit"></span><h2>lineage<a class="headerlink" href="#lineage" title="Permalink to this heading">#</a></h2>
+<p>This mode defines clusters by joining nearest neighbours. As this will typically
+define subclusters within strains, we refer to these as ‘lineages’. This can be used
+to find subclusters in addition to one of the above models, or for species without
+strain-structure (e.g. some viruses, <em>Neisseria gonorrhoeae</em>, <em>Mycobacterium tuberculosis</em>).
+This is the highest resolution (most specific clusters) provided directly by PopPUNK. If it does
+not meet your needs, take a look at <a class="reference internal" href="subclustering.html"><span class="doc">Subclustering with PopPIPE</span></a> for other options.</p>
+<p>A model is not fitted, and a simple data-driven heuristic is used. For each sample, the
+nearest <span class="math notranslate nohighlight">\(k\)</span> neighbours will be indentified, and joined in the network. Connected components
+of the network define lineages, as in the other models. Only core distances are used (add <code class="docutils literal notranslate"><span class="pre">--use-accessory</span></code> to modify this),
+and in the case of ties all distances are included. Note that these are not necessarily
+expected to be transitive, so network scores are not as informative of the optimum.</p>
+<p>We refer to <span class="math notranslate nohighlight">\(k\)</span> as the ‘rank’ of the model. Typically you won’t know which rank
+to use beforehand, so you can provide multiple integer values to the <code class="docutils literal notranslate"><span class="pre">--rank</span></code> option, comma separated.
+Clusters from all ranks will be output, and all used with <a class="reference internal" href="query_assignment.html"><span class="doc">Query assignment (poppunk_assign)</span></a>. <span class="math notranslate nohighlight">\(k = 1\)</span> is the
+most specific rank, and higher values will form looser clusters. With the <em>Listeria</em> example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">lineage</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">ranks</span> <span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">5</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+    <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Fitting</span> <span class="n">lineage</span> <span class="n">model</span> <span class="n">to</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Network</span> <span class="k">for</span> <span class="n">rank</span> <span class="mi">1</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">26</span>
+    <span class="n">Density</span> <span class="mf">0.0271</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.1834</span>
+    <span class="n">Score</span>   <span class="mf">0.1785</span>
+<span class="n">Network</span> <span class="k">for</span> <span class="n">rank</span> <span class="mi">2</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">12</span>
+    <span class="n">Density</span> <span class="mf">0.0428</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.3528</span>
+    <span class="n">Score</span>   <span class="mf">0.3377</span>
+<span class="n">Network</span> <span class="k">for</span> <span class="n">rank</span> <span class="mi">3</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">6</span>
+    <span class="n">Density</span> <span class="mf">0.0589</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.4191</span>
+    <span class="n">Score</span>   <span class="mf">0.3944</span>
+<span class="n">Network</span> <span class="k">for</span> <span class="n">rank</span> <span class="mi">5</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">2</span>
+    <span class="n">Density</span> <span class="mf">0.0904</span>
+    <span class="n">Transitivity</span>    <span class="mf">0.5319</span>
+    <span class="n">Score</span>   <span class="mf">0.4838</span>
+<span class="n">Parsed</span> <span class="n">data</span><span class="p">,</span> <span class="n">now</span> <span class="n">writing</span> <span class="n">to</span> <span class="n">CSV</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>This has produced four fits, with ranks 1, 2, 3 and 5 (with fit information contained in
+the .pkl file, and a .npz file for each rank). The _clusters.csv will contain the clusters
+from the lowest rank. The _lineages.csv file contains all of the assignments, a column
+with all of the ranks hyphen-separated (which will give clusters indentical to the lowest rank):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">id</span><span class="p">,</span><span class="n">Rank_1_Lineage</span><span class="p">,</span><span class="n">Rank_2_Lineage</span><span class="p">,</span><span class="n">Rank_3_Lineage</span><span class="p">,</span><span class="n">Rank_5_Lineage</span><span class="p">,</span><span class="n">overall_Lineage</span>
+<span class="mi">12673_8</span><span class="c1">#24,18,2,2,1,18-2-2-1</span>
+<span class="mi">12673_8</span><span class="c1">#26,4,2,2,1,4-2-2-1</span>
+<span class="mi">12673_8</span><span class="c1">#27,26,1,1,1,26-1-1-1</span>
+<span class="mi">12673_8</span><span class="c1">#28,1,1,1,1,1-1-1-1</span>
+<span class="mi">12673_8</span><span class="c1">#29,4,2,2,1,4-2-2-1</span>
+<span class="mi">12673_8</span><span class="c1">#31,18,2,2,1,18-2-2-1</span>
+<span class="mi">12673_8</span><span class="c1">#32,9,8,1,1,9-8-1-1</span>
+<span class="mi">12673_8</span><span class="c1">#34,7,7,1,1,7-7-1-1</span>
+<span class="mi">12673_8</span><span class="c1">#36,1,1,1,1,1-1-1-1</span>
+</pre></div>
+</div>
+<p>The best way to assess the ranks is by visualising them (<a class="reference internal" href="visualisation.html"><span class="doc">Creating visualisations</span></a>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_visualise</span> <span class="o">--</span><span class="n">distances</span> <span class="n">listeria</span><span class="o">/</span><span class="n">listeria</span><span class="o">.</span><span class="n">dists</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">microreact</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">PopPUNK</span><span class="p">:</span> <span class="n">visualise</span>
+<span class="n">Loading</span> <span class="n">previously</span> <span class="n">lineage</span> <span class="n">cluster</span> <span class="n">model</span>
+<span class="n">Writing</span> <span class="n">microreact</span> <span class="n">output</span>
+<span class="n">Parsed</span> <span class="n">data</span><span class="p">,</span> <span class="n">now</span> <span class="n">writing</span> <span class="n">to</span> <span class="n">CSV</span>
+<span class="n">Building</span> <span class="n">phylogeny</span>
+<span class="n">Running</span> <span class="n">t</span><span class="o">-</span><span class="n">SNE</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>This can be loaded in microreact: <a class="reference external" href="https://microreact.org/project/dVNMftmK6VXRvDxBfrH2y">https://microreact.org/project/dVNMftmK6VXRvDxBfrH2y</a>.
+Rank 1 has the smallest clusters:</p>
+<img alt="Rank 1 lineage fit for Listeria" class="align-center" src="_images/listeria_lineage_rank_1.png" />
+<p>Rank 3 has larger clusters. Some of these clusters are polyphyletic on the core neighbour-joining
+tree:</p>
+<img alt="Rank 3 lineage fit for Listeria" class="align-center" src="_images/listeria_lineage_rank_3.png" />
+<p>At the model fit stage, you will also get histograms which show the distances included
+in the network, a useful comparison with the original distance distribution and between ranks:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><figure class="align-default" id="id5">
+<img alt="_images/listeria_lineage_rank_1_histogram.png" src="_images/listeria_lineage_rank_1_histogram.png" />
+<figcaption>
+<p><span class="caption-text">Rank 1</span><a class="headerlink" href="#id5" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+<td><figure class="align-default" id="id6">
+<img alt="_images/listeria_lineage_rank_3_histogram.png" src="_images/listeria_lineage_rank_3_histogram.png" />
+<figcaption>
+<p><span class="caption-text">Rank 3</span><a class="headerlink" href="#id6" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="use-an-existing-model-with-new-data">
+<h2>Use an existing model with new data<a class="headerlink" href="#use-an-existing-model-with-new-data" title="Permalink to this heading">#</a></h2>
+<p>There is also one further mode, <code class="docutils literal notranslate"><span class="pre">--use-model</span></code>, which may be useful in limited circumstances. This
+applies any of the above models to a new dataset without refitting it. This may be useful if a reference
+dataset has changed (been added to or removed from) and you do not wish to refit the model, for example
+because it is already in use. However, typically you would use <a class="reference internal" href="query_assignment.html"><span class="doc">Query assignment (poppunk_assign)</span></a> with <code class="docutils literal notranslate"><span class="pre">--update-db</span></code>
+to add to a model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">model</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">new_db</span> <span class="o">--</span><span class="n">model</span><span class="o">-</span><span class="nb">dir</span> <span class="n">old_db</span>
+<span class="n">PopPUNK</span> <span class="p">(</span><span class="n">POPulation</span> <span class="n">Partitioning</span> <span class="n">Using</span> <span class="n">Nucleotide</span> <span class="n">Kmers</span><span class="p">)</span>
+    <span class="p">(</span><span class="k">with</span> <span class="n">backend</span><span class="p">:</span> <span class="n">sketchlib</span> <span class="n">v1</span><span class="mf">.6.0</span>
+     <span class="n">sketchlib</span><span class="p">:</span> <span class="o">/</span><span class="n">Users</span><span class="o">/</span><span class="n">jlees</span><span class="o">/</span><span class="n">miniconda3</span><span class="o">/</span><span class="n">envs</span><span class="o">/</span><span class="n">pp</span><span class="o">-</span><span class="n">py38</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">python3</span><span class="mf">.8</span><span class="o">/</span><span class="n">site</span><span class="o">-</span><span class="n">packages</span><span class="o">/</span><span class="n">pp_sketchlib</span><span class="o">.</span><span class="n">cpython</span><span class="o">-</span><span class="mi">38</span><span class="o">-</span><span class="n">darwin</span><span class="o">.</span><span class="n">so</span><span class="p">)</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Mode</span><span class="p">:</span> <span class="n">Using</span> <span class="n">previous</span> <span class="n">model</span> <span class="k">with</span> <span class="n">a</span> <span class="n">reference</span> <span class="n">database</span>
+
+<span class="n">Loading</span> <span class="n">BGMM</span> <span class="mi">2</span><span class="n">D</span> <span class="n">Gaussian</span> <span class="n">model</span>
+<span class="n">Loaded</span> <span class="n">previous</span> <span class="n">model</span> <span class="n">of</span> <span class="nb">type</span><span class="p">:</span> <span class="n">bgmm</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+    <span class="n">Components</span>      <span class="mi">31</span>
+    <span class="n">Density</span> <span class="mf">0.0897</span>
+    <span class="n">Transitivity</span>    <span class="mf">1.0000</span>
+    <span class="n">Score</span>   <span class="mf">0.9103</span>
+<span class="n">Removing</span> <span class="mi">97</span> <span class="n">sequences</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="model_distribution.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Distributing PopPUNK models</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="qc.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#common-arguments">Common arguments</a></li>
+<li><a class="reference internal" href="#how-good-is-my-fit">How good is my fit?</a><ul>
+<li><a class="reference internal" href="#interpreting-the-network-summary">Interpreting the network summary</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#bgmm">bgmm</a></li>
+<li><a class="reference internal" href="#dbscan">dbscan</a></li>
+<li><a class="reference internal" href="#refine">refine</a><ul>
+<li><a class="reference internal" href="#alternative-network-scores">Alternative network scores</a></li>
+<li><a class="reference internal" href="#unconstrained-two-dimensional-optimisation">Unconstrained (two-dimensional) optimisation</a></li>
+<li><a class="reference internal" href="#using-fit-refinement-when-mixture-model-totally-fails">Using fit refinement when mixture model totally fails</a></li>
+<li><a class="reference internal" href="#using-core-accessory-only">Using core/accessory only</a></li>
+<li><a class="reference internal" href="#running-with-multiple-boundary-positions">Running with multiple boundary positions</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#threshold">threshold</a></li>
+<li><a class="reference internal" href="#lineage">lineage</a></li>
+<li><a class="reference internal" href="#use-an-existing-model-with-new-data">Use an existing model with new data</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

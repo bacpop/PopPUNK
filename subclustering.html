@@ -1,0 +1,401 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Using GPUs" href="gpu.html" /><link rel="prev" title="Minimum spanning trees" href="mst.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Subclustering with PopPIPE - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="subclustering-with-poppipe">
+<h1>Subclustering with PopPIPE<a class="headerlink" href="#subclustering-with-poppipe" title="Permalink to this heading">#</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">#</a></h2>
+<p>You can run <a class="reference external" href="https://github.com/johnlees/PopPIPE">PopPIPE</a> on your PopPUNK output,
+which will run subclustering and visualisation within your strains. The pipeline
+consists of the following steps:</p>
+<ul class="simple">
+<li><p>Split files into their strains.</p></li>
+<li><p>Calculate core and accessory distances within each strain.</p></li>
+<li><p>Use the core distances to make a neighbour-joining tree.</p></li>
+<li><p>(lineage_clust mode) Generate clusters from core distances with lineage clustering in PopPUNK.</p></li>
+<li><p>Use <a class="reference external" href="https://github.com/simonrharris/SKA">ska</a> to generate within-strain alignments.</p></li>
+<li><p>Use <a class="reference external" href="http://www.iqtree.org/">IQ-TREE</a> to generate an ML phylogeny for each strain using this alignment,
+and the NJ tree as a starting point.</p></li>
+<li><p>Use <a class="reference external" href="https://github.com/gtonkinhill/fastbaps">fastbaps</a> to generate subclusters which are partitions of the phylogeny.</p></li>
+<li><p>Create an overall visualisation with both core and accessory distances, as in PopPUNK.
+The final tree consists of refining the NJ tree by grafting the maximum likelihood trees for subclusters to their matching nodes.</p></li>
+</ul>
+<p>An example DAG for the steps (excluding <code class="docutils literal notranslate"><span class="pre">ska</span> <span class="pre">index</span></code>, for which there is one per sample):</p>
+<img alt="Example DAG for a PopPIPE run" class="align-center" src="_images/poppipe_dag.png" />
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
+<p>PopPIPE is a <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/">snakemake</a> pipeline, which depends
+upon snakemake and pandas:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="n">snakemake</span> <span class="n">pandas</span>
+</pre></div>
+</div>
+<p>Other dependencies will be automatically installed by conda the first time
+you run the pipeline. You can also install them yourself and omit the <cite>-use-conda</cite>
+directive to snakemake:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">poppipe</span> <span class="o">--</span><span class="n">file</span><span class="o">=</span><span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
+</pre></div>
+</div>
+<p>Then clone the repository:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">johnlees</span><span class="o">/</span><span class="n">PopPIPE</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading">#</a></h2>
+<ol class="arabic simple">
+<li><p>Modify <code class="docutils literal notranslate"><span class="pre">config.yml</span></code> as appropriate.</p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">snakemake</span> <span class="pre">--cores</span> <span class="pre">&lt;n_cores&gt;</span> <span class="pre">--use-conda</span></code>.</p></li>
+</ol>
+<p>On a cluster or the cloud, you can use snakemake’s built-in <code class="docutils literal notranslate"><span class="pre">--cluster</span></code> argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">snakemake</span> <span class="o">--</span><span class="n">cluster</span> <span class="n">qsub</span> <span class="o">-</span><span class="n">j</span> <span class="mi">16</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">conda</span>
+</pre></div>
+</div>
+<p>See the <a class="reference external" href="https://snakemake.readthedocs.io/en/stable/executing/cluster-cloud.html)">snakemake docs</a>
+for more information on your cluster/cloud provider.</p>
+<section id="alternative-runs">
+<h3>Alternative runs<a class="headerlink" href="#alternative-runs" title="Permalink to this heading">#</a></h3>
+<p>For quick and dirty clustering and phylogenies using core distances from
+<a class="reference external" href="https://github.com/johnlees/pp-sketchlib">pp-sketchlib</a> alone, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">snakemake</span> <span class="o">--</span><span class="n">cores</span> <span class="o">&lt;</span><span class="n">n_cores</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">conda</span> <span class="n">lineage_clust</span>
+</pre></div>
+</div>
+<p>To create a visualisation on <a class="reference external" href="https://microreact.org/">microreact</a>:</p>
+<blockquote>
+<div><p>snakemake –use-conda make_microreact</p>
+</div></blockquote>
+</section>
+</section>
+<section id="config-file">
+<h2>Config file<a class="headerlink" href="#config-file" title="Permalink to this heading">#</a></h2>
+<section id="poppipe-configuration">
+<h3>PopPIPE configuration<a class="headerlink" href="#poppipe-configuration" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script_location</span></code>: The <code class="docutils literal notranslate"><span class="pre">scripts/</span></code> directory, if not running from the root of this repository</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">poppunk_db</span></code>: The PopPUNK HDF5 database file, without the <code class="docutils literal notranslate"><span class="pre">.h5</span></code> suffix.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">poppunk_clusters</span></code>: The PopPUNK cluster CSV file, usually <code class="docutils literal notranslate"><span class="pre">poppunk_db/poppunk_db_clusters.csv</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">poppunk_rfile</span></code>: The <code class="docutils literal notranslate"><span class="pre">--rfile</span></code> used with PopPUNK, which lists sample names and files, one per line, tab separated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">min_cluster_size</span></code>: The minimum size of a cluster to run the analysis on (recommended at least 6).</p></li>
+</ul>
+</section>
+<section id="iq-tree-configuration">
+<h3>IQ-TREE configuration<a class="headerlink" href="#iq-tree-configuration" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code>: Set to <code class="docutils literal notranslate"><span class="pre">false</span></code> to turn off ML tree generation, and use the NJ tree throughout.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mode</span></code>: Set to <code class="docutils literal notranslate"><span class="pre">full</span></code> to run with the specified model, set to <code class="docutils literal notranslate"><span class="pre">fast</span></code> to run using <code class="docutils literal notranslate"><span class="pre">--fast</span></code> (like fasttree).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">model</span></code>: A string for the <code class="docutils literal notranslate"><span class="pre">-m</span></code> parameter describing the model. Adding <code class="docutils literal notranslate"><span class="pre">+ASC</span></code> is recommended.</p></li>
+</ul>
+</section>
+<section id="fastbaps-configuration">
+<h3>fastbaps configuration<a class="headerlink" href="#fastbaps-configuration" title="Permalink to this heading">#</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">levels</span></code>: Number of levels of recursive subclustering.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">script</span></code>: Location of the <code class="docutils literal notranslate"><span class="pre">run_fastbaps</span></code> script. Find by running <code class="docutils literal notranslate"><span class="pre">system.file(&quot;run_fastbaps&quot;,</span> <span class="pre">package</span> <span class="pre">=</span> <span class="pre">&quot;fastbaps&quot;)</span></code> in R.</p></li>
+</ul>
+</section>
+</section>
+<section id="updating-a-run">
+<h2>Updating a run<a class="headerlink" href="#updating-a-run" title="Permalink to this heading">#</a></h2>
+<p>Running <code class="docutils literal notranslate"><span class="pre">snakemake</span></code> from the same directory will keep outputs where possible,
+so new additions will automatically be included.</p>
+<p><strong>TODO</strong>: How to do this when adding new isolates with <code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code></p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="gpu.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Using GPUs</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="mst.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Minimum spanning trees</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Subclustering with PopPIPE</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#installation">Installation</a></li>
+<li><a class="reference internal" href="#usage">Usage</a><ul>
+<li><a class="reference internal" href="#alternative-runs">Alternative runs</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#config-file">Config file</a><ul>
+<li><a class="reference internal" href="#poppipe-configuration">PopPIPE configuration</a></li>
+<li><a class="reference internal" href="#iq-tree-configuration">IQ-TREE configuration</a></li>
+<li><a class="reference internal" href="#fastbaps-configuration">fastbaps configuration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#updating-a-run">Updating a run</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

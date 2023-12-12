@@ -1,0 +1,892 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="#" /><link rel="search" title="Search" href="search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 --><title>Index - PopPUNK 2.6.2 documentation</title>
+<link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          
+<section class="genindex-section">
+  <h1 id="index">Index</h1>
+  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#H"><strong>H</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#J"><strong>J</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#Q"><strong>Q</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#U"><strong>U</strong></a> | <a href="#V"><strong>V</strong></a> | <a href="#W"><strong>W</strong></a></div>
+</section>
+<section id="A" class="genindex-section">
+  <h2>A</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.add_self_loop">add_self_loop() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.addQueryToNetwork">addQueryToNetwork() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.addRandom">addRandom() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.web.api">api() (in module PopPUNK.web)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.RefineFit.apply_threshold">apply_threshold() (PopPUNK.models.RefineFit method)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.BGMMFit.assign">assign() (PopPUNK.models.BGMMFit method)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.models.DBSCANFit.assign">(PopPUNK.models.DBSCANFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.LineageFit.assign">(PopPUNK.models.LineageFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.RefineFit.assign">(PopPUNK.models.RefineFit method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.assign.assign_query">assign_query() (in module PopPUNK.assign)</a>
+</li>
+        <li><a href="api.html#PopPUNK.assign.assign_query_hdf5">assign_query_hdf5() (in module PopPUNK.assign)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.assign_samples">assign_samples() (in module PopPUNK.models)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="B" class="genindex-section">
+  <h2>B</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.BGMMFit">BGMMFit (class in PopPUNK.models)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="C" class="genindex-section">
+  <h2>C</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.web.calc_prevalence">calc_prevalence() (in module PopPUNK.web)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.check_and_set_gpu">check_and_set_gpu() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.refine.check_search_range">check_search_range() (in module PopPUNK.refine)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.checkNetworkVertexCount">checkNetworkVertexCount() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.checkSketchlibLibrary">checkSketchlibLibrary() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.checkSketchlibVersion">checkSketchlibVersion() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.cliquePrune">cliquePrune() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.ClusterFit">ClusterFit (class in PopPUNK.models)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.construct_dense_weighted_network">construct_dense_weighted_network() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.construct_network_from_assignments">construct_network_from_assignments() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.construct_network_from_df">construct_network_from_df() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.construct_network_from_edge_list">construct_network_from_edge_list() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.construct_network_from_sparse_matrix">construct_network_from_sparse_matrix() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.constructDatabase">constructDatabase() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.ClusterFit.copy">copy() (PopPUNK.models.ClusterFit method)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.createDatabaseDir">createDatabaseDir() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.createMicroreact">createMicroreact() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.cugraph_to_graph_tool">cugraph_to_graph_tool() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="D" class="genindex-section">
+  <h2>D</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.DBSCANFit">DBSCANFit (class in PopPUNK.models)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.decisionBoundary">decisionBoundary() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.distHistogram">distHistogram() (in module PopPUNK.plot)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.plot.drawMST">drawMST() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.NumpyShared.dtype">dtype (PopPUNK.models.NumpyShared attribute)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.refine.NumpyShared.dtype">(PopPUNK.refine.NumpyShared attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="E" class="genindex-section">
+  <h2>E</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.LineageFit.edge_weights">edge_weights() (PopPUNK.models.LineageFit method)</a>
+</li>
+        <li><a href="api.html#PopPUNK.dbscan.evaluate_dbscan_clusters">evaluate_dbscan_clusters() (in module PopPUNK.dbscan)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.refine.expand_cugraph_network">expand_cugraph_network() (in module PopPUNK.refine)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.LineageFit.extend">extend() (PopPUNK.models.LineageFit method)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.extractReferences">extractReferences() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="F" class="genindex-section">
+  <h2>F</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.fetchNetwork">fetchNetwork() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.dbscan.findBetweenLabel">findBetweenLabel() (in module PopPUNK.dbscan)</a>
+</li>
+        <li><a href="api.html#PopPUNK.bgmm.findWithinLabel">findWithinLabel() (in module PopPUNK.bgmm)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.BGMMFit.fit">fit() (PopPUNK.models.BGMMFit method)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.models.ClusterFit.fit">(PopPUNK.models.ClusterFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.DBSCANFit.fit">(PopPUNK.models.DBSCANFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.LineageFit.fit">(PopPUNK.models.LineageFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.RefineFit.fit">(PopPUNK.models.RefineFit method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.bgmm.fit2dMultiGaussian">fit2dMultiGaussian() (in module PopPUNK.bgmm)</a>
+</li>
+        <li><a href="api.html#PopPUNK.dbscan.fitDbScan">fitDbScan() (in module PopPUNK.dbscan)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.fitKmerCurve">fitKmerCurve() (in module PopPUNK.sketchlib)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="G" class="genindex-section">
+  <h2>G</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.mandrake.generate_embedding">generate_embedding() (in module PopPUNK.mandrake)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.generate_minimum_spanning_tree">generate_minimum_spanning_tree() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.get_cugraph_triangles">get_cugraph_triangles() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.get_grid">get_grid() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.get_match_search_depth">get_match_search_depth() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.get_vertex_list">get_vertex_list() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.getCliqueRefs">getCliqueRefs() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.getKmersFromReferenceDatabase">getKmersFromReferenceDatabase() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.getSeqsInDb">getSeqsInDb() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.getSketchSize">getSketchSize() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.web.graphml_to_json">graphml_to_json() (in module PopPUNK.web)</a>
+</li>
+        <li><a href="api.html#PopPUNK.refine.growNetwork">growNetwork() (in module PopPUNK.refine)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="H" class="genindex-section">
+  <h2>H</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.web.highlight_cluster">highlight_cluster() (in module PopPUNK.web)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="I" class="genindex-section">
+  <h2>I</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.isolateNameToLabel">isolateNameToLabel() (in module PopPUNK.utils)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.iterDistRows">iterDistRows() (in module PopPUNK.utils)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="J" class="genindex-section">
+  <h2>J</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.joinClusterDicts">joinClusterDicts() (in module PopPUNK.utils)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.sketchlib.joinDBs">joinDBs() (in module PopPUNK.sketchlib)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="L" class="genindex-section">
+  <h2>L</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.refine.likelihoodBoundary">likelihoodBoundary() (in module PopPUNK.refine)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.LineageFit">LineageFit (class in PopPUNK.models)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.listDistInts">listDistInts() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.BGMMFit.load">load() (PopPUNK.models.BGMMFit method)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.models.DBSCANFit.load">(PopPUNK.models.DBSCANFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.LineageFit.load">(PopPUNK.models.LineageFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.RefineFit.load">(PopPUNK.models.RefineFit method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.load_network_file">load_network_file() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.loadClusterFit">loadClusterFit() (in module PopPUNK.models)</a>
+</li>
+        <li><a href="api.html#PopPUNK.bgmm.log_likelihood">log_likelihood() (in module PopPUNK.bgmm)</a>
+</li>
+        <li><a href="api.html#PopPUNK.bgmm.log_multivariate_normal_density">log_multivariate_normal_density() (in module PopPUNK.bgmm)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="M" class="genindex-section">
+  <h2>M</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.assign.main">main() (in module PopPUNK.assign)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.visualise.main">(in module PopPUNK.visualise)</a>
+</li>
+        </ul></li>
+        <li>
+    module
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.assign">PopPUNK.assign</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.bgmm">PopPUNK.bgmm</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.dbscan">PopPUNK.dbscan</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.mandrake">PopPUNK.mandrake</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.models">PopPUNK.models</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.network">PopPUNK.network</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.plot">PopPUNK.plot</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.refine">PopPUNK.refine</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.sketchlib">PopPUNK.sketchlib</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.sparse_mst">PopPUNK.sparse_mst</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.utils">PopPUNK.utils</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.visualise">PopPUNK.visualise</a>
+</li>
+          <li><a href="api.html#module-PopPUNK.web">PopPUNK.web</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.refine.multi_refine">multi_refine() (in module PopPUNK.refine)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="N" class="genindex-section">
+  <h2>N</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.NumpyShared.name">name (PopPUNK.models.NumpyShared attribute)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.refine.NumpyShared.name">(PopPUNK.refine.NumpyShared attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api.html#PopPUNK.network.network_to_edges">network_to_edges() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.networkSummary">networkSummary() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.refine.newNetwork">newNetwork() (in module PopPUNK.refine)</a>
+</li>
+        <li><a href="api.html#PopPUNK.refine.newNetwork2D">newNetwork2D() (in module PopPUNK.refine)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.ClusterFit.no_scale">no_scale() (PopPUNK.models.ClusterFit method)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.NumpyShared">NumpyShared (class in PopPUNK.models)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.refine.NumpyShared">(class in PopPUNK.refine)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="O" class="genindex-section">
+  <h2>O</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.plot.outputsForCytoscape">outputsForCytoscape() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.outputsForGrapetree">outputsForGrapetree() (in module PopPUNK.plot)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.plot.outputsForMicroreact">outputsForMicroreact() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.outputsForPhandango">outputsForPhandango() (in module PopPUNK.plot)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="P" class="genindex-section">
+  <h2>P</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.BGMMFit.plot">plot() (PopPUNK.models.BGMMFit method)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.models.ClusterFit.plot">(PopPUNK.models.ClusterFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.DBSCANFit.plot">(PopPUNK.models.DBSCANFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.LineageFit.plot">(PopPUNK.models.LineageFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.RefineFit.plot">(PopPUNK.models.RefineFit method)</a>
+</li>
+        </ul></li>
+        <li><a href="api.html#PopPUNK.plot.plot_contours">plot_contours() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.plot_dbscan_results">plot_dbscan_results() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.plot_fit">plot_fit() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.plot_refined_results">plot_refined_results() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.plot_results">plot_results() (in module PopPUNK.plot)</a>
+</li>
+        <li><a href="api.html#PopPUNK.plot.plot_scatter">plot_scatter() (in module PopPUNK.plot)</a>
+</li>
+        <li>
+    PopPUNK.assign
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.assign">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.bgmm
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.bgmm">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.dbscan
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.dbscan">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.mandrake
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.mandrake">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.models
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.models">module</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li>
+    PopPUNK.network
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.network">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.plot
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.plot">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.refine
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.refine">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.sketchlib
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.sketchlib">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.sparse_mst
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.sparse_mst">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.utils
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.utils">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.visualise
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.visualise">module</a>
+</li>
+        </ul></li>
+        <li>
+    PopPUNK.web
+
+        <ul>
+          <li><a href="api.html#module-PopPUNK.web">module</a>
+</li>
+        </ul></li>
+        <li><a href="api.html#PopPUNK.network.print_network_summary">print_network_summary() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.printClusters">printClusters() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.printExternalClusters">printExternalClusters() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.process_previous_network">process_previous_network() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.process_weights">process_weights() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="Q" class="genindex-section">
+  <h2>Q</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.sketchlib.queryDatabase">queryDatabase() (in module PopPUNK.sketchlib)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="R" class="genindex-section">
+  <h2>R</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.read_rlist_from_distance_pickle">read_rlist_from_distance_pickle() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.readDBParams">readDBParams() (in module PopPUNK.sketchlib)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.readIsolateTypeFromCsv">readIsolateTypeFromCsv() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.refine.readManualStart">readManualStart() (in module PopPUNK.refine)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.readPickle">readPickle() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.readRfile">readRfile() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.models.RefineFit">RefineFit (class in PopPUNK.models)</a>
+</li>
+        <li><a href="api.html#PopPUNK.refine.refineFit">refineFit() (in module PopPUNK.refine)</a>
+</li>
+        <li><a href="api.html#PopPUNK.sketchlib.removeFromDB">removeFromDB() (in module PopPUNK.sketchlib)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="S" class="genindex-section">
+  <h2>S</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.BGMMFit.save">save() (PopPUNK.models.BGMMFit method)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.models.DBSCANFit.save">(PopPUNK.models.DBSCANFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.LineageFit.save">(PopPUNK.models.LineageFit method)</a>
+</li>
+          <li><a href="api.html#PopPUNK.models.RefineFit.save">(PopPUNK.models.RefineFit method)</a>
+</li>
+        </ul></li>
+        <li><a href="api.html#PopPUNK.network.save_network">save_network() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.set_env">set_env() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.setupDBFuncs">setupDBFuncs() (in module PopPUNK.utils)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.models.NumpyShared.shape">shape (PopPUNK.models.NumpyShared attribute)</a>
+
+        <ul>
+          <li><a href="api.html#PopPUNK.refine.NumpyShared.shape">(PopPUNK.refine.NumpyShared attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api.html#PopPUNK.web.sketch_to_hdf5">sketch_to_hdf5() (in module PopPUNK.web)</a>
+</li>
+        <li><a href="api.html#PopPUNK.network.sparse_mat_to_network">sparse_mat_to_network() (in module PopPUNK.network)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.stderr_redirected">stderr_redirected() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.utils.storePickle">storePickle() (in module PopPUNK.utils)</a>
+</li>
+        <li><a href="api.html#PopPUNK.web.summarise_clusters">summarise_clusters() (in module PopPUNK.web)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="T" class="genindex-section">
+  <h2>T</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.transformLine">transformLine() (in module PopPUNK.utils)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.translate_network_indices">translate_network_indices() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="U" class="genindex-section">
+  <h2>U</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.utils.update_distance_matrices">update_distance_matrices() (in module PopPUNK.utils)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="V" class="genindex-section">
+  <h2>V</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.vertex_betweenness">vertex_betweenness() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="W" class="genindex-section">
+  <h2>W</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.plot.writeClusterCsv">writeClusterCsv() (in module PopPUNK.plot)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api.html#PopPUNK.network.writeReferences">writeReferences() (in module PopPUNK.network)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

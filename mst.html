@@ -1,0 +1,492 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Subclustering with PopPIPE" href="subclustering.html" /><link rel="prev" title="Creating visualisations" href="visualisation.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Minimum spanning trees - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="minimum-spanning-trees">
+<h1>Minimum spanning trees<a class="headerlink" href="#minimum-spanning-trees" title="Permalink to this heading">#</a></h1>
+<p>Using the distances and a network, you can generate a minimum spanning tree. This
+can be useful when a neigbour joining tree is difficult to produce, for example
+if the dataset is very large, and in some cases has uses in tracing spread
+(take care with this interpretation, direction is not usually obvious).</p>
+<p>There are three different ways to make MSTs, depending on how much data you have.
+Roughly:</p>
+<ul class="simple">
+<li><p>‘Small’: Up to <span class="math notranslate nohighlight">\(\sim 10^3\)</span> samples.</p></li>
+<li><p>‘Medium’: Up to <span class="math notranslate nohighlight">\(\sim 10^5\)</span> samples.</p></li>
+<li><p>‘Large’: Over <span class="math notranslate nohighlight">\(10^5\)</span> samples.</p></li>
+</ul>
+<p>In each mode, you can get as output:</p>
+<ul class="simple">
+<li><p>A plot of the MST as a graph layout, optionally coloured by strain.</p></li>
+<li><p>A plot of the MST as a graph layout, highlighting edge betweenness and node degree.</p></li>
+<li><p>The graph as a graphml file, to view in <a class="reference internal" href="visualisation.html#cytoscape-view"><span class="std std-ref">Cytoscape</span></a>.</p></li>
+<li><p>The MST formatted as a newick file, to view in a tree viewer of your choice.</p></li>
+</ul>
+<section id="with-small-data">
+<h2>With small data<a class="headerlink" href="#with-small-data" title="Permalink to this heading">#</a></h2>
+<p>For a small dataset it’s feasible to find the MST from your (dense) distance matrix.
+In this case you can use <a class="reference internal" href="visualisation.html"><span class="doc">Creating visualisations</span></a> with the <code class="docutils literal notranslate"><span class="pre">--tree</span></code> option:
+use <code class="docutils literal notranslate"><span class="pre">--tree</span> <span class="pre">both</span></code> to make both a MST and NJ tree, or <code class="docutils literal notranslate"><span class="pre">--tree</span> <span class="pre">mst</span></code> to just make
+the MST:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_visualise</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">tree</span> <span class="n">both</span> <span class="o">--</span><span class="n">microreact</span> <span class="o">--</span><span class="n">output</span> <span class="n">dense_mst_viz</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">PopPUNK</span><span class="p">:</span> <span class="n">visualise</span>
+<span class="n">Loading</span> <span class="n">BGMM</span> <span class="mi">2</span><span class="n">D</span> <span class="n">Gaussian</span> <span class="n">model</span>
+<span class="n">Completed</span> <span class="n">model</span> <span class="n">loading</span>
+<span class="n">Generating</span> <span class="n">MST</span> <span class="kn">from</span> <span class="nn">dense</span> <span class="n">distances</span> <span class="p">(</span><span class="n">may</span> <span class="n">be</span> <span class="n">slow</span><span class="p">)</span>
+<span class="n">Starting</span> <span class="n">calculation</span> <span class="n">of</span> <span class="n">minimum</span><span class="o">-</span><span class="n">spanning</span> <span class="n">tree</span>
+<span class="n">Completed</span> <span class="n">calculation</span> <span class="n">of</span> <span class="n">minimum</span><span class="o">-</span><span class="n">spanning</span> <span class="n">tree</span>
+<span class="n">Drawing</span> <span class="n">MST</span>
+<span class="n">Building</span> <span class="n">phylogeny</span>
+<span class="n">Writing</span> <span class="n">microreact</span> <span class="n">output</span>
+<span class="n">Parsed</span> <span class="n">data</span><span class="p">,</span> <span class="n">now</span> <span class="n">writing</span> <span class="n">to</span> <span class="n">CSV</span>
+<span class="n">Running</span> <span class="n">t</span><span class="o">-</span><span class="n">SNE</span>
+
+<span class="n">Done</span>
+</pre></div>
+</div>
+<p>Note the warning about using dense distances. If you are waiting a long time at this
+point, or running into memory issues, considering using one of the approaches below.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The default in this modeis to use core distances, but you can use accessory or Euclidean
+core-accessory distances by modifying <code class="docutils literal notranslate"><span class="pre">--mst-distances</span></code>.</p>
+</div>
+<p>This will produce a file <code class="docutils literal notranslate"><span class="pre">listeria_MST.nwk</span></code> which can be loaded into Microreact,
+Grapetree or Phandango (or other tree viewing programs). If you run with <code class="docutils literal notranslate"><span class="pre">--cytoscape</span></code>,
+the .graphml file of the MST will be saved instead.</p>
+<p>You will also get two visualisations of a force-directed graph layout:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><figure class="align-default" id="id1">
+<img alt="_images/mst_small_clusters.png" src="_images/mst_small_clusters.png" />
+<figcaption>
+<p><span class="caption-text">MST coloured by strain</span><a class="headerlink" href="#id1" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+<td><figure class="align-default" id="id2">
+<img alt="_images/mst_small_stress.png" src="_images/mst_small_stress.png" />
+<figcaption>
+<p><span class="caption-text">MST coloured by betweenness</span><a class="headerlink" href="#id2" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The left plot colours nodes (samples) by their strain, with the colour selected
+at random. The right plot colours and sizes nodes by degree, and edges colour and
+width is set by their betweenness.</p>
+</section>
+<section id="with-medium-data">
+<h2>With medium data<a class="headerlink" href="#with-medium-data" title="Permalink to this heading">#</a></h2>
+<p>As the number of edges in a dense network will grow as <span class="math notranslate nohighlight">\(O(N^2)\)</span>, you will likely
+find that as sample numbers grow creating these visualisations becomes prohibitive in
+terms of both memory and CPU time required. To get around this, you can first sparisfy your
+distance matrix before computing the MST. The <a class="reference internal" href="model_fitting.html#lineage-fit"><span class="std std-ref">lineage</span></a> mode does exactly this: keeping
+only a specified number of nearest neighbours for each sample.</p>
+<p>Therefore, there are two steps to this process:</p>
+<ul class="simple">
+<li><p>Fit a lineage model to your data, using a high rank.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">poppunk_mst</span></code> to make the MST from the sparse matrix saved by this mode.</p></li>
+</ul>
+<p>As an example, two commands might be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">lineage</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria_all</span> <span class="o">--</span><span class="n">ranks</span> <span class="mi">50</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">4</span> <span class="o">--</span><span class="n">output</span> <span class="n">sparse_mst</span>
+
+<span class="n">poppunk_visualise</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">tree</span> <span class="n">both</span> <span class="o">--</span><span class="n">microreact</span>  \
+<span class="o">--</span><span class="n">rank</span><span class="o">-</span><span class="n">fit</span> <span class="n">sparse_mst</span><span class="o">/</span><span class="n">sparse_mst_rank50_fit</span><span class="o">.</span><span class="n">npz</span> <span class="o">--</span><span class="n">output</span> <span class="n">sparse_mst_viz</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">4</span>
+</pre></div>
+</div>
+<p>Ideally you should pick a rank which is large enough to join all of the components together.
+If you don’t, components will be artificially connected by nodes with the largest degree, at the
+largest included distance. Look for components to be one:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Network</span> <span class="k">for</span> <span class="n">rank</span> <span class="mi">100</span>
+<span class="n">Network</span> <span class="n">summary</span><span class="p">:</span>
+        <span class="n">Components</span>      <span class="mi">1</span>
+        <span class="n">Density</span> <span class="mf">0.3252</span>
+        <span class="n">Transitivity</span>    <span class="mf">0.5740</span>
+        <span class="n">Score</span>   <span class="mf">0.3873</span>
+</pre></div>
+</div>
+<p>This will produce a <code class="docutils literal notranslate"><span class="pre">&lt;name&gt;_rank100_fit.npz</span></code> file, which is the sparse matrix to load. You will
+also need your dense distances, but only the <code class="docutils literal notranslate"><span class="pre">.pkl</span></code> file is loaded to label the samples.
+<code class="docutils literal notranslate"><span class="pre">--previous-clustering</span></code> is optional, and points to any .csv output from PopPUNK.
+Note that the clusters produced from your high rank fit are likely to be meaningless, so use clusters
+from a fit you are happy with. These are combined to give samples coloured by strain in the first plot:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><figure class="align-default" id="id3">
+<img alt="_images/mst_medium_clusters.png" src="_images/mst_medium_clusters.png" />
+<figcaption>
+<p><span class="caption-text">MST from a sparse matrix, coloured by strain</span><a class="headerlink" href="#id3" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+<td><figure class="align-default" id="id4">
+<img alt="_images/mst_medium_stress.png" src="_images/mst_medium_stress.png" />
+<figcaption>
+<p><span class="caption-text">MST from a sparse matrix, coloured by betweenness</span><a class="headerlink" href="#id4" title="Permalink to this image">#</a></p>
+</figcaption>
+</figure>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="with-big-data">
+<h2>With big data<a class="headerlink" href="#with-big-data" title="Permalink to this heading">#</a></h2>
+<p>For very large datasets, producing a dense distance matrix at all may become totally
+infeasible. Fortunately, it is possible to add to the sparse matrix iteratively by making
+a lineage fit to a subset of your data, and then repeatedly adding in blocks with <code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>
+and <code class="docutils literal notranslate"><span class="pre">--update-db</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">qfile1</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">listeria_1</span>
+<span class="n">poppunk</span> <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">model</span> <span class="n">lineage</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria_1</span> <span class="o">--</span><span class="n">ranks</span> <span class="mi">500</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span>
+<span class="n">poppunk_assign</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria_1</span> <span class="o">--</span><span class="n">q</span><span class="o">-</span><span class="n">files</span> <span class="n">qfile2</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">listeria_1</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span> <span class="o">--</span><span class="n">update</span><span class="o">-</span><span class="n">db</span>
+<span class="n">poppunk_assign</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria_1</span> <span class="o">--</span><span class="n">q</span><span class="o">-</span><span class="n">files</span> <span class="n">qfile3</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">output</span> <span class="n">listeria_1</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">16</span> <span class="o">--</span><span class="n">update</span><span class="o">-</span><span class="n">db</span>
+</pre></div>
+</div>
+<p>This will calculate all vs. all distances, but many of them will be discarded at each stage,
+controlling the total memory required. The manner in which the sparse matrix grows is predictable:
+<span class="math notranslate nohighlight">\(Nk + 2NQ + Q^2 - Q\)</span> distances are saved at each step, where <span class="math notranslate nohighlight">\(N\)</span>
+is the number of references, <span class="math notranslate nohighlight">\(Q\)</span> is the number of requires queries and <span class="math notranslate nohighlight">\(k\)</span> is the rank.</p>
+<p>If you split the samples into roughly equally sized blocks of <span class="math notranslate nohighlight">\(Q\)</span> samples,
+the <span class="math notranslate nohighlight">\(Q^2\)</span> terms dominate. So you can pick <span class="math notranslate nohighlight">\(Q\)</span> such that <span class="math notranslate nohighlight">\(\sim3Q^2\)</span>
+distances can be stored (each distance uses four bytes). The final distance matrix
+will contain <span class="math notranslate nohighlight">\(Nk\)</span> distances, so you can choose a rank such that this will fit in
+memory.</p>
+<p>You may then follow the process described above to use <code class="docutils literal notranslate"><span class="pre">poppunk_visualise</span></code> to generate an MST
+from your <code class="docutils literal notranslate"><span class="pre">.npz</span></code> file after updating the database multiple times.</p>
+<section id="using-gpu-acceleration-for-the-graph">
+<h3>Using GPU acceleration for the graph<a class="headerlink" href="#using-gpu-acceleration-for-the-graph" title="Permalink to this heading">#</a></h3>
+<p>As an extra optimisation, you may add <code class="docutils literal notranslate"><span class="pre">--gpu-graph</span></code> to use <a class="reference external" href="https://docs.rapids.ai/api">cuGraph</a>
+from the RAPIDS library to calculate the MST on a GPU:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_visualise</span> <span class="o">--</span><span class="n">ref</span><span class="o">-</span><span class="n">db</span> <span class="n">listeria</span> <span class="o">--</span><span class="n">tree</span> <span class="n">both</span> <span class="o">--</span><span class="n">rank</span><span class="o">-</span><span class="n">fit</span> <span class="n">sparse_mst</span><span class="o">/</span><span class="n">sparse_mst_rank50_fit</span><span class="o">.</span><span class="n">npz</span>\
+<span class="o">--</span><span class="n">microreact</span> <span class="o">--</span><span class="n">output</span> <span class="n">sparse_mst_viz</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">4</span> <span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">graph</span>
+
+<span class="n">Graph</span><span class="o">-</span><span class="n">tools</span> <span class="n">OpenMP</span> <span class="n">parallelisation</span> <span class="n">enabled</span><span class="p">:</span> <span class="k">with</span> <span class="mi">1</span> <span class="n">threads</span>
+<span class="n">Loading</span> <span class="n">distances</span> <span class="n">into</span> <span class="n">graph</span>
+<span class="n">Calculating</span> <span class="n">MST</span> <span class="p">(</span><span class="n">GPU</span> <span class="n">part</span><span class="p">)</span>
+<span class="n">Label</span> <span class="n">prop</span> <span class="n">iterations</span><span class="p">:</span> <span class="mi">6</span>
+<span class="n">Label</span> <span class="n">prop</span> <span class="n">iterations</span><span class="p">:</span> <span class="mi">5</span>
+<span class="n">Label</span> <span class="n">prop</span> <span class="n">iterations</span><span class="p">:</span> <span class="mi">5</span>
+<span class="n">Label</span> <span class="n">prop</span> <span class="n">iterations</span><span class="p">:</span> <span class="mi">4</span>
+<span class="n">Label</span> <span class="n">prop</span> <span class="n">iterations</span><span class="p">:</span> <span class="mi">2</span>
+<span class="n">Iterations</span><span class="p">:</span> <span class="mi">5</span>
+<span class="mi">12453</span><span class="p">,</span><span class="mi">65</span><span class="p">,</span><span class="mi">126</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">283</span><span class="p">,</span><span class="mi">660</span>
+<span class="n">Calculating</span> <span class="n">MST</span> <span class="p">(</span><span class="n">CPU</span> <span class="n">part</span><span class="p">)</span>
+<span class="n">Completed</span> <span class="n">calculation</span> <span class="n">of</span> <span class="n">minimum</span><span class="o">-</span><span class="n">spanning</span> <span class="n">tree</span>
+<span class="n">Generating</span> <span class="n">output</span>
+<span class="n">Drawing</span> <span class="n">MST</span>
+</pre></div>
+</div>
+<p>This uses <a class="reference external" href="https://docs.rapids.ai/api/cudf/stable/">cuDF</a> to load the sparse matrix
+(network edges) into the device, and cuGraph to do the MST calculation. At the end, this
+is converted back into graph-tool format for drawing and output. Note that this process
+incurs some overhead, so will likely only be faster for very large graphs where calculating
+the MST on a CPU is slow.</p>
+<p>To turn off the graph layout and drawing for massive networks, you can use <code class="docutils literal notranslate"><span class="pre">--no-plot</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The RAPIDS packages are not included in the default PopPUNK installation, as they
+are in non-standard conda channels. To install these packages, see the <a class="reference external" href="https://rapids.ai/start.html#get-rapids">guide</a>.</p>
+</div>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="subclustering.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Subclustering with PopPIPE</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="visualisation.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Creating visualisations</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Minimum spanning trees</a><ul>
+<li><a class="reference internal" href="#with-small-data">With small data</a></li>
+<li><a class="reference internal" href="#with-medium-data">With medium data</a></li>
+<li><a class="reference internal" href="#with-big-data">With big data</a><ul>
+<li><a class="reference internal" href="#using-gpu-acceleration-for-the-graph">Using GPU acceleration for the graph</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

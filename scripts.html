@@ -1,0 +1,420 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Iterative PopPUNK" href="poppunk_iterate.html" /><link rel="prev" title="Troubleshooting" href="troubleshooting.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Scripts - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="scripts">
+<span id="id1"></span><h1>Scripts<a class="headerlink" href="#scripts" title="Permalink to this heading">#</a></h1>
+<p>Brief documentation on the helper scripts included in the package in the <code class="docutils literal notranslate"><span class="pre">/scripts</span></code> directory.
+To use these scripts you will need to have a clone of the git repository, or they should also be
+installed with the prefix ‘poppunk’ (e.g to run <code class="docutils literal notranslate"><span class="pre">extract_distances.py</span></code>, run the command
+<code class="docutils literal notranslate"><span class="pre">poppunk_extract_distances.py</span></code>).</p>
+<section id="easy-run-mode">
+<h2>Easy run mode<a class="headerlink" href="#easy-run-mode" title="Permalink to this heading">#</a></h2>
+<p>Previous versions of the software had an <code class="docutils literal notranslate"><span class="pre">--easy-run</span></code> mode which would run a pipeline of:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--create-db</span></code> to sketch genomes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--fit-model</span> <span class="pre">--dbscan</span></code> to fit a flexible model</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--refine-model</span></code> to improve this model</p></li>
+</ul>
+<p>This is now available as <code class="docutils literal notranslate"><span class="pre">poppunk_easy_run.py</span></code> which will chain calls to <code class="docutils literal notranslate"><span class="pre">poppunk</span></code>
+and <code class="docutils literal notranslate"><span class="pre">poppunk_visualise</span></code> to replicate this functionality.</p>
+</section>
+<section id="iterative-poppunk">
+<span id="poppunk-iterate"></span><h2>Iterative PopPUNK<a class="headerlink" href="#iterative-poppunk" title="Permalink to this heading">#</a></h2>
+<p>You can combine the output from multiple to produce further analysis. For an easy
+way to create multiple clusters, try the <code class="docutils literal notranslate"><span class="pre">--multi-boundary</span></code> option (<a class="reference internal" href="model_fitting.html#multi-boundary"><span class="std std-ref">Running with multiple boundary positions</span></a>).</p>
+<p>The script to analyse these is <code class="docutils literal notranslate"><span class="pre">poppunk_iterate.py</span></code>. Basic use is to provide the
+output directory as <code class="docutils literal notranslate"><span class="pre">--db</span></code>, but run <code class="docutils literal notranslate"><span class="pre">--help</span></code> for other common options. This relies on
+finding files named <code class="docutils literal notranslate"><span class="pre">&lt;db&gt;/&lt;db&gt;_boundary&lt;n&gt;_clusters.csv</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;n&gt;</span></code> is the boundary
+iteration number (continuous integers increasing from zero). Clusters must contain at least
+two samples.</p>
+<p>This script will do the following:</p>
+<ol class="arabic">
+<li><p>Starting from the most specific clusters (nearest the origin), it will iteratively
+add new clusters which are either:</p>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li><p>totally new clusters</p></li>
+<li><p>subsets of existing clusters</p></li>
+<li><p>existing clusters are subsets of the new cluster.</p></li>
+</ol>
+</div></blockquote>
+</li>
+<li><p>Remove duplicate clusters.</p></li>
+<li><p>Calculate average core distance within this cluster set.</p></li>
+<li><p>Create a tree by nesting smaller clusters within larger clusters they are subsets of.</p></li>
+<li><p>Output the combined clusters, average core distances, and tree.</p></li>
+<li><p>Cut this tree to pick a set of clusters under a similarity given by <code class="docutils literal notranslate"><span class="pre">--cutoff</span></code>.</p></li>
+</ol>
+</section>
+<section id="adding-weights-to-the-network">
+<h2>Adding weights to the network<a class="headerlink" href="#adding-weights-to-the-network" title="Permalink to this heading">#</a></h2>
+<p>Converts binary within-cluster edge weights to the Euclidean core-accessory distance.
+This is equivalent to running with <code class="docutils literal notranslate"><span class="pre">--graph-weights</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_add_weights</span> <span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;</span><span class="n">_graph</span><span class="o">.</span><span class="n">gt</span> <span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;.</span><span class="n">dists</span> <span class="o">&lt;</span><span class="n">output</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Default output is a graph-tool file. Add <code class="docutils literal notranslate"><span class="pre">--graphml</span></code> to save as .graphml instead.</p>
+</section>
+<section id="writing-the-pairwise-distances-to-an-output-file">
+<h2>Writing the pairwise distances to an output file<a class="headerlink" href="#writing-the-pairwise-distances-to-an-output-file" title="Permalink to this heading">#</a></h2>
+<p>By default PopPUNK does not write the calculated <span class="math notranslate nohighlight">\(\pi_n\)</span> and <span class="math notranslate nohighlight">\(a\)</span> distances out, as this
+contains <span class="math notranslate nohighlight">\(\frac{1}{2}n*(n-1)\)</span> rows, which gives a multi Gb file for large datasets.</p>
+<p>However, if needed, there is a script available to extract these distances as a text file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_extract_distances</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">distances</span> <span class="n">strain_db</span><span class="o">.</span><span class="n">dists</span> <span class="o">--</span><span class="n">output</span> <span class="n">strain_db</span><span class="o">.</span><span class="n">dists</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+</section>
+<section id="writing-network-components-to-an-output-file">
+<h2>Writing network components to an output file<a class="headerlink" href="#writing-network-components-to-an-output-file" title="Permalink to this heading">#</a></h2>
+<p>Visualisation of large networks with cytoscape may become challenging. It is possible to extract
+individual components/clusters for visualisation as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_extract_components</span><span class="o">.</span><span class="n">py</span> <span class="n">strain_db_graph</span><span class="o">.</span><span class="n">gpickle</span> <span class="n">strain_db</span>
+</pre></div>
+</div>
+</section>
+<section id="calculating-rand-indices">
+<h2>Calculating Rand indices<a class="headerlink" href="#calculating-rand-indices" title="Permalink to this heading">#</a></h2>
+<p>This script allows the clusters formed by different runs/fits/modes of PopPUNK to be compared to each
+other. 0 indicates the clusterings are totally discordant, and 1 indicates they are identical.</p>
+<p>Run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_calculate_rand_indices</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="nb">input</span> <span class="n">poppunk_gmm_clusters</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span><span class="n">poppunk_dbscan_cluster</span><span class="o">.</span><span class="n">csv</span>
+</pre></div>
+</div>
+<p>The script will calculate the <a class="reference external" href="https://en.wikipedia.org/wiki/Rand_index#Rand_index">Rand index</a>
+and the <a class="reference external" href="https://en.wikipedia.org/wiki/Rand_index#Adjusted_Rand_index">adjusted Rand index</a>
+between all pairs of files provided (comma separated) to the <code class="docutils literal notranslate"><span class="pre">--input</span></code> argument.
+These will be written to the file <code class="docutils literal notranslate"><span class="pre">rand.out</span></code>, which can be changed using <code class="docutils literal notranslate"><span class="pre">--output</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--subset</span></code> argument can be used to restrict comparisons to include only specific samples
+listed in the provided file.</p>
+</section>
+<section id="calculating-silhouette-indices">
+<h2>Calculating silhouette indices<a class="headerlink" href="#calculating-silhouette-indices" title="Permalink to this heading">#</a></h2>
+<p>This script can be used to find how well the clusters project into core-accessory space by
+calculating the <a class="reference external" href="https://en.wikipedia.org/wiki/Silhouette_(clustering)">silhoutte index</a>,
+which measures how close samples are to others in their own cluster compared to samples from other
+clusters. The silhoutte index is calculated for every sample and takes a value between -1 (poorly matched)
+to +1 (well matched). The script reports the average of these indices across all samples, using Euclidean
+distances between the (normalised) core and accessory divergences calculated by PopPUNK.</p>
+<p>To run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk_calculate_silhouette</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">distances</span> <span class="n">strain_db</span><span class="o">.</span><span class="n">dists</span> <span class="o">--</span><span class="n">cluster</span><span class="o">-</span><span class="n">csv</span> <span class="n">strain_db_clusters</span><span class="o">.</span><span class="n">csv</span>
+</pre></div>
+</div>
+<p>The following additional options are available for use with external clusterings (e.g. from hierBAPS):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--cluster-col</span></code> the (1-indexed) column index containing the cluster assignment</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--id-col</span></code> the (1-indexed) column index containing the sample names</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sub</span></code> a string to remove from sample names to match them to those in <code class="docutils literal notranslate"><span class="pre">--distances</span></code></p></li>
+</ul>
+</section>
+<section id="distributing-poppunk-models">
+<h2>Distributing PopPUNK models<a class="headerlink" href="#distributing-poppunk-models" title="Permalink to this heading">#</a></h2>
+<p>This script automatically generates compressed and uncompressed directories containing all files
+required for distribution and reuse of PopPUNK model fits.</p>
+<p>To run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">poppunk_distribute_fit</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">dbdir</span> <span class="n">database_directory</span> <span class="o">--</span><span class="n">fitdir</span> <span class="n">model_fit_directory</span> <span class="o">--</span><span class="n">outpref</span> <span class="n">output_prefix</span>
+</pre></div>
+</div>
+<p>The following additional arguments are available:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--lineage</span></code> specify only if lineage fit was used.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-compress</span></code> will not generate tar.bz2 archives</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">--dbdir</span></code> and <code class="docutils literal notranslate"><span class="pre">--fitdir</span></code> can be the same directory, however both must still be specified.
+The output of this script is a directory and a compressed tar.bz2 archive for each of the
+full dataset and representative genomes dataset.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="poppunk_iterate.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Iterative PopPUNK</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="troubleshooting.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Troubleshooting</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Scripts</a><ul>
+<li><a class="reference internal" href="#easy-run-mode">Easy run mode</a></li>
+<li><a class="reference internal" href="#iterative-poppunk">Iterative PopPUNK</a></li>
+<li><a class="reference internal" href="#adding-weights-to-the-network">Adding weights to the network</a></li>
+<li><a class="reference internal" href="#writing-the-pairwise-distances-to-an-output-file">Writing the pairwise distances to an output file</a></li>
+<li><a class="reference internal" href="#writing-network-components-to-an-output-file">Writing network components to an output file</a></li>
+<li><a class="reference internal" href="#calculating-rand-indices">Calculating Rand indices</a></li>
+<li><a class="reference internal" href="#calculating-silhouette-indices">Calculating silhouette indices</a></li>
+<li><a class="reference internal" href="#distributing-poppunk-models">Distributing PopPUNK models</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>

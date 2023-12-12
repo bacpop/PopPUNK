@@ -1,0 +1,1156 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>PopPUNK.plot - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="../../_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sketching.html">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <h1>Source code for PopPUNK.plot</h1><div class="highlight"><pre>
+<span></span><span class="c1"># vim: set fileencoding=&lt;utf-8&gt; :</span>
+<span class="c1"># Copyright 2018-2023 John Lees and Nick Croucher</span>
+
+<span class="sd">&#39;&#39;&#39;Plots of GMM results, k-mer fits, and microreact output&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="nn">mpl</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;Agg&#39;</span><span class="p">)</span>
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;font.size&#39;</span><span class="p">:</span> <span class="mi">18</span><span class="p">})</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="c1"># for other outputs</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">utils</span>
+<span class="k">try</span><span class="p">:</span>  <span class="c1"># sklearn &gt;= 0.22</span>
+    <span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="kn">import</span> <span class="n">KernelDensity</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">sklearn.neighbors.kde</span> <span class="kn">import</span> <span class="n">KernelDensity</span>
+
+<span class="kn">from</span> <span class="nn">.trees</span> <span class="kn">import</span> <span class="n">write_tree</span>
+
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">isolateNameToLabel</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">decisionBoundary</span>
+
+<div class="viewcode-block" id="plot_scatter"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.plot_scatter">[docs]</a><span class="k">def</span> <span class="nf">plot_scatter</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">out_prefix</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">kde</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draws a 2D scatter plot (png) of the core and accessory distances</span>
+
+<span class="sd">    Also draws contours of kernel density estimare</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        X (numpy.array)</span>
+<span class="sd">            n x 2 array of core and accessory distances for n samples.</span>
+<span class="sd">        out_prefix (str)</span>
+<span class="sd">            Prefix for output plot file (.png will be appended)</span>
+<span class="sd">        title (str)</span>
+<span class="sd">            The title to display above the plot</span>
+<span class="sd">        kde (bool)</span>
+<span class="sd">            Whether to draw kernel density estimate contours</span>
+
+<span class="sd">            (default = True)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Plot results - max 1M for speed</span>
+    <span class="n">max_plot_samples</span> <span class="o">=</span> <span class="mi">1000000</span>
+    <span class="k">if</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">max_plot_samples</span><span class="p">:</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10000</span><span class="p">))[</span><span class="mi">0</span><span class="p">:</span><span class="n">max_plot_samples</span><span class="p">,]</span>
+
+    <span class="c1"># Kernel estimate uses scaled data 0-1 on each axis</span>
+    <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">X</span> <span class="o">/=</span> <span class="n">scale</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kde</span><span class="p">:</span>
+        <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">xy</span> <span class="o">=</span> <span class="n">get_grid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+        <span class="c1"># KDE estimate</span>
+        <span class="n">kde</span> <span class="o">=</span> <span class="n">KernelDensity</span><span class="p">(</span><span class="n">bandwidth</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;euclidean&#39;</span><span class="p">,</span>
+                            <span class="n">kernel</span><span class="o">=</span><span class="s1">&#39;epanechnikov&#39;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s1">&#39;ball_tree&#39;</span><span class="p">)</span>
+        <span class="n">kde</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">kde</span><span class="o">.</span><span class="n">score_samples</span><span class="p">(</span><span class="n">xy</span><span class="p">))</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">z</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="c1"># Rescale contours</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">yy</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;plasma&#39;</span><span class="p">)</span>
+        <span class="n">scatter_alpha</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">scatter_alpha</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+    <span class="c1"># Plot on correct scale</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">flat</span><span class="p">,</span> <span class="n">X</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">flat</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">scatter_alpha</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Core distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$\pi$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Accessory distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$a$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s1">&#39;.png&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plot_fit"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.plot_fit">[docs]</a><span class="k">def</span> <span class="nf">plot_fit</span><span class="p">(</span><span class="n">klist</span><span class="p">,</span> <span class="n">raw_matching</span><span class="p">,</span> <span class="n">raw_fit</span><span class="p">,</span> <span class="n">corrected_matching</span><span class="p">,</span> <span class="n">corrected_fit</span><span class="p">,</span> <span class="n">out_prefix</span><span class="p">,</span> <span class="n">title</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a scatter plot (pdf) of k-mer sizes vs match probability, and the</span>
+<span class="sd">    fit used to assign core and accessory distance</span>
+
+<span class="sd">    K-mer sizes on x-axis, log(pr(match)) on y - expect a straight line fit</span>
+<span class="sd">    with intercept representing accessory distance and slope core distance</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        klist (list)</span>
+<span class="sd">            List of k-mer sizes</span>
+<span class="sd">        raw_matching (list)</span>
+<span class="sd">            Proportion of matching k-mers at each klist value</span>
+<span class="sd">        raw_fit (numpy.array)</span>
+<span class="sd">            Fit to klist and raw_matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`</span>
+<span class="sd">        corrected_matching (list)</span>
+<span class="sd">            Corrected proportion of matching k-mers at each klist value</span>
+<span class="sd">        corrected_fit (numpy.array)</span>
+<span class="sd">            Fit to klist and corrected_matching from :func:`~PopPUNK.sketchlib.fitKmerCurve`</span>
+<span class="sd">        out_prefix (str)</span>
+<span class="sd">            Prefix for output plot file (.pdf will be appended)</span>
+<span class="sd">        title (str)</span>
+<span class="sd">            The title to display above the plot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k_fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">klist</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">num</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="n">raw_matching_fit</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">raw_fit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">raw_fit</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">k_fit</span><span class="p">)</span>
+    <span class="n">corrected_matching_fit</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">corrected_fit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">corrected_fit</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">k_fit</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;k-mer length&#39;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">9</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Proportion of matches&#39;</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">9</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;minor&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">klist</span><span class="p">,</span> <span class="n">raw_matching</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span> <span class="s1">&#39;Raw matching k-mer proportion&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k_fit</span><span class="p">,</span> <span class="n">raw_matching_fit</span><span class="p">,</span> <span class="s1">&#39;b-&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span> <span class="s1">&#39;Fit to raw matches&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">klist</span><span class="p">,</span> <span class="n">corrected_matching</span><span class="p">,</span> <span class="s1">&#39;mx&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span> <span class="s1">&#39;Corrected matching k-mer proportion&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">k_fit</span><span class="p">,</span> <span class="n">corrected_matching_fit</span><span class="p">,</span> <span class="s1">&#39;m--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span> <span class="s1">&#39;Fit to corrected matches&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">,</span> <span class="n">prop</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">})</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">,</span>
+                <span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plot_results"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.plot_results">[docs]</a><span class="k">def</span> <span class="nf">plot_results</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">covariances</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">out_prefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a scatter plot (png) to show the BGMM model fit</span>
+
+<span class="sd">    A scatter plot of core and accessory distances, coloured by component</span>
+<span class="sd">    membership. Also shown are ellipses for each component (centre: means</span>
+<span class="sd">    axes: covariances).</span>
+
+<span class="sd">    This is based on the example in the sklearn documentation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        X (numpy.array)</span>
+<span class="sd">             n x 2 array of core and accessory distances for n samples.</span>
+<span class="sd">        Y (numpy.array)</span>
+<span class="sd">             n x 1 array of cluster assignments for n samples.</span>
+<span class="sd">        means (numpy.array)</span>
+<span class="sd">            Component means from :class:`~PopPUNK.models.BGMMFit`</span>
+<span class="sd">        covars (numpy.array)</span>
+<span class="sd">            Component covariances from :class:`~PopPUNK.models.BGMMFit`</span>
+<span class="sd">        scale (numpy.array)</span>
+<span class="sd">            Scaling factor from :class:`~PopPUNK.models.BGMMFit`</span>
+<span class="sd">        out_prefix (str)</span>
+<span class="sd">            Prefix for output plot file (.png will be appended)</span>
+<span class="sd">        title (str)</span>
+<span class="sd">            The title to display above the plot</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">color_iter</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">cycle</span><span class="p">([</span><span class="s1">&#39;navy&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;cornflowerblue&#39;</span><span class="p">,</span> <span class="s1">&#39;gold&#39;</span><span class="p">,</span><span class="s1">&#39;darkorange&#39;</span><span class="p">])</span>
+
+    <span class="n">fig</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">splot</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">covar</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="n">covariances</span><span class="p">,</span> <span class="n">color_iter</span><span class="p">)):</span>
+        <span class="n">scaled_covar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">scale</span><span class="p">),</span> <span class="n">covar</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">scaled_covar</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># as the DP will not use every component it has access to</span>
+        <span class="c1"># unless it needs it, we shouldn&#39;t plot the redundant</span>
+        <span class="c1"># components.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">Y</span> <span class="o">==</span> <span class="n">i</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">([(</span><span class="n">X</span><span class="p">)[</span><span class="n">Y</span> <span class="o">==</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[(</span><span class="n">X</span><span class="p">)[</span><span class="n">Y</span> <span class="o">==</span> <span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="mf">.4</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+
+        <span class="c1"># Plot an ellipse to show the Gaussian component</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="mf">180.</span> <span class="o">*</span> <span class="n">angle</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>  <span class="c1"># convert to degrees</span>
+        <span class="n">ell</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">patches</span><span class="o">.</span><span class="n">Ellipse</span><span class="p">(</span><span class="n">mean</span><span class="o">*</span><span class="n">scale</span><span class="p">,</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">angle</span><span class="o">=</span><span class="mf">180.</span> <span class="o">+</span> <span class="n">angle</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">)</span>
+        <span class="n">ell</span><span class="o">.</span><span class="n">set_clip_box</span><span class="p">(</span><span class="n">splot</span><span class="o">.</span><span class="n">bbox</span><span class="p">)</span>
+        <span class="n">ell</span><span class="o">.</span><span class="n">set_alpha</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">splot</span><span class="o">.</span><span class="n">add_artist</span><span class="p">(</span><span class="n">ell</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Core distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$\pi$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Accessory distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$a$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plot_dbscan_results"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.plot_dbscan_results">[docs]</a><span class="k">def</span> <span class="nf">plot_dbscan_results</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">n_clusters</span><span class="p">,</span> <span class="n">out_prefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a scatter plot (png) to show the DBSCAN model fit</span>
+
+<span class="sd">    A scatter plot of core and accessory distances, coloured by component</span>
+<span class="sd">    membership. Black is noise</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        X (numpy.array)</span>
+<span class="sd">             n x 2 array of core and accessory distances for n samples.</span>
+<span class="sd">        Y (numpy.array)</span>
+<span class="sd">             n x 1 array of cluster assignments for n samples.</span>
+<span class="sd">        n_clusters (int)</span>
+<span class="sd">            Number of clusters used (excluding noise)</span>
+<span class="sd">        out_prefix (str)</span>
+<span class="sd">            Prefix for output file (.png will be appended)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Black removed and is used for noise instead.</span>
+    <span class="n">unique_labels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+    <span class="n">colours</span> <span class="o">=</span> <span class="p">[</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">Spectral</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">))]</span>  <span class="c1"># changed to work with two clusters</span>
+
+    <span class="n">fig</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">unique_labels</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">ptsize</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="s1">&#39;k&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ptsize</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">colours</span><span class="o">.</span><span class="n">pop</span><span class="p">())</span>
+        <span class="n">class_member_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">xy</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">class_member_mask</span><span class="p">]</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xy</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">xy</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">col</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="n">ptsize</span><span class="p">)</span>
+
+    <span class="c1"># plot output</span>
+    <span class="n">plt_filename</span> <span class="o">=</span> <span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;HDBSCAN – estimated number of spatial clusters: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n_clusters</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Core distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$\pi$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Accessory distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$a$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plot_refined_results"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.plot_refined_results">[docs]</a><span class="k">def</span> <span class="nf">plot_refined_results</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">x_boundary</span><span class="p">,</span> <span class="n">y_boundary</span><span class="p">,</span> <span class="n">core_boundary</span><span class="p">,</span> <span class="n">accessory_boundary</span><span class="p">,</span>
+        <span class="n">mean0</span><span class="p">,</span> <span class="n">mean1</span><span class="p">,</span> <span class="n">min_move</span><span class="p">,</span> <span class="n">max_move</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">indiv_boundaries</span><span class="p">,</span>
+        <span class="n">unconstrained</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">out_prefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw a scatter plot (png) to show the refined model fit</span>
+
+<span class="sd">    A scatter plot of core and accessory distances, coloured by component</span>
+<span class="sd">    membership. The triangular decision boundary is also shown</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        X (numpy.array)</span>
+<span class="sd">            n x 2 array of core and accessory distances for n samples.</span>
+<span class="sd">        Y (numpy.array)</span>
+<span class="sd">            n x 1 array of cluster assignments for n samples.</span>
+<span class="sd">        x_boundary (float)</span>
+<span class="sd">            Intercept of boundary with x-axis, from :class:`~PopPUNK.models.RefineFit`</span>
+<span class="sd">        y_boundary (float)</span>
+<span class="sd">            Intercept of boundary with y-axis, from :class:`~PopPUNK.models.RefineFit`</span>
+<span class="sd">        core_boundary (float)</span>
+<span class="sd">            Intercept of 1D (core) boundary with x-axis, from :class:`~PopPUNK.models.RefineFit`</span>
+<span class="sd">        accessory_boundary (float)</span>
+<span class="sd">            Intercept of 1D (core) boundary with y-axis, from :class:`~PopPUNK.models.RefineFit`</span>
+<span class="sd">        mean0 (numpy.array)</span>
+<span class="sd">            Centre of within-strain distribution</span>
+<span class="sd">        mean1 (numpy.array)</span>
+<span class="sd">            Centre of between-strain distribution</span>
+<span class="sd">        min_move (float)</span>
+<span class="sd">            Minimum s range</span>
+<span class="sd">        max_move (float)</span>
+<span class="sd">            Maximum s range</span>
+<span class="sd">        scale (numpy.array)</span>
+<span class="sd">            Scaling factor from :class:`~PopPUNK.models.RefineFit`</span>
+<span class="sd">        threshold (bool)</span>
+<span class="sd">            If fit was just from a simple thresholding</span>
+<span class="sd">        indiv_boundaries (bool)</span>
+<span class="sd">            Whether to draw lines for core and accessory refinement</span>
+<span class="sd">        title (str)</span>
+<span class="sd">            The title to display above the plot</span>
+<span class="sd">        out_prefix (str)</span>
+<span class="sd">            Prefix for output plot file (.png will be appended)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">.refine</span> <span class="kn">import</span> <span class="n">transformLine</span>
+
+    <span class="n">fig</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Draw points</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">([(</span><span class="n">X</span><span class="p">)[</span><span class="n">Y</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[(</span><span class="n">X</span><span class="p">)[</span><span class="n">Y</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="mf">.4</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;cornflowerblue&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">([(</span><span class="n">X</span><span class="p">)[</span><span class="n">Y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">[(</span><span class="n">X</span><span class="p">)[</span><span class="n">Y</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="mf">.4</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Draw fit lines</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">threshold</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">x_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">y_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Combined decision boundary&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">indiv_boundaries</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">core_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">core_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkgray&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-.&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Individual decision boundaries&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])],</span> <span class="p">[</span><span class="n">accessory_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">accessory_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;darkgray&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Draw boundary search range</span>
+        <span class="k">if</span> <span class="n">mean0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">mean1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">min_move</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_move</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">unconstrained</span><span class="p">:</span>
+                <span class="n">gradient</span> <span class="o">=</span> <span class="p">(</span><span class="n">mean1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean0</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="n">mean1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean0</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">opt_start</span> <span class="o">=</span> <span class="n">decisionBoundary</span><span class="p">(</span><span class="n">mean0</span><span class="p">,</span> <span class="n">gradient</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+                <span class="n">opt_end</span> <span class="o">=</span> <span class="n">decisionBoundary</span><span class="p">(</span><span class="n">mean1</span><span class="p">,</span> <span class="n">gradient</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">opt_start</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">opt_end</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                         <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">opt_end</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">opt_start</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                         <span class="n">fill</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;lightcoral&#39;</span><span class="p">,</span> <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+                         <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Search range&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">search_length</span> <span class="o">=</span> <span class="n">max_move</span> <span class="o">+</span> <span class="p">((</span><span class="n">mean1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean0</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">mean1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">mean0</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+                <span class="n">minimum_xy</span> <span class="o">=</span> <span class="n">transformLine</span><span class="p">(</span><span class="o">-</span><span class="n">min_move</span><span class="p">,</span> <span class="n">mean0</span><span class="p">,</span> <span class="n">mean1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+                <span class="n">maximum_xy</span> <span class="o">=</span> <span class="n">transformLine</span><span class="p">(</span><span class="n">search_length</span><span class="p">,</span> <span class="n">mean0</span><span class="p">,</span> <span class="n">mean1</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">minimum_xy</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">maximum_xy</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="n">minimum_xy</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">maximum_xy</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                         <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Search range&#39;</span><span class="p">)</span>
+
+            <span class="n">mean0</span> <span class="o">*=</span> <span class="n">scale</span>
+            <span class="n">mean1</span> <span class="o">*=</span> <span class="n">scale</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mean0</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mean0</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;rx&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Within-strain mean&#39;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">mean1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">mean1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;r+&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Between-strain mean&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">core_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">core_boundary</span><span class="o">*</span><span class="n">scale</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Threshold boundary&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Core distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$\pi$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Accessory distance (&#39;</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;$a$&#39;</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="plot_contours"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.plot_contours">[docs]</a><span class="k">def</span> <span class="nf">plot_contours</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">assignments</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">out_prefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Draw contours of mixture model assignments</span>
+
+<span class="sd">    Will draw the decision boundary for between/within in red</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (BGMMFit)</span>
+<span class="sd">            Model we are plotting from</span>
+<span class="sd">        assignments (numpy.array)</span>
+<span class="sd">            n-vectors of cluster assignments for model</span>
+<span class="sd">        title (str)</span>
+<span class="sd">            The title to display above the plot</span>
+<span class="sd">        out_prefix (str)</span>
+<span class="sd">            Prefix for output plot file (.pdf will be appended)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># avoid recursive import</span>
+    <span class="kn">from</span> <span class="nn">.bgmm</span> <span class="kn">import</span> <span class="n">log_likelihood</span>
+    <span class="kn">from</span> <span class="nn">.bgmm</span> <span class="kn">import</span> <span class="n">findWithinLabel</span>
+
+    <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">xy</span> <span class="o">=</span> <span class="n">get_grid</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+    <span class="c1"># for likelihood boundary</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">xy</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">z_diff</span> <span class="o">=</span> <span class="n">z</span><span class="p">[:,</span><span class="n">findWithinLabel</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">means</span><span class="p">,</span> <span class="n">assignments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span> <span class="o">-</span> <span class="n">z</span><span class="p">[:,</span><span class="n">findWithinLabel</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">means</span><span class="p">,</span> <span class="n">assignments</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">z_diff</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="c1"># For full likelihood surface</span>
+    <span class="n">z_ll</span><span class="p">,</span> <span class="n">lpr</span> <span class="o">=</span> <span class="n">log_likelihood</span><span class="p">(</span><span class="n">xy</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">means</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">covariances</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">z_ll</span> <span class="o">=</span> <span class="n">z_ll</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xx</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">z_ll</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">z_ll</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">z_ll</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">25</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">colors</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">linewidths</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Scaled core distance&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Scaled accessory distance&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_prefix</span> <span class="o">+</span> <span class="s2">&quot;.pdf&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="get_grid"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.get_grid">[docs]</a><span class="k">def</span> <span class="nf">get_grid</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">,</span> <span class="n">resolution</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get a square grid of points to evaluate a function across</span>
+
+<span class="sd">    Used for :func:`~plot_scatter` and :func:`~plot_contours`</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        minimum (float)</span>
+<span class="sd">            Minimum value for grid</span>
+<span class="sd">        maximum (float)</span>
+<span class="sd">            Maximum value for grid</span>
+<span class="sd">        resolution (int)</span>
+<span class="sd">            Number of points along each axis</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        xx (numpy.array)</span>
+<span class="sd">            x values across n x n grid</span>
+<span class="sd">        yy (numpy.array)</span>
+<span class="sd">            y values across n x n grid</span>
+<span class="sd">        xy (numpy.array)</span>
+<span class="sd">            n x 2 pairs of x, y values grid is over</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">,</span> <span class="n">resolution</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">,</span> <span class="n">resolution</span><span class="p">)</span>
+    <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">xy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">yy</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">xx</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">xy</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="distHistogram"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.distHistogram">[docs]</a><span class="k">def</span> <span class="nf">distHistogram</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot a histogram of distances (1D)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dists (np.array)</span>
+<span class="sd">            Distance vector</span>
+<span class="sd">        rank (int)</span>
+<span class="sd">            Rank (used for name and title)</span>
+<span class="sd">        outPrefix (int)</span>
+<span class="sd">            Full path prefix for plot file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span>
+             <span class="mi">50</span><span class="p">,</span>
+             <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span>
+             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Included nearest neighbour distances for rank &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rank</span><span class="p">))</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Distance&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Density&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> \
+                <span class="s2">&quot;_rank_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rank</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_histogram.png&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="drawMST"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.drawMST">[docs]</a><span class="k">def</span> <span class="nf">drawMST</span><span class="p">(</span><span class="n">mst</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">isolate_clustering</span><span class="p">,</span> <span class="n">clustering_name</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot a layout of the minimum spanning tree</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mst (graph_tool.Graph)</span>
+<span class="sd">            A minimum spanning tree</span>
+<span class="sd">        outPrefix (str)</span>
+<span class="sd">            Output prefix for save files</span>
+<span class="sd">        isolate_clustering (dict)</span>
+<span class="sd">            Dictionary of ID: cluster, used for colouring vertices</span>
+<span class="sd">        clustering_name (str)</span>
+<span class="sd">            Name of clustering scheme to be used for colouring</span>
+<span class="sd">        overwrite (bool)</span>
+<span class="sd">            Overwrite existing output files</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">graph_tool.all</span> <span class="k">as</span> <span class="nn">gt</span>
+    <span class="n">graph1_file_name</span> <span class="o">=</span> <span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_mst_stress_plot.png&quot;</span>
+    <span class="n">graph2_file_name</span> <span class="o">=</span> <span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_mst_cluster_plot.png&quot;</span>
+    <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">graph1_file_name</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">graph2_file_name</span><span class="p">):</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Drawing MST</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">sfdp_layout</span><span class="p">(</span><span class="n">mst</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">graph1_file_name</span><span class="p">):</span>
+            <span class="n">deg</span> <span class="o">=</span> <span class="n">mst</span><span class="o">.</span><span class="n">degree_property_map</span><span class="p">(</span><span class="s2">&quot;total&quot;</span><span class="p">)</span>
+            <span class="n">deg</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">deg</span><span class="o">.</span><span class="n">a</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="mf">0.4</span><span class="p">)</span>
+            <span class="n">ebet</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">betweenness</span><span class="p">(</span><span class="n">mst</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">ebet</span><span class="o">.</span><span class="n">a</span> <span class="o">/=</span> <span class="n">ebet</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">/</span> <span class="mf">50.</span>
+            <span class="n">eorder</span> <span class="o">=</span> <span class="n">ebet</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">eorder</span><span class="o">.</span><span class="n">a</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">gt</span><span class="o">.</span><span class="n">graph_draw</span><span class="p">(</span><span class="n">mst</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">vertex_size</span><span class="o">=</span><span class="n">gt</span><span class="o">.</span><span class="n">prop_to_size</span><span class="p">(</span><span class="n">deg</span><span class="p">,</span> <span class="n">mi</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">ma</span><span class="o">=</span><span class="mi">50</span><span class="p">),</span>
+                            <span class="n">vertex_fill_color</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span> <span class="n">vorder</span><span class="o">=</span><span class="n">deg</span><span class="p">,</span>
+                            <span class="n">edge_color</span><span class="o">=</span><span class="n">ebet</span><span class="p">,</span> <span class="n">eorder</span><span class="o">=</span><span class="n">eorder</span><span class="p">,</span> <span class="n">edge_pen_width</span><span class="o">=</span><span class="n">ebet</span><span class="p">,</span>
+                            <span class="n">output</span><span class="o">=</span><span class="n">graph1_file_name</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="mi">3000</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">graph2_file_name</span><span class="p">):</span>
+            <span class="n">cluster_fill</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">isolate_clustering</span><span class="p">[</span><span class="n">clustering_name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+                <span class="n">cluster_fill</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="mf">0.9</span><span class="p">]</span>
+            <span class="n">plot_color</span> <span class="o">=</span> <span class="n">mst</span><span class="o">.</span><span class="n">new_vertex_property</span><span class="p">(</span><span class="s1">&#39;vector&lt;double&gt;&#39;</span><span class="p">)</span>
+            <span class="n">mst</span><span class="o">.</span><span class="n">vertex_properties</span><span class="p">[</span><span class="s1">&#39;plot_color&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plot_color</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mst</span><span class="o">.</span><span class="n">vertices</span><span class="p">():</span>
+                <span class="n">plot_color</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_fill</span><span class="p">[</span><span class="n">isolate_clustering</span><span class="p">[</span><span class="n">clustering_name</span><span class="p">][</span><span class="n">mst</span><span class="o">.</span><span class="n">vp</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="n">v</span><span class="p">]]]</span>
+
+            <span class="n">gt</span><span class="o">.</span><span class="n">graph_draw</span><span class="p">(</span><span class="n">mst</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="n">pos</span><span class="p">,</span> <span class="n">vertex_fill_color</span><span class="o">=</span><span class="n">mst</span><span class="o">.</span><span class="n">vertex_properties</span><span class="p">[</span><span class="s1">&#39;plot_color&#39;</span><span class="p">],</span>
+                    <span class="n">output</span><span class="o">=</span><span class="n">graph2_file_name</span><span class="p">,</span> <span class="n">output_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3000</span><span class="p">,</span> <span class="mi">3000</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="outputsForCytoscape"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.outputsForCytoscape">[docs]</a><span class="k">def</span> <span class="nf">outputsForCytoscape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">G_mst</span><span class="p">,</span> <span class="n">isolate_names</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span> <span class="n">queryList</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">suffix</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">writeCsv</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Write outputs for cytoscape. A graphml of the network, and CSV with metadata</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        G (graph)</span>
+<span class="sd">            The network to write</span>
+<span class="sd">        G_mst (graph)</span>
+<span class="sd">            The minimum spanning tree of G</span>
+<span class="sd">        isolate_names (list)</span>
+<span class="sd">            Ordered list of sequence names</span>
+<span class="sd">        clustering (dict)</span>
+<span class="sd">            Dictionary of cluster assignments (keys are nodeNames).</span>
+<span class="sd">        outPrefix (str)</span>
+<span class="sd">            Prefix for files to be written</span>
+<span class="sd">        epiCsv (str)</span>
+<span class="sd">            Optional CSV of epi data to paste in the output in addition to</span>
+<span class="sd">            the clusters.</span>
+<span class="sd">        queryList (list)</span>
+<span class="sd">            Optional list of isolates that have been added as a query.</span>
+<span class="sd">            (default = None)</span>
+<span class="sd">        suffix (string)</span>
+<span class="sd">            String to append to network file name.</span>
+<span class="sd">            (default = None)</span>
+<span class="sd">        writeCsv (bool)</span>
+<span class="sd">            Whether to print CSV file to accompany network</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Avoid circular import</span>
+    <span class="kn">from</span> <span class="nn">.network</span> <span class="kn">import</span> <span class="n">save_network</span>
+    <span class="kn">import</span> <span class="nn">graph_tool.all</span> <span class="k">as</span> <span class="nn">gt</span>
+
+    <span class="c1"># edit names</span>
+    <span class="n">seqLabels</span> <span class="o">=</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">isolate_names</span><span class="p">)</span>
+    <span class="n">vid</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">new_vertex_property</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">,</span>
+                                <span class="n">vals</span> <span class="o">=</span> <span class="n">seqLabels</span><span class="p">)</span>
+    <span class="n">G</span><span class="o">.</span><span class="n">vp</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">vid</span>
+
+    <span class="c1"># write graph file</span>
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_cytoscape&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span> <span class="o">+</span> <span class="s1">&#39;_cytoscape&#39;</span>
+    <span class="n">save_network</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">use_graphml</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Save each component too (useful for very large graphs)</span>
+    <span class="n">component_assignments</span><span class="p">,</span> <span class="n">component_hist</span> <span class="o">=</span> <span class="n">gt</span><span class="o">.</span><span class="n">label_components</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">component_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">component_hist</span><span class="p">)):</span>
+        <span class="n">remove_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">vidx</span><span class="p">,</span> <span class="n">v_component</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">component_assignments</span><span class="o">.</span><span class="n">a</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">v_component</span> <span class="o">!=</span> <span class="n">component_idx</span><span class="p">:</span>
+                <span class="n">remove_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vidx</span><span class="p">)</span>
+        <span class="n">G_copy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">G_copy</span><span class="o">.</span><span class="n">remove_vertex</span><span class="p">(</span><span class="n">remove_list</span><span class="p">)</span>
+        <span class="n">save_network</span><span class="p">(</span><span class="n">G_copy</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="s2">&quot;_component_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">component_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">use_graphml</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">G_copy</span>
+
+    <span class="k">if</span> <span class="n">G_mst</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">isolate_labels</span> <span class="o">=</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">G_mst</span><span class="o">.</span><span class="n">vp</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">G_mst</span><span class="o">.</span><span class="n">vertices</span><span class="p">()):</span>
+            <span class="n">G_mst</span><span class="o">.</span><span class="n">vp</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">isolate_labels</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span> <span class="o">+</span> <span class="s1">&#39;_mst&#39;</span>
+        <span class="n">save_network</span><span class="p">(</span><span class="n">G_mst</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">use_graphml</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Write CSV of metadata</span>
+    <span class="k">if</span> <span class="n">writeCsv</span><span class="p">:</span>
+        <span class="n">writeClusterCsv</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_cytoscape.csv&quot;</span><span class="p">,</span>
+                        <span class="n">isolate_names</span><span class="p">,</span>
+                        <span class="n">seqLabels</span><span class="p">,</span>
+                        <span class="n">clustering</span><span class="p">,</span>
+                        <span class="s1">&#39;cytoscape&#39;</span><span class="p">,</span>
+                        <span class="n">epiCsv</span><span class="p">,</span>
+                        <span class="n">queryList</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="writeClusterCsv"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.writeClusterCsv">[docs]</a><span class="k">def</span> <span class="nf">writeClusterCsv</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">nodeNames</span><span class="p">,</span> <span class="n">nodeLabels</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span>
+                    <span class="n">output_format</span> <span class="o">=</span> <span class="s1">&#39;microreact&#39;</span><span class="p">,</span> <span class="n">epiCsv</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">queryNames</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_Cluster&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Print CSV file of clustering and optionally epi data</span>
+
+<span class="sd">    Writes CSV output of clusters which can be used as input to microreact and cytoscape.</span>
+<span class="sd">    Uses pandas to deal with CSV reading and writing nicely.</span>
+
+<span class="sd">    The epiCsv, if provided, should have the node labels in the first column.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        outfile (str)</span>
+<span class="sd">            File to write the CSV to.</span>
+<span class="sd">        nodeNames (list)</span>
+<span class="sd">            Names of sequences in clustering (includes path).</span>
+<span class="sd">        nodeLabels (list)</span>
+<span class="sd">            Names of sequences to write in CSV (usually has path removed).</span>
+<span class="sd">        clustering (dict or dict of dicts)</span>
+<span class="sd">            Dictionary of cluster assignments (keys are nodeNames). Pass a dict with depth two</span>
+<span class="sd">            to include multiple possible clusterings.</span>
+<span class="sd">        output_format (str)</span>
+<span class="sd">            Software for which CSV should be formatted</span>
+<span class="sd">            (microreact, phandango, grapetree and cytoscape are accepted)</span>
+<span class="sd">        epiCsv (str)</span>
+<span class="sd">            Optional CSV of epi data to paste in the output in addition to</span>
+<span class="sd">            the clusters (default = None).</span>
+<span class="sd">        queryNames (list)</span>
+<span class="sd">            Optional list of isolates that have been added as a query.</span>
+
+<span class="sd">            (default = None)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># set order of column names</span>
+    <span class="n">colnames</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;microreact&#39;</span><span class="p">:</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+            <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span> <span class="o">+</span> <span class="s1">&#39;__autocolour&#39;</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Status&#39;</span><span class="p">)</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Status__colour&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;phandango&#39;</span><span class="p">:</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+            <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Status&#39;</span><span class="p">)</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Status:colour&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;grapetree&#39;</span><span class="p">:</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+            <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Status&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;cytoscape&#39;</span><span class="p">:</span>
+        <span class="n">colnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+            <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Status&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Do not recognise format for CSV writing</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># process epidemiological data</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+    <span class="c1"># process epidemiological data without duplicating names</span>
+    <span class="c1"># used by PopPUNK</span>
+    <span class="k">if</span> <span class="n">epiCsv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">columns_to_be_omitted</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;Id&#39;</span><span class="p">,</span> <span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;combined_Cluster__autocolour&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;core_Cluster__autocolour&#39;</span><span class="p">,</span> <span class="s1">&#39;accessory_Cluster__autocolour&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;overall_Lineage&#39;</span><span class="p">]</span>
+        <span class="n">epiData</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">epiCsv</span><span class="p">,</span> <span class="n">index_col</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">quotechar</span><span class="o">=</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="n">epiData</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">epiData</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">epiData</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">columns_to_be_omitted</span><span class="p">:</span>
+                <span class="n">colnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+    <span class="c1"># get example clustering name for validation</span>
+    <span class="n">example_cluster_title</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">clustering</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">nodeNames</span><span class="p">,</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">nodeLabels</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">[</span><span class="n">example_cluster_title</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;microreact&#39;</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span> <span class="o">+</span> <span class="s2">&quot;__autocolour&quot;</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clustering</span><span class="p">[</span><span class="n">cluster_type</span><span class="p">][</span><span class="n">name</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">queryNames</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Query&quot;</span><span class="p">)</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status__colour&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;red&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Reference&quot;</span><span class="p">)</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status__colour&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;phandango&#39;</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clustering</span><span class="p">[</span><span class="n">cluster_type</span><span class="p">][</span><span class="n">name</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">queryNames</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Query&quot;</span><span class="p">)</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status:colour&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#ff0000&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Reference&quot;</span><span class="p">)</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status:colour&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;grapetree&#39;</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clustering</span><span class="p">[</span><span class="n">cluster_type</span><span class="p">][</span><span class="n">name</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">queryNames</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Query&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Reference&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">output_format</span> <span class="o">==</span> <span class="s1">&#39;cytoscape&#39;</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">cluster_type</span> <span class="ow">in</span> <span class="n">clustering</span><span class="p">:</span>
+                    <span class="n">col_name</span> <span class="o">=</span> <span class="n">cluster_type</span> <span class="o">+</span> <span class="n">suffix</span>
+                    <span class="n">d</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clustering</span><span class="p">[</span><span class="n">cluster_type</span><span class="p">][</span><span class="n">name</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">queryNames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">queryNames</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Query&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;Status&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Reference&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">epiCsv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">epiData</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">epiData</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">epiData</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">columns_to_be_omitted</span><span class="p">:</span>
+                            <span class="n">d</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">epiData</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">columns_to_be_omitted</span><span class="p">:</span>
+                            <span class="n">d</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Cannot find &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; in clustering</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># print CSV</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Parsed data, now writing to CSV</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="n">colnames</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Problem with epidemiological data CSV; returned code: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">returncode</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># check CSV</span>
+        <span class="n">prev_col_items</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">prev_col_name</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">this_col_items</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">prev_col_items</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">prev_col_items</span> <span class="o">!=</span> <span class="n">this_col_items</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Discrepant length between &quot;</span> <span class="o">+</span> <span class="n">prev_col_name</span> <span class="o">+</span> \
+                                 <span class="s2">&quot; (length of &quot;</span> <span class="o">+</span> <span class="n">prev_col_items</span> <span class="o">+</span> <span class="s2">&quot;) and &quot;</span> <span class="o">+</span> \
+                                 <span class="n">col</span> <span class="o">+</span> <span class="s2">&quot;(length of &quot;</span> <span class="o">+</span> <span class="n">this_col_items</span> <span class="o">+</span> <span class="s2">&quot;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="outputsForMicroreact"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.outputsForMicroreact">[docs]</a><span class="k">def</span> <span class="nf">outputsForMicroreact</span><span class="p">(</span><span class="n">combined_list</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="n">nj_tree</span><span class="p">,</span> <span class="n">mst_tree</span><span class="p">,</span> <span class="n">accMat</span><span class="p">,</span> <span class="n">perplexity</span><span class="p">,</span> <span class="n">maxIter</span><span class="p">,</span>
+                         <span class="n">outPrefix</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span> <span class="n">queryList</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">n_threads</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                         <span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">device_id</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate files for microreact</span>
+
+<span class="sd">    Output a neighbour joining tree (.nwk) from core distances, a plot of t-SNE clustering</span>
+<span class="sd">    of accessory distances (.dot) and cluster assignment (.csv)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        combined_list (list)</span>
+<span class="sd">            Name of sequences being analysed. The part of the name before the first &#39;.&#39; will</span>
+<span class="sd">            be shown in the output</span>
+<span class="sd">        clustering (dict or dict of dicts)</span>
+<span class="sd">            List of cluster assignments from :func:`~PopPUNK.network.printClusters`.</span>
+<span class="sd">            Further clusterings (e.g. 1D core only) can be included by passing these as a dict.</span>
+<span class="sd">        nj_tree (str or None)</span>
+<span class="sd">            String representation of a Newick-formatted NJ tree</span>
+<span class="sd">        mst_tree (str or None)</span>
+<span class="sd">            String representation of a Newick-formatted minimum-spanning tree</span>
+<span class="sd">        accMat (numpy.array)</span>
+<span class="sd">            n x n array of accessory distances for n samples.</span>
+<span class="sd">        perplexity (int)</span>
+<span class="sd">            Perplexity parameter passed to mandrake</span>
+<span class="sd">        maxIter (int)</span>
+<span class="sd">            Maximum iterations for mandrake</span>
+<span class="sd">        outPrefix (str)</span>
+<span class="sd">            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory</span>
+<span class="sd">        epiCsv (str)</span>
+<span class="sd">            A CSV containing other information, to include with the CSV of clusters</span>
+<span class="sd">        queryList (list)</span>
+<span class="sd">            Optional list of isolates that have been added as a query for colouring in the CSV.</span>
+<span class="sd">            (default = None)</span>
+<span class="sd">        overwrite (bool)</span>
+<span class="sd">            Overwrite existing output if present (default = False)</span>
+<span class="sd">        n_threads (int)</span>
+<span class="sd">            Number of CPU threads to use</span>
+<span class="sd">            (default = 1)</span>
+<span class="sd">        use_gpu (bool)</span>
+<span class="sd">            Whether to use a GPU for t-SNE generation</span>
+<span class="sd">        device_id (int)</span>
+<span class="sd">            Device ID of GPU to be used</span>
+<span class="sd">            (default = 0)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        outfiles (list)</span>
+<span class="sd">            List of output files create</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Avoid recursive import</span>
+    <span class="kn">from</span> <span class="nn">.mandrake</span> <span class="kn">import</span> <span class="n">generate_embedding</span>
+
+    <span class="c1"># generate sequence labels</span>
+    <span class="n">seqLabels</span> <span class="o">=</span> <span class="n">isolateNameToLabel</span><span class="p">(</span><span class="n">combined_list</span><span class="p">)</span>
+
+    <span class="c1"># check CSV before calculating other outputs</span>
+    <span class="n">outfiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_microreact_clusters.csv&quot;</span><span class="p">]</span>
+    <span class="n">writeClusterCsv</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_microreact_clusters.csv&quot;</span><span class="p">,</span>
+                        <span class="n">combined_list</span><span class="p">,</span> <span class="n">combined_list</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="s1">&#39;microreact&#39;</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span> <span class="n">queryList</span><span class="p">)</span>
+
+    <span class="c1"># write the phylogeny .nwk; t-SNE network .dot; clusters + data .csv</span>
+    <span class="n">embedding_file</span> <span class="o">=</span> <span class="n">generate_embedding</span><span class="p">(</span><span class="n">seqLabels</span><span class="p">,</span> <span class="n">accMat</span><span class="p">,</span> <span class="n">perplexity</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">,</span>
+                       <span class="n">kNN</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">maxIter</span><span class="o">=</span><span class="n">maxIter</span><span class="p">,</span> <span class="n">n_threads</span><span class="o">=</span><span class="n">n_threads</span><span class="p">,</span>
+                       <span class="n">use_gpu</span><span class="o">=</span><span class="n">use_gpu</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="n">device_id</span><span class="p">)</span>
+    <span class="n">outfiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">embedding_file</span><span class="p">)</span>
+
+    <span class="c1"># write NJ tree</span>
+    <span class="k">if</span> <span class="n">nj_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">write_tree</span><span class="p">(</span><span class="n">nj_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="s2">&quot;_core_NJ.nwk&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span>
+        <span class="n">outfiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_core_NJ.nwk&quot;</span><span class="p">)</span>
+
+    <span class="c1"># write MST</span>
+    <span class="k">if</span> <span class="n">mst_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">write_tree</span><span class="p">(</span><span class="n">mst_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="s2">&quot;_MST.nwk&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span>
+        <span class="n">outfiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_MST.nwk&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">outfiles</span></div>
+
+<div class="viewcode-block" id="createMicroreact"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.createMicroreact">[docs]</a><span class="k">def</span> <span class="nf">createMicroreact</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">microreact_files</span><span class="p">,</span> <span class="n">api_key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a .microreact file, and instance via the API</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        prefix (str)</span>
+<span class="sd">            Prefix for output file</span>
+<span class="sd">        microreact_files (str)</span>
+<span class="sd">            List of Microreact files [clusters, dot, tree, mst_tree]</span>
+<span class="sd">        api_key (str)</span>
+<span class="sd">            API key for your account</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">pkg_resources</span>
+    <span class="kn">import</span> <span class="nn">pickle</span>
+    <span class="kn">import</span> <span class="nn">requests</span>
+    <span class="kn">import</span> <span class="nn">json</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+    <span class="n">microreact_api_new_url</span> <span class="o">=</span> <span class="s2">&quot;https://microreact.org/api/projects/create&quot;</span>
+    <span class="n">description_string</span> <span class="o">=</span> <span class="s2">&quot;PopPUNK run on &quot;</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%b-</span><span class="si">%d</span><span class="s2"> %H:%M&quot;</span><span class="p">)</span>
+    <span class="c1"># Load example JSON to be modified</span>
+    <span class="k">with</span> <span class="n">pkg_resources</span><span class="o">.</span><span class="n">resource_stream</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;data/microreact_example.pkl&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">example_pickle</span><span class="p">:</span>
+        <span class="n">json_pickle</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">example_pickle</span><span class="p">)</span>
+    <span class="n">json_pickle</span><span class="p">[</span><span class="s2">&quot;meta&quot;</span><span class="p">][</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">description_string</span>
+
+    <span class="c1"># Read data in</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">microreact_files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">cluster_file</span><span class="p">:</span>
+        <span class="n">csv_string</span> <span class="o">=</span> <span class="n">cluster_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">json_pickle</span><span class="p">[</span><span class="s2">&quot;files&quot;</span><span class="p">][</span><span class="s2">&quot;data-file-1&quot;</span><span class="p">][</span><span class="s2">&quot;blob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">csv_string</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">microreact_files</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">dot_file</span><span class="p">:</span>
+        <span class="n">dot_string</span> <span class="o">=</span> <span class="n">dot_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="n">json_pickle</span><span class="p">[</span><span class="s2">&quot;files&quot;</span><span class="p">][</span><span class="s2">&quot;network-file-1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;network-file-1&quot;</span><span class="p">,</span>
+                                                  <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;network.dot&quot;</span><span class="p">,</span>
+                                                  <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;text/vnd.graphviz&quot;</span><span class="p">,</span>
+                                                  <span class="s2">&quot;blob&quot;</span><span class="p">:</span> <span class="n">dot_string</span><span class="p">}</span>
+        <span class="n">json_pickle</span><span class="p">[</span><span class="s2">&quot;networks&quot;</span><span class="p">][</span><span class="s2">&quot;network-1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Network&quot;</span><span class="p">,</span>
+                                                <span class="s2">&quot;file&quot;</span><span class="p">:</span> <span class="s2">&quot;network-file-1&quot;</span><span class="p">,</span>
+                                                <span class="s2">&quot;nodeField&quot;</span><span class="p">:</span> <span class="s2">&quot;id&quot;</span><span class="p">}</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">microreact_files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">microreact_files</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tree_file</span><span class="p">:</span>
+            <span class="n">tree_string</span> <span class="o">=</span> <span class="n">tree_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">json_pickle</span><span class="p">[</span><span class="s2">&quot;files&quot;</span><span class="p">][</span><span class="s2">&quot;tree-file-1&quot;</span><span class="p">][</span><span class="s2">&quot;blob&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree_string</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">json_pickle</span><span class="p">[</span><span class="s2">&quot;files&quot;</span><span class="p">][</span><span class="s2">&quot;tree-file-1&quot;</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.microreact&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_file</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">json_pickle</span><span class="p">,</span> <span class="n">json_file</span><span class="p">)</span>
+
+    <span class="n">url</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">api_key</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json; charset=UTF-8&quot;</span><span class="p">,</span>
+                   <span class="s2">&quot;Access-Token&quot;</span><span class="p">:</span> <span class="n">api_key</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">microreact_api_new_url</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">json_pickle</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">400</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Microreact API call failed with response &quot;</span> <span class="o">+</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Microreact API call failed with unknown response code &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">url</span></div>
+
+<div class="viewcode-block" id="outputsForPhandango"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.outputsForPhandango">[docs]</a><span class="k">def</span> <span class="nf">outputsForPhandango</span><span class="p">(</span><span class="n">combined_list</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="n">nj_tree</span><span class="p">,</span> <span class="n">mst_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span>
+                        <span class="n">queryList</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate files for Phandango</span>
+
+<span class="sd">    Write a neighbour joining tree (.tree) from core distances</span>
+<span class="sd">    and cluster assignment (.csv)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        combined_list (list)</span>
+<span class="sd">            Name of sequences being analysed. The part of the name before the first &#39;.&#39; will</span>
+<span class="sd">            be shown in the output</span>
+<span class="sd">        clustering (dict or dict of dicts)</span>
+<span class="sd">            List of cluster assignments from :func:`~PopPUNK.network.printClusters`.</span>
+<span class="sd">            Further clusterings (e.g. 1D core only) can be included by passing these as a dict.</span>
+<span class="sd">        nj_tree (str or None)</span>
+<span class="sd">            String representation of a Newick-formatted NJ tree</span>
+<span class="sd">        mst_tree (str or None)</span>
+<span class="sd">            String representation of a Newick-formatted minimum-spanning tree</span>
+<span class="sd">        outPrefix (str)</span>
+<span class="sd">            Prefix for all generated output files, which will be placed in `outPrefix` subdirectory</span>
+<span class="sd">        epiCsv (str)</span>
+<span class="sd">            A CSV containing other information, to include with the CSV of clusters</span>
+<span class="sd">        queryList (list)</span>
+<span class="sd">            Optional list of isolates that have been added as a query for colouring in the CSV.</span>
+<span class="sd">            (default = None)</span>
+<span class="sd">        overwrite (bool)</span>
+<span class="sd">            Overwrite existing output if present (default = False)</span>
+<span class="sd">        threads (int)</span>
+<span class="sd">            Number of threads to use with rapidnj</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># print clustering file</span>
+    <span class="n">writeClusterCsv</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_phandango_clusters.csv&quot;</span><span class="p">,</span>
+                    <span class="n">combined_list</span><span class="p">,</span> <span class="n">combined_list</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="s1">&#39;phandango&#39;</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span> <span class="n">queryList</span><span class="p">)</span>
+
+    <span class="c1"># write NJ tree</span>
+    <span class="k">if</span> <span class="n">nj_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">write_tree</span><span class="p">(</span><span class="n">nj_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="s2">&quot;_core_NJ.tree&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Need an NJ tree for a Phandango output&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="outputsForGrapetree"><a class="viewcode-back" href="../../api.html#PopPUNK.plot.outputsForGrapetree">[docs]</a><span class="k">def</span> <span class="nf">outputsForGrapetree</span><span class="p">(</span><span class="n">combined_list</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="n">nj_tree</span><span class="p">,</span> <span class="n">mst_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span>
+                        <span class="n">queryList</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate files for Grapetree</span>
+
+<span class="sd">    Write a neighbour joining tree (.nwk) from core distances</span>
+<span class="sd">    and cluster assignment (.csv)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        combined_list (list)</span>
+<span class="sd">            Name of sequences being analysed. The part of the name before the</span>
+<span class="sd">            first &#39;.&#39; will be shown in the output</span>
+<span class="sd">        clustering (dict or dict of dicts)</span>
+<span class="sd">            List of cluster assignments from :func:`~PopPUNK.network.printClusters`.</span>
+<span class="sd">            Further clusterings (e.g. 1D core only) can be included by passing these</span>
+<span class="sd">            as a dict.</span>
+<span class="sd">        nj_tree (str or None)</span>
+<span class="sd">            String representation of a Newick-formatted NJ tree</span>
+<span class="sd">        mst_tree (str or None)</span>
+<span class="sd">            String representation of a Newick-formatted minimum-spanning tree</span>
+<span class="sd">        outPrefix (str)</span>
+<span class="sd">            Prefix for all generated output files, which will be placed in `outPrefix`</span>
+<span class="sd">            subdirectory.</span>
+<span class="sd">        epiCsv (str)</span>
+<span class="sd">            A CSV containing other information, to include with the CSV of clusters</span>
+<span class="sd">        queryList (list)</span>
+<span class="sd">            Optional list of isolates that have been added as a query for colouring</span>
+<span class="sd">            in the CSV. (default = None)</span>
+<span class="sd">        overwrite (bool)</span>
+<span class="sd">            Overwrite existing output if present (default = False).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># print clustering file</span>
+    <span class="n">writeClusterCsv</span><span class="p">(</span><span class="n">outPrefix</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">outPrefix</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_grapetree_clusters.csv&quot;</span><span class="p">,</span>
+                    <span class="n">combined_list</span><span class="p">,</span> <span class="n">combined_list</span><span class="p">,</span> <span class="n">clustering</span><span class="p">,</span> <span class="s1">&#39;grapetree&#39;</span><span class="p">,</span> <span class="n">epiCsv</span><span class="p">,</span> <span class="n">queryList</span><span class="p">)</span>
+
+    <span class="c1"># calculate phylogeny, or copy existing microreact file</span>
+    <span class="c1"># write NJ tree</span>
+    <span class="k">if</span> <span class="n">nj_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">write_tree</span><span class="p">(</span><span class="n">nj_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="s2">&quot;_core_NJ.nwk&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span>
+
+    <span class="c1"># write MST</span>
+    <span class="k">if</span> <span class="n">mst_tree</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">write_tree</span><span class="p">(</span><span class="n">mst_tree</span><span class="p">,</span> <span class="n">outPrefix</span><span class="p">,</span> <span class="s2">&quot;_core_MST.nwk&quot;</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">)</span></div>
+</pre></div>
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../../_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>

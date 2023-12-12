@@ -1,0 +1,622 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Data quality control (--qc-db)" href="qc.html" /><link rel="prev" title="Overview" href="overview.html" />
+
+    <!-- Generated with Sphinx 7.1.2 and Furo 2023.09.10 -->
+        <title>Sketching (--create-db) - PopPUNK 2.6.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">PopPUNK 2.6.2 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo" src="_static/poppunk_v2.png" alt="Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">PopPUNK 2.6.2 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">PopPUNK documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qc.html">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_fitting.html">Fitting new models (<code class="docutils literal notranslate"><span class="pre">--fit-model</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="model_distribution.html">Distributing PopPUNK models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="query_assignment.html">Query assignment (<code class="docutils literal notranslate"><span class="pre">poppunk_assign</span></code>)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualisation.html">Creating visualisations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mst.html">Minimum spanning trees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="subclustering.html">Subclustering with PopPIPE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpu.html">Using GPUs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scripts.html">Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="poppunk_iterate.html">Iterative PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing PopPUNK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Reference documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="miscellaneous.html">Miscellaneous</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section id="sketching-create-db">
+<h1>Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)<a class="headerlink" href="#sketching-create-db" title="Permalink to this heading">#</a></h1>
+<p>The basis of all analysis is estimation of core and accessory genome distances between samples.
+PopPUNK uses genome sketching to make analysis more efficient. In previous versions we used
+mash, however the current version now requires <a class="reference external" href="https://github.com/johnlees/pp-sketchlib">pp-sketchlib</a>.</p>
+<p>This page details options related to sketching and distance calculation, and is relevant
+to both <a class="reference internal" href="query_assignment.html"><span class="doc">Query assignment (poppunk_assign)</span></a> and <a class="reference internal" href="model_fitting.html"><span class="doc">Fitting new models (--fit-model)</span></a>.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">#</a></h2>
+<p>Any input given to <code class="docutils literal notranslate"><span class="pre">--r-files</span></code> or <code class="docutils literal notranslate"><span class="pre">--q-files</span></code> will be sketched using the following
+steps:</p>
+<ol class="arabic simple">
+<li><p>Run pp-sketchlib to sketch all input genomes.</p></li>
+<li><p>(r-files only) Run <a class="reference internal" href="qc.html"><span class="doc">Data quality control (--qc-db)</span></a> on the sketches. Remove, ignore or stop, depending on <code class="docutils literal notranslate"><span class="pre">--qc-filter</span></code>.</p></li>
+<li><p>(r-files only) Calculate random match chances and add to the database.</p></li>
+<li><p>Save sketches in a HDF5 datbase (the .h5 file).</p></li>
+<li><p>(r-files only) Calculate core and accessory distances between every pair of sketches, save in .npy and .pkl.</p></li>
+<li><p>(q-files only) Calculate core and accessory distances between query and reference sketches.</p></li>
+<li><p>Report any core distances greater than <code class="docutils literal notranslate"><span class="pre">--max-a-dist</span></code> (and quit, if an r-file).</p></li>
+</ol>
+<p>To run this before <a class="reference internal" href="model_fitting.html"><span class="doc">Fitting new models (--fit-model)</span></a>, use <code class="docutils literal notranslate"><span class="pre">--create-db</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">poppunk</span> <span class="o">--</span><span class="n">create</span><span class="o">-</span><span class="n">db</span> <span class="o">--</span><span class="n">output</span> <span class="n">database</span> <span class="o">--</span><span class="n">r</span><span class="o">-</span><span class="n">files</span> <span class="n">rlist</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">8</span>
+</pre></div>
+</div>
+<p>As noted elsewhere, the input is file which lists your sample names and paths to their sequence data. This file
+has no header, is tab separated, and contains the sample name in the first column. Subsequent
+columns may contain paths to either assembled or raw read data (the type will automatically
+be inferred by checking for the presence of quality scores). Data may be gzipped or uncompressed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">MS1</span> <span class="n">ms1_assembled</span><span class="o">.</span><span class="n">fa</span>
+<span class="n">MS2</span> <span class="n">ms2_assembled</span><span class="o">.</span><span class="n">fa</span>
+<span class="n">SM14</span>        <span class="n">SM14_1</span><span class="o">.</span><span class="n">fq</span><span class="o">.</span><span class="n">gz</span> <span class="n">SM14_2</span><span class="o">.</span><span class="n">fq</span><span class="o">.</span><span class="n">gz</span>
+</pre></div>
+</div>
+<p>The rest of this page describes options to further control this process.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Sketching considers k-mers on both the forward and reverse by default, as typically
+reads and assemblies are not aligned to a single strand. For genomes where input is
+always on the same (forward) strand, as may be the case with single-stranded
+viral genomes, use the <code class="docutils literal notranslate"><span class="pre">--strand-preserved</span></code> option to ignore the reverse strand
+k-mers.</p>
+</div>
+<section id="using-pp-sketchlib-directly">
+<h3>Using pp-sketchlib directly<a class="headerlink" href="#using-pp-sketchlib-directly" title="Permalink to this heading">#</a></h3>
+<p>You can use pp-sketchlib directly to create sketches, though functionality is identical
+to doing this through PopPUNK. You will need to run both sketch and query modes to generate
+the sketch database and the distance files as in <code class="docutils literal notranslate"><span class="pre">--create-db</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sketchlib</span> <span class="n">sketch</span> <span class="o">-</span><span class="n">l</span> <span class="n">rfiles</span><span class="o">.</span><span class="n">txt</span> <span class="o">-</span><span class="n">o</span> <span class="n">database</span> <span class="o">-</span><span class="n">s</span> <span class="mi">10000</span> <span class="o">-</span><span class="n">k</span> <span class="mi">15</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">2</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">4</span>
+<span class="n">sketchlib</span> <span class="n">query</span> <span class="n">dist</span> <span class="n">database</span> <span class="o">-</span><span class="n">o</span> <span class="n">dists</span> <span class="o">--</span><span class="n">cpus</span> <span class="mi">4</span>
+</pre></div>
+</div>
+<p>You may want to do this if you anticipate trying different k-mer sizes, are using the
+databases for other purposes, or running a very large analysis where it is useful to split
+up the sketching and distance steps. Useful options include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">sketchlib</span> <span class="pre">query</span> <span class="pre">jaccard</span></code> – will output Jaccard distances at each k-mer length, rather than core and accessory distances.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--subset</span></code> – to only calculate distances for a subset of the genomes in the reference database.</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Some options have slightly different names. See the pp-sketchlib README for full details.</p>
+</div>
+</section>
+<section id="viewing-information-about-a-database">
+<span id="db-info"></span><h3>Viewing information about a database<a class="headerlink" href="#viewing-information-about-a-database" title="Permalink to this heading">#</a></h3>
+<p>Use <code class="docutils literal notranslate"><span class="pre">poppunk_info</span></code> on a HDF5 file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="n">poppunk_info</span> <span class="o">--</span><span class="n">db</span> <span class="n">e_coli</span> <span class="o">--</span><span class="n">simple</span>
+
+<span class="n">PopPUNK</span> <span class="n">database</span><span class="p">:</span>           <span class="n">ecoli</span><span class="o">.</span><span class="n">h5</span>
+<span class="n">Sketch</span> <span class="n">version</span><span class="p">:</span>                     <span class="mi">9314</span><span class="n">bda28ed25a60dd40f9b9e896c0b269500fec</span>
+<span class="n">Contains</span> <span class="n">random</span> <span class="n">matches</span><span class="p">:</span>    <span class="kc">True</span>
+<span class="n">Number</span> <span class="n">of</span> <span class="n">samples</span><span class="p">:</span>          <span class="mi">10287</span>
+<span class="n">K</span><span class="o">-</span><span class="n">mer</span> <span class="n">sizes</span><span class="p">:</span>                        <span class="mi">15</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">21</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">27</span>
+<span class="n">Sketch</span> <span class="n">size</span><span class="p">:</span>                        <span class="mi">9984</span>
+</pre></div>
+</div>
+<p>Sketch size is always rounded to the nearest 64.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The sketch version should match between databases you are comparing, but the program
+will still run with a warning if they don’t. Check results carefully.</p>
+</div>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--simple</span></code> to get further information for every sample (<code class="docutils literal notranslate"><span class="pre">--output</span></code>
+to save results to a file; <code class="docutils literal notranslate"><span class="pre">--network</span></code> to use a non-default network file):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Sample</span><span class="p">,</span><span class="n">Length</span><span class="p">,</span><span class="n">Missing_bases</span><span class="p">,</span><span class="n">Frequency_A</span><span class="p">,</span><span class="n">Frequency_C</span><span class="p">,</span><span class="n">Frequency_G</span><span class="p">,</span><span class="n">Frequency_T</span><span class="p">,</span><span class="n">Component_label</span><span class="p">,</span><span class="n">Component_size</span><span class="p">,</span><span class="n">Node_degree</span>
+<span class="mi">11657_5</span><span class="c1">#1,4673808,2879,0.24679,0.257679,0.249401,0.24555,0,258,15</span>
+<span class="mi">11657_5</span><span class="c1">#10,4702152,4024,0.244373,0.252315,0.252617,0.249008,1,17,5</span>
+<span class="mi">11657_5</span><span class="c1">#12,5024448,5852,0.247563,0.245727,0.255955,0.24988,2,464,445</span>
+<span class="mi">11657_5</span><span class="c1">#13,5180468,5010,0.248152,0.251625,0.254893,0.244739,3,784,733</span>
+<span class="mi">11657_5</span><span class="c1">#14,5329972,13419,0.243371,0.260128,0.251946,0.244246,4,177,128</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="choosing-the-right-k-mer-lengths">
+<span id="kmer-length"></span><h2>Choosing the right k-mer lengths<a class="headerlink" href="#choosing-the-right-k-mer-lengths" title="Permalink to this heading">#</a></h2>
+<p>To get a sensitive estimate of accessory distance independent from core
+distance, a small a k-mer size as possible needs to be included in the fit.
+However, for longer genomes too small a k-mer size will result in biased
+estimates of distances as small k-mers will match at random. pp-sketchlib now
+includes a correction for random matches, but there is still a lower limit at
+which this can work. A simple formula for estimating this is:</p>
+<div class="math-wrapper docutils container">
+<div class="math notranslate nohighlight">
+\[\begin{split}r &amp;= 1 - (1 - 2 \cdot 4^{-k})^{-l} \\
+J_r &amp;= \frac{r^2}{2r - r^2}\end{split}\]</div>
+</div>
+<p>where <span class="math notranslate nohighlight">\(k\)</span> is the k-mer length, <span class="math notranslate nohighlight">\(l\)</span> is the length of the genome and <span class="math notranslate nohighlight">\(J_r\)</span>
+is the Jaccard distance expected by chance. When <span class="math notranslate nohighlight">\(J_r\)</span> approaches 1, estimation will
+begin to fail.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For genomes on a single strand, the factor of two in the first formula above
+should be excluded.</p>
+</div>
+<p>At the other end, choosing a <span class="math notranslate nohighlight">\(k\)</span> which is too long will result in all k-mers
+mismatching. The greater the core distance <span class="math notranslate nohighlight">\(\pi\)</span>, the lower the allowable maximum.</p>
+<p>Some k-mer ranges for <code class="docutils literal notranslate"><span class="pre">--min-k</span></code> and <code class="docutils literal notranslate"><span class="pre">--max-k</span></code> we have found to work for various genomes:</p>
+<div class="table-wrapper colwidths-auto docutils container" id="id1">
+<table class="docutils align-center" id="id1">
+<caption><span class="caption-text">k-mer lengths by domain</span><a class="headerlink" href="#id1" title="Permalink to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Domain/pathogen</p></th>
+<th class="head"><p>Typical <span class="math notranslate nohighlight">\(l\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(\pi\)</span></p></th>
+<th class="head"><p>min-k</p></th>
+<th class="head"><p>max-k</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Beta-coronaviruses</p></td>
+<td><p>20kb</p></td>
+<td><p>0.1</p></td>
+<td><p>6</p></td>
+<td><p>15</p></td>
+</tr>
+<tr class="row-odd"><td><p>Bacteria</p></td>
+<td><p>2-5Mb</p></td>
+<td><p>~0.01-0.04</p></td>
+<td><p>13</p></td>
+<td><p>29</p></td>
+</tr>
+<tr class="row-even"><td><p>Fungi</p></td>
+<td><p>16Mb</p></td>
+<td><p>~0.01</p></td>
+<td><p>15</p></td>
+<td><p>31</p></td>
+</tr>
+<tr class="row-odd"><td><p>Plasmodium</p></td>
+<td><p>23Mb</p></td>
+<td><p>0.0005</p></td>
+<td><p>17</p></td>
+<td><p>31</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A <code class="docutils literal notranslate"><span class="pre">--k-step</span></code> of four is usually sufficient, but drop this to two or three
+to give the best accuracy at the expense of increased execution time.</p>
+<p>A good model will have a straight line fit between <span class="math notranslate nohighlight">\(\log(J)\)</span> and <span class="math notranslate nohighlight">\(k\)</span>. Run
+with the <code class="docutils literal notranslate"><span class="pre">--plot-fit</span></code> option to randomly choose a number
+of sample pairs to plot the relation between k-mer distances and core and
+accessory fits. This plot does not have to be perfectly straight, but the general trend
+should be followed. If you have a point at the end going off the scale, you will want to adjust
+your k-mer range.</p>
+<img alt="A fixed fit to k-mer distances" class="align-center" src="_images/kmer_fit.png" />
+<section id="choosing-the-sketch-size">
+<h3>Choosing the sketch size<a class="headerlink" href="#choosing-the-sketch-size" title="Permalink to this heading">#</a></h3>
+<p>The default sketch size <span class="math notranslate nohighlight">\(s\)</span> is 10000. Note that this is 10-fold greater than the mash
+default of 1000 – this is required to get sufficient resolution on <span class="math notranslate nohighlight">\(\pi\)</span>. For closely
+related genomes with smaller <span class="math notranslate nohighlight">\(\pi\)</span>, you may need to increase the sketch size.</p>
+<p>As a rule of thumb, choose <span class="math notranslate nohighlight">\(s = \frac{1}{\pi}\)</span> based on the minimum resolution
+in <span class="math notranslate nohighlight">\(\pi\)</span> you need to observe.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Any Jaccard distances <span class="math notranslate nohighlight">\(&lt; \frac{5}{s}\)</span> will be
+ignored in the fit of core and accessory distances. This prevents spurious
+matches between very close sketches dominating, when a poor minimum k-mer length
+has been chosen.</p>
+</div>
+<p>Note that a larger sketch size will result in a linear increase in database size
+and distance calculation time.</p>
+</section>
+</section>
+<section id="sketching-from-read-data">
+<h2>Sketching from read data<a class="headerlink" href="#sketching-from-read-data" title="Permalink to this heading">#</a></h2>
+<p>You can also use sequence reads rather than assemblies as input. The main differences are that
+this data is typically a lot larger, and may contain false k-mers as the result of sequencing
+errors.</p>
+<p>Read data is automatically detected for each input file. It may be interleaved, or given
+as forward and reverse reads. Low frequency k-mers, which are assumed to be the result
+of sequencing error, will be filtered out automatically. Use the <code class="docutils literal notranslate"><span class="pre">--min-kmer-count</span></code> option
+to set the minimum number of k-mers needed to be observed to include these. Most error
+k-mers will appear only once, but ideally set this somewhere between 1 and the coverage:</p>
+<img alt="Histogram of k-mers from sequence reads" class="align-center" src="_images/13mer_hist.png" />
+<p>In this example the coverage is around 150x, so most correct k-mers have a frequency
+centred around this point (there is a second peak at twice this value, which are
+repeats). There is a large peak at a frequency of one, which are the error k-mers. In this
+example any filter between 15-75 would be appropriate.</p>
+<p>The default filter is a probabilistic countmin filter, assuming up to 134M unique k-mers. If you expect
+significantly more k-mers than this, for example with longer genomes, you should add
+the <code class="docutils literal notranslate"><span class="pre">--exact-count</span></code> argument to use a hash table instead. This is exact, but may
+use more memory.</p>
+</section>
+<section id="sketching-rna-viruses">
+<h2>Sketching RNA viruses<a class="headerlink" href="#sketching-rna-viruses" title="Permalink to this heading">#</a></h2>
+<p>Firstly, if your viral genomes are single stranded, you probably need to add the
+<code class="docutils literal notranslate"><span class="pre">--strand-preserved</span></code> option.</p>
+<p>For small genomes where strong selection is present, in the example here shown with influenza genomes, the third codon bias may be so
+great that 6-mers (or any multiple of three) have fewer matches than 7-mers.
+In a mostly coding genome the third codon position across a gene is more free to mutate, as it
+can cause non-synonymous changes, whereas the first and second codons always cause coding changes. This
+can cause issues with the core-accessory regression pushing some core distances to 0:</p>
+<img alt="RNA virus with dense seeds" class="align-center" src="_images/flu_unphased.png" />
+<p>A solution to this is to use k-mers with spaced seeds, where only every third base
+is added to the k-mer. This prevents multiples of the codon size lining up with heavily mutated
+bases.</p>
+<div class="table-wrapper colwidths-auto docutils container" id="id2">
+<table class="docutils align-center" id="id2">
+<caption><span class="caption-text">Codon phased seeds</span><a class="headerlink" href="#id2" title="Permalink to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>k-mer</p></th>
+<th class="head"><p>dense</p></th>
+<th class="head"><p>Phased seed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>XXX</p></td>
+<td><p>X–X–X</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>XXXX</p></td>
+<td><p>X–X–X–X</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>XXXXX</p></td>
+<td><p>X–X–X–X–X</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Add the <code class="docutils literal notranslate"><span class="pre">--codon-phased</span></code> option to enable this. This fixes the above example:</p>
+<img alt="RNA virus with codon phased seeds" class="align-center" src="_images/flu_phased.png" />
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using a database constructed with codon phased seeds for <a class="reference internal" href="query_assignment.html"><span class="doc">Query assignment (poppunk_assign)</span></a>,
+codon phased seeds will automatically be turned on for the query sequences too.</p>
+</div>
+</section>
+<section id="gpu-acceleration">
+<h2>GPU acceleration<a class="headerlink" href="#gpu-acceleration" title="Permalink to this heading">#</a></h2>
+<p>There are two pieces of heavy computation that can be accelerated with the use of a CUDA-enabled
+GPU:</p>
+<ul class="simple">
+<li><p>Sketching read data <code class="docutils literal notranslate"><span class="pre">--gpu-sketch</span></code>.</p></li>
+<li><p>Calculating core and accessory distances <code class="docutils literal notranslate"><span class="pre">--gpu-dist</span></code>.</p></li>
+</ul>
+<p>We assume you have a GPU of at least compute capability v7.0 (Tesla) with drivers
+correctly installed. You do not need the CUDA toolkit installed, as all libraries are
+included with the pp-sketchlib executable.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You will see ‘GPU’ in the progress message if a GPU is successfully being used. If you
+see the usual CPU version your install may not have been compiled with CUDA.</p>
+</div>
+<p>Sketching read data with the GPU is a hybrid algorithm which can take advantage of
+CPU threads too (which are used to read and process the fastq files). You can add
+up to around 16 <code class="docutils literal notranslate"><span class="pre">--threads</span></code> to keep a typical consumer GPU busy. The sequence data
+must fit in device memory, along with a 2Gb countmin filter. The countmin filter
+is 134M entries wide. If you expect your reads to have more unique k-mers than this
+you may see an increased error rate.</p>
+<p>Typical output will look like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Sketching</span> <span class="mi">128</span> <span class="n">read</span> <span class="n">sets</span> <span class="n">on</span> <span class="n">GPU</span> <span class="n">device</span> <span class="mi">0</span>
+<span class="n">also</span> <span class="n">using</span> <span class="mi">16</span> <span class="n">CPU</span> <span class="n">cores</span>
+<span class="n">Sketching</span> <span class="n">batch</span><span class="p">:</span> <span class="mi">1</span> <span class="n">of</span> <span class="mi">9</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">Sketching</span> <span class="n">batch</span><span class="p">:</span> <span class="mi">2</span> <span class="n">of</span> <span class="mi">9</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="n">k</span> <span class="o">=</span> <span class="mi">29</span>   <span class="p">(</span><span class="mi">100</span><span class="o">%</span><span class="p">)</span>
+<span class="o">....</span>
+</pre></div>
+</div>
+<p>Calculating distances with the GPU will give slightly different results to CPU distances,
+but typically within 1%, which should not usually affect downstream results. The sketches,
+random matches and distances must fit in the device memory. Around 35k bacterial genomes
+uses around 10Gb of device memory, typical for a high-end consumer device. If the device memory
+is exceeded the calculation will automatically be split into chunks, at only slightly reduced
+efficiency. The amount of memory available and needed will be estimated at the start:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Calculating</span> <span class="n">distances</span> <span class="n">on</span> <span class="n">GPU</span> <span class="n">device</span> <span class="mi">0</span>
+<span class="n">Estimated</span> <span class="n">device</span> <span class="n">memory</span> <span class="n">required</span><span class="p">:</span> <span class="mi">565</span><span class="n">Mb</span>
+<span class="n">Total</span> <span class="n">device</span> <span class="n">memory</span><span class="p">:</span> <span class="mi">11019</span><span class="n">Mb</span>
+<span class="n">Free</span> <span class="n">device</span> <span class="n">memory</span><span class="p">:</span> <span class="mi">10855</span><span class="n">Mb</span>
+<span class="n">Progress</span> <span class="p">(</span><span class="n">GPU</span><span class="p">):</span> <span class="mf">100.0</span><span class="o">%</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The GPU which is device 0 will be used by default. If you wish to target another
+GPU, use the <code class="docutils literal notranslate"><span class="pre">--deviceid</span></code> option. This may be important on computing clusters
+where you must use your job’s allocated GPU.</p>
+</div>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="qc.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Data quality control (<code class="docutils literal notranslate"><span class="pre">--qc-db</span></code>)</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="overview.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Overview</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2018-2023, John Lees and Nicholas Croucher
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Sketching (<code class="docutils literal notranslate"><span class="pre">--create-db</span></code>)</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a><ul>
+<li><a class="reference internal" href="#using-pp-sketchlib-directly">Using pp-sketchlib directly</a></li>
+<li><a class="reference internal" href="#viewing-information-about-a-database">Viewing information about a database</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#choosing-the-right-k-mer-lengths">Choosing the right k-mer lengths</a><ul>
+<li><a class="reference internal" href="#choosing-the-sketch-size">Choosing the sketch size</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sketching-from-read-data">Sketching from read data</a></li>
+<li><a class="reference internal" href="#sketching-rna-viruses">Sketching RNA viruses</a></li>
+<li><a class="reference internal" href="#gpu-acceleration">GPU acceleration</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=1fc3131f"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    </body>
+</html>
