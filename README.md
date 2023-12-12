@@ -85,13 +85,17 @@ conda config --add channels conda-forge
 
 ## Quick usage
 
-See the [overview](https://poppunk.bacpop.org/overview.html) first.
+See the [overview](https://poppunk.bacpop.org/overview.html) first. There are two ways of running:
 
-Two ways of running:
+### With a supported species
 
-- 1) Download an [existing database](https://www.bacpop.org/poppunk/) 2) [Run assignment](https://poppunk.bacpop.org/query_assignment.html).
-- OR 1) [Create sketches of input](https://poppunk.bacpop.org/sketching.html),
-2) [Run QC](https://poppunk.bacpop.org/qc.html) 3) [Build a model](https://poppunk.bacpop.org/model_fitting.html).
+1) Download an [existing database](https://www.bacpop.org/poppunk/).
+2) [Run assignment](https://poppunk.bacpop.org/query_assignment.html).
+
+### With a new species.
+1) [Create sketches of input](https://poppunk.bacpop.org/sketching.html).
+2) [Run QC](https://poppunk.bacpop.org/qc.html).
+3) [Build a model](https://poppunk.bacpop.org/model_fitting.html).
 
 ## Docker image
 
