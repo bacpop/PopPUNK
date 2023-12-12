@@ -24,6 +24,11 @@ jobs:
         retention-days: 1
 
   deploy:
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
     needs: build
 
     environment:
