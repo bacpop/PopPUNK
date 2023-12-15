@@ -1468,8 +1468,11 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     if oldClusterFile != None:
         oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
         oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
-        new_id = len(oldClusters.keys()) + 1 # 1-indexed
-        while new_id in oldClusters:
+        # parse all previously used clusters, including those that are merged
+        parsed_oldClusters = set([int(item) for sublist in (x.split('_') for x in oldClusters) for item in sublist])
+        
+        new_id = max(parsed_oldClusters) + 1 # 1-indexed
+        while new_id in parsed_oldClusters:
             new_id += 1 # in case clusters have been merged
 
         # Samples in previous clustering
