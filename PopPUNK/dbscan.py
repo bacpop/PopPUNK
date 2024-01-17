@@ -9,7 +9,9 @@ import sys
 # hdbscan
 import hdbscan
 
-def fitDbScan(X, min_samples, min_cluster_size, cache_out):
+from .utils import check_and_set_gpu
+
+def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
     """Function to fit DBSCAN model as an alternative to the Gaussian
 
     Fits the DBSCAN model to the distances using hdbscan
@@ -23,6 +25,8 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out):
             Minimum number of points in a cluster for HDBSCAN
         cache_out (str)
             Prefix for DBSCAN cache used for refitting
+        use_gpu (bool)
+            Whether GPU algorithms should be used in DBSCAN fitting
 
     Returns:
         hdb (hdbscan.HDBSCAN)
@@ -32,14 +36,34 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out):
         n_clusters (int)
             Number of clusters used
     """
+    # Check on initialisation of GPU libraries and memory
+    try:
+        import cudf
+        from cuml import cluster
+        gpu_lib = True
+    except ImportError as e:
+        gpu_lib = False
+    # check on GPU
+    use_gpu = check_and_set_gpu(use_gpu,
+                                gpu_lib,
+                                quit_on_fail = True)
     # set DBSCAN clustering parameters
-    hdb = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
-                     min_samples = min_samples,
-                     #core_dist_n_jobs = threads, # may cause error, see #19
-                     memory = cache_out,
-                     prediction_data = True,
-                     min_cluster_size = min_cluster_size
-                     ).fit(X)
+    if use_gpu:
+      sys.stderr.write('Fitting HDBSCAN model using a GPU')
+      hdb = cluster.HDBSCAN(min_samples = min_samples,
+                                 #core_dist_n_jobs = threads, # may cause error, see #19
+                                 prediction_data = True,
+                                 min_cluster_size = min_cluster_size
+                                 ).fit(X)
+    else:
+      sys.stderr.write('Fitting HDBSCAN model using a CPU')
+      hdb = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
+                       min_samples = min_samples,
+                       #core_dist_n_jobs = threads, # may cause error, see #19
+                       memory = cache_out,
+                       prediction_data = True,
+                       min_cluster_size = min_cluster_size
+                       ).fit(X)
     # Number of clusters in labels, ignoring noise if present.
     labels = hdb.labels_
     n_clusters = len(set(labels)) - (1 if -1 in labels else 0)

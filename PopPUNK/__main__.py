@@ -182,6 +182,7 @@ def get_options():
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
     other.add_argument('--gpu-sketch', default=False, action='store_true', help='Use a GPU when calculating sketches (read data only) [default = False]')
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
+    other.add_argument('--gpu-model', default=False, action='store_true', help='Use a GPU when fitting a model [default = False]')
     other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating networks [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
     other.add_argument('--no-plot', help='Switch off model plotting, which can be slow for large datasets',
@@ -495,7 +496,7 @@ def main():
             if args.fit_model == "dbscan":
                 model = DBSCANFit(output, max_samples = args.model_subsample)
                 model.set_threads(args.threads)
-                assignments = model.fit(distMat, args.D, args.min_cluster_prop)
+                assignments = model.fit(distMat, args.D, args.min_cluster_prop, args.gpu_model)
             # Run Gaussian model
             elif args.fit_model == "bgmm":
                 model = BGMMFit(output, max_samples = args.model_subsample)
