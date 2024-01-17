@@ -289,11 +289,10 @@ class BGMMFit(ClusterFit):
             The output prefix used for reading/writing
         max_samples (int)
             The number of subsamples to fit the model to
-
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 50000):
+    def __init__(self, outPrefix, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
@@ -469,7 +468,6 @@ class DBSCANFit(ClusterFit):
             The output prefix used for reading/writing
         max_samples (int)
             The number of subsamples to fit the model to
-
             (default = 100000)
     '''
 
