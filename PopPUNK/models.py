@@ -523,7 +523,7 @@ class DBSCANFit(ClusterFit):
             
               if use_gpu:
                   # get within strain cluster
-                  self.max_cluster_num = int(self.labels.amax()[0])
+                  self.max_cluster_num = int(self.labels.max()[0])
                   self.cluster_means = cp.full((self.n_clusters,2),0.0,dtype=float)
                   self.cluster_mins = cp.full((self.n_clusters,2),0.0,dtype=float)
                   self.cluster_maxs = cp.full((self.n_clusters,2),0.0,dtype=float)
