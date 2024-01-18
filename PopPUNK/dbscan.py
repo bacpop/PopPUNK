@@ -40,7 +40,7 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
     try:
         import cudf
         from cuml import cluster
-        import cupy
+        import cupy as cp
         gpu_lib = True
     except ImportError as e:
         gpu_lib = False
@@ -56,6 +56,9 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
                                  prediction_data = True,
                                  min_cluster_size = min_cluster_size
                                  ).fit(X)
+      # Number of clusters in labels, ignoring noise if present.
+      labels = hdb.labels_
+      n_clusters = len(cp.unique(labels[labels>-1]))
     else:
       sys.stderr.write('Fitting HDBSCAN model using a CPU\n')
       hdb = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
@@ -65,9 +68,9 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
                        prediction_data = True,
                        min_cluster_size = min_cluster_size
                        ).fit(X)
-    # Number of clusters in labels, ignoring noise if present.
-    labels = hdb.labels_
-    n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
+      # Number of clusters in labels, ignoring noise if present.
+      labels = hdb.labels_
+      n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
 
     # return model parameters
     return hdb, labels, n_clusters
