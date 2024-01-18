@@ -39,6 +39,7 @@ try:
     import cupy as cp
     from numba import cuda
     import rmm
+    from cuml import cluster
 except ImportError:
     pass
 
@@ -519,22 +520,42 @@ class DBSCANFit(ClusterFit):
 
             # Test whether model fit contains distinct clusters
             if self.n_clusters > 1 and self.n_clusters <= max_num_clusters:
-                # get within strain cluster
-                self.max_cluster_num = self.labels.max()
-                self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
-                self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
-                self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+            
+              if use_gpu:
+                  # get within strain cluster
+                  self.max_cluster_num = self.labels.max()
+                  self.cluster_means = cupy.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_mins = cupy.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_maxs = cupy.full((self.n_clusters,2),0.0,dtype=float)
 
-                for i in range(self.max_cluster_num+1):
-                    self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
-                    self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
-                    self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
+                  for i in range(self.max_cluster_num+1):
+                      self.cluster_means[i,] = [cupy.mean(self.subsampled_X[self.labels==i,0]),cupy.mean(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_mins[i,] = [cupy.min(self.subsampled_X[self.labels==i,0]),cupy.min(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_maxs[i,] = [cupy.max(self.subsampled_X[self.labels==i,0]),cupy.max(self.subsampled_X[self.labels==i,1])]
 
-                y = self.assign(self.subsampled_X, no_scale=True, progress=False)
-                self.within_label = findWithinLabel(self.cluster_means, y)
-                self.between_label = findBetweenLabel(y, self.within_label)
+                  y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = True)
+                  self.within_label = findWithinLabel(self.cluster_means, y)
+                  self.between_label = findBetweenLabel(y, self.within_label)
 
-                indistinct_clustering = evaluate_dbscan_clusters(self)
+                  indistinct_clustering = evaluate_dbscan_clusters(self)
+                  
+              else:
+                  # get within strain cluster
+                  self.max_cluster_num = self.labels.max()
+                  self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+
+                  for i in range(self.max_cluster_num+1):
+                      self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
+
+                  y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = False)
+                  self.within_label = findWithinLabel(self.cluster_means, y)
+                  self.between_label = findBetweenLabel(y, self.within_label)
+
+                  indistinct_clustering = evaluate_dbscan_clusters(self)
 
             # Alter minimum cluster size criterion
             if min_cluster_size < min_samples / 2:
@@ -624,7 +645,7 @@ class DBSCANFit(ClusterFit):
                             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
-    def assign(self, X, no_scale = False, progress = True):
+    def assign(self, X, no_scale = False, progress = True, use_gpu = False):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
@@ -632,12 +653,13 @@ class DBSCANFit(ClusterFit):
                 Core and accessory distances
             no_scale (bool)
                 Do not scale X
-
                 [default = False]
             progress (bool)
                 Show progress bar
-
                 [default = True]
+            use_gpu (bool)
+                Use GPU-enabled algorithms for clustering
+                [default = False]
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -652,34 +674,38 @@ class DBSCANFit(ClusterFit):
             if progress:
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
 
-            y = np.zeros(X.shape[0], dtype=int)
-            block_size = 5000
-            n_blocks = (X.shape[0] - 1) // block_size + 1
-            with SharedMemoryManager() as smm:
-                shm_X = smm.SharedMemory(size = X.nbytes)
-                X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
-                X_shared_array[:] = X[:]
-                X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
+            if use_gpu:
+              X_assignments = cluster.hdbscan.approximate_predict(self.hdb, X)
+              y = X_assignments.labels
+            else:
+              y = np.zeros(X.shape[0], dtype=int)
+              block_size = 5000
+              n_blocks = (X.shape[0] - 1) // block_size + 1
+              with SharedMemoryManager() as smm:
+                  shm_X = smm.SharedMemory(size = X.nbytes)
+                  X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
+                  X_shared_array[:] = X[:]
+                  X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
 
-                shm_y = smm.SharedMemory(size = y.nbytes)
-                y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
-                y_shared_array[:] = y[:]
-                y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
+                  shm_y = smm.SharedMemory(size = y.nbytes)
+                  y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
+                  y_shared_array[:] = y[:]
+                  y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
-                tqdm.set_lock(RLock())
-                process_map(partial(assign_samples,
-                            X = X_shared,
-                            y = y_shared,
-                            model = self,
-                            scale = scale,
-                            chunk_size = block_size,
-                            values = False),
-                    range(n_blocks),
-                    max_workers=self.threads,
-                    chunksize=min(10, max(1, n_blocks // self.threads)),
-                    disable=(progress == False))
+                  tqdm.set_lock(RLock())
+                  process_map(partial(assign_samples,
+                              X = X_shared,
+                              y = y_shared,
+                              model = self,
+                              scale = scale,
+                              chunk_size = block_size,
+                              values = False),
+                      range(n_blocks),
+                      max_workers=self.threads,
+                      chunksize=min(10, max(1, n_blocks // self.threads)),
+                      disable=(progress == False))
 
-                y[:] = y_shared_array[:]
+                  y[:] = y_shared_array[:]
 
         return y
 
