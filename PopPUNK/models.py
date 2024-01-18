@@ -539,10 +539,6 @@ class DBSCANFit(ClusterFit):
                       self.cluster_maxs[i,] = [cp.max(self.subsampled_X[self.labels==i,0]),cp.max(self.subsampled_X[self.labels==i,1])]
 
                   y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = True)
-                  self.within_label = findWithinLabel(self.cluster_means, y)
-                  self.between_label = findBetweenLabel(y, self.within_label)
-
-                  indistinct_clustering = evaluate_dbscan_clusters(self)
                   
               else:
                   # get within strain cluster
@@ -557,10 +553,11 @@ class DBSCANFit(ClusterFit):
                       self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
                   y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = False)
-                  self.within_label = findWithinLabel(self.cluster_means, y)
-                  self.between_label = findBetweenLabel(y, self.within_label)
-
-                  indistinct_clustering = evaluate_dbscan_clusters(self)
+              
+              # Evaluate clustering
+              self.within_label = findWithinLabel(self.cluster_means, y)
+              self.between_label = findBetweenLabel(y, self.within_label)
+              indistinct_clustering = evaluate_dbscan_clusters(self)
 
             # Alter minimum cluster size criterion
             if min_cluster_size < min_samples / 2:
