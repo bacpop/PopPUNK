@@ -524,14 +524,14 @@ class DBSCANFit(ClusterFit):
               if use_gpu:
                   # get within strain cluster
                   self.max_cluster_num = self.labels.max()
-                  self.cluster_means = cupy.full((self.n_clusters,2),0.0,dtype=float)
-                  self.cluster_mins = cupy.full((self.n_clusters,2),0.0,dtype=float)
-                  self.cluster_maxs = cupy.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_means = cp.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_mins = cp.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_maxs = cp.full((self.n_clusters,2),0.0,dtype=float)
 
                   for i in range(self.max_cluster_num+1):
-                      self.cluster_means[i,] = [cupy.mean(self.subsampled_X[self.labels==i,0]),cupy.mean(self.subsampled_X[self.labels==i,1])]
-                      self.cluster_mins[i,] = [cupy.min(self.subsampled_X[self.labels==i,0]),cupy.min(self.subsampled_X[self.labels==i,1])]
-                      self.cluster_maxs[i,] = [cupy.max(self.subsampled_X[self.labels==i,0]),cupy.max(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_means[i,] = [cp.mean(self.subsampled_X[self.labels==i,0]),cp.mean(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_mins[i,] = [cp.min(self.subsampled_X[self.labels==i,0]),cp.min(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_maxs[i,] = [cp.max(self.subsampled_X[self.labels==i,0]),cp.max(self.subsampled_X[self.labels==i,1])]
 
                   y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = True)
                   self.within_label = findWithinLabel(self.cluster_means, y)
