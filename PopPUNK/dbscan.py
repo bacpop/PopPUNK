@@ -29,7 +29,7 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
             Whether GPU algorithms should be used in DBSCAN fitting
 
     Returns:
-        hdb (hdbscan.HDBSCAN)
+        hdb (hdbscan.HDBSCAN or cuml.cluster.HDBSCAN)
             Fitted HDBSCAN to subsampled data
         labels (list)
             Cluster assignments of each sample
@@ -40,6 +40,7 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
     try:
         import cudf
         from cuml import cluster
+        import cupy
         gpu_lib = True
     except ImportError as e:
         gpu_lib = False
@@ -49,14 +50,14 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
                                 quit_on_fail = True)
     # set DBSCAN clustering parameters
     if use_gpu:
-      sys.stderr.write('Fitting HDBSCAN model using a GPU')
-      hdb = cluster.HDBSCAN(min_samples = min_samples,
-                                 #core_dist_n_jobs = threads, # may cause error, see #19
+      sys.stderr.write('Fitting HDBSCAN model using a GPU\n')
+      hdb = cluster.hdbscan.HDBSCAN(min_samples = min_samples,
+                                 output_type = 'cupy',
                                  prediction_data = True,
                                  min_cluster_size = min_cluster_size
                                  ).fit(X)
     else:
-      sys.stderr.write('Fitting HDBSCAN model using a CPU')
+      sys.stderr.write('Fitting HDBSCAN model using a CPU\n')
       hdb = hdbscan.HDBSCAN(algorithm='boruvka_balltree',
                        min_samples = min_samples,
                        #core_dist_n_jobs = threads, # may cause error, see #19
