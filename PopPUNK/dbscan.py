@@ -98,7 +98,7 @@ def evaluate_dbscan_clusters(model):
 
     # evaluate whether maxima of cluster nearest origin do not
     # overlap with minima of cluster furthest from origin
-    if core_minimum_of_between > core_maximum_of_within and \
+    if core_minimum_of_between > core_maximum_of_within or \
         accessory_minimum_of_between > accessory_maximum_of_within:
         indistinct = False
 
