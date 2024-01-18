@@ -509,8 +509,13 @@ class DBSCANFit(ClusterFit):
         min_samples = min(max(int(min_cluster_prop * self.subsampled_X.shape[0]), 10),1023)
         min_cluster_size = max(int(0.01 * self.subsampled_X.shape[0]), 10)
 
+        # Convert to cupy if using GPU to avoid implicit numpy conversion below
+        if use_gpu:
+            self.subsampled_X = cp.asarray(self.subsampled_X.shape)
+
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples and min_samples >= 10:
+            # Fit model
             self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X,
                                                                 min_samples,
                                                                 min_cluster_size,
