@@ -691,8 +691,7 @@ class DBSCANFit(ClusterFit):
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
 
             if use_gpu:
-              X_assignments = cluster.hdbscan.approximate_predict(self.hdb, X)
-              y = X_assignments.labels
+              y, y_probabilities = cluster.hdbscan.approximate_predict(self.hdb, X)
             else:
               y = np.zeros(X.shape[0], dtype=int)
               block_size = 5000
