@@ -586,7 +586,7 @@ class DBSCANFit(ClusterFit):
         elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X)
+        y = self.assign(X, use_gpu = use_gpu)
         return y
 
 
