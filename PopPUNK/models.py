@@ -509,9 +509,22 @@ class DBSCANFit(ClusterFit):
         min_samples = min(max(int(min_cluster_prop * self.subsampled_X.shape[0]), 10),1023)
         min_cluster_size = max(int(0.01 * self.subsampled_X.shape[0]), 10)
 
+        # Check on initialisation of GPU libraries and memory
         # Convert to cupy if using GPU to avoid implicit numpy conversion below
         if use_gpu:
-            self.subsampled_X = cp.asarray(self.subsampled_X.shape)
+            try:
+                import cudf
+                from cuml import cluster
+                import cupy as cp
+                gpu_lib = True
+            except ImportError as e:
+                gpu_lib = False
+            # check on GPU
+            use_gpu = check_and_set_gpu(use_gpu,
+                                gpu_lib,
+                                quit_on_fail = True)
+            if use_gpu:
+                self.subsampled_X = cp.asarray(self.subsampled_X)
 
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples and min_samples >= 10:
@@ -534,9 +547,10 @@ class DBSCANFit(ClusterFit):
                   self.cluster_maxs = cp.full((self.n_clusters,2),0.0,dtype=float)
 
                   for i in range(self.max_cluster_num+1):
-                      self.cluster_means[i,] = [cp.mean(self.subsampled_X[self.labels==i,0]),cp.mean(self.subsampled_X[self.labels==i,1])]
-                      self.cluster_mins[i,] = [cp.min(self.subsampled_X[self.labels==i,0]),cp.min(self.subsampled_X[self.labels==i,1])]
-                      self.cluster_maxs[i,] = [cp.max(self.subsampled_X[self.labels==i,0]),cp.max(self.subsampled_X[self.labels==i,1])]
+                      labelled_rows = cp.where(self.labels==i,True,False)
+                      self.cluster_means[i,] = [cp.mean(self.subsampled_X[labelled_rows,0]),cp.mean(self.subsampled_X[labelled_rows,1])]
+                      self.cluster_mins[i,] = [cp.min(self.subsampled_X[labelled_rows,0]),cp.min(self.subsampled_X[labelled_rows,1])]
+                      self.cluster_maxs[i,] = [cp.max(self.subsampled_X[labelled_rows,0]),cp.max(self.subsampled_X[labelled_rows,1])]
 
                   y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = True)
                   

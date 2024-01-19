@@ -36,20 +36,10 @@ def fitDbScan(X, min_samples, min_cluster_size, cache_out, use_gpu = False):
         n_clusters (int)
             Number of clusters used
     """
-    # Check on initialisation of GPU libraries and memory
-    try:
-        import cudf
-        from cuml import cluster
-        import cupy as cp
-        gpu_lib = True
-    except ImportError as e:
-        gpu_lib = False
-    # check on GPU
-    use_gpu = check_and_set_gpu(use_gpu,
-                                gpu_lib,
-                                quit_on_fail = True)
     # set DBSCAN clustering parameters
     if use_gpu:
+      from cuml import cluster
+      import cupy as cp
       sys.stderr.write('Fitting HDBSCAN model using a GPU\n')
       hdb = cluster.hdbscan.HDBSCAN(min_samples = min_samples,
                                  output_type = 'cupy',
