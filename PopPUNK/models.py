@@ -552,7 +552,11 @@ class DBSCANFit(ClusterFit):
                       self.cluster_mins[cp.array(i),] = [cp.min(self.subsampled_X[labelled_rows,cp.array([0])]),cp.min(self.subsampled_X[labelled_rows,cp.array([1])])]
                       self.cluster_maxs[cp.array(i),] = [cp.max(self.subsampled_X[labelled_rows,cp.array([0])]),cp.max(self.subsampled_X[labelled_rows,cp.array([1])])]
 
-                  y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = True)
+                  y = self.assign(self.subsampled_X,
+                                  no_scale=True,
+                                  progress=False,
+                                  max_batch_size = self.subsampled_X.shape[0],
+                                  use_gpu = True)
                   
               else:
                   # get within strain cluster
@@ -586,7 +590,7 @@ class DBSCANFit(ClusterFit):
         elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X, max_match_size = self.subsampled_X.shape[0], use_gpu = use_gpu)
+        y = self.assign(X, max_batch_size = self.subsampled_X.shape[0], use_gpu = use_gpu)
         return y
 
 
