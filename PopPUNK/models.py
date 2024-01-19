@@ -548,9 +548,9 @@ class DBSCANFit(ClusterFit):
 
                   for i in range(self.max_cluster_num+1):
                       labelled_rows = cp.where(self.labels==i,True,False)
-                      self.cluster_means[i,] = [cp.mean(self.subsampled_X[labelled_rows,0]),cp.mean(self.subsampled_X[labelled_rows,1])]
-                      self.cluster_mins[i,] = [cp.min(self.subsampled_X[labelled_rows,0]),cp.min(self.subsampled_X[labelled_rows,1])]
-                      self.cluster_maxs[i,] = [cp.max(self.subsampled_X[labelled_rows,0]),cp.max(self.subsampled_X[labelled_rows,1])]
+                      self.cluster_means[i,] = [cp.mean(self.subsampled_X[labelled_rows,cp.array([0])]),cp.mean(self.subsampled_X[labelled_rows,cp.array([1])])]
+                      self.cluster_mins[i,] = [cp.min(self.subsampled_X[labelled_rows,cp.array([0])]),cp.min(self.subsampled_X[labelled_rows,cp.array([1])])]
+                      self.cluster_maxs[i,] = [cp.max(self.subsampled_X[labelled_rows,cp.array([0])]),cp.max(self.subsampled_X[labelled_rows,cp.array([1])])]
 
                   y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = True)
                   
