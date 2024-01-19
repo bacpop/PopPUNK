@@ -586,7 +586,7 @@ class DBSCANFit(ClusterFit):
         elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X, max_batch_size = max_match_size = self.subsampled_X.shape[0], use_gpu = use_gpu)
+        y = self.assign(X, max_match_size = self.subsampled_X.shape[0], use_gpu = use_gpu)
         return y
 
 
