@@ -583,7 +583,7 @@ class DBSCANFit(ClusterFit):
             self.fitted = False
             sys.stderr.write("Failed to find distinct clusters in this dataset\n")
             sys.exit(1)
-        else:
+        else if not use_gpu:
             shutil.rmtree(cache_out)
 
         y = self.assign(X)
