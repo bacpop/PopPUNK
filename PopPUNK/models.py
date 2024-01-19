@@ -586,7 +586,7 @@ class DBSCANFit(ClusterFit):
         elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X, use_gpu = use_gpu)
+        y = self.assign(X, max_batch_size = max_match_size = self.subsampled_X.shape[0], use_gpu = use_gpu)
         return y
 
 
@@ -661,7 +661,7 @@ class DBSCANFit(ClusterFit):
                             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
-    def assign(self, X, no_scale = False, progress = True, use_gpu = False):
+    def assign(self, X, no_scale = False, progress = True, max_batch_size = 5000, use_gpu = False):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
@@ -673,6 +673,9 @@ class DBSCANFit(ClusterFit):
             progress (bool)
                 Show progress bar
                 [default = True]
+            max_batch_size (int)
+                Batch size used for GPU assignments
+                [default = 5000]
             use_gpu (bool)
                 Use GPU-enabled algorithms for clustering
                 [default = False]
@@ -692,7 +695,7 @@ class DBSCANFit(ClusterFit):
 
             if use_gpu:
               y = np.zeros(X.shape[0], dtype=int)
-              block_size = 500000
+              block_size = max_batch_size
               n_blocks = (X.shape[0] - 1) // block_size + 1
               for block in range(n_blocks):
                   start_index = block*block_size
