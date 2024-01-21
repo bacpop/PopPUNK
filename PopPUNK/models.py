@@ -678,7 +678,7 @@ class DBSCANFit(ClusterFit):
                 Show progress bar
                 [default = True]
             max_batch_size (int)
-                Batch size used for GPU assignments
+                Batch size used for assignments
                 [default = 5000]
             use_gpu (bool)
                 Use GPU-enabled algorithms for clustering
@@ -696,10 +696,12 @@ class DBSCANFit(ClusterFit):
                 scale = self.scale
             if progress:
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
-
+            
+            # Set block size
+            block_size = max_batch_size
+            
             if use_gpu:
               y = np.zeros(X.shape[0], dtype=int)
-              block_size = max_batch_size
               n_blocks = (X.shape[0] - 1) // block_size + 1
               for block in range(n_blocks):
                   start_index = block*block_size
@@ -709,7 +711,6 @@ class DBSCANFit(ClusterFit):
                   y[start_index:end_index] = cp.asnumpy(y_assignments)
             else:
               y = np.zeros(X.shape[0], dtype=int)
-              block_size = 5000
               n_blocks = (X.shape[0] - 1) // block_size + 1
               with SharedMemoryManager() as smm:
                   shm_X = smm.SharedMemory(size = X.nbytes)
