@@ -472,13 +472,13 @@ class DBSCANFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_batch_size = 5000, max_samples = 100000):
+    def __init__(self, outPrefix, use_gpu = False, max_batch_size = 5000, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
         self.preprocess = True
         self.max_batch_size = max_batch_size
         self.max_samples = max_samples
-
+        self.use_gpu = use_gpu
 
     def fit(self, X, max_num_clusters, min_cluster_prop, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
@@ -663,7 +663,8 @@ class DBSCANFit(ClusterFit):
         plot_dbscan_results(self.subsampled_X * self.scale,
                             self.assign(self.subsampled_X, no_scale=True, progress=False),
                             self.n_clusters,
-                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
+                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan",
+                            self.use_gpu)
 
 
     def assign(self, X, no_scale = False, progress = True, max_batch_size = 5000, use_gpu = False):
