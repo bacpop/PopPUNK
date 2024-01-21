@@ -527,7 +527,7 @@ class DBSCANFit(ClusterFit):
             if use_gpu:
                 self.use_gpu = True
                 self.subsampled_X = cp.asarray(self.subsampled_X)
-            else
+            else:
                 self.use_gpu = False
 
         indistinct_clustering = True
