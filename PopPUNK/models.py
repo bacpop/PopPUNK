@@ -478,7 +478,7 @@ class DBSCANFit(ClusterFit):
         self.preprocess = True
         self.max_batch_size = max_batch_size
         self.max_samples = max_samples
-        self.use_gpu = use_gpu
+        self.use_gpu = use_gpu # Updated below
 
     def fit(self, X, max_num_clusters, min_cluster_prop, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
@@ -525,7 +525,10 @@ class DBSCANFit(ClusterFit):
                                 gpu_lib,
                                 quit_on_fail = True)
             if use_gpu:
+                self.use_gpu = True
                 self.subsampled_X = cp.asarray(self.subsampled_X)
+            else
+                self.use_gpu = False
 
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples and min_samples >= 10:
@@ -660,11 +663,15 @@ class DBSCANFit(ClusterFit):
             sys.stderr.write("\t" + str(centre) + "\n")
         sys.stderr.write("\n")
 
+        # Convert to numpy for plotting
+        if self.use_gpu:
+            import cupy as cp
+            self.subsampled_X = cp.asnumpy(self.scale)
+
         plot_dbscan_results(self.subsampled_X * self.scale,
                             self.assign(self.subsampled_X, no_scale=True, progress=False),
                             self.n_clusters,
-                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan",
-                            self.use_gpu)
+                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
 
     def assign(self, X, no_scale = False, progress = True, max_batch_size = 5000, use_gpu = False):
