@@ -669,7 +669,7 @@ class DBSCANFit(ClusterFit):
             self.subsampled_X = cp.asnumpy(self.scale)
 
         plot_dbscan_results(self.subsampled_X * self.scale,
-                            self.assign(self.subsampled_X, no_scale=True, progress=False),
+                            self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu=self.use_gpu),
                             self.n_clusters,
                             self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
 
