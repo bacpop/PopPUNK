@@ -472,10 +472,11 @@ class DBSCANFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 100000):
+    def __init__(self, outPrefix, max_batch_size = 5000, max_samples = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
         self.preprocess = True
+        self.max_batch_size = max_batch_size
         self.max_samples = max_samples
 
 
@@ -590,7 +591,7 @@ class DBSCANFit(ClusterFit):
         elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X, max_batch_size = self.subsampled_X.shape[0], use_gpu = use_gpu)
+        y = self.assign(X, max_batch_size = self.max_batch_size, use_gpu = use_gpu)
         return y
 
 
