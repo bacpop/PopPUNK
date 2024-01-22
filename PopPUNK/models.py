@@ -663,6 +663,11 @@ class DBSCANFit(ClusterFit):
             sys.stderr.write("\t" + str(centre) + "\n")
         sys.stderr.write("\n")
 
+        # Harmonise scales
+        if self.use_gpu:
+            import cupy as cp
+            self.scale = cp.asarray(self.scale)
+
         plot_dbscan_results(self.subsampled_X * self.scale,
                             self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu=self.use_gpu),
                             self.n_clusters,
