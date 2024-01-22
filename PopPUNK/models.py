@@ -663,15 +663,11 @@ class DBSCANFit(ClusterFit):
             sys.stderr.write("\t" + str(centre) + "\n")
         sys.stderr.write("\n")
 
-        # Convert to numpy for plotting
-        if self.use_gpu:
-            import cupy as cp
-            self.subsampled_X = cp.asnumpy(self.scale)
-
         plot_dbscan_results(self.subsampled_X * self.scale,
                             self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu=self.use_gpu),
                             self.n_clusters,
-                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
+                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan",
+                            self.use_gpu)
 
 
     def assign(self, X, no_scale = False, progress = True, max_batch_size = 5000, use_gpu = False):
