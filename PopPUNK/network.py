@@ -1356,7 +1356,7 @@ def generate_cugraph(G_df, max_index, weights = False, renumber = True):
             Dictionary of cluster assignments (keys are sequence names)
     """
     # use self-loop to ensure all nodes are present
-    node_indices = cudf.Series(range(seq_num+1), dtype = cp.int32)
+    node_indices = cudf.Series(range(max_index+1), dtype = cp.int32)
     G_self_loop = cudf.DataFrame()
     G_self_loop['source'] = node_indices
     G_self_loop['destination'] = node_indices
