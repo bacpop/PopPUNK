@@ -1339,15 +1339,15 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
 
     return G, qqDistMat
 
-def generate_cugraph(G_df, seq_num, weights = False, renumber = True):
+def generate_cugraph(G_df, max_index, weights = False, renumber = True):
     """Builds cugraph graph to ensure all nodes are included in
     the graph, even if singletons.
 
     Args:
         G_df (cudf)
             cudf data frame containing edge list
-        seq_num (int)
-            The expected number of nodes in the graph
+        max_index (int)
+            The 0-indexed maximum of the node indices
         renumber (bool)
             Whether to renumber the vertices when added to the graph
 
@@ -1356,7 +1356,7 @@ def generate_cugraph(G_df, seq_num, weights = False, renumber = True):
             Dictionary of cluster assignments (keys are sequence names)
     """
     # use self-loop to ensure all nodes are present
-    node_indices = cudf.Series(range(seq_num), dtype = cp.int32)
+    node_indices = cudf.Series(range(seq_num+1), dtype = cp.int32)
     G_self_loop = cudf.DataFrame()
     G_self_loop['source'] = node_indices
     G_self_loop['destination'] = node_indices
