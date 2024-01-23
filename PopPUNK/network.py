@@ -678,7 +678,7 @@ def construct_network_from_edge_list(rlist,
                                         betweenness_sample = betweenness_sample_default,
                                         summarise = True,
                                         use_gpu = False):
-    """Construct an undirected network using a data frame of edges. Nodes are samples and
+    """Construct an undirected network using a list of edges as tuples. Nodes are samples and
     edges where samples are within the same cluster
 
     Will print summary statistics about the network to ``STDERR``
@@ -688,8 +688,8 @@ def construct_network_from_edge_list(rlist,
             List of reference sequence labels
         qlist (list)
             List of query sequence labels
-        G_df (cudf or pandas data frame)
-            Data frame in which the first two columns are the nodes linked by edges
+        edge_list (list of tuples)
+            List of tuples describing the edges of the graph
         weights (list)
             List of edge weights
         distMat (2 column ndarray)
@@ -735,7 +735,7 @@ def construct_network_from_edge_list(rlist,
         else:
             # Cannot generate an array when one edge
             G_df = cudf.DataFrame(columns = ['source','destination'])
-            G_df['source'] = [edge_list[0][0]]
+            G_df['source'] = [edge_list[0][0]] # This does not work
             G_df['destination'] = [edge_list[0][1]]
         if weights is not None:
             G_df['weights'] = weights
@@ -1110,28 +1110,6 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
 
     return G
 
-def get_cugraph_triangles(G):
-    """Counts the number of triangles in a cugraph
-    network. Can be removed when the cugraph issue
-    https://github.com/rapidsai/cugraph/issues/1043 is fixed.
-
-    Args:
-        G (cugraph network)
-            Network to be analysed
-
-    Returns:
-        triangle_count (int)
-            Count of triangles in graph
-    """
-    nlen = G.number_of_vertices()
-    df = G.view_edge_list()
-    df = df.drop(df[df.source == df.destination].index)
-    A = cp.full((nlen, nlen), 0, dtype = cp.int32)
-    A[df.source.values, df.destination.values] = 1
-    A = cp.maximum( A, A.transpose() )
-    triangle_count = int(cp.around(cp.trace(cp.matmul(A, cp.matmul(A, A)))/6,0))
-    return triangle_count
-
 def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sample_default,
                     use_gpu = False):
     """Provides summary values about the network
@@ -1157,8 +1135,8 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
         components = len(component_nums)
         density = G.number_of_edges()/(0.5 * G.number_of_vertices() * G.number_of_vertices() - 1)
         # need to check consistent with graph-tool
-        triangle_count = cugraph.triangle_count(G)/3
-#        triangle_count = 3*get_cugraph_triangles(G)
+        triangle_counts = cugraph.triangle_count(G)
+        triangle_count = triangle_counts['counts'].sum()/3
         degree_df = G.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
