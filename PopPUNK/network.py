@@ -163,10 +163,11 @@ def checkNetworkVertexCount(seq_list, G, use_gpu):
     if len(networkMissing) > 0:
         sys.stderr.write("ERROR: " + str(len(networkMissing)) + " samples are missing from the final network\n")
         if len(networkMissing) == 1:
-          sys.stderr.write('Missing isolate is: ' + seq_list[networkMissing[0]] + ' (index ' + str(networkMissing[0]) + ')')
+            missing_isolate_index = networkMissing.pop()
+            sys.stderr.write('Missing isolate is: ' + seq_list[missing_isolate_index] + ' (index ' + str(missing_isolate_index) + ')')
         elif len(networkMissing) < 10:
-          sys.stderr.write('Missing isolates are: ' + ' '.join([seq_list[x] for x in networkMissing]))
-          sys.stderr.write('These have the indices ' + ' '.join([str(x) for x in networkMissing]))
+            sys.stderr.write('Missing isolates are: ' + ' '.join([seq_list[x] for x in networkMissing]))
+            sys.stderr.write('These have the indices ' + ' '.join([str(x) for x in networkMissing]))
         sys.exit(1)
 
 def getCliqueRefs(G, reference_indices = set()):
