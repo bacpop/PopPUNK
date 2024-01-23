@@ -501,7 +501,7 @@ def main():
                 assignments = model.fit(distMat, args.D, args.min_cluster_prop, args.gpu_model)
             # Run Gaussian model
             elif args.fit_model == "bgmm":
-                model = BGMMFit(output, max_samples = args.model_subsample)
+                model = BGMMFit(output, max_samples = args.model_subsample, max_batch_size = args.assign_subsample)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat, args.K)
             elif args.fit_model == "refine":

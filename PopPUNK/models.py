@@ -293,12 +293,12 @@ class BGMMFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 100000):
+    def __init__(self, outPrefix, max_samples = 100000, max_batch_size = 100000):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
         self.max_samples = max_samples
-
+        self.max_batch_size = max_batch_size
 
     def fit(self, X, max_components):
         '''Extends :func:`~ClusterFit.fit`
@@ -326,7 +326,7 @@ class BGMMFit(ClusterFit):
         self.covariances = self.dpgmm.covariances_
         self.fitted = True
 
-        y = self.assign(X)
+        y = self.assign(X, max_batch_size = self.max_batch_size)
         self.within_label = findWithinLabel(self.means, y)
         self.between_label = findWithinLabel(self.means, y, 1)
         return y
@@ -384,7 +384,7 @@ class BGMMFit(ClusterFit):
         if not hasattr(self, 'subsampled_X'):
             self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
-        y_subsample = self.assign(self.subsampled_X, values=True, progress=False)
+        y_subsample = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size, values=True, progress=False)
         avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
                                                   y_subsample))
         used_components = np.unique(y).size
@@ -402,7 +402,7 @@ class BGMMFit(ClusterFit):
         plot_contours(self, y, title + " assignment boundary", outfile + "_contours")
 
 
-    def assign(self, X, values = False, progress=True):
+    def assign(self, X, max_batch_size = 100000, values = False, progress=True):
         '''Assign the clustering of new samples using :func:`~PopPUNK.bgmm.assign_samples`
 
         Args:
@@ -410,8 +410,8 @@ class BGMMFit(ClusterFit):
                 Core and accessory distances
             values (bool)
                 Return the responsibilities of assignment rather than most likely cluster
-            num_processes (int)
-                Number of threads to use
+            max_batch_size (int)
+                Size of batches to be assigned
             progress (bool)
                 Show progress bar
 
@@ -430,7 +430,7 @@ class BGMMFit(ClusterFit):
                 y = np.zeros((X.shape[0], len(self.weights)), dtype=X.dtype)
             else:
                 y = np.zeros(X.shape[0], dtype=int)
-            block_size = 100000
+            block_size = max_batch_size
             with SharedMemoryManager() as smm:
                 shm_X = smm.SharedMemory(size = X.nbytes)
                 X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
@@ -574,7 +574,11 @@ class DBSCANFit(ClusterFit):
                       self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
                       self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
-                  y = self.assign(self.subsampled_X, no_scale=True, progress=False, use_gpu = False)
+                  y = self.assign(self.subsampled_X,
+                                  no_scale=True,
+                                  progress=False,
+                                  max_batch_size = self.subsampled_X.shape[0],
+                                  use_gpu = False)
               
               # Evaluate clustering
               self.within_label = findWithinLabel(self.cluster_means, y)
