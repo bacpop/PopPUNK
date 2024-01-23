@@ -162,6 +162,8 @@ def checkNetworkVertexCount(seq_list, G, use_gpu):
     networkMissing = set(set(range(len(seq_list))).difference(vertex_list))
     if len(networkMissing) > 0:
         sys.stderr.write("ERROR: " + str(len(networkMissing)) + " samples are missing from the final network\n")
+        if len(networkMissing) < 10:
+            sys.stderr.write('Missing isolate are: ' + ' '.join(networkMissing))
         sys.exit(1)
 
 def getCliqueRefs(G, reference_indices = set()):
@@ -732,11 +734,14 @@ def construct_network_from_edge_list(rlist,
             edge_array = cp.array(edge_list, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
-        else:
+        elif len(edge_list) == 1:
             # Cannot generate an array when one edge
             G_df = cudf.DataFrame(columns = ['source','destination'])
-            G_df['source'] = [edge_list[0][0]] # This does not work
+            G_df['source'] = [edge_list[0][0]]
             G_df['destination'] = [edge_list[0][1]]
+        else:
+            sys.stderr.write('ERROR: Missing link in graph assignment')
+            sys.exit()
         if weights is not None:
             G_df['weights'] = weights
         G = construct_network_from_df(rlist, qlist, G_df,
