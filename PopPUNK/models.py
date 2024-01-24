@@ -614,7 +614,8 @@ class DBSCANFit(ClusterFit):
              means=self.cluster_means,
              maxs=self.cluster_maxs,
              mins=self.cluster_mins,
-             scale=self.scale)
+             scale=self.scale,
+             use_gpu=self.use_gpu)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.hdb, self.type], pickle_file)
 
@@ -637,6 +638,8 @@ class DBSCANFit(ClusterFit):
         self.cluster_means = fit_npz['means']
         self.cluster_maxs = fit_npz['maxs']
         self.cluster_mins = fit_npz['mins']
+        self.scale = fit_npz['scale']
+        self.use_gpu = fit_npz['use_gpu']
         self.fitted = True
 
 
@@ -687,7 +690,7 @@ class DBSCANFit(ClusterFit):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
-            X (numpy.array)
+            X (numpy.array or cupy.array)
                 Core and accessory distances
             no_scale (bool)
                 Do not scale X
