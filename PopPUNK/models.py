@@ -728,8 +728,11 @@ class DBSCANFit(ClusterFit):
                   start_index = block*block_size
                   end_index = min((block+1)*block_size-1,X.shape[0])
                   sys.stderr.write("Processing rows " + str(start_index) + " to " + str(end_index) + "\n")
-                  y_assignments, y_probabilities = cluster.hdbscan.approximate_predict(self.hdb, X[start_index:end_index,])
-                  y[start_index:end_index] = cp.asnumpy(y_assignments)
+                  # cuml v24.02 always returns numpy therefore make conversion explicit
+                  y[start_index:end_index], y_probabilities = cluster.hdbscan.approximate_predict(self.hdb,
+                                                                                                  X[start_index:end_index,],
+                                                                                                  convert_dtype = True)
+                  del y_probabilities
             else:
               y = np.zeros(X.shape[0], dtype=int)
               n_blocks = (X.shape[0] - 1) // block_size + 1
