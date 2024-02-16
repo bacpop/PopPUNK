@@ -125,7 +125,7 @@ def get_options():
     modelGroup.add_argument('--no-assign',
                             help='Fit the model without assigning all points',
                             default=False,
-                            action='store_true'))
+                            action='store_true')
     modelGroup.add_argument('--K',
                             help='Maximum number of mixture components [default = 2]',
                             type=int,
