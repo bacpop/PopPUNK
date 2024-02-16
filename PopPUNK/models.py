@@ -293,12 +293,13 @@ class BGMMFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 100000, max_batch_size = 100000):
+    def __init__(self, outPrefix, max_samples = 100000, max_batch_size = 100000, assign_points = True):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
         self.max_samples = max_samples
         self.max_batch_size = max_batch_size
+        self.assign_points = assign_points
 
     def fit(self, X, max_components):
         '''Extends :func:`~ClusterFit.fit`
@@ -325,8 +326,12 @@ class BGMMFit(ClusterFit):
         self.means = self.dpgmm.means_
         self.covariances = self.dpgmm.covariances_
         self.fitted = True
-
-        y = self.assign(X, max_batch_size = self.max_batch_size)
+        
+        # Allow for partial fitting that only assigns the subsample not the full set
+        if self.assign_points:
+            y = self.assign(X, max_batch_size = self.max_batch_size)
+        else:
+            y = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size)
         self.within_label = findWithinLabel(self.means, y)
         self.between_label = findWithinLabel(self.means, y, 1)
         return y
@@ -472,12 +477,13 @@ class DBSCANFit(ClusterFit):
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, use_gpu = False, max_batch_size = 5000, max_samples = 100000):
+    def __init__(self, outPrefix, use_gpu = False, max_batch_size = 5000, max_samples = 100000, assign_points = True):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
         self.preprocess = True
         self.max_batch_size = max_batch_size
         self.max_samples = max_samples
+        self.assign_points = assign_points
         self.use_gpu = use_gpu # Updated below
 
     def fit(self, X, max_num_clusters, min_cluster_prop, use_gpu = False):
@@ -598,7 +604,12 @@ class DBSCANFit(ClusterFit):
         elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X, max_batch_size = self.max_batch_size, use_gpu = use_gpu)
+        # Allow for partial fitting that only assigns the subsample not the full set
+        if self.assign_points:
+            y = self.assign(X, max_batch_size = self.max_batch_size, use_gpu = use_gpu)
+        else:
+            y = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size, use_gpu = use_gpu)
+
         return y
 
 
@@ -615,6 +626,7 @@ class DBSCANFit(ClusterFit):
              maxs=self.cluster_maxs,
              mins=self.cluster_mins,
              scale=self.scale,
+             assign_points = self.assign_points,
              use_gpu=self.use_gpu)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.hdb, self.type], pickle_file)
@@ -639,7 +651,16 @@ class DBSCANFit(ClusterFit):
         self.cluster_maxs = fit_npz['maxs']
         self.cluster_mins = fit_npz['mins']
         self.scale = fit_npz['scale']
-        self.use_gpu = fit_npz['use_gpu']
+        if 'use_gpu' in fit_npz.keys():
+            self.use_gpu = fit_npz['use_gpu']
+        else:
+            # Default for backwards compatibility
+            self.use_gpu = False
+        if 'assign_points' in fit_npz.keys():
+            self.assign_points = fit_npz['assign_points']
+        else:
+            # Default for backwards compatibility
+            self.assign_points = True
         self.fitted = True
 
 

@@ -114,15 +114,34 @@ def get_options():
 
     # model fitting
     modelGroup = parser.add_argument_group('Model fit options')
-    modelGroup.add_argument('--model-subsample', help='Number of pairwise distances used to fit model [default = 100000]',
-                            type=int, default=100000)
-    modelGroup.add_argument('--assign-subsample', help='Number of pairwise distances in each assignment batch [default = 5000]',
-                            type=int, default=5000)
-    modelGroup.add_argument('--K', help='Maximum number of mixture components [default = 2]', type=int, default=2)
-    modelGroup.add_argument('--D', help='Maximum number of clusters in DBSCAN fitting [default = 100]', type=int, default=100)
-    modelGroup.add_argument('--min-cluster-prop', help='Minimum proportion of points in a cluster '
-                                                        'in DBSCAN fitting [default = 0.0001]', type=float, default=0.0001)
-    modelGroup.add_argument('--threshold', help='Cutoff if using --fit-model threshold', type=float)
+    modelGroup.add_argument('--model-subsample',
+                            help='Number of pairwise distances used to fit model [default = 100000]',
+                            type=int,
+                            default=100000)
+    modelGroup.add_argument('--assign-subsample',
+                            help='Number of pairwise distances in each assignment batch [default = 5000]',
+                            type=int,
+                            default=5000)
+    modelGroup.add_argument('--no-assign',
+                            help='Fit the model without assigning all points',
+                            default=False,
+                            action='store_true'))
+    modelGroup.add_argument('--K',
+                            help='Maximum number of mixture components [default = 2]',
+                            type=int,
+                            default=2)
+    modelGroup.add_argument('--D',
+                            help='Maximum number of clusters in DBSCAN fitting [default = 100]',
+                            type=int,
+                            default=100)
+    modelGroup.add_argument('--min-cluster-prop',
+                            help='Minimum proportion of points in a cluster '
+                                 'in DBSCAN fitting [default = 0.0001]',
+                            type=float,
+                            default=0.0001)
+    modelGroup.add_argument('--threshold',
+                            help='Cutoff if using --fit-model threshold',
+                            type=float)
 
     # model refinement
     refinementGroup = parser.add_argument_group('Refine model options')
@@ -496,14 +515,24 @@ def main():
         if args.fit_model:
             # Run DBSCAN model
             if args.fit_model == "dbscan":
-                model = DBSCANFit(output, max_samples = args.model_subsample, max_batch_size = args.assign_subsample)
+                model = DBSCANFit(output,
+                                  max_samples = args.model_subsample,
+                                  max_batch_size = args.assign_subsample,
+                                  assign_points = args.no_assign)
                 model.set_threads(args.threads)
-                assignments = model.fit(distMat, args.D, args.min_cluster_prop, args.gpu_model)
+                assignments = model.fit(distMat,
+                                        args.D,
+                                        args.min_cluster_prop,
+                                        args.gpu_model)
             # Run Gaussian model
             elif args.fit_model == "bgmm":
-                model = BGMMFit(output, max_samples = args.model_subsample, max_batch_size = args.assign_subsample)
+                model = BGMMFit(output,
+                                max_samples = args.model_subsample,
+                                max_batch_size = args.assign_subsample,
+                                assign_points = args.no_assign)
                 model.set_threads(args.threads)
-                assignments = model.fit(distMat, args.K)
+                assignments = model.fit(distMat,
+                                        args.K)
             elif args.fit_model == "refine":
                 new_model = RefineFit(output)
                 new_model.set_threads(args.threads)
