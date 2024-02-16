@@ -591,6 +591,10 @@ def main():
         else:
             assignments = model.assign(distMat)
 
+        # end here if not assigning data
+        if args.no_assign:
+            sys.exit(0)
+
         #******************************#
         #*                            *#
         #* network construction       *#
