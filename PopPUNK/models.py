@@ -561,12 +561,6 @@ class DBSCANFit(ClusterFit):
                       self.cluster_means[cp.array(i),] = [cp.mean(self.subsampled_X[labelled_rows,cp.array([0])]),cp.mean(self.subsampled_X[labelled_rows,cp.array([1])])]
                       self.cluster_mins[cp.array(i),] = [cp.min(self.subsampled_X[labelled_rows,cp.array([0])]),cp.min(self.subsampled_X[labelled_rows,cp.array([1])])]
                       self.cluster_maxs[cp.array(i),] = [cp.max(self.subsampled_X[labelled_rows,cp.array([0])]),cp.max(self.subsampled_X[labelled_rows,cp.array([1])])]
-
-                  y = self.assign(self.subsampled_X,
-                                  no_scale=True,
-                                  progress=False,
-                                  max_batch_size = self.subsampled_X.shape[0],
-                                  use_gpu = True)
                   
               else:
                   # get within strain cluster
@@ -580,11 +574,12 @@ class DBSCANFit(ClusterFit):
                       self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
                       self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
-                  y = self.assign(self.subsampled_X,
-                                  no_scale=True,
-                                  progress=False,
-                                  max_batch_size = self.subsampled_X.shape[0],
-                                  use_gpu = False)
+              # Run assignment
+              y = self.assign(self.subsampled_X,
+                              no_scale=True,
+                              progress=False,
+                              max_batch_size = self.subsampled_X.shape[0],
+                              use_gpu = use_gpu)
               
               # Evaluate clustering
               self.within_label = findWithinLabel(self.cluster_means, y)
