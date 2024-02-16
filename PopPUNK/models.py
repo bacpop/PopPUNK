@@ -800,6 +800,7 @@ class RefineFit(ClusterFit):
         self.slope = 2
         self.threshold = False
         self.unconstrained = False
+        self.assign_points = True
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
             unconstrained = False, multi_boundary = 0, score_idx = 0, no_local = False,
