@@ -409,7 +409,7 @@ def assign_query_hdf5(dbFuncs,
     model.set_threads(threads)
 
     # Only proceed with a fully-fitted model
-    if not self.fitted or (hasattr(self,'assign_points') and self.assign_points == False):
+    if not model.fitted or (hasattr(model,'assign_points') and model.assign_points == False):
         sys.stderr.write('Cannot assign points with an incompletely-fitted model\n')
         sys.exit(1)
 
