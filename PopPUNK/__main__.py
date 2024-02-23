@@ -593,6 +593,7 @@ def main():
 
         # end here if not assigning data
         if args.for_refine:
+            sys.stderr.write('Initial model fit complete; points will be assigned when this model is refined\nusing "--fit-model refine"\n')
             sys.exit(0)
 
         #******************************#
