@@ -122,8 +122,8 @@ def get_options():
                             help='Number of pairwise distances in each assignment batch [default = 5000]',
                             type=int,
                             default=5000)
-    modelGroup.add_argument('--no-assign',
-                            help='Fit the model without assigning all points (only applies to BGMM and DBSCAN models)',
+    modelGroup.add_argument('--for-refine',
+                            help='Fit a BGMM or DBSCAN model without assigning all points to initialise a refined model',
                             default=False,
                             action='store_true')
     modelGroup.add_argument('--K',
@@ -518,7 +518,7 @@ def main():
                 model = DBSCANFit(output,
                                   max_samples = args.model_subsample,
                                   max_batch_size = args.assign_subsample,
-                                  assign_points = not args.no_assign)
+                                  assign_points = not args.for_refine)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat,
                                         args.D,
@@ -529,7 +529,7 @@ def main():
                 model = BGMMFit(output,
                                 max_samples = args.model_subsample,
                                 max_batch_size = args.assign_subsample,
-                                assign_points = not args.no_assign)
+                                assign_points = not args.for_refine)
                 model.set_threads(args.threads)
                 assignments = model.fit(distMat,
                                         args.K)
@@ -592,7 +592,7 @@ def main():
             assignments = model.assign(distMat)
 
         # end here if not assigning data
-        if args.no_assign:
+        if args.for_refine:
             sys.exit(0)
 
         #******************************#
