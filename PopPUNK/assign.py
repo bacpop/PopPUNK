@@ -410,7 +410,7 @@ def assign_query_hdf5(dbFuncs,
 
     # Only proceed with a fully-fitted model
     if not model.fitted or (hasattr(model,'assign_points') and model.assign_points == False):
-        sys.stderr.write('Cannot assign points with an incompletely-fitted model\n')
+        sys.stderr.write('Cannot assign points with an incompletely-fitted model\nPlease refine this initial fit with "--fit-model refine"\n')
         sys.exit(1)
 
     # Set directories of previous fit
