@@ -513,7 +513,7 @@ class DBSCANFit(ClusterFit):
 
         # DBSCAN parameters
         cache_out = "./" + self.outPrefix + "_cache"
-        min_samples = min(max(int(min_cluster_prop * self.subsampled_X.shape[0]), 10),1023)
+        min_samples = min(int(min_cluster_prop * self.subsampled_X.shape[0]), 1023)
         min_cluster_size = max(int(0.01 * self.subsampled_X.shape[0]), 10)
 
         # Check on initialisation of GPU libraries and memory
