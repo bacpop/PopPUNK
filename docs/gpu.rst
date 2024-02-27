@@ -111,4 +111,15 @@ Using a GPU
 By default, PopPUNK will use not use GPUs. To use them, you will need to add
 the flag ``--gpu-sketch`` (when constructing or querying a database using reads),
 ``--gpu-dist`` (when constructing or querying a database from assemblies or reads),
-or ``--gpu-graph`` (when querying or visualising a database, or fitting a model).
+``--gpu-model`` (when fitting a DBSCAN model on the GPU), or ``--gpu-graph``
+(when querying or visualising a database, or fitting a model).
+
+Note that fitting a model with a GPU is fast, even with a large subsample of points,
+but may be limited by the memory of the GPU device. Therefore it is recommended that
+either the model is only fitted to a subsample of points, resulting in an incomplete
+model fit that must then be refined before use (option ``--for-refine``), or that
+the transfer of data between CPU and GPU is optimised using the ``--assign-subsample``
+variable. Larger values of ``--assign-subsample`` will result in fewer batches being
+transferred to the GPU memory, speeding up the process, but also increasing the risks
+that your device will run out of memory, particularly if a large, complex model object
+is already being stored on the device.
