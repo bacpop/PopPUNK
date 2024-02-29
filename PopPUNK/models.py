@@ -39,6 +39,7 @@ try:
     import cupy as cp
     from numba import cuda
     import rmm
+    from cuml import cluster
 except ImportError:
     pass
 
@@ -290,16 +291,16 @@ class BGMMFit(ClusterFit):
             The output prefix used for reading/writing
         max_samples (int)
             The number of subsamples to fit the model to
-
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 50000):
+    def __init__(self, outPrefix, max_samples = 100000, max_batch_size = 100000, assign_points = True):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'bgmm'
         self.preprocess = True
         self.max_samples = max_samples
-
+        self.max_batch_size = max_batch_size
+        self.assign_points = assign_points
 
     def fit(self, X, max_components):
         '''Extends :func:`~ClusterFit.fit`
@@ -326,8 +327,12 @@ class BGMMFit(ClusterFit):
         self.means = self.dpgmm.means_
         self.covariances = self.dpgmm.covariances_
         self.fitted = True
-
-        y = self.assign(X)
+        
+        # Allow for partial fitting that only assigns the subsample not the full set
+        if self.assign_points:
+            y = self.assign(X, max_batch_size = self.max_batch_size)
+        else:
+            y = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size)
         self.within_label = findWithinLabel(self.means, y)
         self.between_label = findBetweenLabel_bgmm(self.means, y)
         return y
@@ -385,7 +390,7 @@ class BGMMFit(ClusterFit):
         if not hasattr(self, 'subsampled_X'):
             self.subsampled_X = utils.shuffle(X, random_state=random.randint(1,10000))[0:self.max_samples,]
 
-        y_subsample = self.assign(self.subsampled_X, values=True, progress=False)
+        y_subsample = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size, values=True, progress=False)
         avg_entropy = np.mean(np.apply_along_axis(stats.entropy, 1,
                                                   y_subsample))
         used_components = np.unique(y).size
@@ -403,7 +408,7 @@ class BGMMFit(ClusterFit):
         plot_contours(self, y, title + " assignment boundary", outfile + "_contours")
 
 
-    def assign(self, X, values = False, progress=True):
+    def assign(self, X, max_batch_size = 100000, values = False, progress=True):
         '''Assign the clustering of new samples using :func:`~PopPUNK.bgmm.assign_samples`
 
         Args:
@@ -411,8 +416,8 @@ class BGMMFit(ClusterFit):
                 Core and accessory distances
             values (bool)
                 Return the responsibilities of assignment rather than most likely cluster
-            num_processes (int)
-                Number of threads to use
+            max_batch_size (int)
+                Size of batches to be assigned
             progress (bool)
                 Show progress bar
 
@@ -431,7 +436,7 @@ class BGMMFit(ClusterFit):
                 y = np.zeros((X.shape[0], len(self.weights)), dtype=X.dtype)
             else:
                 y = np.zeros(X.shape[0], dtype=int)
-            block_size = 100000
+            block_size = max_batch_size
             with SharedMemoryManager() as smm:
                 shm_X = smm.SharedMemory(size = X.nbytes)
                 X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
@@ -470,18 +475,19 @@ class DBSCANFit(ClusterFit):
             The output prefix used for reading/writing
         max_samples (int)
             The number of subsamples to fit the model to
-
             (default = 100000)
     '''
 
-    def __init__(self, outPrefix, max_samples = 100000):
+    def __init__(self, outPrefix, use_gpu = False, max_batch_size = 5000, max_samples = 100000, assign_points = True):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'dbscan'
         self.preprocess = True
+        self.max_batch_size = max_batch_size
         self.max_samples = max_samples
+        self.assign_points = assign_points
+        self.use_gpu = use_gpu # Updated below
 
-
-    def fit(self, X, max_num_clusters, min_cluster_prop):
+    def fit(self, X, max_num_clusters, min_cluster_prop, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances with HDBSCAN and returns assignments by calling
@@ -497,6 +503,8 @@ class DBSCANFit(ClusterFit):
                 Maximum number of clusters in DBSCAN fitting
             min_cluster_prop (float)
                 Minimum proportion of points in a cluster in DBSCAN fitting
+            use_gpu (bool)
+                Whether GPU algorithms should be used in DBSCAN fitting
 
         Returns:
             y (numpy.array)
@@ -506,32 +514,79 @@ class DBSCANFit(ClusterFit):
 
         # DBSCAN parameters
         cache_out = "./" + self.outPrefix + "_cache"
-        min_samples = max(int(min_cluster_prop * self.subsampled_X.shape[0]), 10)
+        min_samples = max(int(min_cluster_prop * self.subsampled_X.shape[0]), 10) # do not allow clusters of < 10 points
+        min_samples = min(min_samples,1023) # do not allow clusters to require more than 1023 points at the start
         min_cluster_size = max(int(0.01 * self.subsampled_X.shape[0]), 10)
+
+        # Check on initialisation of GPU libraries and memory
+        # Convert to cupy if using GPU to avoid implicit numpy conversion below
+        if use_gpu:
+            try:
+                import cudf
+                from cuml import cluster
+                import cupy as cp
+                gpu_lib = True
+            except ImportError as e:
+                gpu_lib = False
+            # check on GPU
+            use_gpu = check_and_set_gpu(use_gpu,
+                                gpu_lib,
+                                quit_on_fail = True)
+            if use_gpu:
+                self.use_gpu = True
+                self.subsampled_X = cp.asarray(self.subsampled_X)
+            else:
+                self.use_gpu = False
 
         indistinct_clustering = True
         while indistinct_clustering and min_cluster_size >= min_samples and min_samples >= 10:
-            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X, min_samples, min_cluster_size, cache_out)
+            # Fit model
+            self.hdb, self.labels, self.n_clusters = fitDbScan(self.subsampled_X,
+                                                                min_samples,
+                                                                min_cluster_size,
+                                                                cache_out,
+                                                                use_gpu = use_gpu)
             self.fitted = True # needed for predict
 
             # Test whether model fit contains distinct clusters
             if self.n_clusters > 1 and self.n_clusters <= max_num_clusters:
-                # get within strain cluster
-                self.max_cluster_num = self.labels.max()
-                self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
-                self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
-                self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
+            
+              if use_gpu:
+                  # get within strain cluster
+                  self.max_cluster_num = int(self.labels.max())
+                  self.cluster_means = cp.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_mins = cp.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_maxs = cp.full((self.n_clusters,2),0.0,dtype=float)
 
-                for i in range(self.max_cluster_num+1):
-                    self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
-                    self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
-                    self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
+                  for i in range(self.max_cluster_num+1):
+                      labelled_rows = cp.where(self.labels==i,True,False)
+                      self.cluster_means[cp.array(i),] = [cp.mean(self.subsampled_X[labelled_rows,cp.array([0])]),cp.mean(self.subsampled_X[labelled_rows,cp.array([1])])]
+                      self.cluster_mins[cp.array(i),] = [cp.min(self.subsampled_X[labelled_rows,cp.array([0])]),cp.min(self.subsampled_X[labelled_rows,cp.array([1])])]
+                      self.cluster_maxs[cp.array(i),] = [cp.max(self.subsampled_X[labelled_rows,cp.array([0])]),cp.max(self.subsampled_X[labelled_rows,cp.array([1])])]
+                  
+              else:
+                  # get within strain cluster
+                  self.max_cluster_num = self.labels.max()
+                  self.cluster_means = np.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_mins = np.full((self.n_clusters,2),0.0,dtype=float)
+                  self.cluster_maxs = np.full((self.n_clusters,2),0.0,dtype=float)
 
-                y = self.assign(self.subsampled_X, no_scale=True, progress=False)
-                self.within_label = findWithinLabel(self.cluster_means, y)
-                self.between_label = findBetweenLabel(y, self.within_label)
+                  for i in range(self.max_cluster_num+1):
+                      self.cluster_means[i,] = [np.mean(self.subsampled_X[self.labels==i,0]),np.mean(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_mins[i,] = [np.min(self.subsampled_X[self.labels==i,0]),np.min(self.subsampled_X[self.labels==i,1])]
+                      self.cluster_maxs[i,] = [np.max(self.subsampled_X[self.labels==i,0]),np.max(self.subsampled_X[self.labels==i,1])]
 
-                indistinct_clustering = evaluate_dbscan_clusters(self)
+              # Run assignment
+              y = self.assign(self.subsampled_X,
+                              no_scale=True,
+                              progress=False,
+                              max_batch_size = self.subsampled_X.shape[0],
+                              use_gpu = use_gpu)
+              
+              # Evaluate clustering
+              self.within_label = findWithinLabel(self.cluster_means, y)
+              self.between_label = findBetweenLabel(y, self.within_label)
+              indistinct_clustering = evaluate_dbscan_clusters(self)
 
             # Alter minimum cluster size criterion
             if min_cluster_size < min_samples / 2:
@@ -543,10 +598,15 @@ class DBSCANFit(ClusterFit):
             self.fitted = False
             sys.stderr.write("Failed to find distinct clusters in this dataset\n")
             sys.exit(1)
-        else:
+        elif not use_gpu:
             shutil.rmtree(cache_out)
 
-        y = self.assign(X)
+        # Allow for partial fitting that only assigns the subsample not the full set
+        if self.assign_points:
+            y = self.assign(X, max_batch_size = self.max_batch_size, use_gpu = use_gpu)
+        else:
+            y = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size, use_gpu = use_gpu)
+
         return y
 
 
@@ -562,7 +622,9 @@ class DBSCANFit(ClusterFit):
              means=self.cluster_means,
              maxs=self.cluster_maxs,
              mins=self.cluster_mins,
-             scale=self.scale)
+             scale=self.scale,
+             assign_points = self.assign_points,
+             use_gpu=self.use_gpu)
             with open(self.outPrefix + "/" + os.path.basename(self.outPrefix) + '_fit.pkl', 'wb') as pickle_file:
                 pickle.dump([self.hdb, self.type], pickle_file)
 
@@ -585,6 +647,17 @@ class DBSCANFit(ClusterFit):
         self.cluster_means = fit_npz['means']
         self.cluster_maxs = fit_npz['maxs']
         self.cluster_mins = fit_npz['mins']
+        self.scale = fit_npz['scale']
+        if 'use_gpu' in fit_npz.keys():
+            self.use_gpu = fit_npz['use_gpu']
+        else:
+            # Default for backwards compatibility
+            self.use_gpu = False
+        if 'assign_points' in fit_npz.keys():
+            self.assign_points = fit_npz['assign_points']
+        else:
+            # Default for backwards compatibility
+            self.assign_points = True
         self.fitted = True
 
 
@@ -615,26 +688,40 @@ class DBSCANFit(ClusterFit):
             sys.stderr.write("\t" + str(centre) + "\n")
         sys.stderr.write("\n")
 
+        # Harmonise scales
+        if self.use_gpu:
+            import cupy as cp
+            self.scale = cp.asarray(self.scale)
+
         plot_dbscan_results(self.subsampled_X * self.scale,
-                            self.assign(self.subsampled_X, no_scale=True, progress=False),
+                            self.assign(self.subsampled_X,
+                                        max_batch_size = self.max_batch_size,
+                                        no_scale=True,
+                                        progress=False,
+                                        use_gpu=self.use_gpu),
                             self.n_clusters,
-                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan")
+                            self.outPrefix + "/" + os.path.basename(self.outPrefix) + "_dbscan",
+                            self.use_gpu)
 
 
-    def assign(self, X, no_scale = False, progress = True):
+    def assign(self, X, no_scale = False, progress = True, max_batch_size = 5000, use_gpu = False):
         '''Assign the clustering of new samples using :func:`~PopPUNK.dbscan.assign_samples_dbscan`
 
         Args:
-            X (numpy.array)
+            X (numpy.array or cupy.array)
                 Core and accessory distances
             no_scale (bool)
                 Do not scale X
-
                 [default = False]
             progress (bool)
                 Show progress bar
-
                 [default = True]
+            max_batch_size (int)
+                Batch size used for assignments
+                [default = 5000]
+            use_gpu (bool)
+                Use GPU-enabled algorithms for clustering
+                [default = False]
         Returns:
             y (numpy.array)
                 Cluster assignments by samples
@@ -648,35 +735,50 @@ class DBSCANFit(ClusterFit):
                 scale = self.scale
             if progress:
                 sys.stderr.write("Assigning distances with DBSCAN model\n")
+            
+            # Set block size
+            block_size = max_batch_size
+            
+            if use_gpu:
+              y = np.zeros(X.shape[0], dtype=int)
+              n_blocks = (X.shape[0] - 1) // block_size + 1
+              for block in range(n_blocks):
+                  start_index = block*block_size
+                  end_index = min((block+1)*block_size-1,X.shape[0])
+                  sys.stderr.write("Processing rows " + str(start_index) + " to " + str(end_index) + "\n")
+                  # cuml v24.02 always returns numpy therefore make conversion explicit
+                  y[start_index:end_index], y_probabilities = cluster.hdbscan.approximate_predict(self.hdb,
+                                                                                                  X[start_index:end_index,],
+                                                                                                  convert_dtype = True)
+                  del y_probabilities
+            else:
+              y = np.zeros(X.shape[0], dtype=int)
+              n_blocks = (X.shape[0] - 1) // block_size + 1
+              with SharedMemoryManager() as smm:
+                  shm_X = smm.SharedMemory(size = X.nbytes)
+                  X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
+                  X_shared_array[:] = X[:]
+                  X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
 
-            y = np.zeros(X.shape[0], dtype=int)
-            block_size = 5000
-            n_blocks = (X.shape[0] - 1) // block_size + 1
-            with SharedMemoryManager() as smm:
-                shm_X = smm.SharedMemory(size = X.nbytes)
-                X_shared_array = np.ndarray(X.shape, dtype = X.dtype, buffer = shm_X.buf)
-                X_shared_array[:] = X[:]
-                X_shared = NumpyShared(name = shm_X.name, shape = X.shape, dtype = X.dtype)
+                  shm_y = smm.SharedMemory(size = y.nbytes)
+                  y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
+                  y_shared_array[:] = y[:]
+                  y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
 
-                shm_y = smm.SharedMemory(size = y.nbytes)
-                y_shared_array = np.ndarray(y.shape, dtype = y.dtype, buffer = shm_y.buf)
-                y_shared_array[:] = y[:]
-                y_shared = NumpyShared(name = shm_y.name, shape = y.shape, dtype = y.dtype)
+                  tqdm.set_lock(RLock())
+                  process_map(partial(assign_samples,
+                              X = X_shared,
+                              y = y_shared,
+                              model = self,
+                              scale = scale,
+                              chunk_size = block_size,
+                              values = False),
+                      range(n_blocks),
+                      max_workers=self.threads,
+                      chunksize=min(10, max(1, n_blocks // self.threads)),
+                      disable=(progress == False))
 
-                tqdm.set_lock(RLock())
-                process_map(partial(assign_samples,
-                            X = X_shared,
-                            y = y_shared,
-                            model = self,
-                            scale = scale,
-                            chunk_size = block_size,
-                            values = False),
-                    range(n_blocks),
-                    max_workers=self.threads,
-                    chunksize=min(10, max(1, n_blocks // self.threads)),
-                    disable=(progress == False))
-
-                y[:] = y_shared_array[:]
+                  y[:] = y_shared_array[:]
 
         return y
 
@@ -700,6 +802,7 @@ class RefineFit(ClusterFit):
         self.slope = 2
         self.threshold = False
         self.unconstrained = False
+        self.assign_points = True
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
             unconstrained = False, multi_boundary = 0, score_idx = 0, no_local = False,

@@ -162,6 +162,12 @@ def checkNetworkVertexCount(seq_list, G, use_gpu):
     networkMissing = set(set(range(len(seq_list))).difference(vertex_list))
     if len(networkMissing) > 0:
         sys.stderr.write("ERROR: " + str(len(networkMissing)) + " samples are missing from the final network\n")
+        if len(networkMissing) == 1:
+            missing_isolate_index = networkMissing.pop()
+            sys.stderr.write('Missing isolate is: ' + seq_list[missing_isolate_index] + ' (index ' + str(missing_isolate_index) + ')')
+        elif len(networkMissing) < 10:
+            sys.stderr.write('Missing isolates are: ' + ' '.join([seq_list[x] for x in networkMissing]))
+            sys.stderr.write('These have the indices ' + ' '.join([str(x) for x in networkMissing]))
         sys.exit(1)
 
 def getCliqueRefs(G, reference_indices = set()):
@@ -225,7 +231,7 @@ def translate_network_indices(G_ref_df, reference_indices):
     # Translate network indices to match name order
     G_ref_df['source'] = [reference_indices.index(x) for x in G_ref_df['old_source'].to_arrow().to_pylist()]
     G_ref_df['destination'] = [reference_indices.index(x) for x in G_ref_df['old_destination'].to_arrow().to_pylist()]
-    G_ref = add_self_loop(G_ref_df, len(reference_indices) - 1, renumber = True)
+    G_ref = generate_cugraph(G_ref_df, len(reference_indices) - 1, renumber = True)
     return(G_ref)
 
 def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None,
@@ -684,7 +690,7 @@ def construct_network_from_edge_list(rlist,
                                         summarise = True,
                                         sample_size = None,
                                         use_gpu = False):
-    """Construct an undirected network using a data frame of edges. Nodes are samples and
+    """Construct an undirected network using a list of edges as tuples. Nodes are samples and
     edges where samples are within the same cluster
 
     Will print summary statistics about the network to ``STDERR``
@@ -695,7 +701,7 @@ def construct_network_from_edge_list(rlist,
         qlist (list)
             List of query sequence labels
         edge_list (list of tuples)
-            List of connections in the network
+            List of tuples describing the edges of the graph
         weights (list)
             List of edge weights
         distMat (2 column ndarray)
@@ -740,11 +746,14 @@ def construct_network_from_edge_list(rlist,
             edge_array = cp.array(edge_list, dtype = np.int32)
             edge_gpu_matrix = cuda.to_device(edge_array)
             G_df = cudf.DataFrame(edge_gpu_matrix, columns = ['source','destination'])
-        else:
+        elif len(edge_list) == 1:
             # Cannot generate an array when one edge
             G_df = cudf.DataFrame(columns = ['source','destination'])
             G_df['source'] = [edge_list[0][0]]
             G_df['destination'] = [edge_list[0][1]]
+        else:
+            sys.stderr.write('ERROR: Missing link in graph assignment')
+            sys.exit()
         if weights is not None:
             G_df['weights'] = weights
         G = construct_network_from_df(rlist, qlist, G_df,
@@ -895,7 +904,7 @@ def construct_network_from_df(rlist,
         use_weights = False
         if weights:
             use_weights = True
-        G = add_self_loop(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
+        G = generate_cugraph(G_df, max_in_vertex_labels, weights = use_weights, renumber = False)
     else:
         # Convert bool to list of weights or None
         if weights:
@@ -1032,7 +1041,7 @@ def construct_dense_weighted_network(rlist, distMat, weights_type = None, use_gp
         G_df['destination'] = [edge_list[0][1]]
         G_df['weights'] = weights
         max_in_vertex_labels = len(vertex_labels)-1
-        G = add_self_loop(G_df, max_in_vertex_labels, weights = True, renumber = False)
+        G = generate_cugraph(G_df, max_in_vertex_labels, weights = True, renumber = False)
     else:
         # Construct network with CPU via edge list
         weighted_edges = []
@@ -1174,7 +1183,9 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
         density = S.number_of_edges()/(0.5 * S.number_of_vertices() * S.number_of_vertices() - 1)
-        triangle_count = cugraph.triangle_count(S)['counts'].sum()
+        # need to check consistent with graph-tool
+        triangle_counts = cugraph.triangle_count(S)
+        triangle_count = triangle_counts['counts'].sum()/3
         degree_df = S.in_degree()
         # consistent with graph-tool
         triad_count = 0.5 * sum([d * (d - 1) for d in degree_df[degree_df['degree'] > 1]['degree'].to_pandas()])
@@ -1378,15 +1389,15 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
 
     return G, qqDistMat
 
-def add_self_loop(G_df, seq_num, weights = False, renumber = True):
-    """Adds self-loop to cugraph graph to ensure all nodes are included in
+def generate_cugraph(G_df, max_index, weights = False, renumber = True):
+    """Builds cugraph graph to ensure all nodes are included in
     the graph, even if singletons.
 
     Args:
         G_df (cudf)
             cudf data frame containing edge list
-        seq_num (int)
-            The expected number of nodes in the graph
+        max_index (int)
+            The 0-indexed maximum of the node indices
         renumber (bool)
             Whether to renumber the vertices when added to the graph
 
@@ -1395,28 +1406,20 @@ def add_self_loop(G_df, seq_num, weights = False, renumber = True):
             Dictionary of cluster assignments (keys are sequence names)
     """
     # use self-loop to ensure all nodes are present
-    min_in_df = np.amin([G_df['source'].min(), G_df['destination'].min()])
-    if min_in_df.item() > 0:
-        G_self_loop = cudf.DataFrame()
-        G_self_loop['source'] = [0]
-        G_self_loop['destination'] = [0]
-        if weights:
-            G_self_loop['weights'] = 0.0
-        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
-    max_in_df = np.amax([G_df['source'].max(),G_df['destination'].max()])
-    if max_in_df.item() != seq_num:
-        G_self_loop = cudf.DataFrame()
-        G_self_loop['source'] = [seq_num]
-        G_self_loop['destination'] = [seq_num]
-        if weights:
-            G_self_loop['weights'] = 0.0
-        G_df = cudf.concat([G_df,G_self_loop], ignore_index = True)
+    node_indices = cudf.Series(range(max_index+1), dtype = cp.int32)
+    G_self_loop = cudf.DataFrame()
+    G_self_loop['source'] = node_indices
+    G_self_loop['destination'] = node_indices
+    G_self_loop['weights'] = 0.0
+    # Build cudf
+    # Weights are needed to extract subgraphs
+    # see https://github.com/rapidsai/cugraph/blob/77d833ad/python/cugraph/cugraph/community/subgraph_extraction.py
+    if not weights:
+        G_df['weights'] = 1.0
+    G_df = cudf.concat([G_self_loop,G_df], ignore_index = True)
     # Construct graph
     G_new = cugraph.Graph()
-    if weights:
-        G_new.from_cudf_edgelist(G_df, edge_attr = 'weights', renumber = renumber)
-    else:
-        G_new.from_cudf_edgelist(G_df, renumber = renumber)
+    G_new.from_cudf_edgelist(G_df, edge_attr = 'weights', renumber = renumber)
     return G_new
 
 
@@ -1493,8 +1496,11 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     if oldClusterFile != None:
         oldAllClusters = readIsolateTypeFromCsv(oldClusterFile, mode = 'external', return_dict = False)
         oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
-        new_id = len(oldClusters.keys()) + 1 # 1-indexed
-        while new_id in oldClusters:
+        # parse all previously used clusters, including those that are merged
+        parsed_oldClusters = set([int(item) for sublist in (x.split('_') for x in oldClusters) for item in sublist])
+        
+        new_id = max(parsed_oldClusters) + 1 # 1-indexed
+        while new_id in parsed_oldClusters:
             new_id += 1 # in case clusters have been merged
 
         # Samples in previous clustering
@@ -1869,7 +1875,7 @@ def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
         G_df['destination'] = sparse_mat.col
         G_df['weights'] = sparse_mat.data
         max_in_vertex_labels = len(rlist)-1
-        G = add_self_loop(G_df, max_in_vertex_labels, weights = True, renumber = False)
+        G = generate_cugraph(G_df, max_in_vertex_labels, weights = True, renumber = False)
     else:
         connections = []
         for (src,dst) in zip(sparse_mat.row,sparse_mat.col):

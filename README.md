@@ -3,15 +3,17 @@
 <!-- badges: start -->
 [![Dev build Status](https://dev.azure.com/jlees/PopPUNK/_apis/build/status/johnlees.PopPUNK?branchName=master)](https://dev.azure.com/jlees/PopPUNK/_build/latest?definitionId=1&branchName=master)
 ![Run tests](https://github.com/bacpop/PopPUNK/workflows/Run%20tests/badge.svg)
-[![Documentation Status](https://readthedocs.org/projects/poppunk/badge/?version=latest)](https://poppunk.readthedocs.io/)
+[![Build and publish docs](https://github.com/bacpop/PopPUNK/actions/workflows/docs_push.yml/badge.svg)](https://github.com/bacpop/PopPUNK/actions/workflows/docs_push.yml)
 [![Anaconda package](https://anaconda.org/bioconda/poppunk/badges/version.svg)](https://anaconda.org/bioconda/poppunk)
 [![PyPI version](https://badge.fury.io/py/poppunk.svg)](https://badge.fury.io/py/poppunk)
 <!-- badges: end -->
 
 ## Description
 
-See the [documentation](http://poppunk.readthedocs.io/en/latest/) the
-[paper](https://doi.org/10.1101/gr.241455.118), and [databases](https://www.bacpop.org/poppunk/).
+Links:
+- [Documentation](https://poppunk.bacpop.org/)
+- [Databases](https://www.bacpop.org/poppunk/)
+- [Paper](https://doi.org/10.1101/gr.241455.118)
 
 If you find PopPUNK useful, please cite us:
 
@@ -22,11 +24,13 @@ doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 You can also run your command with `--citation` to get a [list of citations](https://poppunk.readthedocs.io/en/latest/citing.html) and a
 suggested methods paragraph.
 
-## News
+## News and roadmap
+
+The [roadmap](https://poppunk.bacpop.org/roadmap.html) can be found in the documentation.
 
 ### 2023-01-18
 
-We will retire the PopPUNK website. Databases have been expanded, and can be
+We have retired the PopPUNK website. Databases have been expanded, and can be
 found here: https://www.bacpop.org/poppunk/.
 
 ### 2022-08-04
@@ -60,9 +64,9 @@ possible, you can either:
 
 ## Installation
 
-This is for the command line version. For more details see [installation](https://poppunk.readthedocs.io/en/latest/installation.html) in the documentation.
+This is for the command line version. For more details see [installation](https://poppunk.bacpop.org/installation.html) in the documentation.
 
-There are other interfaces, in-browser and through galaxy, [detailed here](https://poppunk.net/pages/interfaces.html).
+Our (beta) web interface BeeBOP is now also available: https://beebop.dide.ic.ac.uk/
 
 ### Through conda (recommended)
 
@@ -81,8 +85,17 @@ conda config --add channels conda-forge
 
 ## Quick usage
 
-See the [quickstart](https://poppunk.readthedocs.io/en/latest/quickstart.html) guide
-for a brief tutorial.
+See the [overview](https://poppunk.bacpop.org/overview.html) first. There are two ways of running:
+
+### With a supported species
+
+1) Download an [existing database](https://www.bacpop.org/poppunk/).
+2) [Run assignment](https://poppunk.bacpop.org/query_assignment.html).
+
+### With a new species.
+1) [Create sketches of input](https://poppunk.bacpop.org/sketching.html).
+2) [Run QC](https://poppunk.bacpop.org/qc.html).
+3) [Build a model](https://poppunk.bacpop.org/model_fitting.html).
 
 ## Docker image
 

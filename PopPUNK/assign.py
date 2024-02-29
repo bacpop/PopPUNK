@@ -408,6 +408,11 @@ def assign_query_hdf5(dbFuncs,
         raise RuntimeError("lineage models cannot be used with --serial")
     model.set_threads(threads)
 
+    # Only proceed with a fully-fitted model
+    if not model.fitted or (hasattr(model,'assign_points') and model.assign_points == False):
+        sys.stderr.write('Cannot assign points with an incompletely-fitted model\nPlease refine this initial fit with "--fit-model refine"\n')
+        sys.exit(1)
+
     # Set directories of previous fit
     if previous_clustering is not None:
         prev_clustering = previous_clustering
@@ -753,7 +758,7 @@ def assign_query_hdf5(dbFuncs,
                     postpruning_combined_seq, newDistMat = \
                         prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
                                               output + "/" + os.path.basename(output) + dists_suffix)
-                    graph_suffix = file_extension_string + '_refs_graph'
+                    graph_suffix = file_extension_string + '.refs_graph'
                     save_network(genomeNetwork,
                                     prefix = output,
                                     suffix = graph_suffix,

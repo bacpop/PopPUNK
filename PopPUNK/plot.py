@@ -240,7 +240,7 @@ def plot_results(X, Y, means, covariances, scale, title, out_prefix):
     plt.savefig(out_prefix + ".png")
     plt.close()
 
-def plot_dbscan_results(X, y, n_clusters, out_prefix):
+def plot_dbscan_results(X, y, n_clusters, out_prefix, use_gpu):
     """Draw a scatter plot (png) to show the DBSCAN model fit
 
     A scatter plot of core and accessory distances, coloured by component
@@ -255,7 +255,15 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix):
             Number of clusters used (excluding noise)
         out_prefix (str)
             Prefix for output file (.png will be appended)
+        use_gpu (bool)
+            Whether model was fitted with GPU-enabled code
     """
+    # Convert data if from GPU
+    if use_gpu:
+        # Convert to numpy for plotting
+        import cupy as cp
+        X = cp.asnumpy(X)
+    
     # Black removed and is used for noise instead.
     unique_labels = set(y)
     colours = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]  # changed to work with two clusters

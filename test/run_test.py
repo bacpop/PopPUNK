@@ -31,6 +31,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model bgmm --ref-db exa
 
 #fit dbscan
 sys.stderr.write("Running DBSCAN model fit (--fit-model dbscan)\n")
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db example_db --output example_dbscan --overwrite --graph-weights --for-refine", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db example_db --output example_dbscan --overwrite --graph-weights", shell=True, check=True)
 
 #refine model with GMM

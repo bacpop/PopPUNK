@@ -8,6 +8,7 @@ import os
 import sys
 # additional
 import pickle
+import multiprocessing
 from collections import defaultdict
 from itertools import chain
 from tempfile import mkstemp
@@ -579,11 +580,12 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
 
     # Set memory management for large networks
     if use_gpu:
+        multiprocessing.set_start_method('spawn', force=True)
         rmm.reinitialize(managed_memory=True)
         if "cupy" in sys.modules:
-            cupy.cuda.set_allocator(rmm.rmm_cupy_allocator)
+            cupy.cuda.set_allocator(rmm.allocators.cupy.rmm_cupy_allocator)
         if "cuda" in sys.modules:
-            cuda.set_memory_manager(rmm.RMMNumbaManager)
+            cuda.set_memory_manager(rmm.allocators.numba.RMMNumbaManager)
         assert(rmm.is_initialized())
 
     return use_gpu
