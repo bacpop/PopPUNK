@@ -45,10 +45,36 @@ def fit2dMultiGaussian(X, dpgmm_max_K = 2):
     return dpgmm
 
 
+def findBetweenLabel_bgmm(means, assignments, rank = 0):
+    """Identify between-strain links
+
+    Finds the component with the largest number of points
+    assigned to it
+
+    Args:
+        means (numpy.array)
+            K x 2 array of mixture component means
+        assignments (numpy.array)
+            Sample cluster assignments
+        rank (int)
+            Which label to find, ordered by distance from origin. 0-indexed.
+            (default = 0)
+
+    Returns:
+        between_label (int)
+            The cluster label with the most points assigned to it
+    """
+    most_dists = {}
+    for mixture_component, distance in enumerate(np.apply_along_axis(np.linalg.norm, 1, means)):
+        most_dists[mixture_component] = np.count_nonzero(assignments == mixture_component)
+
+    sorted_dists = sorted(most_dists.items(), key=operator.itemgetter(1), reverse=True)
+    return(sorted_dists[rank][0])
+
 def findWithinLabel(means, assignments, rank = 0):
     """Identify within-strain links
 
-    Finds the component with mean closest to the origin and also akes sure
+    Finds the component with mean closest to the origin and also makes sure
     some samples are assigned to it (in the case of small weighted
     components with a Dirichlet prior some components are unused)
 
@@ -59,7 +85,6 @@ def findWithinLabel(means, assignments, rank = 0):
             Sample cluster assignments
         rank (int)
             Which label to find, ordered by distance from origin. 0-indexed.
-
             (default = 0)
 
     Returns:

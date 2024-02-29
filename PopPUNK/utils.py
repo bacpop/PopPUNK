@@ -529,7 +529,7 @@ def transformLine(s, mean0, mean1):
     return np.array([x, y])
 
 
-def decisionBoundary(intercept, gradient):
+def decisionBoundary(intercept, gradient, adj = 0.0):
     """Returns the co-ordinates where the triangle the decision boundary forms
     meets the x- and y-axes.
 
@@ -539,12 +539,19 @@ def decisionBoundary(intercept, gradient):
             which intercepts the boundary
         gradient (float)
             Gradient of the line
+        adj (float)
+            Distance by which to shift the interception point
     Returns:
         x (float)
             The x-axis intercept
         y (float)
             The y-axis intercept
     """
+    if adj != 0.0:
+        original_hypotenuse = (intercept[0]**2 + intercept[1]**2)**0.5
+        length_ratio = (original_hypotenuse + adj)/original_hypotenuse
+        intercept[0] = intercept[0] * length_ratio
+        intercept[1] = intercept[1] * length_ratio
     x = intercept[0] + intercept[1] * gradient
     y = intercept[1] + intercept[0] / gradient
     return(x, y)

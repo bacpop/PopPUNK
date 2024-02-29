@@ -153,7 +153,17 @@ def sketchlibAssemblyQC(prefix, names, qc_dict):
     import h5py
     from .sketchlib import removeFromDB
 
+    # Make user aware of all filters being used (including defaults)
     sys.stderr.write("Running QC on sketches\n")
+    if qc_dict['upper_n'] is not None:
+        sys.stderr.write("Using count cutoff for ambiguous bases: " + str(qc_dict['upper_n']) + "\n")
+    else:
+        sys.stderr.write("Using proportion cutoff for ambiguous bases: " + str(qc_dict['prop_n']) + "\n")
+    if qc_dict['length_range'][0] is None:
+        sys.stderr.write("Using standard deviation for length cutoff: " + str(qc_dict['length_sigma']) + "\n")
+    else:
+        sys.stderr.write("Using range for length cutoffs: " + str(qc_dict['length_range'][0]) + " - " + \
+                          str(qc_dict['length_range'][1]) + "\n")
 
     # open databases
     db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
@@ -245,6 +255,12 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
         failed (dict)
             List of sequences failing, and reasons
     """
+    # Make user aware of all filters being used (including defaults)
+    sys.stderr.write("Running QC on distances\n")
+    sys.stderr.write("Using cutoff for core distances: " + str(qc_dict['max_pi_dist']) + "\n")
+    sys.stderr.write("Using cutoff for accessory distances: " + str(qc_dict['max_a_dist']) + "\n")
+    sys.stderr.write("Using cutoff for proportion of zero distances: " + str(qc_dict['prop_zero']) + "\n")
+
     # Create overall list of sequences
     if refList == queryList:
         names = refList

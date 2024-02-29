@@ -51,7 +51,8 @@ from .utils import check_and_set_gpu
 def refineFit(distMat, sample_names, mean0, mean1, scale,
               max_move, min_move, slope = 2, score_idx = 0,
               unconstrained = False, no_local = False, num_processes = 1,
-              betweenness_sample = betweenness_sample_default, use_gpu = False):
+              betweenness_sample = betweenness_sample_default, sample_size = None,
+              use_gpu = False):
     """Try to refine a fit by maximising a network score based on transitivity and density.
 
     Iteratively move the decision boundary to do this, using starting point from existing model.
@@ -88,6 +89,8 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
         betweenness_sample (int)
             Number of sequences per component used to estimate betweenness using
             a GPU. Smaller numbers are faster but less precise [default = 100]
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -111,8 +114,8 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
             raise RuntimeError("Unconstrained optimization and indiv-refine incompatible")
 
         global_grid_resolution = 20
-        x_max_start, y_max_start = decisionBoundary(mean0, gradient)
-        x_max_end, y_max_end = decisionBoundary(mean1, gradient)
+        x_max_start, y_max_start = decisionBoundary(mean0, gradient, adj = -1*min_move)
+        x_max_end, y_max_end = decisionBoundary(mean1, gradient, adj = max_move)
 
         if x_max_start < 0 or y_max_start < 0:
             raise RuntimeError("Boundary range below zero")
@@ -134,6 +137,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
                                    y_range = y_max,
                                    score_idx = score_idx,
                                    betweenness_sample = betweenness_sample,
+                                   sample_size = sample_size,
                                    use_gpu = True),
                            range(global_grid_resolution))
         else:
@@ -154,6 +158,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
                                                 y_range = y_max,
                                                 score_idx = score_idx,
                                                 betweenness_sample = betweenness_sample,
+                                                sample_size = sample_size,
                                                 use_gpu = False),
                                         range(global_grid_resolution))
 
@@ -202,6 +207,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
                                         s_range,
                                         score_idx,
                                         betweenness_sample = betweenness_sample,
+                                        sample_size = sample_size,
                                         use_gpu = use_gpu))
         global_s[np.isnan(global_s)] = 1
         min_idx = np.argmin(np.array(global_s))
@@ -221,7 +227,7 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
                     method = 'Bounded', options={'disp': True},
                     args = (sample_names, distMat, mean0, mean1, gradient,
                             slope, score_idx, num_processes,
-                            betweenness_sample, use_gpu)
+                            betweenness_sample, sample_size, use_gpu)
                 )
         optimised_s = local_s.x
 
@@ -241,8 +247,9 @@ def refineFit(distMat, sample_names, mean0, mean1, scale,
     return optimal_x, optimal_y, optimised_s
 
 def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
-                 n_boundary_points, output_prefix,
-                 num_processes = 1, use_gpu = False):
+                 n_boundary_points, output_prefix, num_processes = 1,
+                 betweenness_sample = betweenness_sample_default, sample_size = None,
+                 use_gpu = False):
     """Move the refinement boundary between the optimum and where it meets an
     axis. Discrete steps, output the clusers at each step
 
@@ -264,6 +271,11 @@ def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
         num_processes (int)
             Number of threads to use in the global optimisation step.
             (default = 1)
+        betweenness_sample (int)
+            Number of sequences per component used to estimate betweenness using
+            a GPU. Smaller numbers are faster but less precise [default = 100]
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use cugraph for graph analyses
     """
@@ -295,6 +307,8 @@ def multi_refine(distMat, sample_names, mean0, mean1, scale, s_max,
                 s_range,
                 0,
                 write_clusters = output_prefix,
+                betweenness_sample = betweenness_sample,
+                sample_size = sample_size,
                 use_gpu = use_gpu)
 
 def check_search_range(scale, mean0, mean1, lower_s, upper_s):
@@ -360,7 +374,7 @@ def expand_cugraph_network(G, G_extra_df):
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
                 thread_idx = 0, betweenness_sample = betweenness_sample_default,
-                write_clusters = None, use_gpu = False):
+                write_clusters = None, sample_size = None, use_gpu = False):
     """Construct a network, then add edges to it iteratively.
     Input is from ``pp_sketchlib.iterateBoundary1D`` or``pp_sketchlib.iterateBoundary2D``
 
@@ -387,6 +401,8 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
         write_clusters (str)
             Set to a prefix to write the clusters from each position to files
             [default = None]
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use cugraph for graph analyses
 
@@ -436,6 +452,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
             G_summary = networkSummary(G,
                                 score_idx > 0,
                                 betweenness_sample = betweenness_sample,
+                                subsample = sample_size,
                                 use_gpu = use_gpu)
             latest_score = -G_summary[1][score_idx]
             for s in range(prev_idx, idx):
@@ -458,7 +475,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
 
 def newNetwork(s, sample_names, distMat, mean0, mean1, gradient,
                slope=2, score_idx=0, cpus=1, betweenness_sample = betweenness_sample_default,
-               use_gpu = False):
+               sample_size = None, use_gpu = False):
     """Wrapper function for :func:`~PopPUNK.network.construct_network_from_edge_list` which is called
     by optimisation functions moving a triangular decision boundary.
 
@@ -490,6 +507,8 @@ def newNetwork(s, sample_names, distMat, mean0, mean1, gradient,
         betweenness_sample (int)
             Number of sequences per component used to estimate betweenness using
             a GPU. Smaller numbers are faster but less precise [default = 100]
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -523,12 +542,14 @@ def newNetwork(s, sample_names, distMat, mean0, mean1, gradient,
     # Return score
     score = networkSummary(G,
                             score_idx > 0,
+                            subsample = sample_size,
                             betweenness_sample = betweenness_sample,
                             use_gpu = use_gpu)[1][score_idx]
     return(-score)
 
 def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
-                 betweenness_sample = betweenness_sample_default, use_gpu = False):
+                 betweenness_sample = betweenness_sample_default, sample_size = None,
+                 use_gpu = False):
     """Wrapper function for thresholdIterate2D and :func:`growNetwork`.
 
     For a given y_max, constructs networks across x_range and returns a list
@@ -551,6 +572,8 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
         betweenness_sample (int)
             Number of sequences per component used to estimate betweenness using
             a GPU. Smaller numbers are faster but less precise [default = 100]
+        sample_size (int)
+            Number of nodes to subsample for graph statistic calculation
         use_gpu (bool)
             Whether to use cugraph for graph analysis
 
@@ -581,6 +604,7 @@ def newNetwork2D(y_idx, sample_names, distMat, x_range, y_range, score_idx=0,
                                 score_idx,
                                 y_idx,
                                 betweenness_sample,
+                                sample_size = sample_size,
                                 use_gpu = use_gpu)
 
     return(scores)
