@@ -369,7 +369,7 @@ def expand_cugraph_network(G, G_extra_df):
     if 'src' in G_original_df.columns:
         G_original_df.columns = ['source','destination']
     G_df = cudf.concat([G_original_df,G_extra_df])
-    G = add_self_loop(G_df, G_vertex_count, weights = False, renumber = False)
+    G = generate_cugraph(G_df, G_vertex_count, weights = False, renumber = False)
     return G
 
 def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
