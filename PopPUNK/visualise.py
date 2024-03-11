@@ -378,6 +378,20 @@ def generate_visualisations(query_db,
     #*                                *#
     #**********************************#
 
+    # identify existing model and cluster files
+    if model_dir is not None:
+        model_prefix = model_dir
+    else:
+        model_prefix = ref_db
+    try:
+        model_file = os.path.join(model_prefix, os.path.basename(model_prefix))
+        model = loadClusterFit(model_file + '_fit.pkl',
+                               model_file + '_fit.npz')
+        model.set_threads(threads)
+    except FileNotFoundError:
+        sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
+        sys.exit(1)
+
     # Either use strain definitions, lineage assignments or external clustering
     isolateClustering = {}
     # Use external clustering if specified
@@ -388,20 +402,6 @@ def generate_visualisations(query_db,
                                                    return_dict = True)
 
     else:
-
-        # identify existing model and cluster files
-        if model_dir is not None:
-            model_prefix = model_dir
-        else:
-            model_prefix = ref_db
-        try:
-            model_file = os.path.join(model_prefix, os.path.basename(model_prefix))
-            model = loadClusterFit(model_file + '_fit.pkl',
-                                   model_file + '_fit.npz')
-            model.set_threads(threads)
-        except FileNotFoundError:
-            sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
-            sys.exit(1)
 
         # Load previous clusters
         if previous_clustering is not None:
