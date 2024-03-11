@@ -378,15 +378,6 @@ def generate_visualisations(query_db,
     #*                                *#
     #**********************************#
 
-    # Either use strain definitions, lineage assignments or external clustering
-    isolateClustering = {}
-    # Use external clustering if specified
-    if external_clustering:
-        cluster_file = external_clustering
-        isolateClustering = readIsolateTypeFromCsv(cluster_file,
-                                                   mode = 'external',
-                                                   return_dict = True)
-
     # identify existing model and cluster files
     if model_dir is not None:
         model_prefix = model_dir
@@ -401,25 +392,36 @@ def generate_visualisations(query_db,
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
 
-    # Load previous clusters
-    if previous_clustering is not None:
-        prev_clustering = previous_clustering
-        mode = "clusters"
-        suffix = "_clusters.csv"
-        if prev_clustering.endswith('_lineages.csv'):
-            mode = "lineages"
-            suffix = "_lineages.csv"
+    # Either use strain definitions, lineage assignments or external clustering
+    isolateClustering = {}
+    # Use external clustering if specified
+    if external_clustering:
+        cluster_file = external_clustering
+        isolateClustering = readIsolateTypeFromCsv(cluster_file,
+                                                   mode = 'external',
+                                                   return_dict = True)
+
     else:
-        # Identify type of clustering based on model
-        mode = "clusters"
-        suffix = "_clusters.csv"
-        if model.type == "lineage":
-            mode = "lineages"
-            suffix = "_lineages.csv"
-        prev_clustering = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
-    isolateClustering = readIsolateTypeFromCsv(prev_clustering,
-                                               mode = mode,
-                                               return_dict = True)
+
+        # Load previous clusters
+        if previous_clustering is not None:
+            cluster_file = previous_clustering
+            mode = "clusters"
+            suffix = "_clusters.csv"
+            if cluster_file.endswith('_lineages.csv'):
+                mode = "lineages"
+                suffix = "_lineages.csv"
+        else:
+            # Identify type of clustering based on model
+            mode = "clusters"
+            suffix = "_clusters.csv"
+            if model.type == "lineage":
+                mode = "lineages"
+                suffix = "_lineages.csv"
+            cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+        isolateClustering = readIsolateTypeFromCsv(cluster_file,
+                                                   mode = mode,
+                                                   return_dict = True)
 
     # Add individual refinement clusters if they exist
     if model.indiv_fitted:
@@ -469,7 +471,7 @@ def generate_visualisations(query_db,
                         if display_cluster not in isolateClustering.keys():
                             clustering_name = list(isolateClustering.keys())[0]
                             sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
-                                            prev_clustering + '; instead using ' + clustering_name + '\n')
+                                            cluster_file + '; instead using ' + clustering_name + '\n')
                         else:
                             clustering_name = display_cluster
                     else:
