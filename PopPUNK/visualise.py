@@ -378,15 +378,6 @@ def generate_visualisations(query_db,
     #*                                *#
     #**********************************#
 
-    # Either use strain definitions, lineage assignments or external clustering
-    isolateClustering = {}
-    # Use external clustering if specified
-    if external_clustering:
-        cluster_file = external_clustering
-        isolateClustering = readIsolateTypeFromCsv(cluster_file,
-                                                   mode = 'external',
-                                                   return_dict = True)
-
     # identify existing model and cluster files
     if model_dir is not None:
         model_prefix = model_dir
@@ -401,9 +392,16 @@ def generate_visualisations(query_db,
         sys.stderr.write('Unable to locate previous model fit in ' + model_prefix + '\n')
         sys.exit(1)
 
+    # Either use strain definitions, lineage assignments or external clustering
+    isolateClustering = {}
+    # Use external clustering if specified
+    if external_clustering:
+        mode = 'external'
+        cluster_file = external_clustering
+
     # Load previous clusters
     if previous_clustering is not None:
-        prev_clustering = previous_clustering
+        cluster_file = previous_clustering
         mode = "clusters"
         suffix = "_clusters.csv"
         if prev_clustering.endswith('_lineages.csv'):
@@ -416,8 +414,8 @@ def generate_visualisations(query_db,
         if model.type == "lineage":
             mode = "lineages"
             suffix = "_lineages.csv"
-        prev_clustering = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
-    isolateClustering = readIsolateTypeFromCsv(prev_clustering,
+        cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+    isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                mode = mode,
                                                return_dict = True)
 
