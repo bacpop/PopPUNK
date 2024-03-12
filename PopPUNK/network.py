@@ -327,10 +327,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                     # Make a graph of the component from the overall graph
                     vertices_in_component = component_assignments[component_assignments['labels']==component]['vertex']
                     references_in_component = vertices_in_component[vertices_in_component.isin(reference_indices)].values
-                    if 'src' in G_df.columns:
-                        G_component_df = G_df[G_df['src'].isin(vertices_in_component) & G_df['dst'].isin(vertices_in_component)]
-                    else:
-                        G_component_df = G_df[G_df['source'].isin(vertices_in_component) & G_df['destination'].isin(vertices_in_component)]
+                    G_component_df = G_df[G_df['old_source'].isin(vertices_in_component) & G_df['old_destination'].isin(vertices_in_component)]
                     G_component = cugraph.Graph()
                     G_component.from_cudf_edgelist(G_component_df)
                     # Find single shortest path from a reference to all other nodes in the component
