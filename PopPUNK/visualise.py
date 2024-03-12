@@ -235,7 +235,7 @@ def generate_visualisations(query_db,
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
     if cytoscape and not (microreact or phandango or grapetree):
-        if rank_fit == None and not os.path.isfile(network_file):
+        if rank_fit == None and (network_file == None or not os.path.isfile(network_file)):
             sys.stderr.write("For cytoscape, specify either a network file to visualise "
                              "with --network-file or a lineage model with --rank-fit\n")
             sys.exit(1)
