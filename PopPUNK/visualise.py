@@ -467,7 +467,7 @@ def generate_visualisations(query_db,
                         if display_cluster not in isolateClustering.keys():
                             clustering_name = list(isolateClustering.keys())[0]
                             sys.stderr.write('Unable to find clustering column ' + display_cluster + ' in file ' +
-                                            prev_clustering + '; instead using ' + clustering_name + '\n')
+                                            cluster_file + '; instead using ' + clustering_name + '\n')
                         else:
                             clustering_name = display_cluster
                     else:
