@@ -398,31 +398,35 @@ def generate_visualisations(query_db,
     if external_clustering:
         mode = 'external'
         cluster_file = external_clustering
-
-    # Load previous clusters
-    if previous_clustering is not None:
-        cluster_file = previous_clustering
-        mode = "clusters"
         suffix = "_clusters.csv"
         if cluster_file.endswith('_lineages.csv'):
-            mode = "lineages"
             suffix = "_lineages.csv"
     else:
-        # Identify type of clustering based on model
-        mode = "clusters"
-        suffix = "_clusters.csv"
-        if model.type == "lineage":
-            mode = "lineages"
-            suffix = "_lineages.csv"
-        cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+        # Load previous clusters
+        if previous_clustering is not None:
+            cluster_file = previous_clustering
+            mode = "clusters"
+            suffix = "_clusters.csv"
+            if cluster_file.endswith('_lineages.csv'):
+                mode = "lineages"
+                suffix = "_lineages.csv"
+        else:
+            # Identify type of clustering based on model
+            mode = "clusters"
+            suffix = "_clusters.csv"
+            if model.type == "lineage":
+                mode = "lineages"
+                suffix = "_lineages.csv"
+            cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+
     isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                mode = mode,
                                                return_dict = True)
 
     # Add individual refinement clusters if they exist
     if model.indiv_fitted:
-        for type, suffix in zip(['Core','Accessory'],['_core_clusters.csv','_accessory_clusters.csv']):
-            indiv_clustering = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+        for type, indiv_suffix in zip(['Core','Accessory'],['_core_clusters.csv','_accessory_clusters.csv']):
+            indiv_clustering = os.path.join(model_prefix, os.path.basename(model_prefix) + indiv_suffix)
             if os.path.isfile(indiv_clustering):
                 indiv_isolateClustering = readIsolateTypeFromCsv(indiv_clustering,
                                                                    mode = mode,
