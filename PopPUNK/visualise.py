@@ -398,9 +398,10 @@ def generate_visualisations(query_db,
     if external_clustering:
         mode = 'external'
         cluster_file = external_clustering
-        suffix = "_clusters.csv"
         if cluster_file.endswith('_lineages.csv'):
             suffix = "_lineages.csv"
+        else:
+            suffix = "_clusters.csv"
     else:
         # Load previous clusters
         if previous_clustering is not None:
