@@ -404,7 +404,7 @@ def generate_visualisations(query_db,
         cluster_file = previous_clustering
         mode = "clusters"
         suffix = "_clusters.csv"
-        if prev_clustering.endswith('_lineages.csv'):
+        if cluster_file.endswith('_lineages.csv'):
             mode = "lineages"
             suffix = "_lineages.csv"
     else:
