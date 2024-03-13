@@ -332,7 +332,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                     G_component_df.rename(columns={'old_source': 'source', 'old_destination': 'destination'}, inplace=True)
                     G_component.from_cudf_edgelist(G_component_df)
                     # Find single shortest path from a reference to all other nodes in the component
-                    traversal = cugraph.traversal.bfs(G_component,source = references_in_component[0])
+                    traversal = cugraph.traversal.bfs(G_component,start = references_in_component[0])
                     reference_index_set = set(reference_indices)
                     # Add predecessors to reference sequences on the SSSPs
                     predecessor_list = traversal[traversal['vertex'].isin(reference_indices)]['predecessor'].values
