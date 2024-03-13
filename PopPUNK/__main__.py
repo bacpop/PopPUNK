@@ -144,7 +144,7 @@ def get_options():
                             type=float)
 
     # model refinement
-    refinementGroup = parser.add_argument_group('Refine model options')
+    refinementGroup = parser.add_argument_group('Network analysis and model refinement options')
     refinementGroup.add_argument('--pos-shift', help='Maximum amount to move the boundary right past between-strain mean',
             type=float, default = 0)
     refinementGroup.add_argument('--neg-shift', help='Maximum amount to move the boundary left past within-strain mean]',
@@ -156,6 +156,9 @@ def get_options():
     refinementGroup.add_argument('--score-idx',
             help='Index of score to use [default = 0]',
             type=int, default = 0, choices=[0, 1, 2])
+    refinementGroup.add_argument('--summary-sample',
+            help='Number of sequences used to estimate graph properties [default = all]',
+            type=int, default = None)
     refinementGroup.add_argument('--betweenness-sample',
             help='Number of sequences used to estimate betweeness with a GPU [default = 100]',
             type = int, default = betweenness_sample_default)
@@ -264,6 +267,7 @@ def main():
 
     from .plot import writeClusterCsv
     from .plot import plot_scatter
+    from .plot import plot_database_evaluations
 
     from .qc import prune_distance_matrix, qcDistMat, sketchlibAssemblyQC, remove_qc_fail
 
@@ -387,8 +391,9 @@ def main():
         # Plot results
         if not args.no_plot:
             plot_scatter(distMat,
-                         f"{args.output}/{os.path.basename(args.output)}_distanceDistribution",
+                         args.output,
                          args.output + " distances")
+            plot_database_evaluations(args.output)
 
     #******************************#
     #*                            *#
@@ -427,7 +432,6 @@ def main():
                     fail_unconditionally[line.rstrip] = ["removed"]
 
         # assembly qc
-        sys.stderr.write("Running sequence QC\n")
         pass_assembly_qc, fail_assembly_qc = \
             sketchlibAssemblyQC(args.ref_db,
                                 refList,
@@ -435,7 +439,6 @@ def main():
         sys.stderr.write(f"{len(fail_assembly_qc)} samples failed\n")
 
         # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
-        sys.stderr.write("Running distance QC\n")
         pass_dist_qc, fail_dist_qc = \
             qcDistMat(distMat,
                       refList,
@@ -452,13 +455,20 @@ def main():
             raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
                                ' not found in isolates after QC; check '
                                'name of type isolate and QC options\n')
-
+        
+        sys.stderr.write(f"{len(passed)} samples passed QC\n")
         if len(passed) < len(refList):
             remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
                            args.strand_preserved, args.threads)
 
+        # Plot results
+        if not args.no_plot:
+            plot_scatter(distMat,
+                         output,
+                         output + " distances")
+            plot_database_evaluations(output)
 
     #******************************#
     #*                            *#
@@ -545,6 +555,7 @@ def main():
                                             args.score_idx,
                                             args.no_local,
                                             args.betweenness_sample,
+                                            args.summary_sample,
                                             args.gpu_graph)
                 model = new_model
             elif args.fit_model == "threshold":
@@ -613,6 +624,7 @@ def main():
                                                      model.within_label,
                                                      distMat = distMat,
                                                      weights_type = weights_type,
+                                                     sample_size = args.summary_sample,
                                                      betweenness_sample = args.betweenness_sample,
                                                      use_gpu = args.gpu_graph)
         else:
@@ -628,6 +640,7 @@ def main():
                                                                         refList,
                                                                         assignments[rank],
                                                                         weights = weights,
+                                                                        sample_size = args.summary_sample,
                                                                         betweenness_sample = args.betweenness_sample,
                                                                         use_gpu = args.gpu_graph,
                                                                         summarise = False
@@ -685,6 +698,7 @@ def main():
                                                              queryList,
                                                              indivAssignments,
                                                              model.within_label,
+                                                             sample_size = args.summary_sample,
                                                              betweenness_sample = args.betweenness_sample,
                                                              use_gpu = args.gpu_graph)
                     isolateClustering[dist_type] = \
