@@ -372,7 +372,7 @@ def assign_query_hdf5(dbFuncs,
     from .plot import writeClusterCsv
 
     from .qc import qcDistMat, qcQueryAssignments, prune_distance_matrix, \
-        prune_query_distance_matrix
+        prune_query_distance_matrix, write_qc_failure_report
 
     from .sketchlib import addRandom
 
@@ -489,12 +489,13 @@ def assign_query_hdf5(dbFuncs,
         # QC distance matrix
         if qc_dict['run_qc']:
             sys.stderr.write("Running QC on distance matrix\n")
-            seq_names_passing = \
-                frozenset(qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)[0])
-            failed_samples = frozenset(qNames) - seq_names_passing
+            seq_names_passing, failed_samples_dict = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)            
+            failed_samples = frozenset(qNames) - frozenset(seq_names_passing)
             if len(failed_samples) > 0:
                 sys.stderr.write(f"{len(failed_samples)} samples failed:\n"
                                  f"{','.join(failed_samples)}\n")
+                write_qc_failure_report(failed_samples, [failed_samples_dict], output)
+                
                 if len(failed_samples) == len(qNames):
                     sys.exit(1)
                 else:
