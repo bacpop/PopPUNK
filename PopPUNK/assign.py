@@ -265,8 +265,6 @@ def assign_query(dbFuncs,
                  deviceid,
                  save_partial_query_graph):
     """Code for assign query mode for CLI"""
-    from .qc import sketchlibAssemblyQC
-
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     readDBParams = dbFuncs['readDBParams']
@@ -291,18 +289,6 @@ def assign_query(dbFuncs,
                                 calc_random = False,
                                 use_gpu = gpu_sketch,
                                 deviceid = deviceid)
-
-    if qc_dict["run_qc"]:
-        pass_assembly_qc, fail_assembly_qc = \
-                sketchlibAssemblyQC(output,
-                                    qNames,
-                                    qc_dict)
-        if len(fail_assembly_qc) > 0:
-            sys.stderr.write(f"{len(fail_assembly_qc)} samples failed:\n"
-                             f"{','.join(fail_assembly_qc.keys())}\n")
-            qNames = [x for x in qNames if x in pass_assembly_qc]
-            if len(qNames) == 0:
-                sys.exit(1)
 
     isolateClustering = assign_query_hdf5(dbFuncs,
                     ref_db,
@@ -367,7 +353,7 @@ def assign_query_hdf5(dbFuncs,
     from .network import get_vertex_list
     from .network import printExternalClusters
     from .network import vertex_betweenness
-
+    from .qc import sketchlibAssemblyQC
 
     from .plot import writeClusterCsv
 
@@ -380,6 +366,23 @@ def assign_query_hdf5(dbFuncs,
     from .utils import readPickle
     from .utils import update_distance_matrices
     from .utils import createOverallLineage
+    
+    failed_assembly_qc = {}
+    failed_assembly_samples = frozenset()
+    if qc_dict["run_qc"]:
+        pass_assembly_qc, failed_assembly_qc = \
+                sketchlibAssemblyQC(output,
+                                    qNames,
+                                    qc_dict)
+        failed_assembly_samples = frozenset(failed_assembly_qc.keys())
+    if len(failed_assembly_qc) > 0:
+        sys.stderr.write(f"{len(failed_assembly_qc)} samples failed:\n"
+                            f"{','.join(failed_assembly_samples)}\n")
+        
+        qNames = [x for x in qNames if x in pass_assembly_qc]
+        if len(qNames) == 0:
+            write_qc_failure_report(failed_assembly_samples, [failed_assembly_qc], output)
+            sys.exit(1)
 
     joinDBs = dbFuncs['joinDBs']
     queryDatabase = dbFuncs['queryDatabase']
@@ -489,18 +492,18 @@ def assign_query_hdf5(dbFuncs,
         # QC distance matrix
         if qc_dict['run_qc']:
             sys.stderr.write("Running QC on distance matrix\n")
-            seq_names_passing, failed_samples_dict = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)            
-            failed_samples = frozenset(qNames) - frozenset(seq_names_passing)
-            if len(failed_samples) > 0:
-                sys.stderr.write(f"{len(failed_samples)} samples failed:\n"
-                                 f"{','.join(failed_samples)}\n")
-                write_qc_failure_report(failed_samples, [failed_samples_dict], output)
+            seq_names_passing, failed_distmatrix_qc = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)            
+            failed_distmatrix_samples = frozenset(qNames) - frozenset(seq_names_passing)
+            if len(failed_distmatrix_samples) > 0:
+                sys.stderr.write(f"{len(failed_distmatrix_samples)} samples failed:\n"
+                                 f"{','.join(failed_distmatrix_samples)}\n")
+                write_qc_failure_report(failed_distmatrix_samples | failed_assembly_samples, [failed_distmatrix_qc, failed_assembly_qc], output)
                 
-                if len(failed_samples) == len(qNames):
+                if len(failed_distmatrix_samples) == len(qNames):
                     sys.exit(1)
                 else:
                     qNames, qrDistMat = \
-                        prune_query_distance_matrix(rNames, qNames, failed_samples, qrDistMat)[0:2]
+                        prune_query_distance_matrix(rNames, qNames, failed_distmatrix_samples, qrDistMat)[0:2]
 
         # Load the network based on supplied options (never used for lineage models)
         if model.type != 'lineage':
