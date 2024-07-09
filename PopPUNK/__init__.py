@@ -3,7 +3,7 @@
 
 '''PopPUNK (POPulation Partitioning Using Nucleotide Kmers)'''
 
-__version__ = '2.6.6'
+__version__ = '2.6.7'
 
 # Minimum sketchlib version
 SKETCHLIB_MAJOR = 2
