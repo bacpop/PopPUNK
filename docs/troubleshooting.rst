@@ -38,6 +38,25 @@ as above.
 
 See `issue 194 <https://github.com/bacpop/PopPUNK/issues/194>`__ for more discussion.
 
+I get different cluster assignments for my queries with and without --update-db flag
+------------------------------------------------------------------------------------
+
+When using ``poppunk_assign``, you may observe query genomes being assigned to novel clusters when running
+without the ``--update-db`` option. However, using ``--update-db`` with the same query genomes may result 
+in assignment of queries to existing clusters, rather than to novel clusters, making cluster assignments seem inconsistent.
+
+However, this is expected behaviour. When running ``poppunk_assign`` without ``--update-db``, query genomes are compared only to
+eachother and to reference sequences in the database to make this step efficient. In this instance, the query genomes may be too diverged
+from any existing references to cluster with them, and therefore will be assigned to a novel cluster. 
+
+When running ``poppunk_assign`` with ``--update-db``, query genomes are compared to all genomes in the database, not just
+references. The larger number of comparisons means that the same queries may cluster with non-reference genomes, which 
+themselves cluster with a references genome. Therefore, the queries are linked indirectly to a reference genome in the distance
+network, meaning they are assigned to an existing cluster, not a novel one as before.
+
+We recommend users who find 'novel' clusters in their datasets when running ``poppunk_assign`` without ``--update-db`` also check
+against results with ``--update-db`` to determine whether the clusters are truly novel, or form part of existing clusters in the full database.
+
 Memory/run-time issues
 ----------------------
 Here are some tips based on experiences analysing larger datasets:
@@ -154,26 +173,6 @@ used to assign new queries.
 
 If you want to change cluster names or assign queries to your own cluster definitions
 you can use the ``--external-clustering`` argument instead.
-
-
-I get different cluster assignments for my queries with and without --update-db flag
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-When using ``poppunk_assign``, you may observe query genomes being assigned to novel clusters when running
-without the ``--update-db`` option. However, using ``--update-db`` with the same query genomes may result 
-in assignment of queries to existing clusters, rather than to novel clusters, making cluster assignments seem inconsistent.
-
-However, this is expected behaviour. When running ``poppunk_assign`` without ``--update-db``, query genomes are compared only to
-eachother and to reference sequences in the database to make this step efficient. In this instance, the query genomes may be too diverged
-from any existing references to cluster with them, and therefore will be assigned to a novel cluster. 
-
-When running ``poppunk_assign`` with ``--update-db``, query genomes are compared to all genomes in the database, not just
-references. The larger number of comparisons means that the same queries may cluster with non-reference genomes, which 
-themselves cluster with a references genome. Therefore, the queries are linked indirectly to a reference genome in the distance
-network, meaning they are assigned to an existing cluster, not a novel one as before.
-
-We recommend users who find 'novel' clusters in their datasets when running ``poppunk_assign`` without ``--update-db`` also check
-against results with ``--update-db`` to determine whether the clusters are truly novel, or form part of existing clusters in the full database.
 
 
 
