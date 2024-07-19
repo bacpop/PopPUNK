@@ -205,7 +205,10 @@ input folder will contain the updated database containing everything needed.
 .. note::
     This mode can take longer to run with large numbers of input query genomes,
     as it will calculate all :math:`Q^2` query-query distances, rather than
-    just those found in novel query clusters.
+    just those found in novel query clusters. Furthermore, you may observe query genomes previously
+    assigned to novel clusters without ``--update-db`` being assigned to existing clusters when using
+    this option. This is expected behaviour, and is a manifestation of cluster merging, whereby the comparison
+    of all database genomes to queries, not just references, enables queries to be assigned to existing clusters.
 
 Visualising results
 -------------------
