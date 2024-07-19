@@ -209,6 +209,7 @@ input folder will contain the updated database containing everything needed.
     assigned to novel clusters without ``--update-db`` being assigned to existing clusters when using
     this option. This is expected behaviour, and is a manifestation of cluster merging, whereby the comparison
     of all database genomes to queries, not just references, enables queries to be assigned to existing clusters.
+    See :doc:`troubleshooting` for more details.
 
 Visualising results
 -------------------
