@@ -422,7 +422,7 @@ def readRfile(rFile, oneSeq=False):
     """
     names = []
     sequences = []
-    with open(rFile, 'rU') as refFile:
+    with open(rFile, 'r') as refFile:
         for refLine in refFile:
             rFields = refLine.rstrip().split("\t")
             if len(rFields) < 2:
