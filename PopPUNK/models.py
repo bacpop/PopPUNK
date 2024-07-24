@@ -54,6 +54,7 @@ from .utils import check_and_set_gpu
 # BGMM
 from .bgmm import fit2dMultiGaussian
 from .bgmm import findWithinLabel
+from .bgmm import findBetweenLabel_bgmm
 from .bgmm import log_likelihood
 from .plot import plot_results
 from .plot import plot_contours
@@ -333,7 +334,7 @@ class BGMMFit(ClusterFit):
         else:
             y = self.assign(self.subsampled_X, max_batch_size = self.max_batch_size)
         self.within_label = findWithinLabel(self.means, y)
-        self.between_label = findWithinLabel(self.means, y, 1)
+        self.between_label = findBetweenLabel_bgmm(self.means, y)
         return y
 
 
@@ -805,7 +806,7 @@ class RefineFit(ClusterFit):
 
     def fit(self, X, sample_names, model, max_move, min_move, startFile = None, indiv_refine = False,
             unconstrained = False, multi_boundary = 0, score_idx = 0, no_local = False,
-            betweenness_sample = betweenness_sample_default, use_gpu = False):
+            betweenness_sample = betweenness_sample_default, sample_size = None, use_gpu = False):
         '''Extends :func:`~ClusterFit.fit`
 
         Fits the distances by optimising network score, by calling
@@ -847,6 +848,8 @@ class RefineFit(ClusterFit):
             betweenness_sample (int)
                 Number of sequences per component used to estimate betweenness using
                 a GPU. Smaller numbers are faster but less precise [default = 100]
+            sample_size (int)
+                Number of nodes to subsample for graph statistic calculation
             use_gpu (bool)
                 Whether to use cugraph for graph analyses
 
@@ -894,6 +897,7 @@ class RefineFit(ClusterFit):
                     no_local = no_local,
                     num_processes = self.threads,
                     betweenness_sample = betweenness_sample,
+                    sample_size = sample_size,
                     use_gpu = use_gpu)
         self.fitted = True
 
@@ -909,6 +913,8 @@ class RefineFit(ClusterFit):
                         multi_boundary,
                         self.outPrefix,
                         num_processes = self.threads,
+                        betweenness_sample = betweenness_sample,
+                        sample_size = sample_size,
                         use_gpu = use_gpu)
 
         # Try and do a 1D refinement for both core and accessory
@@ -933,6 +939,7 @@ class RefineFit(ClusterFit):
                                     no_local = no_local,
                                     num_processes = self.threads,
                                     betweenness_sample = betweenness_sample,
+                                    sample_size = sample_size,
                                     use_gpu = use_gpu)
                         if dist_type == "core":
                             self.core_boundary = core_boundary

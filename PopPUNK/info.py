@@ -52,9 +52,13 @@ def get_options():
 # main code
 def main():
 
+    # Import value
+    from .__main__ import betweenness_sample_default
+
     # Import functions
     from .network import load_network_file
     from .network import sparse_mat_to_network
+    from .network import print_network_summary
     from .utils import check_and_set_gpu
     from .utils import setGtThreads
 
@@ -103,6 +107,32 @@ def main():
         use_rc = ref_db['sketches'].attrs['use_rc'] == 1
         print("Uses canonical k-mers:\t" + str(use_rc))
 
+    # Select network file name
+    if args.network_file is None:
+        if use_gpu:
+            network_file = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
+        else:
+            network_file = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
+    else:
+        network_file = args.network_file
+
+    # Open network file
+    if network_file.endswith('.gt'):
+        G = load_network_file(network_file, use_gpu = False)
+    elif network_file.endswith('.csv.gz'):
+        if use_gpu:
+            G = load_network_file(network_file, use_gpu = True)
+        else:
+            sys.stderr.write('Unable to load necessary GPU libraries\n')
+            sys.exit(1)
+    elif network_file.endswith('.npz'):
+        sparse_mat = sparse.load_npz(network_file)
+        G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
+    else:
+        sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
+        sys.exit(1)
+    print_network_summary(G, betweenness_sample = betweenness_sample_default, use_gpu = args.use_gpu)
+
     # Print sample information
     if not args.simple:
         sample_names = list(ref_db['sketches'].keys())
@@ -114,31 +144,6 @@ def main():
             sample_base_frequencies[sample_name] = ref_db['sketches/' + sample_name].attrs['base_freq']
             sample_sequence_length[sample_name] = ref_db['sketches/' + sample_name].attrs['length']
             sample_missing_bases[sample_name] = ref_db['sketches/' + sample_name].attrs['missing_bases']
-
-        # Select network file name
-        if args.network_file is None:
-            if use_gpu:
-                network_file = os.path.join(args.db, os.path.basename(args.db) + '_graph.csv.gz')
-            else:
-                network_file = os.path.join(args.db, os.path.basename(args.db) + '_graph.gt')
-        else:
-            network_file = args.network_file
-
-        # Open network file
-        if network_file.endswith('.gt'):
-            G = load_network_file(network_file, use_gpu = False)
-        elif network_file.endswith('.csv.gz'):
-            if use_gpu:
-                G = load_network_file(network_file, use_gpu = True)
-            else:
-                sys.stderr.write('Unable to load necessary GPU libraries\n')
-                sys.exit(1)
-        elif network_file.endswith('.npz'):
-            sparse_mat = sparse.load_npz(network_file)
-            G = sparse_mat_to_network(sparse_mat, sample_names, use_gpu = use_gpu)
-        else:
-            sys.stderr.write('Unrecognised suffix: expected ".gt", ".csv.gz" or ".npz"\n')
-            sys.exit(1)
 
         # Analyse network
         if use_gpu:

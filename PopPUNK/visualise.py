@@ -137,6 +137,7 @@ def get_options():
     other.add_argument('--gpu-dist', default=False, action='store_true', help='Use a GPU when calculating distances [default = False]')
     other.add_argument('--gpu-graph', default=False, action='store_true', help='Use a GPU when calculating graphs [default = False]')
     other.add_argument('--deviceid', default=0, type=int, help='CUDA device ID, if using GPU [default = 0]')
+    other.add_argument('--tmp', default=None, type=str, help='Directory for large temporary files')
     other.add_argument('--strand-preserved', default=False, action='store_true',
                        help='If distances being calculated, treat strand as known when calculating random '
                             'match chances [default = False]')
@@ -188,7 +189,8 @@ def generate_visualisations(query_db,
                             tree,
                             mst_distances,
                             overwrite,
-                            display_cluster):
+                            display_cluster,
+                            tmp):
 
     from .models import loadClusterFit
 
@@ -536,6 +538,7 @@ def generate_visualisations(query_db,
                     nj_tree = generate_nj_tree(core_distMat,
                                                 combined_seq,
                                                 output,
+                                                tmp,
                                                 rapidnj,
                                                 threads = threads)
                 else:
@@ -659,7 +662,8 @@ def main():
                             args.tree,
                             args.mst_distances,
                             args.overwrite,
-                            args.display_cluster)
+                            args.display_cluster,
+                            args.tmp)
 
 if __name__ == '__main__':
     main()
