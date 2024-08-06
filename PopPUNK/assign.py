@@ -505,23 +505,6 @@ def assign_query_hdf5(dbFuncs,
                     qNames, qrDistMat = \
                         prune_query_distance_matrix(rNames, qNames, failed_distmatrix_samples, qrDistMat)[0:2]
 
-        # Load the network based on supplied options (never used for lineage models)
-        if model.type != 'lineage':
-            genomeNetwork, old_cluster_file = \
-                fetchNetwork(prev_clustering,
-                             model,
-                             rNames,
-                             ref_graph = use_ref_graph,
-                             core_only = (fit_type == 'core_refined'),
-                             accessory_only = (fit_type == 'accessory_refined'),
-                             use_gpu = gpu_graph)
-
-            n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
-            if n_vertices != len(rNames):
-                sys.stderr.write(f"ERROR: There are {n_vertices} vertices in the network but {len(rNames)} reference names supplied; " + \
-                                 "please check the '--model-dir' variable is pointing to the correct directory\n")
-                sys.exit(1)
-
         if model.type == 'lineage':
             # Assign lineages by calculating query-query information
             addRandom(output, qNames, kmers, strand_preserved, overwrite, threads)
@@ -570,6 +553,21 @@ def assign_query_hdf5(dbFuncs,
                 suffix = '_Lineage')
 
         else:
+            genomeNetwork, old_cluster_file = \
+                fetchNetwork(prev_clustering,
+                             model,
+                             rNames,
+                             ref_graph = use_ref_graph,
+                             core_only = (fit_type == 'core_refined'),
+                             accessory_only = (fit_type == 'accessory_refined'),
+                             use_gpu = gpu_graph)
+
+            n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
+            if n_vertices != len(rNames):
+                sys.stderr.write(f"ERROR: There are {n_vertices} vertices in the network but {len(rNames)} reference names supplied; " + \
+                                 "please check the '--model-dir' variable is pointing to the correct directory\n")
+                sys.exit(1)
+
             # Assign these distances as within or between strain
             if fit_type == 'core_refined' or (model.type == 'refine' and model.threshold):
                 queryAssignments = model.assign(qrDistMat, slope = 0)
