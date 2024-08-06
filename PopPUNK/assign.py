@@ -48,7 +48,6 @@ def get_options():
     oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
                                               default=False, action='store_true')
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
-    oGroup.add_argument('--simple-update', help='Update reference database with query sequences, but without running the full clique pruning again', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
     oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
 
@@ -215,7 +214,6 @@ def main():
                  args.output,
                  qc_dict,
                  args.update_db,
-                 args.simple_update,
                  args.write_references,
                  distances,
                  args.serial,
@@ -248,7 +246,6 @@ def assign_query(dbFuncs,
                  output,
                  qc_dict,
                  update_db,
-                 simple_update,
                  write_references,
                  distances,
                  serial,
@@ -299,7 +296,6 @@ def assign_query(dbFuncs,
                     output,
                     qc_dict,
                     update_db,
-                    simple_update,
                     write_references,
                     distances,
                     serial,
@@ -324,7 +320,6 @@ def assign_query_hdf5(dbFuncs,
                  output,
                  qc_dict,
                  update_db,
-                 simple_update,
                  write_references,
                  distances,
                  serial,
@@ -713,78 +708,45 @@ def assign_query_hdf5(dbFuncs,
             if output != model.outPrefix and fit_type == 'default':
                 model.copy(output)
 
-            if simple_update:
-            else:
-                # Load the previous distances
-                refList_loaded, refList_copy, self, rrDistMat = \
-                    readPickle(distances,
-                            enforce_self = True)
-                # This should now always be true, otherwise both qrDistMat and sparse matrix
-                # may need reordering
-                assert(refList_loaded == rNames)
-                combined_seq, core_distMat, acc_distMat = \
-                    update_distance_matrices(rNames, rrDistMat,
-                                            qNames, qrDistMat,
-                                            qqDistMat, threads = threads)
-                assert combined_seq == rNames + qNames
+            combined_seq = rNames + qNames
 
-                # Get full distance matrix and save
-                complete_distMat = \
-                    np.hstack((pp_sketchlib.squareToLong(distMat=core_distMat, num_threads=threads).reshape(-1, 1),
-                            pp_sketchlib.squareToLong(distMat=acc_distMat, num_threads=threads).reshape(-1, 1)))
-                storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
+            # Clique pruning
+            if model.type != 'lineage':
+                existing_ref_list = []
+                with open(ref_file_name) as refFile:
+                    for reference in refFile:
+                        existing_ref_list.append(reference.rstrip())
 
+                # Extract references from graph
+                newRepresentativesIndices, newRepresentativesNames, \
+                    newRepresentativesFile, genomeNetwork = \
+                        extractReferences(genomeNetwork,
+                                            combined_seq,
+                                            output,
+                                            outSuffix = file_extension_string,
+                                            existingRefs = existing_ref_list,
+                                            type_isolate = qc_dict['type_isolate'],
+                                            threads = threads,
+                                            use_gpu = gpu_graph)
 
+                # intersection that maintains order
+                newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
 
-                # Clique pruning
-                if model.type != 'lineage':
+                # could also have newRepresentativesNames in this diff (should be the same) - but want
+                # to ensure consistency with the network in case of bad input/bugs
+                nodes_to_remove = set(range(len(combined_seq))).difference(newRepresentativesIndices)
+                names_to_remove = [combined_seq[n] for n in nodes_to_remove]
 
-                    existing_ref_list = []
-                    with open(ref_file_name) as refFile:
-                        for reference in refFile:
-                            existing_ref_list.append(reference.rstrip())
-
-                    # Extract references from graph
-                    newRepresentativesIndices, newRepresentativesNames, \
-                        newRepresentativesFile, genomeNetwork = \
-                            extractReferences(genomeNetwork,
-                                                combined_seq,
-                                                output,
-                                                outSuffix = file_extension_string,
-                                                existingRefs = existing_ref_list,
-                                                type_isolate = qc_dict['type_isolate'],
-                                                threads = threads,
-                                                use_gpu = gpu_graph)
-
-                    # intersection that maintains order
-                    newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
-
-                    # could also have newRepresentativesNames in this diff (should be the same) - but want
-                    # to ensure consistency with the network in case of bad input/bugs
-                    nodes_to_remove = set(range(len(combined_seq))).difference(newRepresentativesIndices)
-                    names_to_remove = [combined_seq[n] for n in nodes_to_remove]
-
-                    if (len(names_to_remove) > 0):
-                        # This function also writes out the new ref distance matrix
-                        dists_suffix = file_extension_string + '.refs.dists'
-                        postpruning_combined_seq, newDistMat = \
-                            prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
-                                                output + "/" + os.path.basename(output) + dists_suffix)
-                        graph_suffix = file_extension_string + '.refs_graph'
-                        save_network(genomeNetwork,
-                                        prefix = output,
-                                        suffix = graph_suffix,
-                                        use_gpu = gpu_graph)
-                        removeFromDB(output, output, names_to_remove)
-                        db_suffix = file_extension_string + '.refs.h5'
-                        os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                                output + "/" + os.path.basename(output) + db_suffix)
-
-                        # Check that the updated set of references includes all old references, and references added from
-                        # queries; there may be further new references, even from the original database, where paths are
-                        # added between reference isolates in the same component, or new cliques formed
-                        added_references = set(existing_ref_list).union(set(newQueries))
-                        assert set(postpruning_combined_seq).issuperset(added_references), "Error identifying references"
+                if (len(names_to_remove) > 0):
+                    graph_suffix = file_extension_string + '.refs_graph'
+                    save_network(genomeNetwork,
+                                    prefix = output,
+                                    suffix = graph_suffix,
+                                    use_gpu = gpu_graph)
+                    removeFromDB(output, output, names_to_remove)
+                    db_suffix = file_extension_string + '.refs.h5'
+                    os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
+                            output + "/" + os.path.basename(output) + db_suffix)
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
             if save_partial_query_graph and not serial:
