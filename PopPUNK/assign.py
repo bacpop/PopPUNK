@@ -453,9 +453,6 @@ def assign_query_hdf5(dbFuncs,
         else:
             if os.path.isfile(distances + ".pkl"):
                 rNames = readPickle(distances, enforce_self = True, distances=False)[0]
-            elif update_db:
-                sys.stderr.write("Reference distances missing, cannot use --update-db\n")
-                sys.exit(1)
             else:
                 rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
 
