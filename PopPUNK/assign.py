@@ -366,7 +366,7 @@ def assign_query_hdf5(dbFuncs,
     from .utils import readPickle
     from .utils import update_distance_matrices
     from .utils import createOverallLineage
-    
+
     failed_assembly_qc = {}
     failed_assembly_samples = frozenset()
     if qc_dict["run_qc"]:
@@ -378,7 +378,7 @@ def assign_query_hdf5(dbFuncs,
     if len(failed_assembly_qc) > 0:
         sys.stderr.write(f"{len(failed_assembly_qc)} samples failed:\n"
                             f"{','.join(failed_assembly_samples)}\n")
-        
+
         qNames = [x for x in qNames if x in pass_assembly_qc]
         if len(qNames) == 0:
             write_qc_failure_report(failed_assembly_samples, [failed_assembly_qc], output)
@@ -492,13 +492,13 @@ def assign_query_hdf5(dbFuncs,
         # QC distance matrix
         if qc_dict['run_qc']:
             sys.stderr.write("Running QC on distance matrix\n")
-            seq_names_passing, failed_distmatrix_qc = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)            
+            seq_names_passing, failed_distmatrix_qc = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)
             failed_distmatrix_samples = frozenset(qNames) - frozenset(seq_names_passing)
             if len(failed_distmatrix_samples) > 0:
                 sys.stderr.write(f"{len(failed_distmatrix_samples)} samples failed:\n"
                                  f"{','.join(failed_distmatrix_samples)}\n")
                 write_qc_failure_report(failed_distmatrix_samples | failed_assembly_samples, [failed_distmatrix_qc, failed_assembly_qc], output)
-                
+
                 if len(failed_distmatrix_samples) == len(qNames):
                     sys.exit(1)
                 else:
