@@ -21,15 +21,24 @@ Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, B
 Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019).
 doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 
-You can also run your command with `--citation` to get a [list of citations](https://poppunk.readthedocs.io/en/latest/citing.html) and a
-suggested methods paragraph.
+You can also run your command with `--citation` to get a [list of citations](https://poppunk.readthedocs.io/en/latest/citing.html) and a suggested methods paragraph.
 
 ## News and roadmap
 
 The [roadmap](https://poppunk.bacpop.org/roadmap.html) can be found in the documentation.
 
-### 2023-01-18
+### 2024-08-07
+PopPUNK 2.7.0 comes with two changes:
+- Distance matrices `<db_name>.dists.npy` are no longer required or written when using
+`poppunk_assign`, with or without `--update-db`. These can be very large, especially
+with many samples, so this saves space and memory in model reuse and distribution. Note that
+the `<db_name>.dists.pkl` file is still required (but this is small).
+- We have added a `--stable` flag to `poppunk_assign`. Rather than merging hybrid clusters,
+new samples will simply be assigned to their nearest neighbour. This implies `--serial` and
+cannot be run with `--update-db`. This behaviour mimics the 'stable nomenclature' of schemes
+such as [LIN](https://doi.org/10.1093/molbev/msac135).
 
+### 2023-01-18
 We have retired the PopPUNK website. Databases have been expanded, and can be
 found here: https://www.bacpop.org/poppunk/.
 
@@ -45,11 +54,13 @@ change clusters).
 If this is a common problem let us know, as we could write a script to 'upgrade'
 HDBSCAN models.
 See issue [#213](https://github.com/bacpop/PopPUNK/issues/213) for more details.
+
 ### 2021-03-15
 We have fixed a number of bugs with may affect the use of `poppunk_assign` with
 `--update-db`. We have also fixed a number of bugs with GPU distances. These are
 'advanced' features and are not likely to be encountered in most cases, but if you do wish to use either of these features please make sure that you are using
 `PopPUNK >=v2.4.0` with `pp-sketchlib >=v1.7.0`.
+
 ### 2020-09-30
 We have discovered a bug affecting the interaction of pp-sketchlib and PopPUNK.
 If you have used `PopPUNK >=v2.0.0` with `pp-sketchlib <v1.5.1` label order may

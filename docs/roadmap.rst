@@ -11,14 +11,9 @@ PopPUNK
 -------
 1. Containerise the workflow. See `#193 <https://github.com/bacpop/PopPUNK/issues/193>`__, `#277 <https://github.com/bacpop/PopPUNK/issues/277>`__, `#278 <https://github.com/bacpop/PopPUNK/issues/278>`__.
 2. Add full worked tutorials back to the documentation `#275 <https://github.com/bacpop/PopPUNK/issues/275>`__.
-3. Make the update pipeline more robust. See `#273 <https://github.com/bacpop/PopPUNK/issues/273>`__.
-4. Codebase optimsation and refactoring
+3. Codebase optimsation and refactoring
     - Modularisation of the network code `#249 <https://github.com/bacpop/PopPUNK/issues/249>`__.
     - Removing old functions `#103 <https://github.com/bacpop/PopPUNK/issues/103>`__
-5. Add more species databases:
-    - N. meningitidis `#267 <https://github.com/bacpop/PopPUNK/issues/267>`__.
-    - H. influenzae `#276 <https://github.com/bacpop/PopPUNK/issues/276>`__.
-6. Stable names for lineage/subclustering modes.
 
 Other enhancements listed on the `issue page <https://github.com/bacpop/pp-sketchlib/issues>`__ are currently not planned.
 
@@ -27,8 +22,6 @@ pp-sketchlib
 
 1. Update installation in package managers
     - Update for new macOS `#92 <https://github.com/bacpop/ska.rust#planned-features>`__
-    - Rebuild conda recipe for CUDA12 and newer HDF5 `#46 <https://github.com/conda-forge/pp-sketchlib-feedstock/pull/46>`__
-2. Allow amino-acids as input `#89 <https://github.com/bacpop/pp-sketchlib/issues/89>`__.
 
 Other enhancements listed on the `issue page <https://github.com/bacpop/pp-sketchlib/issues>`__ are currently not planned.
 
