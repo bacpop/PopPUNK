@@ -153,7 +153,7 @@ def storePickle(rlist, qlist, self, X, pklName):
     """
     with open(pklName + ".pkl", 'wb') as pickle_file:
         pickle.dump([rlist, qlist, self], pickle_file)
-    if X != None:
+    if isinstance(X, np.ndarray):
         np.save(pklName + ".npy", X)
 
 
