@@ -146,12 +146,15 @@ def storePickle(rlist, qlist, self, X, pklName):
             Whether an all-vs-all self DB (for :func:`~iterDistRows`)
         X (numpy.array)
             n x 2 array of core and accessory distances
+
+            If None, do not save
         pklName (str)
             Prefix for output files
     """
     with open(pklName + ".pkl", 'wb') as pickle_file:
         pickle.dump([rlist, qlist, self], pickle_file)
-    np.save(pklName + ".npy", X)
+    if X != None:
+        np.save(pklName + ".npy", X)
 
 
 def readPickle(pklName, enforce_self=False, distances=True):

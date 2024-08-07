@@ -453,6 +453,9 @@ def assign_query_hdf5(dbFuncs,
         else:
             if os.path.isfile(distances + ".pkl"):
                 rNames = readPickle(distances, enforce_self = True, distances=False)[0]
+            elif update_db:
+                sys.stderr.write("Distance order .pkl missing, cannot use --update-db\n")
+                sys.exit(1)
             else:
                 rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
 
@@ -706,6 +709,7 @@ def assign_query_hdf5(dbFuncs,
                 model.copy(output)
 
             combined_seq = rNames + qNames
+            storePickle(combined_seq, combined_seq, True, None, dists_out)
 
             # Clique pruning
             if model.type != 'lineage':
