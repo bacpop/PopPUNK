@@ -561,6 +561,7 @@ def assign_query_hdf5(dbFuncs,
                              core_only = (fit_type == 'core_refined'),
                              accessory_only = (fit_type == 'accessory_refined'),
                              use_gpu = gpu_graph)
+            sys.stderr.write(f"Loading previous cluster assignments from {old_cluster_file}\n")
 
             n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
             if n_vertices != len(rNames):
