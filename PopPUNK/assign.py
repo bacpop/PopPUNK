@@ -93,6 +93,8 @@ def get_options():
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--serial', default=False, action='store_true',
                                help='Do assignment one-by-one, not in batches (see docs) [default = False]')
+    queryingGroup.add_argument('--stable', default=None, choices=['core', 'accessory', False],
+                               help='\'Stable nomenclature\': do assignment one-by-one, to nearest neighbours (see docs) [default = False]')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
     queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
@@ -217,6 +219,7 @@ def main():
                  args.write_references,
                  distances,
                  args.serial,
+                 args.stable,
                  args.threads,
                  args.overwrite,
                  args.plot_fit,
@@ -249,6 +252,7 @@ def assign_query(dbFuncs,
                  write_references,
                  distances,
                  serial,
+                 stable,
                  threads,
                  overwrite,
                  plot_fit,
@@ -299,6 +303,7 @@ def assign_query(dbFuncs,
                     write_references,
                     distances,
                     serial,
+                    stable,
                     threads,
                     overwrite,
                     plot_fit,
@@ -323,6 +328,7 @@ def assign_query_hdf5(dbFuncs,
                  write_references,
                  distances,
                  serial,
+                 stable,
                  threads,
                  overwrite,
                  plot_fit,
@@ -396,8 +402,10 @@ def assign_query_hdf5(dbFuncs,
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
         sys.exit(1)
+    if stable is not None:
+        serial = True
     if serial and update_db:
-        raise RuntimeError("--update-db cannot be used with --serial")
+        raise RuntimeError("--update-db cannot be used with --serial or --stable")
 
     # Load the previous model
     model_prefix = ref_db
@@ -408,7 +416,7 @@ def assign_query_hdf5(dbFuncs,
     model = loadClusterFit(model_file + '.pkl',
                            model_file + '.npz')
     if model.type == "lineage" and serial:
-        raise RuntimeError("lineage models cannot be used with --serial")
+        raise RuntimeError("lineage models cannot be used with --serial or --stable")
     model.set_threads(threads)
 
     # Only proceed with a fully-fitted model
@@ -642,6 +650,31 @@ def assign_query_hdf5(dbFuncs,
                                                 external_clustering,
                                                 write_references or update_db,
                                                 use_gpu = gpu_graph)}
+            elif stable is not None:
+                # Some of this could be moved out higher up, e.g. we don't really need
+                # network load etc. But perhaps not such a bad thing to check the
+                # model being assigned to is valid
+                sys.stderr.write("Assigning stably\n")
+
+                # Load reference cluster assignments
+                from utils import readIsolateTypeFromCsv
+                isolate_clustering = readIsolateTypeFromCsv(old_cluster_file, mode = 'clusters', return_dict = True)
+
+                # Find neighbours
+                import poppunk_refine
+                if stable == "core":
+                    dist_col = 0
+                else:
+                    dist_col = 1
+                query_idx, ref_idx, _distance = \
+                    poppunk_refine.get_kNN_distances(
+                        distMat=qrDistMat[:, dist_col].reshape(len(rNames), len(qNames)),
+                        kNN=1,
+                        dist_col=dist_col,
+                        num_threads=threads
+                    )
+                for (query, ref) in zip(query_idx, ref_idx):
+                    isolate_clustering[qNames[query]] = isolate_clustering[rNames[ref]]
             else:
                 sys.stderr.write("Assigning serially\n")
                 G_copy = genomeNetwork.copy()
