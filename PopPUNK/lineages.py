@@ -379,6 +379,7 @@ def query_db(args):
                     False, # write references - need to consider whether to support ref-only databases for assignment
                     distances,
                     False, # serial - needs to be supported for web version?
+                    False, # stable - not supported here
                     args.threads,
                     True, # overwrite - probably OK?
                     False, # plot_fit - turn off for now
