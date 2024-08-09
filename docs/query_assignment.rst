@@ -8,6 +8,29 @@ Briefly, `download your reference database <https://www.bacpop.org/poppunk/>`__ 
     poppunk_assign --db database --query qfile.txt \
     --output poppunk_clusters --threads 8
 
+Nomenclature
+------------
+
+PopPUNK clusters are numbered from one upwards, in decreasing order of size in the initial
+dataset.
+
+``poppunk_assign`` will assign your genomes into these existing clusters, with the same labels as the
+initial run. So cluster labels, when used as documented, **do not change**.
+
+In some cases, due to undersampling of the initial dataset or emergence
+of hybrids, some clusters may be merged. These merged clusters will be named with
+underscores separating the older clusters they were merges of. Use ``--external-clustering``
+if you prefer other nicknames for these.
+
+If you require 'stable nomenclature' where clusters never merge, use the ``--stable`` option
+with ``poppunk_assign``. Each query will be assigned based on its nearest neighbour's cluster,
+though novel clusters will still be separately identified as 'NA'.
+
+Note that maintaining stable nomenclature in a dynamic population is not possible (for any
+nomenclature). If you are maintaining a database and want to add new queries in, you will
+need to use ``--update-db`` which may merge clusters. There is no way with two or more updates
+of giving consistent new names to merged clusters.
+
 Downloading a database
 ----------------------
 Current PopPUNK databases can be found here: https://www.bacpop.org/poppunk/
