@@ -35,6 +35,7 @@ outputDirs = [
     "example_use",
     "example_query",
     "example_single_query",
+    "example_query_stable",
     "example_query_update",
     "example_query_update_2",
     "example_lineage_query",
