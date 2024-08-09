@@ -650,59 +650,66 @@ def assign_query_hdf5(dbFuncs,
                                                 external_clustering,
                                                 write_references or update_db,
                                                 use_gpu = gpu_graph)}
-            elif stable is not None:
-                # Some of this could be moved out higher up, e.g. we don't really need
-                # network load etc. But perhaps not such a bad thing to check the
-                # model being assigned to is valid
-                sys.stderr.write("Assigning stably\n")
-
-                # Load reference cluster assignments
-                from utils import readIsolateTypeFromCsv
-                isolate_clustering = readIsolateTypeFromCsv(old_cluster_file, mode = 'clusters', return_dict = True)
-
-                # Find neighbours
-                import poppunk_refine
-                if stable == "core":
-                    dist_col = 0
-                else:
-                    dist_col = 1
-                query_idx, ref_idx, _distance = \
-                    poppunk_refine.get_kNN_distances(
-                        distMat=qrDistMat[:, dist_col].reshape(len(rNames), len(qNames)),
-                        kNN=1,
-                        dist_col=dist_col,
-                        num_threads=threads
-                    )
-                for (query, ref) in zip(query_idx, ref_idx):
-                    isolate_clustering[qNames[query]] = isolate_clustering[rNames[ref]]
             else:
-                sys.stderr.write("Assigning serially\n")
-                G_copy = genomeNetwork.copy()
-                isolateClustering = {}
-                for idx, sample in tqdm(enumerate(qNames), total=len(qNames)):
-                    genomeNetwork = \
-                        addQueryToNetwork(dbFuncs,
-                                        rNames,
-                                        [sample],
-                                        genomeNetwork,
-                                        queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
-                                        model,
-                                        output)[0]
-                    isolate_cluster = printClusters(genomeNetwork,
-                                                rNames + [sample],
-                                                output_fn,
-                                                old_cluster_file,
-                                                external_clustering,
-                                                printRef=False,
-                                                printCSV=False,
-                                                write_unwords=False,
-                                                use_gpu = gpu_graph)
-                    cluster = int(isolate_cluster[sample])
-                    if cluster > len(rNames):
-                        cluster = "novel"
-                    isolateClustering[sample] = cluster
-                    # Reset for next sample
-                    genomeNetwork = G_copy
+                if stable is not None:
+                    # Some of this could be moved out higher up, e.g. we don't really need
+                    # network load etc. But perhaps not such a bad thing to check the
+                    # model being assigned to is valid
+                    sys.stderr.write("Assigning stably\n")
+
+                    # Load reference cluster assignments
+                    from .utils import readIsolateTypeFromCsv
+                    refClustering = readIsolateTypeFromCsv(old_cluster_file, mode = 'clusters', return_dict = True)['Cluster']
+                    isolateClustering = {}
+
+                    # Find neighbours
+                    import poppunk_refine
+                    if stable == "core":
+                        dist_col = 0
+                    else:
+                        dist_col = 1
+                    query_idxs, ref_idxs, _distance = \
+                        poppunk_refine.get_kNN_distances(
+                            distMat=qrDistMat[:, dist_col].reshape(len(qNames), len(rNames)),
+                            kNN=1,
+                            dist_col=dist_col,
+                            num_threads=threads
+                        )
+                    # Assign queries same cluster as their NN, if the distance was
+                    # within the same cluster
+                    for (query, ref) in zip(query_idxs, ref_idxs):
+                        if queryAssignments[query * len(rNames) + ref] == -1:
+                            isolateClustering[qNames[query]] = refClustering[rNames[ref]]
+                        else:
+                            isolateClustering[qNames[query]] = "NA"
+                else:
+                    sys.stderr.write("Assigning serially\n")
+                    G_copy = genomeNetwork.copy()
+                    isolateClustering = {}
+                    for idx, sample in tqdm(enumerate(qNames), total=len(qNames)):
+                        genomeNetwork = \
+                            addQueryToNetwork(dbFuncs,
+                                            rNames,
+                                            [sample],
+                                            genomeNetwork,
+                                            queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
+                                            model,
+                                            output)[0]
+                        isolate_cluster = printClusters(genomeNetwork,
+                                                    rNames + [sample],
+                                                    output_fn,
+                                                    old_cluster_file,
+                                                    external_clustering,
+                                                    printRef=False,
+                                                    printCSV=False,
+                                                    write_unwords=False,
+                                                    use_gpu = gpu_graph)
+                        cluster = int(isolate_cluster[sample])
+                        if cluster > len(rNames):
+                            cluster = "novel"
+                        isolateClustering[sample] = cluster
+                        # Reset for next sample
+                        genomeNetwork = G_copy
 
                 # Write out the results
                 cluster_f = open(f"{output}/{os.path.basename(output)}_clusters.csv", 'w')
@@ -711,9 +718,9 @@ def assign_query_hdf5(dbFuncs,
                     cluster_f.write(",".join((sample, str(cluster))) + "\n")
                 cluster_f.close()
 
-                if external_clustering is not None:
-                    printExternalClusters(isolateClustering, external_clustering,
-                                          output, rNames, printRef=False)
+            if external_clustering is not None:
+                printExternalClusters(isolateClustering, external_clustering,
+                                        output, rNames, printRef=False)
 
         # Update DB as requested
         dists_out = output + "/" + os.path.basename(output) + ".dists"
