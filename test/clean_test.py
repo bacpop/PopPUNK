@@ -12,7 +12,14 @@ def deleteDir(dirname):
         shutil.rmtree(dirname)
 
 sys.stderr.write("Cleaning up tests\n")
-dirty_files = ['example_db.info.csv']
+dirty_files = [
+    "example_db.info.csv",
+    "example_external_clusters.csv",
+    "batch12_external_clusters.csv",
+    "example_lineage_scheme.pkl",
+    "lineage_creation_output.csv",
+    "lineage_querying_output.csv"
+]
 with open("references.txt", 'r') as ref_file:
     for line in ref_file:
         dirty_files.append(line.rstrip().split("\t")[1])
@@ -29,6 +36,7 @@ outputDirs = [
     "example_query",
     "example_single_query",
     "example_query_update",
+    "example_query_update_2",
     "example_lineage_query",
     "example_viz",
     "example_viz_subset",
@@ -46,8 +54,10 @@ outputDirs = [
     "batch3",
     "batch12",
     "batch123",
+    "batch123_viz",
     "strain_1_lineage_db",
-    "strain_2_lineage_db"
+    "strain_2_lineage_db",
+    "lineage_querying_output"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)

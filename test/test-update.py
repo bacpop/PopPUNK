@@ -80,26 +80,11 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
   subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1", shell=True, check=True)
   print(" ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1\n\n")
 
-  # Load updated distances
-  X2 = np.load("batch2/batch2.dists.npy")
+  # Load updated distance order
   with open("batch2/batch2.dists.pkl", 'rb') as pickle_file:
       rlist2, qlist, self = pickle.load(pickle_file)
 
-  # Get same distances from the full database
-  ref_db = "batch12/batch12"
-  ref_h5 = h5py.File(ref_db + ".h5", 'r')
-  db_kmers = sorted(ref_h5['sketches/' + rlist2[0]].attrs['kmers'])
-  ref_h5.close()
-  X1 = pp_sketchlib.queryDatabase(ref_db, ref_db, rlist2, rlist2, db_kmers,
-                                  True, False, 1, False, 0)
-
-  # Check distances match
-  sys.stderr.write("Comparing core distances in dense matrix after first query\n")
-  run_regression(X1[:, 0], X2[:, 0])
-  sys.stderr.write("Comparing accessory distances in dense matrix after first query\n")
-  run_regression(X1[:, 1], X2[:, 1])
-
-  # Check sparse distances after one query
+# Check sparse distances after one query
   with open("batch12/batch12.dists.pkl", 'rb') as pickle_file:
       rlist1, qlist1, self = pickle.load(pickle_file)
   S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
@@ -122,24 +107,9 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
   subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite", shell=True, check=True)
   print(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite\n\n")
 
-  # Load updated distances
-  X2 = np.load("batch3/batch3.dists.npy")
+  # Load updated distances order
   with open("batch3/batch3.dists.pkl", 'rb') as pickle_file:
       rlist4, qlist, self = pickle.load(pickle_file)
-
-  # Get same distances from the full database
-  ref_db = "batch123/batch123"
-  ref_h5 = h5py.File(ref_db + ".h5", 'r')
-  db_kmers = sorted(ref_h5['sketches/' + rlist4[0]].attrs['kmers'])
-  ref_h5.close()
-  X1 = pp_sketchlib.queryDatabase(ref_db, ref_db, rlist4, rlist4, db_kmers,
-                                  True, False, 1, False, 0)
-
-  # Check distances match
-  sys.stderr.write("Comparing core distances in dense matrix after second query\n")
-  run_regression(X1[:, 0], X2[:, 0])
-  sys.stderr.write("Comparing accessory distances in dense matrix after second query\n")
-  run_regression(X1[:, 1], X2[:, 1])
 
   # Check sparse distances after second query
   with open("batch123/batch123.dists.pkl", 'rb') as pickle_file:

@@ -93,6 +93,8 @@ def get_options():
     queryingGroup = parser.add_argument_group('Database querying options')
     queryingGroup.add_argument('--serial', default=False, action='store_true',
                                help='Do assignment one-by-one, not in batches (see docs) [default = False]')
+    queryingGroup.add_argument('--stable', default=None, choices=['core', 'accessory', False],
+                               help='\'Stable nomenclature\': do assignment one-by-one, to nearest neighbours (see docs) [default = False]')
     queryingGroup.add_argument('--model-dir', help='Directory containing model to use for assigning queries '
                                                    'to clusters [default = reference database directory]', type = str)
     queryingGroup.add_argument('--previous-clustering', help='Directory containing previous cluster definitions '
@@ -217,6 +219,7 @@ def main():
                  args.write_references,
                  distances,
                  args.serial,
+                 args.stable,
                  args.threads,
                  args.overwrite,
                  args.plot_fit,
@@ -249,6 +252,7 @@ def assign_query(dbFuncs,
                  write_references,
                  distances,
                  serial,
+                 stable,
                  threads,
                  overwrite,
                  plot_fit,
@@ -299,6 +303,7 @@ def assign_query(dbFuncs,
                     write_references,
                     distances,
                     serial,
+                    stable,
                     threads,
                     overwrite,
                     plot_fit,
@@ -323,6 +328,7 @@ def assign_query_hdf5(dbFuncs,
                  write_references,
                  distances,
                  serial,
+                 stable,
                  threads,
                  overwrite,
                  plot_fit,
@@ -366,7 +372,7 @@ def assign_query_hdf5(dbFuncs,
     from .utils import readPickle
     from .utils import update_distance_matrices
     from .utils import createOverallLineage
-    
+
     failed_assembly_qc = {}
     failed_assembly_samples = frozenset()
     if qc_dict["run_qc"]:
@@ -378,7 +384,7 @@ def assign_query_hdf5(dbFuncs,
     if len(failed_assembly_qc) > 0:
         sys.stderr.write(f"{len(failed_assembly_qc)} samples failed:\n"
                             f"{','.join(failed_assembly_samples)}\n")
-        
+
         qNames = [x for x in qNames if x in pass_assembly_qc]
         if len(qNames) == 0:
             write_qc_failure_report(failed_assembly_samples, [failed_assembly_qc], output)
@@ -396,8 +402,10 @@ def assign_query_hdf5(dbFuncs,
     if (update_db and not distances):
         sys.stderr.write("--update-db requires --distances to be provided\n")
         sys.exit(1)
+    if stable is not None:
+        serial = True
     if serial and update_db:
-        raise RuntimeError("--update-db cannot be used with --serial")
+        raise RuntimeError("--update-db cannot be used with --serial or --stable")
 
     # Load the previous model
     model_prefix = ref_db
@@ -408,7 +416,7 @@ def assign_query_hdf5(dbFuncs,
     model = loadClusterFit(model_file + '.pkl',
                            model_file + '.npz')
     if model.type == "lineage" and serial:
-        raise RuntimeError("lineage models cannot be used with --serial")
+        raise RuntimeError("lineage models cannot be used with --serial or --stable")
     model.set_threads(threads)
 
     # Only proceed with a fully-fitted model
@@ -454,7 +462,7 @@ def assign_query_hdf5(dbFuncs,
             if os.path.isfile(distances + ".pkl"):
                 rNames = readPickle(distances, enforce_self = True, distances=False)[0]
             elif update_db:
-                sys.stderr.write("Reference distances missing, cannot use --update-db\n")
+                sys.stderr.write("Distance order .pkl missing, cannot use --update-db\n")
                 sys.exit(1)
             else:
                 rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
@@ -492,35 +500,18 @@ def assign_query_hdf5(dbFuncs,
         # QC distance matrix
         if qc_dict['run_qc']:
             sys.stderr.write("Running QC on distance matrix\n")
-            seq_names_passing, failed_distmatrix_qc = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)            
+            seq_names_passing, failed_distmatrix_qc = qcDistMat(qrDistMat, rNames, qNames, ref_db, qc_dict)
             failed_distmatrix_samples = frozenset(qNames) - frozenset(seq_names_passing)
             if len(failed_distmatrix_samples) > 0:
                 sys.stderr.write(f"{len(failed_distmatrix_samples)} samples failed:\n"
                                  f"{','.join(failed_distmatrix_samples)}\n")
                 write_qc_failure_report(failed_distmatrix_samples | failed_assembly_samples, [failed_distmatrix_qc, failed_assembly_qc], output)
-                
+
                 if len(failed_distmatrix_samples) == len(qNames):
                     sys.exit(1)
                 else:
                     qNames, qrDistMat = \
                         prune_query_distance_matrix(rNames, qNames, failed_distmatrix_samples, qrDistMat)[0:2]
-
-        # Load the network based on supplied options (never used for lineage models)
-        if model.type != 'lineage':
-            genomeNetwork, old_cluster_file = \
-                fetchNetwork(prev_clustering,
-                             model,
-                             rNames,
-                             ref_graph = use_ref_graph,
-                             core_only = (fit_type == 'core_refined'),
-                             accessory_only = (fit_type == 'accessory_refined'),
-                             use_gpu = gpu_graph)
-
-            n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
-            if n_vertices != len(rNames):
-                sys.stderr.write(f"ERROR: There are {n_vertices} vertices in the network but {len(rNames)} reference names supplied; " + \
-                                 "please check the '--model-dir' variable is pointing to the correct directory\n")
-                sys.exit(1)
 
         if model.type == 'lineage':
             # Assign lineages by calculating query-query information
@@ -570,6 +561,22 @@ def assign_query_hdf5(dbFuncs,
                 suffix = '_Lineage')
 
         else:
+            genomeNetwork, old_cluster_file = \
+                fetchNetwork(prev_clustering,
+                             model,
+                             rNames,
+                             ref_graph = use_ref_graph,
+                             core_only = (fit_type == 'core_refined'),
+                             accessory_only = (fit_type == 'accessory_refined'),
+                             use_gpu = gpu_graph)
+            sys.stderr.write(f"Loading previous cluster assignments from {old_cluster_file}\n")
+
+            n_vertices = len(get_vertex_list(genomeNetwork, use_gpu = gpu_graph))
+            if n_vertices != len(rNames):
+                sys.stderr.write(f"ERROR: There are {n_vertices} vertices in the network but {len(rNames)} reference names supplied; " + \
+                                 "please check the '--model-dir' variable is pointing to the correct directory\n")
+                sys.exit(1)
+
             # Assign these distances as within or between strain
             if fit_type == 'core_refined' or (model.type == 'refine' and model.threshold):
                 queryAssignments = model.assign(qrDistMat, slope = 0)
@@ -644,33 +651,65 @@ def assign_query_hdf5(dbFuncs,
                                                 write_references or update_db,
                                                 use_gpu = gpu_graph)}
             else:
-                sys.stderr.write("Assigning serially\n")
-                G_copy = genomeNetwork.copy()
-                isolateClustering = {}
-                for idx, sample in tqdm(enumerate(qNames), total=len(qNames)):
-                    genomeNetwork = \
-                        addQueryToNetwork(dbFuncs,
-                                        rNames,
-                                        [sample],
-                                        genomeNetwork,
-                                        queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
-                                        model,
-                                        output)[0]
-                    isolate_cluster = printClusters(genomeNetwork,
-                                                rNames + [sample],
-                                                output_fn,
-                                                old_cluster_file,
-                                                external_clustering,
-                                                printRef=False,
-                                                printCSV=False,
-                                                write_unwords=False,
-                                                use_gpu = gpu_graph)
-                    cluster = int(isolate_cluster[sample])
-                    if cluster > len(rNames):
-                        cluster = "novel"
-                    isolateClustering[sample] = cluster
-                    # Reset for next sample
-                    genomeNetwork = G_copy
+                if stable is not None:
+                    # Some of this could be moved out higher up, e.g. we don't really need
+                    # network load etc. But perhaps not such a bad thing to check the
+                    # model being assigned to is valid
+                    sys.stderr.write("Assigning stably\n")
+
+                    # Load reference cluster assignments
+                    from .utils import readIsolateTypeFromCsv
+                    refClustering = readIsolateTypeFromCsv(old_cluster_file, mode = 'clusters', return_dict = True)['Cluster']
+                    isolateClustering = {}
+
+                    # Find neighbours
+                    import poppunk_refine
+                    if stable == "core":
+                        dist_col = 0
+                    else:
+                        dist_col = 1
+                    query_idxs, ref_idxs, _distance = \
+                        poppunk_refine.get_kNN_distances(
+                            distMat=qrDistMat[:, dist_col].reshape(len(qNames), len(rNames)),
+                            kNN=1,
+                            dist_col=dist_col,
+                            num_threads=threads
+                        )
+                    # Assign queries same cluster as their NN, if the distance was
+                    # within the same cluster
+                    for (query, ref) in zip(query_idxs, ref_idxs):
+                        if queryAssignments[query * len(rNames) + ref] == -1:
+                            isolateClustering[qNames[query]] = refClustering[rNames[ref]]
+                        else:
+                            isolateClustering[qNames[query]] = "NA"
+                else:
+                    sys.stderr.write("Assigning serially\n")
+                    G_copy = genomeNetwork.copy()
+                    isolateClustering = {}
+                    for idx, sample in tqdm(enumerate(qNames), total=len(qNames)):
+                        genomeNetwork = \
+                            addQueryToNetwork(dbFuncs,
+                                            rNames,
+                                            [sample],
+                                            genomeNetwork,
+                                            queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
+                                            model,
+                                            output)[0]
+                        isolate_cluster = printClusters(genomeNetwork,
+                                                    rNames + [sample],
+                                                    output_fn,
+                                                    old_cluster_file,
+                                                    external_clustering,
+                                                    printRef=False,
+                                                    printCSV=False,
+                                                    write_unwords=False,
+                                                    use_gpu = gpu_graph)
+                        cluster = int(isolate_cluster[sample])
+                        if cluster > len(rNames):
+                            cluster = "novel"
+                        isolateClustering[sample] = cluster
+                        # Reset for next sample
+                        genomeNetwork = G_copy
 
                 # Write out the results
                 cluster_f = open(f"{output}/{os.path.basename(output)}_clusters.csv", 'w')
@@ -679,9 +718,9 @@ def assign_query_hdf5(dbFuncs,
                     cluster_f.write(",".join((sample, str(cluster))) + "\n")
                 cluster_f.close()
 
-                if external_clustering is not None:
-                    printExternalClusters(isolateClustering, external_clustering,
-                                          output, rNames, printRef=False)
+            if external_clustering is not None:
+                printExternalClusters(isolateClustering, external_clustering,
+                                        output, rNames, printRef=False)
 
         # Update DB as requested
         dists_out = output + "/" + os.path.basename(output) + ".dists"
@@ -705,32 +744,16 @@ def assign_query_hdf5(dbFuncs,
                                 prefix = output,
                                 suffix = graph_suffix,
                                 use_gpu = gpu_graph)
-            # Load the previous distances
-            refList_loaded, refList_copy, self, rrDistMat = \
-                readPickle(distances,
-                           enforce_self = True)
-            # This should now always be true, otherwise both qrDistMat and sparse matrix
-            # may need reordering
-            assert(refList_loaded == rNames)
-            combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(rNames, rrDistMat,
-                                         qNames, qrDistMat,
-                                         qqDistMat, threads = threads)
-            assert combined_seq == rNames + qNames
-
-            # Get full distance matrix and save
-            complete_distMat = \
-                np.hstack((pp_sketchlib.squareToLong(distMat=core_distMat, num_threads=threads).reshape(-1, 1),
-                           pp_sketchlib.squareToLong(distMat=acc_distMat, num_threads=threads).reshape(-1, 1)))
-            storePickle(combined_seq, combined_seq, True, complete_distMat, dists_out)
 
             # Copy model if needed
             if output != model.outPrefix and fit_type == 'default':
                 model.copy(output)
 
+            combined_seq = rNames + qNames
+            storePickle(combined_seq, combined_seq, True, None, dists_out)
+
             # Clique pruning
             if model.type != 'lineage':
-
                 existing_ref_list = []
                 with open(ref_file_name) as refFile:
                     for reference in refFile:
@@ -757,11 +780,6 @@ def assign_query_hdf5(dbFuncs,
                 names_to_remove = [combined_seq[n] for n in nodes_to_remove]
 
                 if (len(names_to_remove) > 0):
-                    # This function also writes out the new ref distance matrix
-                    dists_suffix = file_extension_string + '.refs.dists'
-                    postpruning_combined_seq, newDistMat = \
-                        prune_distance_matrix(combined_seq, names_to_remove, complete_distMat,
-                                              output + "/" + os.path.basename(output) + dists_suffix)
                     graph_suffix = file_extension_string + '.refs_graph'
                     save_network(genomeNetwork,
                                     prefix = output,
@@ -770,13 +788,7 @@ def assign_query_hdf5(dbFuncs,
                     removeFromDB(output, output, names_to_remove)
                     db_suffix = file_extension_string + '.refs.h5'
                     os.rename(output + "/" + os.path.basename(output) + ".tmp.h5",
-                              output + "/" + os.path.basename(output) + db_suffix)
-
-                    # Check that the updated set of references includes all old references, and references added from
-                    # queries; there may be further new references, even from the original database, where paths are
-                    # added between reference isolates in the same component, or new cliques formed
-                    added_references = set(existing_ref_list).union(set(newQueries))
-                    assert set(postpruning_combined_seq).issuperset(added_references), "Error identifying references"
+                            output + "/" + os.path.basename(output) + db_suffix)
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
             if save_partial_query_graph and not serial:

@@ -12,7 +12,7 @@ Database contents
 A database requires the following files:
 
 - ``.h5``. The sketch database, a HDF5 file.
-- ``.dists.pkl`` and ``.dists.npy`` files. Distances for all vs all samples in the sketch database.
+- ``.dists.pkl`` file. Order and names of samples in the sketch database.
 - ``_fit.npz`` and ``_fit.pkl`` files. Python files which describe the model fit.
 - ``_graph.gt``. The network relating distances, fit and strain assignment for all samples in the sketch database.
 - ``_clusters.csv``. The strain assignment of all samples in the sketch database.
