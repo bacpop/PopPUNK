@@ -461,6 +461,9 @@ def assign_query_hdf5(dbFuncs,
         rNames = []
         ref_file_name = os.path.join(model_prefix,
                         os.path.basename(model_prefix) + file_extension_string + ".refs")
+        if not os.path.isfile(ref_file_name):
+            sys.stderr.write(f"Could not find refs for {fit_type}: {ref_file_name}")
+            sys.exit(1)
         use_ref_graph = \
             os.path.isfile(ref_file_name) and not update_db and model.type != 'lineage' and not use_full_network
         if use_ref_graph:
@@ -739,6 +742,7 @@ def assign_query_hdf5(dbFuncs,
             if fit_type == 'default':
                 joinDBs(ref_db, output, output,
                         {"threads": threads, "strand_preserved": strand_preserved})
+            sys.stderr.write("Saving model and network\n")
             if model.type == 'lineage':
                 save_network(genomeNetwork[min(model.ranks)],
                                 prefix = output,
@@ -763,6 +767,7 @@ def assign_query_hdf5(dbFuncs,
 
             # Clique pruning
             if model.type != 'lineage' and os.path.isfile(ref_file_name):
+                sys.stderr.write("Finding references\n")
                 existing_ref_list = []
                 with open(ref_file_name) as refFile:
                     for reference in refFile:
