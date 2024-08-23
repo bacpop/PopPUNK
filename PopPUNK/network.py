@@ -1281,8 +1281,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
             Model fitted to reference database
         queryDB (str)
             Query database location
-        distances (str)
-            Prefix of distance files for extending network
         kmers (list)
             List of k-mer sizes
         distance_type (str)
