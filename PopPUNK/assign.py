@@ -480,7 +480,7 @@ def assign_query_hdf5(dbFuncs,
             with open(ref_file_name) as refFile:
                 for reference in refFile:
                     refNames.append(reference.rstrip())
-            rNames = [ref for ref in refNames in frozenset(rNames)]
+            rNames = [ref for ref in rNames if ref in frozenset(refNames)]
 
         # Deal with name clash
         same_names = set(rNames).intersection(qNames)
