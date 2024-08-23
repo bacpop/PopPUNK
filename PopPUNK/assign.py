@@ -751,7 +751,8 @@ def assign_query_hdf5(dbFuncs,
                 model.outPrefix = os.path.basename(output)
                 model.save()
             elif update_db == 'full':
-                # Don't write the full graph with fast-update
+                # Don't write the full graph with fast-update, as it's not a true
+                # full graph
                 graph_suffix = file_extension_string + '_graph'
                 save_network(genomeNetwork,
                                 prefix = output,
@@ -774,28 +775,17 @@ def assign_query_hdf5(dbFuncs,
                         existing_ref_list.append(reference.rstrip())
 
                 # Extract references from graph
-                if update_db == "full":
-                    newRepresentativesIndices, newRepresentativesNames, \
-                        newRepresentativesFile, genomeNetwork = \
-                            extractReferences(genomeNetwork,
-                                                combined_seq,
-                                                output,
-                                                outSuffix = file_extension_string,
-                                                existingRefs = existing_ref_list,
-                                                type_isolate = qc_dict['type_isolate'],
-                                                threads = threads,
-                                                use_gpu = gpu_graph)
-                elif update_db == "fast":
-                        newRepresentativesIndices, newRepresentativesNames, \
-                        newRepresentativesFile, genomeNetwork = \
-                            extractReferencesFast(genomeNetwork,
-                                                combined_seq,
-                                                output,
-                                                outSuffix = file_extension_string,
-                                                existingRefs = existing_ref_list,
-                                                type_isolate = qc_dict['type_isolate'],
-                                                threads = threads,
-                                                use_gpu = gpu_graph)
+                newRepresentativesIndices, newRepresentativesNames, \
+                    newRepresentativesFile, genomeNetwork = \
+                        extractReferences(genomeNetwork,
+                                            combined_seq,
+                                            output,
+                                            outSuffix = file_extension_string,
+                                            existingRefs = existing_ref_list,
+                                            type_isolate = qc_dict['type_isolate'],
+                                            threads = threads,
+                                            use_gpu = gpu_graph,
+                                            fast_mode = update_db == "fast")
 
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs

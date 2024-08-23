@@ -41,6 +41,9 @@ from .utils import check_and_set_gpu
 
 from .unwords import gen_unword
 
+# References per isolate in novel clusters for fast pruning
+FAST_REF_SUBSAMPLE = 10
+
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False, use_gpu = False):
     """Load the network based on input options
@@ -214,6 +217,20 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
+def fastPrune(component, graph, reference_indices, components_list):
+    """Wrapper function around :func:`~getCliqueRefs` so it can be
+       called by a multiprocessing pool
+    """
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
+    subgraph = gt.GraphView(graph, vfilt=components_list == component)
+    refs = set(reference_indices.copy())
+    component_vertex_idxs = subgraph.get_vertices()[0]
+    if len(set(component_vertex_idxs).intersection(refs)) == 0:
+        number_new_refs = len(refs) // FAST_REF_SUBSAMPLE
+        refs.update(component_vertex_idxs[0:number_new_refs])
+    return(list(refs))
+
 def translate_network_indices(G_ref_df, reference_indices):
     """Function for ensuring an updated reference network retains
     numbering consistent with sample names
@@ -235,7 +252,7 @@ def translate_network_indices(G_ref_df, reference_indices):
     return(G_ref)
 
 def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None,
-                        existingRefs = None, threads = 1, use_gpu = False):
+                        existingRefs = None, threads = 1, use_gpu = False, fast_mode = False):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -255,6 +272,8 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                References that should be used for each clique
            use_gpu (bool)
                Use cugraph for graph analysis (default = False)
+           fast_mode (bool)
+               Use random selection rather than clique pruning to pick refs
 
        Returns:
            refFileName (str)
@@ -279,7 +298,8 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             sys.exit(1)
 
     if use_gpu:
-
+        if fast_mode:
+            raise RuntimeError("GPU graphs not yet supported with --update-db fast")
         # For large network, use more approximate method for extracting references
         reference = {}
         # Record the original components to which sequences belonged
@@ -359,12 +379,20 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             gt.openmp_set_num_threads(1)
 
         # Cliques are pruned, taking one reference from each, until none remain
-        with Pool(processes=threads) as pool:
-            ref_lists = pool.map(partial(cliquePrune,
-                                            graph=G,
-                                            reference_indices=reference_indices,
-                                            components_list=components),
-                                 set(components))
+        if fast_mode:
+            with Pool(processes=threads) as pool:
+                ref_lists = pool.map(partial(fastPrune,
+                                                graph=G,
+                                                reference_indices=reference_indices,
+                                                components_list=components),
+                                    set(components))
+        else:
+            with Pool(processes=threads) as pool:
+                ref_lists = pool.map(partial(cliquePrune,
+                                                graph=G,
+                                                reference_indices=reference_indices,
+                                                components_list=components),
+                                    set(components))
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
