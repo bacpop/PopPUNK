@@ -562,7 +562,7 @@ def assign_query_hdf5(dbFuncs,
                     printClusters(genomeNetwork[rank],
                                   rNames + qNames,
                                   printCSV = False,
-                                  use_gpu = gpu_graph)
+                                  use_gpu = gpu_graph)[0]
 
             overall_lineage = createOverallLineage(model.ranks, isolateClustering)
             writeClusterCsv(
@@ -653,14 +653,15 @@ def assign_query_hdf5(dbFuncs,
                     for query, q_betweenness in sorted(query_betweenness.items(), key=itemgetter(1), reverse=True):
                         print(f"{query}\t{q_betweenness}")
 
-                isolateClustering = \
-                    {'combined': printClusters(genomeNetwork,
+                isolateClustering, merged_queries = \
+                                  printClusters(genomeNetwork,
                                                 rNames + qNames,
                                                 output_fn,
                                                 old_cluster_file,
                                                 external_clustering,
                                                 write_references or update_db,
-                                                use_gpu = gpu_graph)}
+                                                use_gpu = gpu_graph)
+                isolateClustering = {'combined': isolateClustering }
             else:
                 if stable is not None:
                     # Some of this could be moved out higher up, e.g. we don't really need
@@ -706,7 +707,8 @@ def assign_query_hdf5(dbFuncs,
                                             queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
                                             model,
                                             output)[0]
-                        isolate_cluster = printClusters(genomeNetwork,
+                        isolate_cluster = \
+                            printClusters(genomeNetwork,
                                                     rNames + [sample],
                                                     output_fn,
                                                     old_cluster_file,
@@ -714,7 +716,7 @@ def assign_query_hdf5(dbFuncs,
                                                     printRef=False,
                                                     printCSV=False,
                                                     write_unwords=False,
-                                                    use_gpu = gpu_graph)
+                                                    use_gpu = gpu_graph)[0]
                         cluster = int(isolate_cluster[sample])
                         if cluster > len(rNames):
                             cluster = "novel"
@@ -780,6 +782,7 @@ def assign_query_hdf5(dbFuncs,
                         extractReferences(genomeNetwork,
                                             combined_seq,
                                             output,
+                                            merged_queries,
                                             outSuffix = file_extension_string,
                                             existingRefs = existing_ref_list,
                                             type_isolate = qc_dict['type_isolate'],

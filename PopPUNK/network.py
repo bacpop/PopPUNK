@@ -43,6 +43,7 @@ from .unwords import gen_unword
 
 # References per isolate in novel clusters for fast pruning
 FAST_REF_SUBSAMPLE = 10
+FAST_REF_MERGE_SUBSAMPLE = 3
 
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False, use_gpu = False):
@@ -217,7 +218,7 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
-def fastPrune(component, graph, reference_indices, components_list):
+def fastPrune(component, graph, reference_indices, merged_query_idx, components_list):
     """Wrapper function around :func:`~getCliqueRefs` so it can be
        called by a multiprocessing pool
     """
@@ -226,9 +227,18 @@ def fastPrune(component, graph, reference_indices, components_list):
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
     refs = set(reference_indices.copy())
     component_vertex_idxs = subgraph.get_vertices()[0]
+
+    # Add new refs for clusters without references
     if len(set(component_vertex_idxs).intersection(refs)) == 0:
         number_new_refs = len(refs) // FAST_REF_SUBSAMPLE
         refs.update(component_vertex_idxs[0:number_new_refs])
+
+    # New refs for merged queries
+    merged_samples = set(component_vertex_idxs).intersection(merged_query_idx)
+    if len(merged_samples) > 0:
+        number_new_refs = len(merged_samples) // FAST_REF_MERGE_SUBSAMPLE
+        refs.update(merged_samples[0:number_new_refs])
+
     return(list(refs))
 
 def translate_network_indices(G_ref_df, reference_indices):
@@ -251,7 +261,7 @@ def translate_network_indices(G_ref_df, reference_indices):
     G_ref = generate_cugraph(G_ref_df, len(reference_indices) - 1, renumber = True)
     return(G_ref)
 
-def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None,
+def extractReferences(G, dbOrder, outPrefix, merged_queries, outSuffix = '', type_isolate = None,
                         existingRefs = None, threads = 1, use_gpu = False, fast_mode = False):
     """Extract references for each cluster based on cliques
 
@@ -264,6 +274,9 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
                Prefix for output file
+           merged_queries (list)
+               Query files which were part of a merged cluster
+               (used for fast assign, to enrich refs with)
            outSuffix (str)
                Suffix for output file  (.refs will be appended)
            type_isolate (str)
@@ -281,6 +294,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
            references (list)
                An updated list of the reference names
     """
+    # Convert names to indices
     if existingRefs == None:
         references = set()
         reference_indices = set()
@@ -288,6 +302,11 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         references = set(existingRefs)
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
+
+    if len(merged_queries) > 0:
+        index_lookup = {v:k for k,v in enumerate(dbOrder)}
+        merged_query_idx = set([index_lookup[r] for r in frozenset(merged_queries)])
+
     # Add type isolate, if necessary
     type_isolate_index = None
     if type_isolate is not None:
@@ -380,13 +399,16 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
 
         # Cliques are pruned, taking one reference from each, until none remain
         if fast_mode:
+            sys.stderr.write("Running quick reference picking\n")
             with Pool(processes=threads) as pool:
                 ref_lists = pool.map(partial(fastPrune,
                                                 graph=G,
                                                 reference_indices=reference_indices,
+                                                merged_query_idx=merged_query_idx,
                                                 components_list=components),
                                     set(components))
         else:
+            sys.stderr.write("Running clique finding\n")
             with Pool(processes=threads) as pool:
                 ref_lists = pool.map(partial(cliquePrune,
                                                 graph=G,
@@ -400,6 +422,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         if type_isolate_index is not None and type_isolate_index not in reference_indices:
             reference_indices.add(type_isolate_index)
 
+        sys.stderr.write("Reconstructing clusters with shortest paths\n")
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(threads)
 
@@ -1539,6 +1562,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     clustering = {}
     foundOldClusters = []
     cluster_unword = {}
+    merged_queries = []
     if write_unwords:
         unword_generator = gen_unword()
 
@@ -1551,6 +1575,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
             # Samples in this cluster that are not queries
             ref_only = oldNames.intersection(newCluster)
+            query_only = newCluster - ref_only
 
             # A cluster with no previous observations
             if len(ref_only) == 0:
@@ -1572,6 +1597,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
                         # Query has merged clusters
                         if len(join) < len(ref_only):
                             merge = True
+                            merged_queries.extend(query_only)
                             needs_unword = True
                             if cls_id == None:
                                 cls_id = oldClusterName
@@ -1631,7 +1657,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         if externalClusterCSV is not None:
             printExternalClusters(newClusters, externalClusterCSV, outPrefix, oldNames, printRef)
 
-    return(clustering)
+    return(clustering, merged_queries)
 
 def printExternalClusters(newClusters, extClusterFile, outPrefix,
                           oldNames, printRef = True):
