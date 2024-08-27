@@ -234,7 +234,7 @@ def fastPrune(component, graph, reference_indices, merged_query_idx, components_
         refs.update(component_vertex_idxs[0:number_new_refs])
 
     # New refs for merged queries
-    merged_samples = component_vertex_idxs.intersection(merged_query_idx)
+    merged_samples = list(component_vertex_idxs.intersection(merged_query_idx))
     if len(merged_samples) > 0:
         number_new_refs = len(merged_samples) // FAST_REF_MERGE_SUBSAMPLE
         refs.update(merged_samples[0:number_new_refs])
