@@ -463,7 +463,8 @@ def main():
             remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
-                           args.strand_preserved, args.threads)
+                           args.strand_preserved, args.threads,
+                           args.gpu_graph)
 
         # Plot results
         if not args.no_plot:
