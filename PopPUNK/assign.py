@@ -718,9 +718,9 @@ def assign_query_hdf5(dbFuncs,
                     cluster_f.write(",".join((sample, str(cluster))) + "\n")
                 cluster_f.close()
 
-            if external_clustering is not None:
-                printExternalClusters(isolateClustering, external_clustering,
-                                        output, rNames, printRef=False)
+                if external_clustering is not None:
+                    printExternalClusters(isolateClustering, external_clustering,
+                                            output, rNames, printRef=False)
 
         # Update DB as requested
         dists_out = output + "/" + os.path.basename(output) + ".dists"
