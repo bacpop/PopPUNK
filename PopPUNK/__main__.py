@@ -429,7 +429,9 @@ def main():
         if args.remove_samples:
             with open(args.remove_samples, 'r') as f:
                 for line in f:
-                    fail_unconditionally[line.rstrip] = ["removed"]
+                    sample_to_remove = line.rstrip()
+                    if sample_to_remove in refList:
+                        fail_unconditionally[sample_to_remove] = ["removed"]
 
         # assembly qc
         pass_assembly_qc, fail_assembly_qc = \
@@ -449,7 +451,7 @@ def main():
 
         # Get list of passing samples
         pass_list = set(refList) - fail_unconditionally.keys() - fail_assembly_qc.keys() - fail_dist_qc.keys()
-        assert(pass_list == set(refList).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
+        assert(pass_list == (set(refList) - fail_unconditionally.keys()).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
         passed = [x for x in refList if x in pass_list]
         if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
             raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
