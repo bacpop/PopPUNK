@@ -59,6 +59,9 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --output 
 sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
 
+#test pruning a database with a graph
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_network_qc --type-isolate \"12754_4#79\" --remove-samples remove.txt --overwrite", shell=True, check=True)
+
 # tests of other command line programs
 sys.stderr.write("Testing C++ extension\n")
 subprocess.run(python_cmd + " test-refine.py", shell=True, check=True)

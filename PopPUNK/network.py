@@ -1888,3 +1888,60 @@ def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
                                                summarise=False)
 
     return G
+
+
+def  prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
+    """Keep only the specified sequences in a graph
+
+    Args:
+       prefix (str)
+           Name of directory containing network
+       reflist (list)
+           Ordered list of sequences of database
+       passed (list)
+            The names of passing samples
+       output_db_name (str)
+            Name of output directory
+       threads (int)
+            Number of CPU threads to use when recalculating random match chances
+            [default = 1].
+       use_gpu (bool)
+            Whether graph is a cugraph or not
+            [default = False]
+
+    Returns:
+       vlist (list)
+           List of integers corresponding to nodes
+    """
+    if use_gpu:
+        graph_suffix = '.csv.gz'
+    else:
+        graph_suffix = '.gt'
+    network_fn = f"{prefix}/{os.path.basename(prefix)}" + '_graph' + graph_suffix
+    print('Network: ' + network_fn)
+    if os.path.exists(network_fn):
+        sys.stderr.write("Loading network from " + network_fn + "\n")
+        passed_set = frozenset(passed)
+        G = load_network_file(network_fn, use_gpu = use_gpu)
+        if use_gpu:
+            G_df = G.view_edge_list()
+            if 'src' in G_df.columns:
+                G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
+            G_new_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+            G_new = translate_network_indices(G_new_df, reference_indices)
+        else:
+            reference_vertex = G.new_vertex_property('bool')
+            for n, vertex in enumerate(G.vertices()):
+                if reflist[n] in passed_set:
+                    reference_vertex[vertex] = True
+                else:
+                    reference_vertex[vertex] = False
+            G_new = gt.GraphView(G, vfilt = reference_vertex)
+            G_new = gt.Graph(G_new, prune = True)
+        save_network(G_new,
+                    prefix = output_db_name,
+                    suffix = '_graph',
+                    use_graphml = False,
+                    use_gpu = use_gpu)
+    else:
+        sys.stderr.write('No network file found for pruning\n')

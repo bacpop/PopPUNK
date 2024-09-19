@@ -47,7 +47,8 @@ outputDirs = [
     "batch12",
     "batch123",
     "strain_1_lineage_db",
-    "strain_2_lineage_db"
+    "strain_2_lineage_db",
+    "example_network_qc"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)

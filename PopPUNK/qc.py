@@ -11,6 +11,7 @@ from collections import Counter
 
 import poppunk_refine
 
+from .network import prune_graph
 from .utils import storePickle, iterDistRows, readIsolateTypeFromCsv
 
 def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
@@ -484,16 +485,12 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                               f"{prefix}/{os.path.basename(prefix)}.dists")
         
         # Update the graph
-        if use_gpu:
-          graph_suffix = '.csv.gz'
-        else:
-          graph_suffix = '.gt'
-        network_file = f"{prefix}/{os.path.basename(prefix)}" + '_graph' + graph_suffix
-#        prune_graph(network_file,
-#                    passed,
-#                    output_db_name,
-#                    threads,
-#                    use_gpu)
+        prune_graph(ref_db,
+                    names,
+                    passed,
+                    prefix,
+                    threads,
+                    use_gpu)
         
         #if any removed, recalculate random
         sys.stderr.write(f"Recalculating random matches with strand_preserved = {strand_preserved}\n")
