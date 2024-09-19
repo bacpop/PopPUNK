@@ -1,10 +1,10 @@
-12754_4#89_partial	12754_4#89.partial.contigs_velvet.fa
-12673_8#43	12673_8#43.contigs_velvet.fa
-19183_4#69	19183_4#69.contigs_velvet.fa
-12754_5#76	12754_5#76.contigs_velvet.fa
-12754_5#57	12754_5#57.contigs_velvet.fa
-19183_4#59	19183_4#59.contigs_velvet.fa
-19183_4#63	19183_4#63.contigs_velvet.fa
-12754_4#77	12754_4#77.contigs_velvet.fa
-19183_4#55	19183_4#55.contigs_velvet.fa
-12754_4#85	12754_4#85.contigs_velvet.fa
+12754_4#89_partial
+12673_8#43
+19183_4#69
+12754_5#76
+12754_5#57
+19183_4#59
+19183_4#63
+12754_4#77
+19183_4#55
+12754_4#85
