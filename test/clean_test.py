@@ -28,7 +28,9 @@ outputDirs = [
     "example_use",
     "example_query",
     "example_single_query",
+    "example_query_stable",
     "example_query_update",
+    "example_query_update_2",
     "example_lineage_query",
     "example_viz",
     "example_viz_subset",
@@ -46,8 +48,10 @@ outputDirs = [
     "batch3",
     "batch12",
     "batch123",
+    "batch123_viz",
     "strain_1_lineage_db",
     "strain_2_lineage_db",
+    "lineage_querying_output",
     "example_network_qc"
 ]
 for outDir in outputDirs:
