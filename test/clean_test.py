@@ -58,7 +58,8 @@ outputDirs = [
     "batch123_viz",
     "strain_1_lineage_db",
     "strain_2_lineage_db",
-    "lineage_querying_output"
+    "lineage_querying_output",
+    "example_network_qc"
 ]
 for outDir in outputDirs:
     deleteDir(outDir)
