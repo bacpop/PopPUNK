@@ -1919,7 +1919,7 @@ def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
         graph_suffix = '.gt'
 
     network_found = False
-    for graph_name in ['_core.refs_graph','_core_graph','_accessory.refs_graph','_accessory_graph','.refs_graph','_graph']
+    for graph_name in ['_core.refs_graph','_core_graph','_accessory.refs_graph','_accessory_graph','.refs_graph','_graph']:
       network_fn = f"{prefix}/{os.path.basename(prefix)}" + graph_name + graph_suffix
       if os.path.exists(network_fn):
           network_found = True
