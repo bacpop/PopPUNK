@@ -753,7 +753,7 @@ def assign_query_hdf5(dbFuncs,
             storePickle(combined_seq, combined_seq, True, None, dists_out)
 
             # Clique pruning
-            if model.type != 'lineage':
+            if model.type != 'lineage' and os.path.isfile(ref_file_name):
                 existing_ref_list = []
                 with open(ref_file_name) as refFile:
                     for reference in refFile:
