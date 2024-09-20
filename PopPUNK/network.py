@@ -1924,10 +1924,15 @@ def  prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
         passed_set = frozenset(passed)
         G = load_network_file(network_fn, use_gpu = use_gpu)
         if use_gpu:
+            # Identify indices
+            reference_indices = [i for (i,name) in enumerate(reflist) if name in passed_set]
+            # Generate data frame
             G_df = G.view_edge_list()
             if 'src' in G_df.columns:
                 G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
+            # Filter data frame
             G_new_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+            # Translate network indices to match name order
             G_new = translate_network_indices(G_new_df, reference_indices)
         else:
             reference_vertex = G.new_vertex_property('bool')
