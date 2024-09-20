@@ -58,7 +58,7 @@ The advantages of PopPUNK are broadly that:
 - It is fast, and scalable to over :math:`10^{5}` genomes in a single run.
 - Assigning new query sequences to a cluster using an existing database is scalable even beyond this.
 - Cluster names remain consistent between studies, and other cluster labels such as MLST
-  can be appended.
+  can be appended. **Please note that when used as documented PopPUNK outputs stable nomenclature**.
 - Databases can be updated online (as sequences arrive).
 - Online updating is equivalent to building databases from scratch.
 - Databases can be kept small and managable by only keeping representative isolates.

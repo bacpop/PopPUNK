@@ -12,7 +12,14 @@ def deleteDir(dirname):
         shutil.rmtree(dirname)
 
 sys.stderr.write("Cleaning up tests\n")
-dirty_files = ['example_db.info.csv']
+dirty_files = [
+    "example_db.info.csv",
+    "example_external_clusters.csv",
+    "batch12_external_clusters.csv",
+    "example_lineage_scheme.pkl",
+    "lineage_creation_output.csv",
+    "lineage_querying_output.csv"
+]
 with open("references.txt", 'r') as ref_file:
     for line in ref_file:
         dirty_files.append(line.rstrip().split("\t")[1])

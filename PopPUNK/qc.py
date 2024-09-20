@@ -499,14 +499,43 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                     overwrite=True, threads=threads)
 
     # write failing & reasons
-    with open(f"{prefix}/{os.path.basename(prefix)}_qcreport.txt", 'w') as qc_file:
-        for sample in failed:
-            reasons = []
-            for fail_test in fail_dicts:
-                if sample in fail_test:
-                    reasons += (fail_test[sample])
-            qc_file.write(f"{sample}\t{','.join(reasons)}\n")
+    write_qc_failure_report(failed, fail_dicts, prefix)
 
+def write_qc_failure_report(failed_samples, fail_dicts, output_prefix):
+    """
+    Writes a report of failed samples and their reasons to a file.
+
+    Parameters:
+    - failed_samples: A list of samples that have failed.
+    - fail_dicts: A list of dictionaries, each mapping samples to their failure reasons.
+    - output_prefix: The prefix for the output file path.
+    """
+    # Accumulate output lines for each failed sample
+    failed_output_lines = [
+        f"{sample}\t{','.join(get_failure_reasons(sample, fail_dicts))}\n"
+        for sample in failed_samples
+    ]
+    with open(f"{output_prefix}/{os.path.basename(output_prefix)}_qcreport.txt", 'w') as qc_file:
+        qc_file.writelines(failed_output_lines)
+
+def get_failure_reasons(sample, fail_dicts):
+    """
+    Retrieves all failure reasons for a given sample across multiple dictionaries.
+
+    Parameters:
+    - sample: The sample to retrieve failure reasons for.
+    - fail_dicts: A list of dictionaries, each mapping samples to their failure reasons.
+
+    Returns:
+    A list of failure reasons for the given sample.
+    """
+    return [
+        reason
+        for fail_dict in fail_dicts
+        if sample in fail_dict
+        for reason in fail_dict[sample]
+    ]
+    
 def pickTypeIsolate(prefix, refList):
     """Selects a type isolate as that with a minimal proportion
     of missing data.

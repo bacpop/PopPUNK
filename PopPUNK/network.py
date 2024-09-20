@@ -1476,7 +1476,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     if use_gpu:
         component_assignments = cugraph.components.connectivity.connected_components(G)
         component_frequencies = component_assignments['labels'].value_counts(sort = True, ascending = False)
-        newClusters = [set() for rank in range(component_frequencies.size)]
+        newClusters = [set() for _ in range(component_frequencies.size)]
         for isolate_index, isolate_name in enumerate(rlist): # assume sorted at the moment
             component = component_assignments['labels'].iloc[isolate_index].item()
             component_rank_bool = component_frequencies.index == component
@@ -1499,7 +1499,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         oldClusters = oldAllClusters[list(oldAllClusters.keys())[0]]
         # parse all previously used clusters, including those that are merged
         parsed_oldClusters = set([int(item) for sublist in (x.split('_') for x in oldClusters) for item in sublist])
-        
+
         new_id = max(parsed_oldClusters) + 1 # 1-indexed
         while new_id in parsed_oldClusters:
             new_id += 1 # in case clusters have been merged

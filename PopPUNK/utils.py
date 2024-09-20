@@ -146,12 +146,15 @@ def storePickle(rlist, qlist, self, X, pklName):
             Whether an all-vs-all self DB (for :func:`~iterDistRows`)
         X (numpy.array)
             n x 2 array of core and accessory distances
+
+            If None, do not save
         pklName (str)
             Prefix for output files
     """
     with open(pklName + ".pkl", 'wb') as pickle_file:
         pickle.dump([rlist, qlist, self], pickle_file)
-    np.save(pklName + ".npy", X)
+    if isinstance(X, np.ndarray):
+        np.save(pklName + ".npy", X)
 
 
 def readPickle(pklName, enforce_self=False, distances=True):
@@ -266,7 +269,7 @@ def readIsolateTypeFromCsv(clustCSV, mode = 'clusters', return_dict = False):
             File name of CSV with isolate assignments
         mode (str)
             Type of file to read 'clusters', 'lineages', or 'external'
-        return_type (str)
+        return_dict (bool)
             If True, return a dict with sample->cluster instead
             of sets
             [default = False]
@@ -422,7 +425,7 @@ def readRfile(rFile, oneSeq=False):
     """
     names = []
     sequences = []
-    with open(rFile, 'rU') as refFile:
+    with open(rFile, 'r') as refFile:
         for refLine in refFile:
             rFields = refLine.rstrip().split("\t")
             if len(rFields) < 2:
