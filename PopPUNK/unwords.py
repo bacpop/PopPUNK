@@ -13,7 +13,7 @@ def gen_unword(unique=True):
 
     vowels = ["a", "e", "i", "o", "u"]
     trouble = ["q", "x", "y"]
-    consonants = set(string.ascii_lowercase) - set(vowels) - set(trouble)
+    consonants = list(set(string.ascii_lowercase) - set(vowels) - set(trouble))
 
     vowel = lambda: random.sample(vowels, 1)
     consonant = lambda: random.sample(consonants, 1)
