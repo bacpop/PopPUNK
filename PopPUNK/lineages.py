@@ -7,6 +7,7 @@ import sys
 import argparse
 import subprocess
 import pickle
+import shutil
 import pandas as pd
 from collections import defaultdict
 
@@ -142,7 +143,7 @@ def main():
         create_db(args)
     elif args.query_db is not None:
         query_db(args)
-  
+
 
 def create_db(args):
 
@@ -150,8 +151,10 @@ def create_db(args):
     if not args.overwrite:
         if os.path.exists(args.output + '.csv'):
             sys.stderr.write('Output file ' + args.output + '.csv exists; use --overwrite to replace it\n')
+            sys.exit(1)
         if os.path.exists(args.db_scheme):
             sys.stderr.write('Output file ' + args.db_scheme + ' exists; use --overwrite to replace it\n')
+            sys.exit(1)
 
     sys.stderr.write("Identifying strains in existing database\n")
     # Read in strain information
@@ -197,7 +200,8 @@ def create_db(args):
         if num_isolates >= args.min_count:
             lineage_dbs[strain] = strain_db_name
             if os.path.isdir(strain_db_name) and args.overwrite:
-                os.rmdir(strain_db_name)
+                sys.stderr.write("--overwrite means {strain_db_name} will be deleted now\n")
+                shutil.rmtree(strain_db_name)
             if not os.path.isdir(strain_db_name):
                 try:
                     os.makedirs(strain_db_name)
@@ -209,7 +213,8 @@ def create_db(args):
             dest_db = os.path.join(strain_db_name,os.path.basename(strain_db_name) + '.h5')
             rel_path = os.path.relpath(src_db, os.path.dirname(dest_db))
             if os.path.exists(dest_db) and args.overwrite:
-                os.remove(dest_db)
+                sys.stderr.write("--overwrite means {dest_db} will be deleted now\n")
+                shutil.rmtree(dest_db)
             elif not os.path.exists(dest_db):
                 os.symlink(rel_path,dest_db)
             # Extract sparse distances
@@ -217,8 +222,6 @@ def create_db(args):
                             list(set(rlist) - set(isolate_list)),
                             X,
                             os.path.join(strain_db_name,strain_db_name + '.dists'))
-            # Prune rank list
-            pruned_rank_list = [r for r in rank_list if r <= num_isolates]
             # Initialise model
             model = LineageFit(strain_db_name,
                       rank_list,
@@ -306,7 +309,7 @@ def create_db(args):
 
 
 def query_db(args):
-    
+
     # Read querying scheme
     with open(args.db_scheme, 'rb') as pickle_file:
         ref_db, rlist, model_dir, clustering_file, args.clustering_col_name, distances, \
@@ -376,6 +379,7 @@ def query_db(args):
                     False, # write references - need to consider whether to support ref-only databases for assignment
                     distances,
                     False, # serial - needs to be supported for web version?
+                    None, # stable - not supported here
                     args.threads,
                     True, # overwrite - probably OK?
                     False, # plot_fit - turn off for now
@@ -422,6 +426,7 @@ def query_db(args):
                             False, # write references - need to consider whether to support ref-only databases for assignment
                             lineage_distances,
                             False, # serial - needs to be supported for web version?
+                            None, # stable - not supported here
                             args.threads,
                             True, # overwrite - probably OK?
                             False, # plot_fit - turn off for now
@@ -436,10 +441,10 @@ def query_db(args):
                             args.gpu_graph,
                             save_partial_query_graph = False)
             overall_lineage[strain] = createOverallLineage(rank_list, lineageClustering)
-    
+
     # Print combined strain and lineage clustering
     print_overall_clustering(overall_lineage,args.output + '.csv',qNames)
-    
+
 
 def print_overall_clustering(overall_lineage,output,include_list):
 
@@ -457,7 +462,7 @@ def print_overall_clustering(overall_lineage,output,include_list):
                         isolate_info[isolate].append(str(overall_lineage[strain][rank][isolate]))
                     else:
                         isolate_info[isolate] = [str(strain),str(overall_lineage[strain][rank][isolate])]
-    
+
     # Print output
     with open(output,'w') as out:
         out.write('id,Cluster,')
@@ -470,3 +475,4 @@ def print_overall_clustering(overall_lineage,output,include_list):
 if __name__ == '__main__':
     main()
     sys.exit(0)
+
