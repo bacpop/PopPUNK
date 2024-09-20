@@ -1890,7 +1890,7 @@ def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
     return G
 
 
-def  prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
+def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
     """Keep only the specified sequences in a graph
 
     Args:
@@ -1917,36 +1917,39 @@ def  prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
         graph_suffix = '.csv.gz'
     else:
         graph_suffix = '.gt'
-    network_fn = f"{prefix}/{os.path.basename(prefix)}" + '_graph' + graph_suffix
-    print('Network: ' + network_fn)
-    if os.path.exists(network_fn):
-        sys.stderr.write("Loading network from " + network_fn + "\n")
-        passed_set = frozenset(passed)
-        G = load_network_file(network_fn, use_gpu = use_gpu)
-        if use_gpu:
-            # Identify indices
-            reference_indices = [i for (i,name) in enumerate(reflist) if name in passed_set]
-            # Generate data frame
-            G_df = G.view_edge_list()
-            if 'src' in G_df.columns:
-                G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
-            # Filter data frame
-            G_new_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-            # Translate network indices to match name order
-            G_new = translate_network_indices(G_new_df, reference_indices)
-        else:
-            reference_vertex = G.new_vertex_property('bool')
-            for n, vertex in enumerate(G.vertices()):
-                if reflist[n] in passed_set:
-                    reference_vertex[vertex] = True
-                else:
-                    reference_vertex[vertex] = False
-            G_new = gt.GraphView(G, vfilt = reference_vertex)
-            G_new = gt.Graph(G_new, prune = True)
-        save_network(G_new,
-                    prefix = output_db_name,
-                    suffix = '_graph',
-                    use_graphml = False,
-                    use_gpu = use_gpu)
-    else:
+
+    network_found = False
+    for graph_name in ['_core.refs_graph','_core_graph','_accessory.refs_graph','_accessory_graph','.refs_graph','_graph']
+      network_fn = f"{prefix}/{os.path.basename(prefix)}" + graph_name + graph_suffix
+      if os.path.exists(network_fn):
+          network_found = True
+          sys.stderr.write("Loading network from " + network_fn + "\n")
+          passed_set = frozenset(passed)
+          G = load_network_file(network_fn, use_gpu = use_gpu)
+          if use_gpu:
+              # Identify indices
+              reference_indices = [i for (i,name) in enumerate(reflist) if name in passed_set]
+              # Generate data frame
+              G_df = G.view_edge_list()
+              if 'src' in G_df.columns:
+                  G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
+              # Filter data frame
+              G_new_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+              # Translate network indices to match name order
+              G_new = translate_network_indices(G_new_df, reference_indices)
+          else:
+              reference_vertex = G.new_vertex_property('bool')
+              for n, vertex in enumerate(G.vertices()):
+                  if reflist[n] in passed_set:
+                      reference_vertex[vertex] = True
+                  else:
+                      reference_vertex[vertex] = False
+              G_new = gt.GraphView(G, vfilt = reference_vertex)
+              G_new = gt.Graph(G_new, prune = True)
+          save_network(G_new,
+                      prefix = output_db_name,
+                      suffix = '_graph',
+                      use_graphml = False,
+                      use_gpu = use_gpu)
+    if not network_found:
         sys.stderr.write('No network file found for pruning\n')
