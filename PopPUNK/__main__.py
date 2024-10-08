@@ -256,7 +256,7 @@ def main():
 
     # Imports are here because graph tool is very slow to load
     from .models import loadClusterFit, BGMMFit, DBSCANFit, RefineFit, LineageFit
-    from .sketchlib import checkSketchlibLibrary, removeFromDB
+    from .sketchlib import checkSketchlibLibrary, removeFromDB, get_database_statistics
 
     from .network import construct_network_from_edge_list
     from .network import construct_network_from_assignments
@@ -393,7 +393,8 @@ def main():
             plot_scatter(distMat,
                          args.output,
                          args.output + " distances")
-            plot_database_evaluations(args.output)
+            genome_lengths, ambiguous_bases = get_database_statistics(args.output)
+            plot_database_evaluations(genome_lengths, ambiguous_bases)
 
     #******************************#
     #*                            *#
@@ -471,7 +472,8 @@ def main():
             plot_scatter(distMat,
                          output,
                          output + " distances")
-            plot_database_evaluations(output)
+            genome_lengths, ambiguous_bases = get_database_statistics(args.output)
+            plot_database_evaluations(genome_lengths, ambiguous_bases)
 
     #******************************#
     #*                            *#

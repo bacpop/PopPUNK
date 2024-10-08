@@ -16,7 +16,6 @@ import itertools
 # for other outputs
 import pandas as pd
 from pandas.errors import DataError
-import h5py
 from collections import defaultdict
 from sklearn import utils
 try:  # sklearn >= 0.22
@@ -82,21 +81,15 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + '_distanceDistribution.png'))
     plt.close()
 
-def plot_database_evaluations(prefix):
+def plot_database_evaluations(genome_lengths, ambiguous_bases):
     """Plot histograms of sequence characteristics for database evaluation.
 
     Args:
-        prefix (str)
-            Prefix of database
+        genome_lengths (list)
+            Lengths of genomes in database
+        ambiguous_bases (list)
+            Counts of ambiguous bases in genomes in database
     """
-    db_file = prefix + "/" + os.path.basename(prefix) + ".h5"
-    ref_db = h5py.File(db_file, 'r')
-
-    genome_lengths = []
-    ambiguous_bases = []
-    for sample_name in list(ref_db['sketches'].keys()):
-        genome_lengths.append(ref_db['sketches/' + sample_name].attrs['length'])
-        ambiguous_bases.append(ref_db['sketches/' + sample_name].attrs['missing_bases'])
     plot_evaluation_histogram(genome_lengths,
                               n_bins = 100,
                               prefix = prefix,
