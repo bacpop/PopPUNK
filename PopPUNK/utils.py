@@ -543,7 +543,7 @@ def decisionBoundary(intercept, gradient, adj = 0.0):
         gradient (float)
             Gradient of the line
         adj (float)
-            Distance by which to shift the interception point
+            Fraction by which to shift the intercept up the y axis
     Returns:
         x (float)
             The x-axis intercept
