@@ -1908,10 +1908,6 @@ def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
        use_gpu (bool)
             Whether graph is a cugraph or not
             [default = False]
-
-    Returns:
-       vlist (list)
-           List of integers corresponding to nodes
     """
     if use_gpu:
         graph_suffix = '.csv.gz'
