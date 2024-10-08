@@ -473,7 +473,7 @@ def main():
                          output,
                          output + " distances")
             genome_lengths, ambiguous_bases = get_database_statistics(output)
-            plot_database_evaluations(args.output, genome_lengths, ambiguous_bases)
+            plot_database_evaluations(output, genome_lengths, ambiguous_bases)
 
     #******************************#
     #*                            *#
