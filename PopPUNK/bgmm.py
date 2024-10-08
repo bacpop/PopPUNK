@@ -66,7 +66,7 @@ def findBetweenLabel_bgmm(means, assignments):
         most_dists[mixture_component] = np.count_nonzero(assignments == mixture_component)
 
     sorted_dists = sorted(most_dists.items(), key=operator.itemgetter(1), reverse=True)
-    return(sorted_dists[rank][0])
+    return(sorted_dists[0][0])
 
 def findWithinLabel(means, assignments, rank = 0):
     """Identify within-strain links
