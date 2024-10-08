@@ -1890,7 +1890,7 @@ def sparse_mat_to_network(sparse_mat, rlist, use_gpu = False):
     return G
 
 
-def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
+def prune_graph(prefix, reflist, samples_to_keep, output_db_name, threads, use_gpu):
     """Keep only the specified sequences in a graph
 
     Args:
