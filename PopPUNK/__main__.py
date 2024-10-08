@@ -472,7 +472,7 @@ def main():
             plot_scatter(distMat,
                          output,
                          output + " distances")
-            genome_lengths, ambiguous_bases = get_database_statistics(args.output)
+            genome_lengths, ambiguous_bases = get_database_statistics(output)
             plot_database_evaluations(args.output, genome_lengths, ambiguous_bases)
 
     #******************************#
