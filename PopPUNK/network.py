@@ -1898,8 +1898,8 @@ def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
            Name of directory containing network
        reflist (list)
            Ordered list of sequences of database
-       passed (list)
-            The names of passing samples
+       samples_to_keep (list)
+            The names of samples to be retained in the graph
        output_db_name (str)
             Name of output directory
        threads (int)
@@ -1920,11 +1920,11 @@ def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
       if os.path.exists(network_fn):
           network_found = True
           sys.stderr.write("Loading network from " + network_fn + "\n")
-          passed_set = frozenset(passed)
+          samples_to_keep_set = frozenset(samples_to_keep)
           G = load_network_file(network_fn, use_gpu = use_gpu)
           if use_gpu:
               # Identify indices
-              reference_indices = [i for (i,name) in enumerate(reflist) if name in passed_set]
+              reference_indices = [i for (i,name) in enumerate(reflist) if name in samples_to_keep_set]
               # Generate data frame
               G_df = G.view_edge_list()
               if 'src' in G_df.columns:
@@ -1936,7 +1936,7 @@ def prune_graph(prefix, reflist, passed, output_db_name, threads, use_gpu):
           else:
               reference_vertex = G.new_vertex_property('bool')
               for n, vertex in enumerate(G.vertices()):
-                  if reflist[n] in passed_set:
+                  if reflist[n] in samples_to_keep_set:
                       reference_vertex[vertex] = True
                   else:
                       reference_vertex[vertex] = False
