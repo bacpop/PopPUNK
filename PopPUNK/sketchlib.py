@@ -660,7 +660,7 @@ def fitKmerCurve(pairwise, klist, jacobian):
     # Return core, accessory
     return(np.flipud(transformed_params))
 
-def plot_database_evaluations(prefix):
+def get_database_statistics(prefix):
     """Extract statistics for evaluating databases.
 
     Args:
