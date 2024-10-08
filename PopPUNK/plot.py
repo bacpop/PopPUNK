@@ -746,7 +746,6 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         prev_col_name = "unknown"
         for col in d:
             this_col_items = len(d[col])
-            sys.stderr.write(col + ' has length ' + str(this_col_items) + '\n')
             if prev_col_items > -1 and prev_col_items != this_col_items:
                 sys.stderr.write("Discrepant length between " + prev_col_name + \
                                  " (length of " + str(prev_col_items) + ") and " + \
