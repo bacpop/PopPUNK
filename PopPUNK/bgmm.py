@@ -45,7 +45,7 @@ def fit2dMultiGaussian(X, dpgmm_max_K = 2):
     return dpgmm
 
 
-def findBetweenLabel_bgmm(means, assignments, rank = 0):
+def findBetweenLabel_bgmm(means, assignments):
     """Identify between-strain links
 
     Finds the component with the largest number of points
@@ -56,9 +56,6 @@ def findBetweenLabel_bgmm(means, assignments, rank = 0):
             K x 2 array of mixture component means
         assignments (numpy.array)
             Sample cluster assignments
-        rank (int)
-            Which label to find, ordered by distance from origin. 0-indexed.
-            (default = 0)
 
     Returns:
         between_label (int)
