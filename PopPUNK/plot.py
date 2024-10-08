@@ -81,10 +81,12 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + '_distanceDistribution.png'))
     plt.close()
 
-def plot_database_evaluations(genome_lengths, ambiguous_bases):
+def plot_database_evaluations(prefix, genome_lengths, ambiguous_bases):
     """Plot histograms of sequence characteristics for database evaluation.
 
     Args:
+        prefix (str)
+            Prefix for output files
         genome_lengths (list)
             Lengths of genomes in database
         ambiguous_bases (list)
