@@ -129,6 +129,7 @@ if not os.path.exists('lineage_querying_output.csv'):
 subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt --output batch12 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model bgmm --D 2 --ref-db batch12 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch12 --query rfile3.txt --output batch3 --external-clustering batch12_external_clusters.csv  --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch12 --query rfile3.txt --output batch3 --external-clustering batch12_external_clusters.csv --save-partial-query-graph  --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db batch12 --query-db batch3 --output batch123_viz --external-clustering batch12_external_clusters.csv --previous-query-clustering batch3/batch3_external_clusters.csv --cytoscape --rapidnj rapidnj --network-file ./batch12/batch12_graph.gt --overwrite", shell=True, check=True)
 
 # citations
