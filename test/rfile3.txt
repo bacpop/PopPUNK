@@ -1,3 +1,4 @@
-8	12754_5#73.contigs_velvet.fa
-3	12754_5#78.contigs_velvet.fa
-9	12754_5#71.contigs_velvet.fa
+12754_5#71	12754_5#71.contigs_velvet.fa
+12754_5#55	12754_5#55.contigs_velvet.fa
+12754_5#16	12754_5#16.contigs_velvet.fa
+12754_5#88	12754_5#88.contigs_velvet.fa
