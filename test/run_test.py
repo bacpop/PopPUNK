@@ -24,6 +24,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files referen
 sys.stderr.write("Running database QC test (--qc-db)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --type-isolate \"12754_4#79\" --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --length-range 2000000 3000000 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --remove-samples remove.txt --overwrite", shell=True, check=True)
 
 #fit GMM
 sys.stderr.write("Running GMM model fit (--fit-model gmm)\n")
@@ -44,6 +45,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db e
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --score-idx 1", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --overwrite --score-idx 2", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model threshold --threshold 0.003 --ref-db example_db --output example_threshold", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_refine --neg-shift 0.15 --summary-sample 15 --overwrite", shell=True, check=True)
 
 sys.stderr.write("Running multi boundary refinement (--multi-boundary and poppunk_iterate.py)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db example_db --output example_iterate --neg-shift -0.2 --overwrite --multi-boundary 10", shell=True, check=True)
@@ -56,6 +58,9 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --output 
 #use model
 sys.stderr.write("Running with an existing model (--use-model)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --use-model --ref-db example_db --model-dir example_db --output example_use --overwrite", shell=True, check=True)
+
+#test pruning a database with a graph
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_network_qc --type-isolate \"12754_4#79\" --remove-samples remove.txt --overwrite", shell=True, check=True)
 
 # tests of other command line programs
 sys.stderr.write("Testing C++ extension\n")

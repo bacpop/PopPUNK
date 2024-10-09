@@ -192,94 +192,94 @@ def create_db(args):
     lineage_dbs = {}
     overall_lineage = {}
     for strain,isolates in strains:
-      # Make new database directory
-      sys.stderr.write("Making database for strain " + str(strain) + "\n")
-      strain_db_name = args.lineage_db_prefix + '_' + str(strain) + '_lineage_db'
-      isolate_list = isolates[isolates.columns.values[0]].to_list()
-      num_isolates = len(isolate_list)
-      if num_isolates >= args.min_count:
-        lineage_dbs[strain] = strain_db_name
-        if os.path.isdir(strain_db_name) and args.overwrite:
-            sys.stderr.write("--overwrite means {strain_db_name} will be deleted now\n")
-            shutil.rmtree(strain_db_name)
-        if not os.path.isdir(strain_db_name):
-            try:
-                os.makedirs(strain_db_name)
-            except OSError:
-                sys.stderr.write("Cannot create output directory " + strain_db_name + "\n")
-                sys.exit(1)
-        # Make link to main database
-        src_db = os.path.join(args.create_db,os.path.basename(args.create_db) + '.h5')
-        dest_db = os.path.join(strain_db_name,os.path.basename(strain_db_name) + '.h5')
-        rel_path = os.path.relpath(src_db, os.path.dirname(dest_db))
-        if os.path.exists(dest_db) and args.overwrite:
-            sys.stderr.write("--overwrite means {dest_db} will be deleted now\n")
-            shutil.rmtree(dest_db)
-        elif not os.path.exists(dest_db):
-            os.symlink(rel_path,dest_db)
-        # Extract sparse distances
-        prune_distance_matrix(rlist,
-                        list(set(rlist) - set(isolate_list)),
-                        X,
-                        os.path.join(strain_db_name,strain_db_name + '.dists'))
-        # Initialise model
-        model = LineageFit(strain_db_name,
-                  rank_list,
-                  max_search_depth,
-                  args.reciprocal_only,
-                  args.count_unique_distances,
-                  use_gpu = args.gpu_graph)
-        model.set_threads(args.threads)
-        # Load pruned distance matrix
-        strain_rlist, strain_qlist, strain_self, strain_X = \
-                            readPickle(os.path.join(strain_db_name,strain_db_name + '.dists'),
-                                        enforce_self=False,
-                                        distances=True)
-        # Fit model
-        model.fit(strain_X,
-                    args.use_accessory)
-        # Lineage fit requires some iteration
-        indivNetworks = {}
-        lineage_clusters = defaultdict(dict)
-        # Iterate over ranks
-        for rank in rank_list:
-            if rank <= num_isolates:
-                assignments = model.assign(rank)
-            # Generate networks
-            indivNetworks[rank] = construct_network_from_edge_list(strain_rlist,
-                                                        strain_rlist,
-                                                        assignments,
-                                                        weights = None,
-                                                        betweenness_sample = None,
-                                                        use_gpu = args.gpu_graph,
-                                                        summarise = False
-                                                       )
-            # Write networks
-            save_network(indivNetworks[rank],
-                    prefix = strain_db_name,
-                    suffix = '_rank_' + str(rank) + '_graph',
-                        use_gpu = args.gpu_graph)
-            # Identify clusters from output
-            lineage_clusters[rank] = \
-                printClusters(indivNetworks[rank],
-                              strain_rlist,
-                              printCSV = False,
-                              use_gpu = args.gpu_graph)
-            n_clusters = max(lineage_clusters[rank].values())
-            sys.stderr.write("Network for rank " + str(rank) + " has " +
-                             str(n_clusters) + " lineages\n")
-        # For each strain, print output of each rank as CSV
-        overall_lineage[strain] = createOverallLineage(rank_list, lineage_clusters)
-        writeClusterCsv(os.path.join(strain_db_name,os.path.basename(strain_db_name) + '_lineages.csv'),
-            strain_rlist,
-            strain_rlist,
-            overall_lineage[strain],
-            output_format = 'phandango',
-            epiCsv = None,
-            suffix = '_Lineage')
-        genomeNetwork = indivNetworks[min(rank_list)]
-        # Save model
-        model.save()
+        # Make new database directory
+        sys.stderr.write("Making database for strain " + str(strain) + "\n")
+        strain_db_name = args.lineage_db_prefix + '_' + str(strain) + '_lineage_db'
+        isolate_list = isolates[isolates.columns.values[0]].to_list()
+        num_isolates = len(isolate_list)
+        if num_isolates >= args.min_count:
+            lineage_dbs[strain] = strain_db_name
+            if os.path.isdir(strain_db_name) and args.overwrite:
+                sys.stderr.write("--overwrite means {strain_db_name} will be deleted now\n")
+                shutil.rmtree(strain_db_name)
+            if not os.path.isdir(strain_db_name):
+                try:
+                    os.makedirs(strain_db_name)
+                except OSError:
+                    sys.stderr.write("Cannot create output directory " + strain_db_name + "\n")
+                    sys.exit(1)
+            # Make link to main database
+            src_db = os.path.join(args.create_db,os.path.basename(args.create_db) + '.h5')
+            dest_db = os.path.join(strain_db_name,os.path.basename(strain_db_name) + '.h5')
+            rel_path = os.path.relpath(src_db, os.path.dirname(dest_db))
+            if os.path.exists(dest_db) and args.overwrite:
+                sys.stderr.write("--overwrite means {dest_db} will be deleted now\n")
+                shutil.rmtree(dest_db)
+            elif not os.path.exists(dest_db):
+                os.symlink(rel_path,dest_db)
+            # Extract sparse distances
+            prune_distance_matrix(rlist,
+                            list(set(rlist) - set(isolate_list)),
+                            X,
+                            os.path.join(strain_db_name,strain_db_name + '.dists'))
+            # Initialise model
+            model = LineageFit(strain_db_name,
+                      rank_list,
+                      max_search_depth,
+                      args.reciprocal_only,
+                      args.count_unique_distances,
+                      use_gpu = args.gpu_graph)
+            model.set_threads(args.threads)
+            # Load pruned distance matrix
+            strain_rlist, strain_qlist, strain_self, strain_X = \
+                                readPickle(os.path.join(strain_db_name,strain_db_name + '.dists'),
+                                            enforce_self=False,
+                                            distances=True)
+            # Fit model
+            model.fit(strain_X,
+                        args.use_accessory)
+            # Lineage fit requires some iteration
+            indivNetworks = {}
+            lineage_clusters = defaultdict(dict)
+            # Iterate over ranks
+            for rank in rank_list:
+                if rank <= num_isolates:
+                    assignments = model.assign(rank)
+                # Generate networks
+                indivNetworks[rank] = construct_network_from_edge_list(strain_rlist,
+                                                            strain_rlist,
+                                                            assignments,
+                                                            weights = None,
+                                                            betweenness_sample = None,
+                                                            use_gpu = args.gpu_graph,
+                                                            summarise = False
+                                                           )
+                # Write networks
+                save_network(indivNetworks[rank],
+                        prefix = strain_db_name,
+                        suffix = '_rank_' + str(rank) + '_graph',
+                            use_gpu = args.gpu_graph)
+                # Identify clusters from output
+                lineage_clusters[rank] = \
+                    printClusters(indivNetworks[rank],
+                                  strain_rlist,
+                                  printCSV = False,
+                                  use_gpu = args.gpu_graph)
+                n_clusters = max(lineage_clusters[rank].values())
+                sys.stderr.write("Network for rank " + str(rank) + " has " +
+                                 str(n_clusters) + " lineages\n")
+            # For each strain, print output of each rank as CSV
+            overall_lineage[strain] = createOverallLineage(rank_list, lineage_clusters)
+            writeClusterCsv(os.path.join(strain_db_name,os.path.basename(strain_db_name) + '_lineages.csv'),
+                strain_rlist,
+                strain_rlist,
+                overall_lineage[strain],
+                output_format = 'phandango',
+                epiCsv = None,
+                suffix = '_Lineage')
+            genomeNetwork = indivNetworks[min(rank_list)]
+            # Save model
+            model.save()
 
     # Print combined strain and lineage clustering
     print_overall_clustering(overall_lineage,args.output + '.csv',rlist)
@@ -475,3 +475,4 @@ def print_overall_clustering(overall_lineage,output,include_list):
 if __name__ == '__main__':
     main()
     sys.exit(0)
+

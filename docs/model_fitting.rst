@@ -505,6 +505,10 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
 
 .. _alt-scores:
 
+The calculation of the summary statistics used to optimise the network properties may be slow with
+large datasets. Hence the ``--summary-sample`` argument can be used to specify the number of network
+nodes that are randomly subsampled from the overall network to calculate the optimal boundary position.
+
 Alternative network scores
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 Two additional network scores are now available using node betweenness. We have observed
@@ -526,7 +530,9 @@ For these scores:
 Score 1 is printed as score (w/ betweenness) and score 2 as score (w/ weighted-betweenness). Use ``--score-idx``
 with 0 (default), 1 (betweenness) or 2 (weighted-betweenness) to choose which score to optimise in refine
 mode. The default is the original score 0. Note that scores 1 and 2 may take longer to compute due to
-the betweenness calculation, though this can take advantage of multiple ``--threads``.
+the betweenness calculation, though this can take advantage of multiple ``--threads``. If it is prohibitively
+slow, then the ``--betweenness-sample`` argument may be used to specify the size of a random sample of nodes
+for the calculation of the between statistic.
 
 Unconstrained (two-dimensional) optimisation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

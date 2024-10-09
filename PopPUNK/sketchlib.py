@@ -659,3 +659,21 @@ def fitKmerCurve(pairwise, klist, jacobian):
 
     # Return core, accessory
     return(np.flipud(transformed_params))
+
+def get_database_statistics(prefix):
+    """Extract statistics for evaluating databases.
+
+    Args:
+        prefix (str)
+            Prefix of database
+    """
+    db_file = prefix + "/" + os.path.basename(prefix) + ".h5"
+    ref_db = h5py.File(db_file, 'r')
+
+    genome_lengths = []
+    ambiguous_bases = []
+    for sample_name in list(ref_db['sketches'].keys()):
+        genome_lengths.append(ref_db['sketches/' + sample_name].attrs['length'])
+        ambiguous_bases.append(ref_db['sketches/' + sample_name].attrs['missing_bases'])
+        
+    return genome_lengths, ambiguous_bases

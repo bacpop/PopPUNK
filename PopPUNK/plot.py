@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import itertools
 # for other outputs
 import pandas as pd
+from pandas.errors import DataError
 from collections import defaultdict
 from sklearn import utils
 try:  # sklearn >= 0.22
@@ -77,7 +78,59 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
-    plt.savefig(out_prefix + '.png')
+    plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + '_distanceDistribution.png'))
+    plt.close()
+
+def plot_database_evaluations(prefix, genome_lengths, ambiguous_bases):
+    """Plot histograms of sequence characteristics for database evaluation.
+
+    Args:
+        prefix (str)
+            Prefix for output files
+        genome_lengths (list)
+            Lengths of genomes in database
+        ambiguous_bases (list)
+            Counts of ambiguous bases in genomes in database
+    """
+    plot_evaluation_histogram(genome_lengths,
+                              n_bins = 100,
+                              prefix = prefix,
+                              suffix = 'genome_lengths',
+                              plt_title = 'Distribution of sequence lengths',
+                              xlab = 'Sequence length (nt)')
+    plot_evaluation_histogram(ambiguous_bases,
+                              n_bins = 100,
+                              prefix = prefix,
+                              suffix = 'ambiguous_base_counts',
+                              plt_title = 'Distribution of ambiguous base counts',
+                              xlab = 'Number of ambiguous bases')
+
+def plot_evaluation_histogram(input_data, n_bins = 100, prefix = 'hist',
+    suffix = '', plt_title = 'histogram', xlab = 'x'):
+    """Plot histograms of sequence characteristics for database evaluation.
+
+    Args:
+        input_data (list)
+            Input data (list of numbers)
+        n_bins (int)
+            Number of bins to use for the histogram
+        prefix (str)
+            Prefix of database
+        suffix (str)
+            Suffix specifying plot type
+        plt_title (str)
+            Title for plot
+        xlab (str)
+            Title for the horizontal axis
+    """
+    plt.figure(figsize=(8, 8), dpi=160, facecolor='w', edgecolor='k')
+    counts, bins = np.histogram(input_data, bins = n_bins)
+    plt.stairs(counts, bins, fill = True)
+    plt.title(plt_title)
+    plt.xlabel(xlab)
+    plt.ylabel('Frequency')
+    plt.savefig(os.path.join(prefix, os.path.basename(prefix) + '_' + suffix + '.png'))
+    plt.savefig(os.path.join(prefix,prefix + '.png'))
     plt.close()
 
 def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, out_prefix, title):
@@ -338,12 +391,13 @@ def plot_contours(model, assignments, title, out_prefix):
     # avoid recursive import
     from .bgmm import log_likelihood
     from .bgmm import findWithinLabel
+    from .bgmm import findBetweenLabel_bgmm
 
     xx, yy, xy = get_grid(0, 1, 100)
 
     # for likelihood boundary
     z = model.assign(xy, values=True, progress=False)
-    z_diff = z[:,findWithinLabel(model.means, assignments, 0)] - z[:,findWithinLabel(model.means, assignments, 1)]
+    z_diff = z[:,findWithinLabel(model.means, assignments, 0)] - z[:,findBetweenLabel_bgmm(model.means, assignments)]
     z = z_diff.reshape(xx.shape).T
 
     # For full likelihood surface
@@ -663,13 +717,14 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
                         d['Status'].append("Reference")
             if epiCsv is not None:
                 if label in epiData.index:
-                    for col, value in zip(epiData.columns.values, epiData.loc[label].values):
-                        if col not in columns_to_be_omitted:
-                            d[col].append(str(value))
-                else:
-                    for col in epiData.columns.values:
-                        if col not in columns_to_be_omitted:
-                            d[col].append('nan')
+                    if label in epiData.index:
+                        for col, value in zip(epiData.columns.values, epiData.loc[[label]].iloc[0].values):
+                            if col not in columns_to_be_omitted:
+                                d[col].append(str(value))
+                    else:
+                        for col in epiData.columns.values:
+                            if col not in columns_to_be_omitted:
+                                d[col].append('nan')
 
         else:
             sys.stderr.write("Cannot find " + name + " in clustering\n")
@@ -679,8 +734,8 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
     sys.stderr.write("Parsed data, now writing to CSV\n")
     try:
         pd.DataFrame(data=d).to_csv(outfile, columns = colnames, index = False)
-    except subprocess.CalledProcessError as e:
-        sys.stderr.write("Problem with epidemiological data CSV; returned code: " + str(e.returncode) + "\n")
+    except (ValueError,DataError) as e:
+        sys.stderr.write("Problem with epidemiological data CSV; returned code: " + str(e) + "\n")
         # check CSV
         prev_col_items = -1
         prev_col_name = "unknown"
@@ -688,8 +743,9 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
             this_col_items = len(d[col])
             if prev_col_items > -1 and prev_col_items != this_col_items:
                 sys.stderr.write("Discrepant length between " + prev_col_name + \
-                                 " (length of " + prev_col_items + ") and " + \
-                                 col + "(length of " + this_col_items + ")\n")
+                                 " (length of " + str(prev_col_items) + ") and " + \
+                                 col + "(length of " + str(this_col_items) + ")\n")
+            prev_col_items = this_col_items
         sys.exit(1)
 
 def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, perplexity, maxIter,
