@@ -50,6 +50,7 @@ def get_options():
     oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
     oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
+    oGroup.add_argument('--save-partial-query-graph', help='Save the network components to which queries are assigned', default=False, action='store_true')
 
     # comparison metrics
     kmerGroup = parser.add_argument_group('Kmer comparison options')
@@ -234,7 +235,7 @@ def main():
                  args.gpu_dist,
                  args.gpu_graph,
                  args.deviceid,
-                 save_partial_query_graph=False)
+                 args.save_partial_query_graph)
 
     sys.stderr.write("\nDone\n")
 
