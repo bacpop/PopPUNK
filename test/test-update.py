@@ -28,12 +28,12 @@ def run_regression(x, y, threshold = 0.99):
         sys.stderr.write("Distance matrix order failed!\n")
         sys.exit(1)
 
-def compare_sparse_matrices(d1,d2,r1,r2):
+def compare_sparse_matrices(d1,d2,r1,r2,flag):
     d1_pairs = get_seq_tuples(d1.row,d1.col,r1)
     d2_pairs = get_seq_tuples(d2.row,d2.col,r2)
     d1_dists = []
     d2_dists = []
-    if (len(d1_pairs) != len(d2_pairs)):
+    if (len(d1_pairs) != len(d2_pairs) and flag == " "): # May not be equal if reciprocal/unique count
         sys.stderr.write("Distance matrix number of entries differ!\n")
         print(d1_pairs)
         print(d2_pairs)
@@ -41,6 +41,7 @@ def compare_sparse_matrices(d1,d2,r1,r2):
 
     for (pair1,dist1) in zip(d1_pairs,d1.data):
         for (pair2,dist2) in zip(d2_pairs,d2.data):
+#            print('Pair1: ' + str(pair1) + ' Dist1: ' + str(dist1) + 'Pair2: ' + str(pair2) + ' Dist2: ' + str(dist2))
             if pair1 == pair2:
                 d1_dists.append(dist1)
                 d2_dists.append(dist2)
@@ -90,13 +91,13 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
     S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
     S2 = scipy.sparse.load_npz("batch2/batch2_rank_2_fit.npz")
     sys.stderr.write("Comparing sparse matrices at rank 2 after first query calculated with options " + lineage_option_string + "\n")
-    compare_sparse_matrices(S1,S2,rlist1,rlist2)
+    compare_sparse_matrices(S1,S2,rlist1,rlist2,lineage_option_string)
 
     # Check rank 1
     S3 = scipy.sparse.load_npz("batch12/batch12_rank_1_fit.npz")
     S4 = scipy.sparse.load_npz("batch2/batch2_rank_1_fit.npz")
     sys.stderr.write("Comparing sparse matrices at rank 1 after first query calculated with options " + lineage_option_string + "\n")
-    compare_sparse_matrices(S3,S4,rlist1,rlist2)
+    compare_sparse_matrices(S3,S4,rlist1,rlist2,lineage_option_string)
 
     # Check distances after second query
 
@@ -117,10 +118,10 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
     S5 = scipy.sparse.load_npz("batch123/batch123_rank_2_fit.npz")
     S6 = scipy.sparse.load_npz("batch3/batch3_rank_2_fit.npz")
     sys.stderr.write("Comparing sparse matrices at rank 2 after second query calculated with options " + lineage_option_string + "\n")
-    compare_sparse_matrices(S5,S6,rlist3,rlist4)
+    compare_sparse_matrices(S5,S6,rlist3,rlist4,lineage_option_string)
 
     # Check rank 1
     S7 = scipy.sparse.load_npz("batch123/batch123_rank_1_fit.npz")
     S8 = scipy.sparse.load_npz("batch3/batch3_rank_1_fit.npz")
     sys.stderr.write("Comparing sparse matrices at rank 1 after second query calculated with options " + lineage_option_string + "\n")
-    compare_sparse_matrices(S7,S8,rlist3,rlist4)
+    compare_sparse_matrices(S7,S8,rlist3,rlist4,lineage_option_string)
