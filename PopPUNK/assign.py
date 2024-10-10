@@ -107,6 +107,9 @@ def get_options():
     queryingGroup.add_argument('--accessory', help='(with a \'refine\' or \'lineage\' model) '
                                                         'Use an accessory-distance only model for assigning queries '
                                                         '[default = False]', default=False, action='store_true')
+    queryingGroup.add_argument('--use-full-network', help='Use full network rather than reference network for querying [default = False]',
+                                                    default = False,
+                                                    action = 'store_true')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -235,7 +238,8 @@ def main():
                  args.gpu_dist,
                  args.gpu_graph,
                  args.deviceid,
-                 args.save_partial_query_graph)
+                 args.save_partial_query_graph,
+                 args.use_full_network)
 
     sys.stderr.write("\nDone\n")
 
@@ -268,7 +272,8 @@ def assign_query(dbFuncs,
                  gpu_dist,
                  gpu_graph,
                  deviceid,
-                 save_partial_query_graph):
+                 save_partial_query_graph,
+                 use_full_network):
     """Code for assign query mode for CLI"""
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
@@ -317,7 +322,8 @@ def assign_query(dbFuncs,
                     accessory,
                     gpu_dist,
                     gpu_graph,
-                    save_partial_query_graph)
+                    save_partial_query_graph,
+                    use_full_network)
     return(isolateClustering)
 
 def assign_query_hdf5(dbFuncs,
@@ -342,7 +348,8 @@ def assign_query_hdf5(dbFuncs,
                  accessory,
                  gpu_dist,
                  gpu_graph,
-                 save_partial_query_graph):
+                 save_partial_query_graph,
+                 use_full_network):
     """Code for assign query mode taking hdf5 as input. Written as a separate function so it can be called
     by web APIs"""
     # Modules imported here as graph tool is very slow to load (it pulls in all of GTK?)
@@ -360,6 +367,7 @@ def assign_query_hdf5(dbFuncs,
     from .network import get_vertex_list
     from .network import printExternalClusters
     from .network import vertex_betweenness
+    from .network import retain_only_query_clusters
     from .qc import sketchlibAssemblyQC
 
     from .plot import writeClusterCsv
@@ -454,7 +462,7 @@ def assign_query_hdf5(dbFuncs,
         ref_file_name = os.path.join(model_prefix,
                         os.path.basename(model_prefix) + file_extension_string + ".refs")
         use_ref_graph = \
-            os.path.isfile(ref_file_name) and not update_db and model.type != 'lineage'
+            os.path.isfile(ref_file_name) and not update_db and model.type != 'lineage' and not use_full_network
         if use_ref_graph:
             with open(ref_file_name) as refFile:
                 for reference in refFile:
@@ -792,12 +800,16 @@ def assign_query_hdf5(dbFuncs,
                             output + "/" + os.path.basename(output) + db_suffix)
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
-            if save_partial_query_graph and not serial:
-                if model.type == 'lineage':
+            if save_partial_query_graph:
+                genomeNetwork, pruned_isolate_lists = retain_only_query_clusters(genomeNetwork, rNames, qNames, use_gpu = gpu_graph)
+                if model.type == 'lineage' and not serial:
                     save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
                 else:
                     graph_suffix = file_extension_string + '_graph'
                     save_network(genomeNetwork, prefix = output, suffix = graph_suffix, use_gpu = gpu_graph)
+                with open(f"{output}/{os.path.basename(output)}_query.subset",'w') as pruned_isolate_csv:
+                    for isolate in pruned_isolate_lists:
+                        pruned_isolate_csv.write(isolate + '\n')
 
     return(isolateClustering)
 

@@ -1920,28 +1920,8 @@ def prune_graph(prefix, reflist, samples_to_keep, output_db_name, threads, use_g
       if os.path.exists(network_fn):
           network_found = True
           sys.stderr.write("Loading network from " + network_fn + "\n")
-          samples_to_keep_set = frozenset(samples_to_keep)
           G = load_network_file(network_fn, use_gpu = use_gpu)
-          if use_gpu:
-              # Identify indices
-              reference_indices = [i for (i,name) in enumerate(reflist) if name in samples_to_keep_set]
-              # Generate data frame
-              G_df = G.view_edge_list()
-              if 'src' in G_df.columns:
-                  G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
-              # Filter data frame
-              G_new_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
-              # Translate network indices to match name order
-              G_new = translate_network_indices(G_new_df, reference_indices)
-          else:
-              reference_vertex = G.new_vertex_property('bool')
-              for n, vertex in enumerate(G.vertices()):
-                  if reflist[n] in samples_to_keep_set:
-                      reference_vertex[vertex] = True
-                  else:
-                      reference_vertex[vertex] = False
-              G_new = gt.GraphView(G, vfilt = reference_vertex)
-              G_new = gt.Graph(G_new, prune = True)
+          G_new = remove_nodes_from_graph(G, reflist, samples_to_keep, use_gpu)
           save_network(G_new,
                       prefix = output_db_name,
                       suffix = '_graph',
@@ -1949,3 +1929,91 @@ def prune_graph(prefix, reflist, samples_to_keep, output_db_name, threads, use_g
                       use_gpu = use_gpu)
     if not network_found:
         sys.stderr.write('No network file found for pruning\n')
+
+def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
+    """Return a modified graph containing only the requested nodes
+
+    Args:
+       reflist (list)
+           Ordered list of sequences of database
+       samples_to_keep (list)
+            The names of samples to be retained in the graph
+       use_gpu (bool)
+            Whether graph is a cugraph or not
+            [default = False]
+            
+    Returns:
+        G_new (graph)
+            Pruned graph
+    """
+    samples_to_keep_set = frozenset(samples_to_keep)
+    if use_gpu:
+        # Identify indices
+        reference_indices = [i for (i,name) in enumerate(reflist) if name in samples_to_keep_set]
+        # Generate data frame
+        G_df = G.view_edge_list()
+        if 'src' in G_df.columns:
+            G_df.rename(columns={'src': 'source','dst': 'destination'}, inplace=True)
+        # Filter data frame
+        G_new_df = G_df[G_df['source'].isin(reference_indices) & G_df['destination'].isin(reference_indices)]
+        # Translate network indices to match name order
+        G_new = translate_network_indices(G_new_df, reference_indices)
+    else:
+        reference_vertex = G.new_vertex_property('bool')
+        for n, vertex in enumerate(G.vertices()):
+            if reflist[n] in samples_to_keep_set:
+                reference_vertex[vertex] = True
+            else:
+                reference_vertex[vertex] = False
+        G_new = gt.GraphView(G, vfilt = reference_vertex)
+        G_new = gt.Graph(G_new, prune = True)
+    return G_new
+
+def retain_only_query_clusters(G, rlist, qlist, use_gpu = False):
+    """
+    Removes all components that do not contain a query sequence.
+    
+    Args:
+        G (graph)
+            Network of queries linked to reference sequences
+        rlist (list)
+            List of reference sequence labels
+        qlist (list)
+            List of query sequence labels
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+        pruned_names (list)
+            The labels of the sequences in the pruned network
+    """
+    num_refs = len(rlist)
+    components_with_query = []
+    combined_names = rlist + qlist
+    pruned_names = []
+    if use_gpu:
+        sys.stderr.write('Not compatible with GPU networks yet\n')
+        query_subgraph = G
+    else:
+        components = gt.label_components(G)[0].a
+        for component in components:
+          subgraph = gt.GraphView(G, vfilt=components == component)
+          max_node = max([int(v) for v in subgraph.vertices()])
+          if max_node >= num_refs:
+            components_with_query.append(int(component))
+        # Create a boolean filter based on the list of component IDs
+        query_filter = G.new_vertex_property("bool")
+        for v in G.vertices():
+          query_filter[int(v)] = (components[int(v)] in components_with_query)
+          if query_filter[int(v)]:
+            pruned_names.append(combined_names[int(v)])
+
+        # Create a filtered graph with only the specified components
+        query_subgraph = gt.GraphView(G, vfilt=query_filter)
+
+        # Purge the filtered graph to remove the other components permanently
+        query_subgraph.purge_vertices()
+        
+    return query_subgraph, pruned_names

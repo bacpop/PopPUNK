@@ -90,6 +90,9 @@ def get_options():
     iGroup.add_argument('--display-cluster',
                         help='Column of clustering CSV to use for plotting',
                         default=None)
+    iGroup.add_argument('--use-partial-query-graph',
+                        help='File listing sequences in partial query graph after assignment',
+                        default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -190,6 +193,7 @@ def generate_visualisations(query_db,
                             mst_distances,
                             overwrite,
                             display_cluster,
+                            use_partial_query_graph,
                             tmp):
 
     from .models import loadClusterFit
@@ -200,6 +204,7 @@ def generate_visualisations(query_db,
     from .network import cugraph_to_graph_tool
     from .network import save_network
     from .network import sparse_mat_to_network
+    from .network import remove_nodes_from_graph
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -353,9 +358,10 @@ def generate_visualisations(query_db,
 
     # extract subset of distances if requested
     all_seq = combined_seq
-    if include_files is not None:
+    if include_files is not None or use_partial_query_graph is not None:
         viz_subset = set()
-        with open(include_files, 'r') as assemblyFiles:
+        subset_file = include_files if include_files is not None else use_partial_query_graph
+        with open(subset_file, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
                 viz_subset.add(assembly.rstrip())
         if len(viz_subset.difference(combined_seq)) > 0:
@@ -605,20 +611,20 @@ def generate_visualisations(query_db,
             if gpu_graph:
                 genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
             # Hard delete from network to remove samples (mask doesn't work neatly)
-            if viz_subset is not None:
-                remove_list = []
-                for keep, idx in enumerate(row_slice):
-                    if not keep:
-                        remove_list.append(idx)
-                genomeNetwork.remove_vertex(remove_list)
+            if include_files is not None:
+                genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = gpu_graph)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
+        # If network has been pruned then only use the appropriate subset of names - otherwise use all names
+        # for full network
+        node_labels = viz_subset if (use_partial_query_graph is not None or include_files is not None) \
+                                      else combined_seq
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
-                            combined_seq,
+                            node_labels,
                             isolateClustering,
                             output,
                             info_csv)
@@ -663,6 +669,7 @@ def main():
                             args.mst_distances,
                             args.overwrite,
                             args.display_cluster,
+                            args.use_partial_query_graph,
                             args.tmp)
 
 if __name__ == '__main__':
