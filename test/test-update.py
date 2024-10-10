@@ -65,62 +65,62 @@ def old_get_seq_tuples(rows,cols):
 
 for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-only "," --count-unique-distances --reciprocal-only "]:
 
-  if lineage_option_string != " ":
-    print("\n*** Now running tests with lineage option" + lineage_option_string + "***\n")
+    if lineage_option_string != " ":
+      print("\n*** Now running tests with lineage option" + lineage_option_string + "***\n")
 
-  # Check distances after one query
+    # Check distances after one query
 
-  # Check that order is the same after doing 1 + 2 with --update-db, as doing all of 1 + 2 together
-  subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt --output batch12 --overwrite", shell=True, check=True)
-  subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch12 --ranks 1,2 --overwrite" + lineage_option_string,shell=True, check=True)
-  print(" ../poppunk-runner.py --fit-model lineage --ref-db batch12 --ranks 1,2 --overwrite\n\n")
-  subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile1.txt --output batch1 --overwrite", shell=True, check=True)
-  subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2 --overwrite" + lineage_option_string, shell=True, check=True)
-  print("../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2 --overwrite\n\n")
-  subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1", shell=True, check=True)
-  print(" ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1\n\n")
+    # Check that order is the same after doing 1 + 2 with --update-db, as doing all of 1 + 2 together
+    subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt --output batch12 --overwrite", shell=True, check=True)
+    subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch12 --ranks 1,2 --overwrite" + lineage_option_string,shell=True, check=True)
+    print(" ../poppunk-runner.py --fit-model lineage --ref-db batch12 --ranks 1,2 --overwrite\n\n")
+    subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile1.txt --output batch1 --overwrite", shell=True, check=True)
+    subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2 --overwrite" + lineage_option_string, shell=True, check=True)
+    print("../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2 --overwrite\n\n")
+    subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1", shell=True, check=True)
+    print(" ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1\n\n")
 
-  # Load updated distance order
-  with open("batch2/batch2.dists.pkl", 'rb') as pickle_file:
-      rlist2, qlist, self = pickle.load(pickle_file)
+    # Load updated distance order
+    with open("batch2/batch2.dists.pkl", 'rb') as pickle_file:
+        rlist2, qlist, self = pickle.load(pickle_file)
 
-# Check sparse distances after one query
-  with open("batch12/batch12.dists.pkl", 'rb') as pickle_file:
-      rlist1, qlist1, self = pickle.load(pickle_file)
-  S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
-  S2 = scipy.sparse.load_npz("batch2/batch2_rank_2_fit.npz")
-  sys.stderr.write("Comparing sparse matrices at rank 2 after first query calculated with options " + lineage_option_string + "\n")
-  compare_sparse_matrices(S1,S2,rlist1,rlist2)
+  # Check sparse distances after one query
+    with open("batch12/batch12.dists.pkl", 'rb') as pickle_file:
+        rlist1, qlist1, self = pickle.load(pickle_file)
+    S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
+    S2 = scipy.sparse.load_npz("batch2/batch2_rank_2_fit.npz")
+    sys.stderr.write("Comparing sparse matrices at rank 2 after first query calculated with options " + lineage_option_string + "\n")
+    compare_sparse_matrices(S1,S2,rlist1,rlist2)
 
-  # Check rank 1
-  S3 = scipy.sparse.load_npz("batch12/batch12_rank_1_fit.npz")
-  S4 = scipy.sparse.load_npz("batch2/batch2_rank_1_fit.npz")
-  sys.stderr.write("Comparing sparse matrices at rank 1 after first query calculated with options " + lineage_option_string + "\n")
-  compare_sparse_matrices(S3,S4,rlist1,rlist2)
+    # Check rank 1
+    S3 = scipy.sparse.load_npz("batch12/batch12_rank_1_fit.npz")
+    S4 = scipy.sparse.load_npz("batch2/batch2_rank_1_fit.npz")
+    sys.stderr.write("Comparing sparse matrices at rank 1 after first query calculated with options " + lineage_option_string + "\n")
+    compare_sparse_matrices(S3,S4,rlist1,rlist2)
 
-  # Check distances after second query
+    # Check distances after second query
 
-  # Check that order is the same after doing 1 + 2 + 3 with --update-db, as doing all of 1 + 2 + 3 together
-  subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile123.txt --output batch123 --overwrite", shell=True, check=True)
-  subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1,2 --overwrite" + lineage_option_string, shell=True, check=True)
-  print("../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1,2 --overwrite\n\n")
-  subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite", shell=True, check=True)
-  print(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite\n\n")
+    # Check that order is the same after doing 1 + 2 + 3 with --update-db, as doing all of 1 + 2 + 3 together
+    subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile123.txt --output batch123 --overwrite", shell=True, check=True)
+    subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1,2 --overwrite" + lineage_option_string, shell=True, check=True)
+    print("../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1,2 --overwrite\n\n")
+    subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite", shell=True, check=True)
+    print(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite\n\n")
 
-  # Load updated distances order
-  with open("batch3/batch3.dists.pkl", 'rb') as pickle_file:
-      rlist4, qlist, self = pickle.load(pickle_file)
+    # Load updated distances order
+    with open("batch3/batch3.dists.pkl", 'rb') as pickle_file:
+        rlist4, qlist, self = pickle.load(pickle_file)
 
-  # Check sparse distances after second query
-  with open("batch123/batch123.dists.pkl", 'rb') as pickle_file:
-      rlist3, qlist, self = pickle.load(pickle_file)
-  S5 = scipy.sparse.load_npz("batch123/batch123_rank_2_fit.npz")
-  S6 = scipy.sparse.load_npz("batch3/batch3_rank_2_fit.npz")
-  sys.stderr.write("Comparing sparse matrices at rank 2 after second query calculated with options " + lineage_option_string + "\n")
-  compare_sparse_matrices(S5,S6,rlist3,rlist4)
+    # Check sparse distances after second query
+    with open("batch123/batch123.dists.pkl", 'rb') as pickle_file:
+        rlist3, qlist, self = pickle.load(pickle_file)
+    S5 = scipy.sparse.load_npz("batch123/batch123_rank_2_fit.npz")
+    S6 = scipy.sparse.load_npz("batch3/batch3_rank_2_fit.npz")
+    sys.stderr.write("Comparing sparse matrices at rank 2 after second query calculated with options " + lineage_option_string + "\n")
+    compare_sparse_matrices(S5,S6,rlist3,rlist4)
 
-  # Check rank 1
-  S7 = scipy.sparse.load_npz("batch123/batch123_rank_1_fit.npz")
-  S8 = scipy.sparse.load_npz("batch3/batch3_rank_1_fit.npz")
-  sys.stderr.write("Comparing sparse matrices at rank 1 after second query calculated with options " + lineage_option_string + "\n")
-  compare_sparse_matrices(S7,S8,rlist3,rlist4)
+    # Check rank 1
+    S7 = scipy.sparse.load_npz("batch123/batch123_rank_1_fit.npz")
+    S8 = scipy.sparse.load_npz("batch3/batch3_rank_1_fit.npz")
+    sys.stderr.write("Comparing sparse matrices at rank 1 after second query calculated with options " + lineage_option_string + "\n")
+    compare_sparse_matrices(S7,S8,rlist3,rlist4)
