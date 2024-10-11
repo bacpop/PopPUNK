@@ -392,7 +392,9 @@ def query_db(args):
                     accessory,
                     args.gpu_dist,
                     args.gpu_graph,
-                    save_partial_query_graph = False)
+                    save_partial_query_graph = False,
+                    True # Use full network - does not make sense to use references for lineages
+                    )
 
     # Process clustering
     query_strains = {}
