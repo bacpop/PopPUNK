@@ -166,6 +166,22 @@ def get_options():
 
     return args
 
+# Create temporary pruned database
+def create_pruned_tmp_db(prefix,subset):
+
+    from .sketchlib import removeFromDB
+    from .sketchlib import getSeqsInDb
+
+    h5_name = prefix + "/" + os.path.basename(prefix) + ".h5"
+    tmp_h5_name = prefix + "/" + os.path.basename(prefix) + ".tmp.h5"
+    sequences_in_db = getSeqsInDb(h5_name)
+    removeFromDB(h5_name,
+                 prefix + "/" + os.path.basename(prefix) + ".tmp.h5",
+                 set(sequences_in_db) - subset,
+                 full_names = True
+                 )
+    return tmp_h5_name, sequences_in_db
+
 def generate_visualisations(query_db,
                             ref_db,
                             distances,
@@ -220,7 +236,8 @@ def generate_visualisations(query_db,
 
     from .sketchlib import readDBParams
     from .sketchlib import addRandom
-
+    from .sketchlib import joinDBs
+    
     from .sparse_mst import generate_mst_from_sparse_input
 
     from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
@@ -281,7 +298,7 @@ def generate_visualisations(query_db,
     kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
 
     # extract subset of distances if requested
-    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl')
+    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
     all_seq = combined_seq # all_seq is an immutable record use for network parsing
     if include_files is not None or use_partial_query_graph is not None:
         viz_subset = set()
@@ -327,12 +344,30 @@ def generate_visualisations(query_db,
         if recalculate_distances:
             sys.stderr.write("Recalculating pairwise distances for tree construction\n")
 
+            # Merge relevant sequences into a single database
+            sys.stderr.write("Generating merged database\n")
+            sequences_to_analyse = list(viz_subset) if viz_subset is not None else combined_seq
+            # Filter from reference database
+            tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
+            viz_db_name = output + "/" + os.path.basename(output)
+            if query_db is not None:
+                # Add from query database
+                query_db_loc = query_db + "/" + os.path.basename(query_db)
+                tmp_query_h5_file, qlist = create_pruned_tmp_db(query_db,viz_subset)
+                joinDBs(tmp_ref_h5_file,
+                    tmp_query_h5_file,
+                    viz_db_name,
+                    full_names = True)
+                os.remove(tmp_query_h5_file)
+                os.remove(tmp_ref_h5_file)
+            else:
+                os.rename(tmp_ref_h5_file,viz_db_name)
+
             # Generate distances
+            sys.stderr.write("Comparing sketches\n")
             self = True
-            sequences_to_analyse = viz_subset if viz_subset is not None else combined_seq
-            qlist = sequences_to_analyse
-            subset_distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db_loc,
-                                                        query_db_name=ref_db_loc,
+            subset_distMat = pp_sketchlib.queryDatabase(ref_db_name=viz_db_name,
+                                                        query_db_name=viz_db_name,
                                                         rList=sequences_to_analyse,
                                                         qList=sequences_to_analyse,
                                                         klist=kmers.tolist(),
@@ -485,7 +520,7 @@ def generate_visualisations(query_db,
 
     # Join clusters with query clusters if required
     if use_dense:
-        if not self:
+        if query_db is not None:
             if previous_query_clustering is not None:
                 prev_query_clustering = previous_query_clustering
             else:
