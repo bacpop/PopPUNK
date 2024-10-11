@@ -24,6 +24,14 @@ At least one of these output types must be specified as a flag.
    If you are running multiple visualisations this calculation will be completed every time. To avoid
    this re-run your assignment with ``--update-db``, which will add these distances in permanently.
 
+If you are only interested in visualising sequences that are closely-related to those in a set of
+query sequences, then the quickest approach is to use the ``--save-partial-query-graph`` option
+when assigning sequences. This will generate a list of sequences spanning both your queries, and all
+the reference database isolates that are in the same network components (i.e., excluding those that
+are not related to your query isolates); this is contained in the file ``[prefix]_query.subset``. This list
+can be passed to the visualisation command using the flag ``--use-partial-query-graph ./[prefix]/[prefix]_query.subset``
+to only visualise the parts of the network that are relevant to your query.
+
 Common options
 --------------
 Some typical commands for various input settings (with ``--microreact``, but this can
