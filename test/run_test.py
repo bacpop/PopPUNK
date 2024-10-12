@@ -81,6 +81,10 @@ subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.t
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query inref_query.txt --db example_db --model-dir example_refine --output example_single_query --write-references", shell=True, check=True) # matched name, but should be renamed in the output
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
 
+#external clustering
+sys.stderr.write("Running assign with external clustering (--fit-model refine)\n")
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --external-clustering example_external_clusters.csv", shell=True, check=True)
+
 # test updating order is correct
 sys.stderr.write("Running distance matrix order check (--update-db)\n")
 subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
