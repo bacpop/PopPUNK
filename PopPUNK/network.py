@@ -1997,23 +1997,19 @@ def retain_only_query_clusters(G, rlist, qlist, use_gpu = False):
         sys.stderr.write('Not compatible with GPU networks yet\n')
         query_subgraph = G
     else:
-        components = gt.label_components(G)[0].a
-        for component in components:
-          subgraph = gt.GraphView(G, vfilt=components == component)
-          max_node = max([int(v) for v in subgraph.vertices()])
-          if max_node >= num_refs:
-            components_with_query.append(int(component))
+        # Identify network components containing queries
+        component_dict = gt.label_components(G)[0]
+        components_with_query = set()
+        for i in range(num_refs+1,G.num_vertices()):
+          v = G.vertex(i)  # Access vertex by index
+          components_with_query.add(component_dict[v])
         # Create a boolean filter based on the list of component IDs
         query_filter = G.new_vertex_property("bool")
         for v in G.vertices():
-          query_filter[int(v)] = (components[int(v)] in components_with_query)
+          query_filter[int(v)] = (component_dict[v] in components_with_query)
           if query_filter[int(v)]:
             pruned_names.append(combined_names[int(v)])
-
         # Create a filtered graph with only the specified components
         query_subgraph = gt.GraphView(G, vfilt=query_filter)
-
-        # Purge the filtered graph to remove the other components permanently
-        query_subgraph.purge_vertices()
         
     return query_subgraph, pruned_names
