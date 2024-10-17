@@ -81,6 +81,10 @@ subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query single_query.t
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query inref_query.txt --db example_db --model-dir example_refine --output example_single_query --write-references", shell=True, check=True) # matched name, but should be renamed in the output
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --model-dir example_lineages --output example_lineage_query --overwrite", shell=True, check=True)
 
+#external clustering
+sys.stderr.write("Running assign with external clustering (--fit-model refine)\n")
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --query some_queries.txt --db example_db --model-dir example_refine --output example_query --overwrite --external-clustering example_external_clusters.csv", shell=True, check=True)
+
 # test updating order is correct
 sys.stderr.write("Running distance matrix order check (--update-db)\n")
 subprocess.run(python_cmd + " test-update.py", shell=True, check=True)
@@ -126,10 +130,11 @@ if not os.path.exists('lineage_querying_output.csv'):
     sys.exit(1)
 
 # beebop test
-subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt --output batch12 --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model bgmm --D 2 --ref-db batch12 --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch12 --query rfile3.txt --output batch3 --external-clustering batch12_external_clusters.csv  --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db batch12 --query-db batch3 --output batch123_viz --external-clustering batch12_external_clusters.csv --previous-query-clustering batch3/batch3_external_clusters.csv --cytoscape --rapidnj rapidnj --network-file ./batch12/batch12_graph.gt --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12.txt  --min-k 13 --k-step 3 --output batch12 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db batch12 --output batch12 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db batch12 --output batch12 --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch12 --query rfile3.txt --output batch3 --external-clustering batch12_external_clusters.csv --save-partial-query-graph  --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db batch12 --query-db batch3 --output batch123_viz --external-clustering batch12_external_clusters.csv --previous-query-clustering batch3/batch3_external_clusters.csv --cytoscape --rapidnj rapidnj --network-file ./batch3/batch3_graph.gt --use-partial-query-graph ./batch3/batch3_query.subset --recalculate-distances --overwrite", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")

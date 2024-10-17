@@ -511,7 +511,7 @@ def drawMST(mst, outPrefix, isolate_clustering, clustering_name, overwrite):
                     output=graph2_file_name, output_size=(3000, 3000))
 
 def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, queryList = None,
-                        suffix = None, writeCsv = True):
+                        suffix = None, writeCsv = True, use_partial_query_graph = False):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -536,6 +536,8 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
             (default = None)
         writeCsv (bool)
             Whether to print CSV file to accompany network
+        use_partial_query_graph (bool)
+            Whether to optimise output for outputting only partial graphs
     """
 
     # Avoid circular import
@@ -553,7 +555,8 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         suffix = '_cytoscape'
     else:
         suffix = suffix + '_cytoscape'
-    save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
+    if not use_partial_query_graph:
+      save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Save each component too (useful for very large graphs)
     component_assignments, component_hist = gt.label_components(G)
