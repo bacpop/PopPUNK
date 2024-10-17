@@ -2000,7 +2000,7 @@ def retain_only_query_clusters(G, rlist, qlist, use_gpu = False):
         # Identify network components containing queries
         component_dict = gt.label_components(G)[0]
         components_with_query = set()
-        for i in range(num_refs+1,G.num_vertices()):
+        for i in range(num_refs,G.num_vertices()):
           v = G.vertex(i)  # Access vertex by index
           components_with_query.add(component_dict[v])
         # Create a boolean filter based on the list of component IDs
