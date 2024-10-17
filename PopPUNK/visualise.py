@@ -429,9 +429,13 @@ def generate_visualisations(query_db,
 
             # Merge relevant sequences into a single database
             sys.stderr.write("Generating merged database\n")
-            sequences_to_analyse = list(viz_subset) if viz_subset is not None else combined_seq
-            # Filter from reference database
-            tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
+            if viz_subset is not None:
+              sequences_to_analyse = list(viz_subset) if viz_subset is not None else combined_seq
+              # Filter from reference database
+              tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
+            else:
+              sequences_to_analyse = combined_seq
+              tmp_ref_h5_file = ref_db
             viz_db_name = output + "/" + os.path.basename(output)
             if query_db is not None:
                 # Add from query database
