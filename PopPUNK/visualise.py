@@ -421,7 +421,7 @@ def generate_visualisations(query_db,
     #*                            *#
     #******************************#
 
-    if (tree == "nj" or tree == "both") or rank_fit == None:
+    if (tree == "nj" or tree == "both") or (model.type == 'lineage' and rank_fit == None):
         
         # Either calculate or read distances
         if recalculate_distances:
@@ -699,7 +699,7 @@ def generate_visualisations(query_db,
             if gpu_graph:
                 genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
             # Hard delete from network to remove samples (mask doesn't work neatly)
-            if include_files is not None:
+            if include_files is not None and not use_partial_query_graph:
                 genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = gpu_graph)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
@@ -710,12 +710,14 @@ def generate_visualisations(query_db,
         # for full network
         node_labels = viz_subset if (use_partial_query_graph is not None or include_files is not None) \
                                       else combined_seq
+        sys.stderr.write('Preparing outputs for cytoscape\n')
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
                             node_labels,
                             isolateClustering,
                             output,
-                            info_csv)
+                            info_csv,
+                            use_partial_query_graph)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
