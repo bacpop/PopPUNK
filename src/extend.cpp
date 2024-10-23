@@ -9,7 +9,7 @@
 #include <cstdint>
 #include <pybind11/pybind11.h>
 #include <vector>
-
+#include <iostream>
 const float epsilon = 1E-10;
 
 // Get indices where each row starts in the sparse matrix
@@ -93,7 +93,7 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
     // This is very similar, but merging two lists as input
     auto rr_it = rr_ordered_idx.cbegin();
     auto qr_it = qr_ordered_idx.cbegin();
-    while (qr_it != qr_ordered_idx.cend() && rr_it != rr_ordered_idx.cend()) {
+    while (qr_it != qr_ordered_idx.cend() || rr_it != rr_ordered_idx.cend()) {
       // Get the next smallest dist, and corresponding j
       long j;
       float dist;
@@ -103,7 +103,7 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         j = *qr_it + nr_samples;
         dist = qr_dists[*qr_it];
         ++qr_it;
-      } else {
+      } else if (!(rr_it == rr_ordered_idx.cend())) {
         if (i < nr_samples) {
           j = std::get<1>(sparse_rr_mat)[row_start_idx[i] + *rr_it];
         } else {
@@ -111,6 +111,9 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         }
         dist = rr_dists[*rr_it];
         ++rr_it;
+      } else {
+        printf("Insufficient distances for specified kNN value; try reducing the maximum search depth");
+        break;
       }
 
       if (j == i) {
