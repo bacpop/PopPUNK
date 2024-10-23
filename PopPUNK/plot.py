@@ -555,7 +555,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         suffix = '_cytoscape'
     else:
         suffix = suffix + '_cytoscape'
-    if not use_partial_query_graph:
+    if use_partial_query_graph is None:
       save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Save each component too (useful for very large graphs)
