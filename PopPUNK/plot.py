@@ -565,10 +565,9 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         for vidx, v_component in enumerate(component_assignments.a):
             if v_component != component_idx:
                 remove_list.append(vidx)
-        G_copy = G.copy()
-        G_copy.remove_vertex(remove_list)
-        save_network(G_copy, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
-        del G_copy
+        G.remove_vertex(remove_list)
+        G.purge_vertices()
+        save_network(G, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
