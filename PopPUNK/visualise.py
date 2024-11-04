@@ -717,7 +717,7 @@ def generate_visualisations(query_db,
                             isolateClustering,
                             output,
                             info_csv,
-                            use_partial_query_graph)
+                            use_partial_query_graph = use_partial_query_graph)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
