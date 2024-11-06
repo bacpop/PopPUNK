@@ -2001,14 +2001,14 @@ def retain_only_query_clusters(G, rlist, qlist, use_gpu = False):
         component_dict = gt.label_components(G)[0]
         components_with_query = set()
         for i in range(num_refs,G.num_vertices()):
-          v = G.vertex(i)  # Access vertex by index
-          components_with_query.add(component_dict[v])
+            v = G.vertex(i)  # Access vertex by index
+            components_with_query.add(component_dict[v])
         # Create a boolean filter based on the list of component IDs
         query_filter = G.new_vertex_property("bool")
         for v in G.vertices():
-          query_filter[int(v)] = (component_dict[v] in components_with_query)
-          if query_filter[int(v)]:
-            pruned_names.append(combined_names[int(v)])
+            query_filter[int(v)] = (component_dict[v] in components_with_query)
+            if query_filter[int(v)]:
+              pruned_names.append(combined_names[int(v)])
         # Create a filtered graph with only the specified components
         query_subgraph = gt.GraphView(G, vfilt=query_filter)
         
