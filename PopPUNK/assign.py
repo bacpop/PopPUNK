@@ -367,7 +367,7 @@ def assign_query_hdf5(dbFuncs,
     from .network import get_vertex_list
     from .network import printExternalClusters
     from .network import vertex_betweenness
-    from .network import retain_only_query_clusters
+    from .network import remove_non_query_components
     from .qc import sketchlibAssemblyQC
 
     from .plot import writeClusterCsv
@@ -801,7 +801,7 @@ def assign_query_hdf5(dbFuncs,
         else:
             storePickle(rNames, qNames, False, qrDistMat, dists_out)
             if save_partial_query_graph:
-                genomeNetwork, pruned_isolate_lists = retain_only_query_clusters(genomeNetwork, rNames, qNames, use_gpu = gpu_graph)
+                genomeNetwork, pruned_isolate_lists = remove_non_query_components(genomeNetwork, rNames, qNames, use_gpu = gpu_graph)
                 if model.type == 'lineage' and not serial:
                     save_network(genomeNetwork[min(model.ranks)], prefix = output, suffix = '_graph', use_gpu = gpu_graph)
                 else:
