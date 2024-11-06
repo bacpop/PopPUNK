@@ -112,8 +112,8 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
         dist = rr_dists[*rr_it];
         ++rr_it;
       } else {
-        printf("Insufficient distances for specified kNN value; try reducing the maximum search depth");
-        break;
+        std::cerr << "Insufficient distances for specified kNN value; try reducing the maximum search depth" << std::endl;
+        pybind11::key_error();
       }
 
       if (j == i) {
