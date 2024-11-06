@@ -1969,7 +1969,7 @@ def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
         G_new = gt.Graph(G_new, prune = True)
     return G_new
 
-def retain_only_query_clusters(G, rlist, qlist, use_gpu = False):
+def remove_non_query_components(G, rlist, qlist, use_gpu = False):
     """
     Removes all components that do not contain a query sequence.
     
@@ -1989,18 +1989,21 @@ def retain_only_query_clusters(G, rlist, qlist, use_gpu = False):
         pruned_names (list)
             The labels of the sequences in the pruned network
     """
-    num_refs = len(rlist)
     components_with_query = []
     combined_names = rlist + qlist
     pruned_names = []
     if use_gpu:
-        sys.stderr.write('Not compatible with GPU networks yet\n')
-        query_subgraph = G
+        sys.stderr.write('Saving partial query graphs is not compatible with GPU networks yet\n')
+        sys.exit(1)
     else:
         # Identify network components containing queries
         component_dict = gt.label_components(G)[0]
         components_with_query = set()
-        for i in range(num_refs,G.num_vertices()):
+        # The number of reference sequences is len(rlist)
+        # These are the first len(rlist) vertices in the graph
+        # Queries that have been added have indices >len(rlist)
+        # Therefore these are the components to retain
+        for i in range(len(rlist),G.num_vertices()):
             v = G.vertex(i)  # Access vertex by index
             components_with_query.add(component_dict[v])
         # Create a boolean filter based on the list of component IDs
