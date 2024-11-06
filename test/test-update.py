@@ -83,7 +83,7 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
     with open("batch2/batch2.dists.pkl", 'rb') as pickle_file:
         rlist2, qlist, self = pickle.load(pickle_file)
 
-  # Check sparse distances after one query
+    # Check sparse distances after one query
     with open("batch12/batch12.dists.pkl", 'rb') as pickle_file:
         rlist1, qlist1, self = pickle.load(pickle_file)
     S1 = scipy.sparse.load_npz("batch12/batch12_rank_2_fit.npz")
