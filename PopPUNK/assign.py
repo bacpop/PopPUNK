@@ -367,7 +367,7 @@ def assign_query_hdf5(dbFuncs,
     from .network import get_vertex_list
     from .network import printExternalClusters
     from .network import vertex_betweenness
-    from .network import remove_non_query_components
+    from .network import retain_only_query_clusters
     from .qc import sketchlibAssemblyQC
 
     from .plot import writeClusterCsv
