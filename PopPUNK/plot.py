@@ -511,7 +511,7 @@ def drawMST(mst, outPrefix, isolate_clustering, clustering_name, overwrite):
                     output=graph2_file_name, output_size=(3000, 3000))
 
 def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, queryList = None,
-                        suffix = None, writeCsv = True):
+                        suffix = None, writeCsv = True, use_partial_query_graph = None):
     """Write outputs for cytoscape. A graphml of the network, and CSV with metadata
 
     Args:
@@ -536,6 +536,8 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
             (default = None)
         writeCsv (bool)
             Whether to print CSV file to accompany network
+        use_partial_query_graph (str)
+            File listing sequences to be included in output graph
     """
 
     # Avoid circular import
@@ -553,7 +555,8 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         suffix = '_cytoscape'
     else:
         suffix = suffix + '_cytoscape'
-    save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
+    if use_partial_query_graph is None:
+        save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Save each component too (useful for very large graphs)
     component_assignments, component_hist = gt.label_components(G)
@@ -562,10 +565,9 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         for vidx, v_component in enumerate(component_assignments.a):
             if v_component != component_idx:
                 remove_list.append(vidx)
-        G_copy = G.copy()
-        G_copy.remove_vertex(remove_list)
-        save_network(G_copy, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
-        del G_copy
+        G.remove_vertex(remove_list)
+        G.purge_vertices()
+        save_network(G, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)

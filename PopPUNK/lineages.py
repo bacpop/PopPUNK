@@ -392,7 +392,8 @@ def query_db(args):
                     accessory,
                     args.gpu_dist,
                     args.gpu_graph,
-                    save_partial_query_graph = False)
+                    save_partial_query_graph = False,
+                    use_full_network = True) # Use full network - does not make sense to use references for lineages
 
     # Process clustering
     query_strains = {}
@@ -439,7 +440,8 @@ def query_db(args):
                             accessory,
                             args.gpu_dist,
                             args.gpu_graph,
-                            save_partial_query_graph = False)
+                            save_partial_query_graph = False,
+                            use_full_network = True)
             overall_lineage[strain] = createOverallLineage(rank_list, lineageClustering)
 
     # Print combined strain and lineage clustering

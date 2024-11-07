@@ -84,11 +84,18 @@ def get_options():
                         'minimum spanning tree',
                         default=None,
                         type = str)
+    iGroup.add_argument('--recalculate-distances',
+                        help='Recalculate pairwise distances rather than read them from a file',
+                        default=False,
+                        action = 'store_true')
     iGroup.add_argument('--network-file',
                         help='Specify a file to use for any graph visualisations',
                         type = str)
     iGroup.add_argument('--display-cluster',
                         help='Column of clustering CSV to use for plotting',
+                        default=None)
+    iGroup.add_argument('--use-partial-query-graph',
+                        help='File listing sequences in partial query graph after assignment',
                         default=None)
 
     # output options
@@ -159,6 +166,22 @@ def get_options():
 
     return args
 
+# Create temporary pruned database
+def create_pruned_tmp_db(prefix,subset):
+
+    from .sketchlib import removeFromDB
+    from .sketchlib import getSeqsInDb
+
+    h5_name = prefix + "/" + os.path.basename(prefix) + ".h5"
+    tmp_h5_name = prefix + "/" + os.path.basename(prefix) + ".tmp.h5"
+    sequences_in_db = getSeqsInDb(h5_name)
+    removeFromDB(h5_name,
+                 prefix + "/" + os.path.basename(prefix) + ".tmp.h5",
+                 set(sequences_in_db) - subset,
+                 full_names = True
+                 )
+    return tmp_h5_name, sequences_in_db
+
 def generate_visualisations(query_db,
                             ref_db,
                             distances,
@@ -190,6 +213,8 @@ def generate_visualisations(query_db,
                             mst_distances,
                             overwrite,
                             display_cluster,
+                            use_partial_query_graph,
+                            recalculate_distances,
                             tmp):
 
     from .models import loadClusterFit
@@ -200,6 +225,7 @@ def generate_visualisations(query_db,
     from .network import cugraph_to_graph_tool
     from .network import save_network
     from .network import sparse_mat_to_network
+    from .network import remove_nodes_from_graph
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -210,7 +236,8 @@ def generate_visualisations(query_db,
 
     from .sketchlib import readDBParams
     from .sketchlib import addRandom
-
+    from .sketchlib import joinDBs
+    
     from .sparse_mst import generate_mst_from_sparse_input
 
     from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
@@ -251,13 +278,13 @@ def generate_visualisations(query_db,
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
-    #******************************#
-    #*                            *#
-    #* Process dense or sparse    *#
-    #* distances                  *#
-    #*                            *#
-    #******************************#
+    #*******************************#
+    #*                             *#
+    #* Extract subset of sequences *#
+    #*                             *#
+    #*******************************#
 
+    # Identify distance matrix for ordered names
     if distances is None:
         if query_db is None:
             distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
@@ -266,17 +293,43 @@ def generate_visualisations(query_db,
     else:
         distances = distances
 
+    # Location and properties of reference database
+    ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
+    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
+
+    # extract subset of distances if requested
+    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
+    all_seq = combined_seq # all_seq is an immutable record use for network parsing
+    if include_files is not None or use_partial_query_graph is not None:
+        viz_subset = set()
+        subset_file = include_files if include_files is not None else use_partial_query_graph
+        with open(subset_file, 'r') as assemblyFiles:
+            for assembly in assemblyFiles:
+                viz_subset.add(assembly.rstrip())
+        if len(viz_subset.difference(combined_seq)) > 0:
+            sys.stderr.write("--include-files contains names not in --distances\n")
+            sys.stderr.write("Please assign distances before subsetting the database\n")
+    else:
+        viz_subset = None
+
+    #******************************#
+    #*                            *#
+    #* Determine type of distance *#
+    #* to use                     *#
+    #*                            *#
+    #******************************#
+
     # Determine whether to use sparse distances
-    combined_seq = None
     use_sparse = False
     use_dense = False
-    if (tree == "mst" or tree == "both") and rank_fit is not None:
+    if (tree == "nj" or tree == "both") or rank_fit == None:
+        use_dense = True
+    elif (tree == "mst" or tree == "both") and rank_fit is not None:
         # Set flag
         use_sparse = True
         # Read list of sequence names and sparse distance matrix
-        rlist = read_rlist_from_distance_pickle(distances + '.pkl')
+        rlist = combined_seq
         sparse_mat = sparse.load_npz(rank_fit)
-        combined_seq = rlist
         # Check previous distances have been supplied if building on a previous MST
         old_rlist = None
         if previous_distances is not None:
@@ -284,95 +337,6 @@ def generate_visualisations(query_db,
         elif previous_mst is not None:
             sys.stderr.write('The prefix of the distance files used to create the previous MST'
                              ' is needed to use the network')
-    if (tree == "nj" or tree == "both") or rank_fit == None:
-        use_dense = True
-        # Process dense distance matrix
-        rlist, qlist, self, complete_distMat = readPickle(distances)
-        if not self:
-            qr_distMat = complete_distMat
-            combined_seq = rlist + qlist
-        else:
-            rr_distMat = complete_distMat
-            combined_seq = rlist
-
-        # Fill in qq-distances if required
-        if self == False:
-            sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
-                             "Note: Distance will be extended to full all-vs-all distances\n"
-                             "Note: Re-run poppunk_assign with --update-db to avoid this\n")
-            ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
-            rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db_loc + ".dists")
-            if not self_ref:
-                sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
-                sys.exit(1)
-            kmers, sketch_sizes, codon_phased = readDBParams(query_db)
-            addRandom(query_db, qlist, kmers,
-                      strand_preserved = strand_preserved, threads = threads)
-            query_db_loc = query_db + "/" + os.path.basename(query_db)
-            qq_distMat = pp_sketchlib.queryDatabase(ref_db_name=query_db_loc,
-                                                    query_db_name=query_db_loc,
-                                                    rList=qlist,
-                                                    qList=qlist,
-                                                    klist=kmers,
-                                                    random_correct=True,
-                                                    jaccard=False,
-                                                    num_threads=threads,
-                                                    use_gpu=gpu_dist,
-                                                    device_id=deviceid)
-
-            # If the assignment was run with references, qrDistMat will be incomplete
-            if rlist != rlist_original:
-                rlist = rlist_original
-                qr_distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db_loc,
-                                                        query_db_name=query_db_loc,
-                                                        rList=rlist,
-                                                        qList=qlist,
-                                                        klist=kmers,
-                                                        random_correct=True,
-                                                        jaccard=False,
-                                                        num_threads=threads,
-                                                        use_gpu=gpu_dist,
-                                                        device_id=deviceid)
-
-        else:
-            qlist = None
-            qr_distMat = None
-            qq_distMat = None
-
-        # Turn long form matrices into square form
-        combined_seq, core_distMat, acc_distMat = \
-                update_distance_matrices(rlist, rr_distMat,
-                                         qlist, qr_distMat, qq_distMat,
-                                         threads = threads)
-
-    #*******************************#
-    #*                             *#
-    #* Extract subset of sequences *#
-    #*                             *#
-    #*******************************#
-
-    # extract subset of distances if requested
-    all_seq = combined_seq
-    if include_files is not None:
-        viz_subset = set()
-        with open(include_files, 'r') as assemblyFiles:
-            for assembly in assemblyFiles:
-                viz_subset.add(assembly.rstrip())
-        if len(viz_subset.difference(combined_seq)) > 0:
-            sys.stderr.write("--include-files contains names not in --distances\n")
-
-        # Only keep found rows
-        row_slice = [True if name in viz_subset else False for name in combined_seq]
-        combined_seq = [name for name in combined_seq if name in viz_subset]
-        if use_sparse:
-            sparse_mat = sparse_mat[np.ix_(row_slice, row_slice)]
-        if use_dense:
-            if qlist != None:
-                qlist = list(viz_subset.intersection(qlist))
-            core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
-            acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
-    else:
-        viz_subset = None
 
     #**********************************#
     #*                                *#
@@ -438,7 +402,7 @@ def generate_visualisations(query_db,
 
     # Join clusters with query clusters if required
     if use_dense:
-        if not self:
+        if query_db is not None:
             if previous_query_clustering is not None:
                 prev_query_clustering = previous_query_clustering
             else:
@@ -449,6 +413,136 @@ def generate_visualisations(query_db,
                     mode = mode,
                     return_dict = True)
             isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
+
+    #******************************#
+    #*                            *#
+    #* Process dense or sparse    *#
+    #* distances                  *#
+    #*                            *#
+    #******************************#
+
+    if (tree == "nj" or tree == "both") or (model.type == 'lineage' and rank_fit == None):
+        
+        # Either calculate or read distances
+        if recalculate_distances:
+            sys.stderr.write("Recalculating pairwise distances for tree construction\n")
+
+            # Merge relevant sequences into a single database
+            sys.stderr.write("Generating merged database\n")
+            if viz_subset is not None:
+              sequences_to_analyse = list(viz_subset) if viz_subset is not None else combined_seq
+              # Filter from reference database
+              tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
+            else:
+              sequences_to_analyse = combined_seq
+              tmp_ref_h5_file = ref_db
+            viz_db_name = output + "/" + os.path.basename(output)
+            if query_db is not None:
+                # Add from query database
+                query_db_loc = query_db + "/" + os.path.basename(query_db)
+                tmp_query_h5_file, qlist = create_pruned_tmp_db(query_db,viz_subset)
+                joinDBs(tmp_ref_h5_file,
+                    tmp_query_h5_file,
+                    viz_db_name,
+                    full_names = True)
+                os.remove(tmp_query_h5_file)
+                os.remove(tmp_ref_h5_file)
+            else:
+                os.rename(tmp_ref_h5_file,viz_db_name)
+
+            # Generate distances
+            sys.stderr.write("Comparing sketches\n")
+            self = True
+            subset_distMat = pp_sketchlib.queryDatabase(ref_db_name=viz_db_name,
+                                                        query_db_name=viz_db_name,
+                                                        rList=sequences_to_analyse,
+                                                        qList=sequences_to_analyse,
+                                                        klist=kmers.tolist(),
+                                                        random_correct=True,
+                                                        jaccard=False,
+                                                        num_threads=threads,
+                                                        use_gpu = gpu_dist,
+                                                        device_id = deviceid)
+                                                        
+            # Convert distance matrix format
+            combined_seq, core_distMat, acc_distMat = \
+              update_distance_matrices(sequences_to_analyse,
+                                       subset_distMat,
+                                       threads = threads)
+
+        else:
+            sys.stderr.write("Reading pairwise distances for tree construction\n")
+            
+            # Process dense distance matrix
+            rlist, qlist, self, complete_distMat = readPickle(distances)
+            if not self:
+                qr_distMat = complete_distMat
+                combined_seq = rlist + qlist
+            else:
+                rr_distMat = complete_distMat
+                combined_seq = rlist
+
+            # Fill in qq-distances if required
+            if self == False:
+                sys.stderr.write("Note: Distances in " + distances + " are from assign mode\n"
+                                 "Note: Distance will be extended to full all-vs-all distances\n"
+                                 "Note: Re-run poppunk_assign with --update-db to avoid this\n")
+                rlist_original, qlist_original, self_ref, rr_distMat = readPickle(ref_db_loc + ".dists")
+                if not self_ref:
+                    sys.stderr.write("Distances in " + ref_db + " not self all-vs-all either\n")
+                    sys.exit(1)
+                kmers, sketch_sizes, codon_phased = readDBParams(query_db)
+                addRandom(query_db, qlist, kmers,
+                          strand_preserved = strand_preserved, threads = threads)
+                query_db_loc = query_db + "/" + os.path.basename(query_db)
+                qq_distMat = pp_sketchlib.queryDatabase(ref_db_name=query_db_loc,
+                                                        query_db_name=query_db_loc,
+                                                        rList=qlist,
+                                                        qList=qlist,
+                                                        klist=kmers,
+                                                        random_correct=True,
+                                                        jaccard=False,
+                                                        num_threads=threads,
+                                                        use_gpu=gpu_dist,
+                                                        device_id=deviceid)
+
+                # If the assignment was run with references, qrDistMat will be incomplete
+                if rlist != rlist_original:
+                    rlist = rlist_original
+                    qr_distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db_loc,
+                                                            query_db_name=query_db_loc,
+                                                            rList=rlist,
+                                                            qList=qlist,
+                                                            klist=kmers,
+                                                            random_correct=True,
+                                                            jaccard=False,
+                                                            num_threads=threads,
+                                                            use_gpu=gpu_dist,
+                                                            device_id=deviceid)
+
+            else:
+                qlist = None
+                qr_distMat = None
+                qq_distMat = None
+
+            # Turn long form matrices into square form
+            combined_seq, core_distMat, acc_distMat = \
+                    update_distance_matrices(rlist, rr_distMat,
+                                             qlist, qr_distMat, qq_distMat,
+                                             threads = threads)
+
+            # Prune distance matrix if subsetting data
+            if viz_subset is not None:
+              row_slice = [True if name in viz_subset else False for name in combined_seq]
+              combined_seq = [name for name in combined_seq if name in viz_subset]
+              if use_sparse:
+                  sparse_mat = sparse_mat[np.ix_(row_slice, row_slice)]
+              if use_dense:
+                  if qlist != None:
+                      qlist = list(viz_subset.intersection(qlist))
+                  core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
+                  acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
+
 
     #*******************#
     #*                 *#
@@ -605,23 +699,25 @@ def generate_visualisations(query_db,
             if gpu_graph:
                 genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
             # Hard delete from network to remove samples (mask doesn't work neatly)
-            if viz_subset is not None:
-                remove_list = []
-                for keep, idx in enumerate(row_slice):
-                    if not keep:
-                        remove_list.append(idx)
-                genomeNetwork.remove_vertex(remove_list)
+            if include_files is not None and not use_partial_query_graph:
+                genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = gpu_graph)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
+        # If network has been pruned then only use the appropriate subset of names - otherwise use all names
+        # for full network
+        node_labels = viz_subset if (use_partial_query_graph is not None or include_files is not None) \
+                                      else combined_seq
+        sys.stderr.write('Preparing outputs for cytoscape\n')
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
-                            combined_seq,
+                            node_labels,
                             isolateClustering,
                             output,
-                            info_csv)
+                            info_csv,
+                            use_partial_query_graph = use_partial_query_graph)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
 
@@ -663,6 +759,8 @@ def main():
                             args.mst_distances,
                             args.overwrite,
                             args.display_cluster,
+                            args.use_partial_query_graph,
+                            args.recalculate_distances,
                             args.tmp)
 
 if __name__ == '__main__':

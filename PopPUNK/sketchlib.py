@@ -213,7 +213,7 @@ def getSeqsInDb(dbname):
 
     return seqs
 
-def joinDBs(db1, db2, output, update_random = None):
+def joinDBs(db1, db2, output, update_random = None, full_names = False):
     """Join two sketch databases with the low-level HDF5 copy interface
 
     Args:
@@ -226,10 +226,19 @@ def joinDBs(db1, db2, output, update_random = None):
         update_random (dict)
             Whether to re-calculate the random object. May contain
             control arguments strand_preserved and threads (see :func:`addRandom`)
+        full_names (bool)
+            If True, db_name and out_name are the full paths to h5 files
+
     """
-    join_prefix = output + "/" + os.path.basename(output)
-    db1_name = db1 + "/" + os.path.basename(db1) + ".h5"
-    db2_name = db2 + "/" + os.path.basename(db2) + ".h5"
+    
+    if not full_names:
+        join_prefix = output + "/" + os.path.basename(output)
+        db1_name = db1 + "/" + os.path.basename(db1) + ".h5"
+        db2_name = db2 + "/" + os.path.basename(db2) + ".h5"
+    else:
+        db1_name = db1
+        db2_name = db2
+        join_prefix = output
 
     hdf1 = h5py.File(db1_name, 'r')
     hdf2 = h5py.File(db2_name, 'r')
