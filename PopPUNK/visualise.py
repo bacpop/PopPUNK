@@ -708,11 +708,10 @@ def generate_visualisations(query_db,
             sys.exit(1)
         # If network has been pruned then only use the appropriate subset of names - otherwise use all names
         # for full network
-        node_labels = viz_subset if use_partial_query_graph is not None else combined_seq
         sys.stderr.write('Preparing outputs for cytoscape\n')
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
-                            node_labels,
+                            combined_seq,
                             isolateClustering,
                             output,
                             info_csv,
