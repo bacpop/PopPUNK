@@ -561,6 +561,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     # Save each component too (useful for very large graphs)
     component_assignments, component_hist = gt.label_components(G)
     print("All assignments: " + str(component_assignments))
+    isolate_labels = isolateNameToLabel(G_mst.vp.id)
     for component_idx in range(len(component_hist)):
         remove_list = []
         for vidx, v_component in enumerate(component_assignments.a):
