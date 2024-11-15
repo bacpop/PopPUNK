@@ -570,7 +570,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
       for v in G.vertices():
         comp_filter[v] = (component_assignments[v] == component_idx)
         # If using partial query graph find the component name from the clustering
-        if get_component_name and (component_assignments[v] == component_idx):
+        if get_component_name and comp_filter[v]:
           example_isolate_name = seqLabels[int(v)]
           component_name = clustering[example_cluster_title][example_isolate_name]
           get_component_name = False
