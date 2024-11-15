@@ -562,6 +562,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     component_assignments, component_hist = gt.label_components(G)
     print("All assignments: " + str(component_assignments))
     for component_idx in range(len(component_hist)):
+        G_copy = G
         remove_list = []
         for vidx, v_component in enumerate(component_assignments.a):
             print("Index: " + str(vidx))
@@ -569,9 +570,9 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
             print("Name: " + str(seqLabels[vidx]))
             if v_component != component_idx:
                 remove_list.append(vidx)
-        G.remove_vertex(remove_list)
-        G.purge_vertices()
-        save_network(G, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
+        G_copy.remove_vertex(remove_list)
+        G_copy.purge_vertices()
+        save_network(G_copy, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
