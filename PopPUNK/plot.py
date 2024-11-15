@@ -560,9 +560,13 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
 
     # Save each component too (useful for very large graphs)
     component_assignments, component_hist = gt.label_components(G)
+    print("All assignments: " + str(component_assignments))
     for component_idx in range(len(component_hist)):
         remove_list = []
         for vidx, v_component in enumerate(component_assignments.a):
+            print("Index: " + str(vidx))
+            print("Component: " + str(v_component))
+            print("Name: " + str(isolate_labels[vidx]))
             if v_component != component_idx:
                 remove_list.append(vidx)
         G.remove_vertex(remove_list)
