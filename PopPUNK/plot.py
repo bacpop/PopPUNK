@@ -559,20 +559,26 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Save each component too (useful for very large graphs)
+    example_cluster_title = list(clustering.keys())[0]
     component_assignments, component_hist = gt.label_components(G)
-    print("All assignments: " + str(component_assignments))
     for component_idx in range(len(component_hist)):
-        G_copy = G
-        remove_list = []
-        for vidx, v_component in enumerate(component_assignments.a):
-            print("Index: " + str(vidx))
-            print("Component: " + str(v_component))
-            print("Name: " + str(seqLabels[vidx]))
-            if v_component != component_idx:
-                remove_list.append(vidx)
-        G_copy.remove_vertex(remove_list)
-        G_copy.purge_vertices()
-        save_network(G_copy, prefix = outPrefix, suffix = "_component_" + str(component_idx + 1), use_graphml = True)
+      # Naming must reflect the full graph size
+      component_name = component_idx + 1
+      get_component_name = (use_partial_query_graph is not None)
+      # Filter the graph for the current component
+      comp_filter = G.new_vertex_property("bool")
+      for v in G.vertices():
+        comp_filter[v] = (component_assignments[v] == component_idx)
+        # If using partial query graph find the component name from the clustering
+        if get_component_name and (component_assignments[v] == component_idx):
+          example_isolate_name = seqLabels[int(v)]
+          component_name = clustering[example_cluster_title][example_isolate_name]
+          get_component_name = False
+      G_component = gt.GraphView(G, vfilt=comp_filter)
+      # Purge the component to remove unreferenced vertices (optional but recommended)
+      G_component.purge_vertices()
+      # Save the component network
+      save_network(G_component, prefix = outPrefix, suffix = "_component_" + str(component_name), use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)
