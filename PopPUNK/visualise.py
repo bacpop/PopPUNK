@@ -706,8 +706,6 @@ def generate_visualisations(query_db,
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
-        # If network has been pruned then only use the appropriate subset of names - otherwise use all names
-        # for full network
         sys.stderr.write('Preparing outputs for cytoscape\n')
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
