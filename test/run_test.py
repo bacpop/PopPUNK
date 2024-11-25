@@ -134,7 +134,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile12
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model dbscan --ref-db batch12 --output batch12 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model refine --ref-db batch12 --output batch12 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch12 --query rfile3.txt --output batch3 --external-clustering batch12_external_clusters.csv --save-partial-query-graph  --overwrite", shell=True, check=True)
-subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db batch12 --query-db batch3 --output batch123_viz --external-clustering batch12_external_clusters.csv --previous-query-clustering batch3/batch3_external_clusters.csv --cytoscape --rapidnj rapidnj --network-file ./batch3/batch3_graph.gt --use-partial-query-graph ./batch3/batch3_query.subset --recalculate-distances --overwrite", shell=True, check=True)
+subprocess.run(python_cmd + " ../poppunk_visualise-runner.py --ref-db batch12 --query-db batch3 --output batch123_viz --external-clustering batch12_external_clusters.csv --previous-query-clustering batch3/batch3_external_clusters.csv --cytoscape --rapidnj rapidnj --use-partial-query-graph ./batch3/batch3_query.subset --recalculate-distances --overwrite", shell=True, check=True)
 
 # citations
 sys.stderr.write("Printing citations\n")

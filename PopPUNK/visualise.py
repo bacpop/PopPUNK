@@ -226,6 +226,7 @@ def generate_visualisations(query_db,
     from .network import save_network
     from .network import sparse_mat_to_network
     from .network import remove_nodes_from_graph
+    from .network import generate_network_from_distances
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -264,7 +265,7 @@ def generate_visualisations(query_db,
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
     if cytoscape and not (microreact or phandango or grapetree):
-        if rank_fit == None and (network_file == None or not os.path.isfile(network_file)):
+        if rank_fit == None and not recalculate_distances and (network_file == None or not os.path.isfile(network_file)):
             sys.stderr.write("For cytoscape, specify either a network file to visualise "
                              "with --network-file or a lineage model with --rank-fit\n")
             sys.exit(1)
@@ -421,7 +422,7 @@ def generate_visualisations(query_db,
     #*                            *#
     #******************************#
 
-    if (tree == "nj" or tree == "both") or (model.type == 'lineage' and rank_fit == None):
+    if (tree == "nj" or tree == "both" or cytoscape) or (model.type == 'lineage' and rank_fit == None):
         
         # Either calculate or read distances
         if recalculate_distances:
@@ -573,29 +574,24 @@ def generate_visualisations(query_db,
                             clustering_name = display_cluster
                     else:
                         clustering_name = list(isolateClustering.keys())[0]
-                    if use_sparse:
-                        G = generate_mst_from_sparse_input(sparse_mat,
-                                                            rlist,
-                                                            old_rlist = old_rlist,
-                                                            previous_mst = previous_mst,
+                    # Generate MST from recalculated network
+                    if use_dense:
+                        G = generate_network_from_distances(mode = 'dense',
+                                                            core_distMat = core_distMat,
+                                                            acc_distMat = acc_distMat,
+                                                            combined_seq = combined_seq,
+                                                            distance_type = mst_distances,
+                                                            threads = threads,
                                                             gpu_graph = gpu_graph)
-                    elif use_dense:
-                        # Get distance matrix
-                        complete_distMat = \
-                            np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                                    pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
-                        # Dense network may be slow
-                        sys.stderr.write("Generating MST from dense distances (may be slow)\n")
-                        G = construct_network_from_assignments(combined_seq,
-                                                                combined_seq,
-                                                                [0]*complete_distMat.shape[0],
-                                                                within_label = 0,
-                                                                distMat = complete_distMat,
-                                                                weights_type = mst_distances,
-                                                                use_gpu = gpu_graph,
-                                                                summarise = False)
-                        if gpu_graph:
-                            G = cugraph.minimum_spanning_tree(G, weight='weights')
+                    elif use_sparse:
+                        G = generate_network_from_distances(mode = 'sparse',
+                                                            sparse_mat = sparse_mat,
+                                                            previous_mst = previous_mst,
+                                                            rlist = rlist,
+                                                            old_rlist = old_rlist,
+                                                            distance_type = mst_distances,
+                                                            threads = threads,
+                                                            gpu_graph = gpu_graph)
                     else:
                         sys.stderr.write("Need either sparse or dense distances matrix to construct MST\n")
                         exit(1)
@@ -703,6 +699,25 @@ def generate_visualisations(query_db,
                 genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = gpu_graph)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
+        elif recalculate_distances:
+            # Recalculate network from new distances
+            if use_dense:
+                genomeNetwork = generate_network_from_distances(mode = 'dense',
+                                                                core_distMat = core_distMat,
+                                                                acc_distMat = acc_distMat,
+                                                                combined_seq = combined_seq,
+                                                                distance_type = mst_distances,
+                                                                threads = threads,
+                                                                gpu_graph = gpu_graph)
+            elif use_sparse:
+                genomeNetwork = generate_network_from_distances(mode = 'sparse',
+                                                                sparse_mat = sparse_mat,
+                                                                previous_mst = previous_mst,
+                                                                rlist = rlist,
+                                                                old_rlist = old_rlist,
+                                                                distance_type = mst_distances,
+                                                                threads = threads,
+                                                                gpu_graph = gpu_graph)
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
