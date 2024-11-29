@@ -2026,6 +2026,7 @@ def generate_network_from_distances(mode = None,
                                     combined_seq = None,
                                     rlist = None,
                                     old_rlist = None,
+                                    model = None,
                                     distance_type = 'core',
                                     threads = 1,
                                     gpu_graph = False):
@@ -2050,6 +2051,7 @@ def generate_network_from_distances(mode = None,
             List of reference sequence labels
         old_rlist (list)
             List of reference sequence labels for previous MST
+        model ()
         distance_type (str)
             Whether to use core or accessory distances for MST calculation
             or dense network weighting
@@ -2075,12 +2077,12 @@ def generate_network_from_distances(mode = None,
         complete_distMat = \
             np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
                     pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
-        # Dense network may be slow
-        sys.stderr.write("Generating MST from dense distances (may be slow)\n")
+        # Identify short distances and use these to extend the model
+        indivAssignments = model.assign(complete_distMat)
         G = construct_network_from_assignments(combined_seq,
                                                 combined_seq,
-                                                [0]*complete_distMat.shape[0],
-                                                within_label = 0,
+                                                indivAssignments,
+                                                model.within_label,
                                                 distMat = complete_distMat,
                                                 weights_type = distance_type,
                                                 use_gpu = gpu_graph,

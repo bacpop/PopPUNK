@@ -219,7 +219,6 @@ def generate_visualisations(query_db,
 
     from .models import loadClusterFit
 
-    from .network import construct_network_from_assignments
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
     from .network import cugraph_to_graph_tool
@@ -706,6 +705,7 @@ def generate_visualisations(query_db,
                                                                 core_distMat = core_distMat,
                                                                 acc_distMat = acc_distMat,
                                                                 combined_seq = combined_seq,
+                                                                model = model,
                                                                 distance_type = mst_distances,
                                                                 threads = threads,
                                                                 gpu_graph = gpu_graph)
