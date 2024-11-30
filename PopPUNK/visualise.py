@@ -97,6 +97,9 @@ def get_options():
     iGroup.add_argument('--use-partial-query-graph',
                         help='File listing sequences in partial query graph after assignment',
                         default=None)
+    iGroup.add_argument('--extend-query-graph',
+                        help='Extend the partial query graph to include all co-clustered isolates',
+                        default=None)
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -214,6 +217,7 @@ def generate_visualisations(query_db,
                             overwrite,
                             display_cluster,
                             use_partial_query_graph,
+                            extend_query_graph,
                             recalculate_distances,
                             tmp):
 
@@ -278,40 +282,6 @@ def generate_visualisations(query_db,
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
 
-    #*******************************#
-    #*                             *#
-    #* Extract subset of sequences *#
-    #*                             *#
-    #*******************************#
-
-    # Identify distance matrix for ordered names
-    if distances is None:
-        if query_db is None:
-            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-        else:
-            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
-    else:
-        distances = distances
-
-    # Location and properties of reference database
-    ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
-    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
-
-    # extract subset of distances if requested
-    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
-    all_seq = combined_seq # all_seq is an immutable record use for network parsing
-    if include_files is not None or use_partial_query_graph is not None:
-        viz_subset = set()
-        subset_file = include_files if include_files is not None else use_partial_query_graph
-        with open(subset_file, 'r') as assemblyFiles:
-            for assembly in assemblyFiles:
-                viz_subset.add(assembly.rstrip())
-        if len(viz_subset.difference(combined_seq)) > 0:
-            sys.stderr.write("--include-files contains names not in --distances\n")
-            sys.stderr.write("Please assign distances before subsetting the database\n")
-    else:
-        viz_subset = None
-
     #******************************#
     #*                            *#
     #* Determine type of distance *#
@@ -337,6 +307,41 @@ def generate_visualisations(query_db,
         elif previous_mst is not None:
             sys.stderr.write('The prefix of the distance files used to create the previous MST'
                              ' is needed to use the network')
+
+    # Identify distance matrix for ordered names
+    if distances is None:
+        if query_db is None:
+            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
+        else:
+            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
+    else:
+        distances = distances
+
+    #*******************************#
+    #*                             *#
+    #* Extract subset of sequences *#
+    #*                             *#
+    #*******************************#
+
+    # Location and properties of reference database
+    ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
+    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
+
+    # extract subset of distances if requested
+    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
+    all_seq = combined_seq # all_seq is an immutable record use for network parsing
+    if include_files is not None or use_partial_query_graph is not None:
+        viz_subset = set()
+        # Just use the isolates from the assign output
+        subset_file = include_files if include_files is not None else use_partial_query_graph
+        with open(subset_file, 'r') as assemblyFiles:
+            for assembly in assemblyFiles:
+                viz_subset.add(assembly.rstrip())
+        if len(viz_subset.difference(combined_seq)) > 0:
+            sys.stderr.write("--include-files contains names not in --distances\n")
+            sys.stderr.write("Please assign distances before subsetting the database\n")
+    else:
+        viz_subset = None
 
     #**********************************#
     #*                                *#
@@ -771,6 +776,7 @@ def main():
                             args.overwrite,
                             args.display_cluster,
                             args.use_partial_query_graph,
+                            args.extend_query_graph,
                             args.recalculate_distances,
                             args.tmp)
 
