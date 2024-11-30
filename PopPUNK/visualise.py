@@ -99,7 +99,8 @@ def get_options():
                         default=None)
     iGroup.add_argument('--extend-query-graph',
                         help='Extend the partial query graph to include all co-clustered isolates',
-                        default=None)
+                        default=False,
+                        action = 'store_true')
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -418,6 +419,22 @@ def generate_visualisations(query_db,
                     mode = mode,
                     return_dict = True)
             isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
+
+    # Add extra isolates to partial query graph if requested
+    if use_partial_query_graph and extend_query_graph:
+        # First identify the query clusteres
+        query_clusters = set()
+        cluster_types = ['Cluster']
+        query_cluster_isolates = []
+        for cluster_type in cluster_types:
+            for isolate in viz_subset:
+                query_clusters.add(isolateClustering[cluster_type][isolate])
+        # Then identify the isolates in these clusters
+        for cluster_type in cluster_types:
+            for isolate in isolateClustering[cluster_type]:
+                if isolateClustering[cluster_type][isolate] in query_clusters:
+                    query_cluster_isolates.append(isolate)
+        viz_subset = set(query_cluster_isolates)
 
     #******************************#
     #*                            *#
