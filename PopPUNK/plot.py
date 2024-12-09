@@ -730,14 +730,13 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
                         d['Status'].append("Reference")
             if epiCsv is not None:
                 if label in epiData.index:
-                    if label in epiData.index:
-                        for col, value in zip(epiData.columns.values, epiData.loc[[label]].iloc[0].values):
-                            if col not in columns_to_be_omitted:
-                                d[col].append(str(value))
-                    else:
-                        for col in epiData.columns.values:
-                            if col not in columns_to_be_omitted:
-                                d[col].append('nan')
+                    for col, value in zip(epiData.columns.values, epiData.loc[[label]].iloc[0].values):
+                        if col not in columns_to_be_omitted:
+                            d[col].append(str(value))
+                else:
+                    for col in epiData.columns.values:
+                        if col not in columns_to_be_omitted:
+                            d[col].append('')
 
         else:
             sys.stderr.write("Cannot find " + name + " in clustering\n")
