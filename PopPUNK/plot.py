@@ -558,27 +558,28 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
     if use_partial_query_graph is None:
         save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
-    # Save each component too (useful for very large graphs)
+    # Store query names
+    querySet = set()
+    if queryList is not None:
+      querySet = frozenset(queryList)
+
+    # Save each cluster too (useful for very large graphs)
     example_cluster_title = list(clustering.keys())[0]
-    component_assignments, component_hist = gt.label_components(G)
-    for component_idx in range(len(component_hist)):
-      # Naming must reflect the full graph size
-      component_name = component_idx + 1
-      get_component_name = (use_partial_query_graph is not None)
+    if use_partial_query_graph is not None:
+      represented_clusters = set(clustering[example_cluster_title][isolate] for isolate in isolate_names)
+    else:
+      represented_clusters = set(clustering[example_cluster_title].values())
+    for cluster in represented_clusters:
       # Filter the graph for the current component
       comp_filter = G.new_vertex_property("bool")
       for v in G.vertices():
-        comp_filter[v] = (component_assignments[v] == component_idx)
-        # If using partial query graph find the component name from the clustering
-        if get_component_name and comp_filter[v]:
-          example_isolate_name = seqLabels[int(v)]
-          component_name = clustering[example_cluster_title][example_isolate_name]
-          get_component_name = False
+        vertex_name = seqLabels[int(v)]
+        comp_filter[v] = (clustering[example_cluster_title][vertex_name] == cluster)
       G_component = gt.GraphView(G, vfilt=comp_filter)
       # Purge the component to remove unreferenced vertices (optional but recommended)
       G_component.purge_vertices()
       # Save the component network
-      save_network(G_component, prefix = outPrefix, suffix = "_component_" + str(component_name), use_graphml = True)
+      save_network(G_component, prefix = outPrefix, suffix = "_component_" + str(cluster), use_graphml = True)
 
     if G_mst != None:
         isolate_labels = isolateNameToLabel(G_mst.vp.id)

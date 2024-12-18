@@ -716,7 +716,7 @@ def generate_visualisations(query_db,
             if gpu_graph:
                 genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
             # Hard delete from network to remove samples (mask doesn't work neatly)
-            if include_files is not None:
+            if viz_subset is not None:
                 genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = False)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
