@@ -602,6 +602,7 @@ def generate_visualisations(query_db,
                                                             acc_distMat = acc_distMat,
                                                             combined_seq = combined_seq,
                                                             distance_type = mst_distances,
+                                                            model = model,
                                                             threads = threads,
                                                             gpu_graph = gpu_graph)
                     elif use_sparse:
@@ -611,6 +612,7 @@ def generate_visualisations(query_db,
                                                             rlist = rlist,
                                                             old_rlist = old_rlist,
                                                             distance_type = mst_distances,
+                                                            model = model,
                                                             threads = threads,
                                                             gpu_graph = gpu_graph)
                     else:

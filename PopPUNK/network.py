@@ -2031,7 +2031,7 @@ def generate_network_from_distances(mode = None,
                                     threads = 1,
                                     gpu_graph = False):
     """
-    Removes all components that do not contain a query sequence.
+    Generates a network from a distance matrix.
     
     Args:
         mode (str)
