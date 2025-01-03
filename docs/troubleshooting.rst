@@ -174,5 +174,18 @@ used to assign new queries.
 If you want to change cluster names or assign queries to your own cluster definitions
 you can use the ``--external-clustering`` argument instead.
 
+"No non-zero Jaccard distances" Error
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When running ``--create-db`` or ``poppunk_assign`` as::
+
+    No non-zero Jaccard distances
+    Fitting k-mer gradient failed, for:SampleAvs.SampleB
+
+Means that ``SampleA`` and ``SampleB`` are not the same species or are highly contaminated,
+and so share no k-mers with eachother. This may cause PopPUNK to hang, crash, or finish but not generate
+output files.
+
+To fix this error, check that genomes for ``SampleA`` and ``SampleB``
+are the correct species (e.g. using `BLAST <https://blast.ncbi.nlm.nih.gov/Blast.cgi>`_ or `Kraken2 <https://github.com/DerrickWood/kraken2>`_); if not, remove them from your input file and re-run your analysis.
 
 
