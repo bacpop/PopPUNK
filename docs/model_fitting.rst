@@ -503,11 +503,11 @@ Which, looking at the `microreact output <https://microreact.org/project/SJxxLMc
    :alt:  The refined fit, in microreact
    :align: center
 
-.. _alt-scores:
-
 The calculation of the summary statistics used to optimise the network properties may be slow with
 large datasets. Hence the ``--summary-sample`` argument can be used to specify the number of network
 nodes that are randomly subsampled from the overall network to calculate the optimal boundary position.
+
+.. _alt-scores:
 
 Alternative network scores
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -47,7 +47,7 @@ def get_options():
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
                                               default=False, action='store_true')
-    oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, choices=['full', 'fast', False])
+    oGroup.add_argument('--update-db', help='Update reference database with query sequences. Full: pick new references from cliques. Fast: pick random new references.', default=False, choices=['full', 'fast', False])
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
     oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
     oGroup.add_argument('--save-partial-query-graph', help='Save the network components to which queries are assigned', default=False, action='store_true')
