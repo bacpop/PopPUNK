@@ -854,7 +854,6 @@ def createMicroreact(prefix, microreact_files, api_key=None, info_csv=None):
     import requests
     import json
     from datetime import datetime
-    import pandas as pd
 
     microreact_api_new_url = "https://microreact.org/api/projects/create"
     description_string = "PopPUNK run on " + datetime.now().strftime("%Y-%b-%d %H:%M")
