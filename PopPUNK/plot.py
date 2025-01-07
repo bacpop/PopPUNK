@@ -869,7 +869,7 @@ def createMicroreact(prefix, microreact_files, api_key=None, info_csv=None):
         info_df = pd.read_csv(info_csv)
         if 'latitude' not in info_df.columns or 'longitude' not in info_df.columns:
             json_pickle["maps"] = {}
-        if 'date' not in info_df.columns:
+        if 'year' not in info_df.columns:
             json_pickle["timelines"] = {}
     # Read data in
     with open(microreact_files[0]) as cluster_file:
