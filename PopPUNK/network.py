@@ -1190,6 +1190,8 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
         weights = process_weights(distMat, weights_type)
 
     # Convert edge indices to tuples
+    # TODO remove this print
+    print(f"{len(assignments)} assignments {len(rlist)} refs {len(qlist)} queries\n")
     connections = poppunk_refine.generateTuples(assignments,
                                                 within_label,
                                                 self = (rlist == qlist),
