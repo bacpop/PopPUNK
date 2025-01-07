@@ -836,7 +836,7 @@ def outputsForMicroreact(combined_list, clustering, nj_tree, mst_tree, accMat, p
 
     return outfiles
 
-def createMicroreact(prefix, microreact_files, api_key=None):
+def createMicroreact(prefix, microreact_files, api_key=None, info_csv=None):
     """Creates a .microreact file, and instance via the API
 
     Args:
@@ -852,6 +852,7 @@ def createMicroreact(prefix, microreact_files, api_key=None):
     import requests
     import json
     from datetime import datetime
+    import pandas as pd
 
     microreact_api_new_url = "https://microreact.org/api/projects/create"
     description_string = "PopPUNK run on " + datetime.now().strftime("%Y-%b-%d %H:%M")
@@ -859,6 +860,17 @@ def createMicroreact(prefix, microreact_files, api_key=None):
     with pkg_resources.resource_stream(__name__, 'data/microreact_example.pkl') as example_pickle:
         json_pickle = pickle.load(example_pickle)
     json_pickle["meta"]["name"] = description_string
+    
+    # remove maps and timelines if not present in csv columns
+    if info_csv is None:
+        json_pickle["maps"] = {}
+        json_pickle["timelines"] = {}
+    else:
+        info_df = pd.read_csv(info_csv)
+        if 'latitude' not in info_df.columns or 'longitude' not in info_df.columns:
+            json_pickle["maps"] = {}
+        if 'date' not in info_df.columns:
+            json_pickle["timelines"] = {}
 
     # Read data in
     with open(microreact_files[0]) as cluster_file:
