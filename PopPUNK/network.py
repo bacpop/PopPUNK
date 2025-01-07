@@ -219,8 +219,23 @@ def cliquePrune(component, graph, reference_indices, components_list):
     return(list(ref_list))
 
 def fastPrune(component, graph, reference_indices, merged_query_idx, components_list):
-    """Wrapper function around :func:`~getCliqueRefs` so it can be
-       called by a multiprocessing pool
+    """Pick references for a component using a simple random sampling method
+
+    Args:
+        component (int)
+            The component ID to process
+        graph (graph)
+            The graph to process
+        reference_indices (set)
+            The set of reference indices to update
+        merged_query_idx (set)
+            The set of merged query indices
+        components_list (array)
+            The list of component assignments
+
+    Returns:
+        list
+            The updated list of reference indices
     """
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
@@ -230,13 +245,13 @@ def fastPrune(component, graph, reference_indices, merged_query_idx, components_
 
     # Add new refs for clusters without references
     if len(component_vertex_idxs.intersection(refs)) == 0:
-        number_new_refs = len(refs) // FAST_REF_SUBSAMPLE
+        number_new_refs = len(component_vertex_idxs) // FAST_REF_SUBSAMPLE + 1
         refs.update(component_vertex_idxs[0:number_new_refs])
 
     # New refs for merged queries
     merged_samples = list(component_vertex_idxs.intersection(merged_query_idx))
     if len(merged_samples) > 0:
-        number_new_refs = len(merged_samples) // FAST_REF_MERGE_SUBSAMPLE
+        number_new_refs = len(merged_samples) // FAST_REF_MERGE_SUBSAMPLE + 1
         refs.update(merged_samples[0:number_new_refs])
 
     return(list(refs))
