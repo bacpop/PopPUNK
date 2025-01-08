@@ -1183,7 +1183,7 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
     # Filter weights to only the relevant edges
     if weights is not None:
         weights = weights[assignments == within_label]
-    elif distMat is not# TODO remove this print None and weights_type is not None:
+    elif distMat is not None and weights_type is not None:
         if isinstance(assignments, list):
             assignments = np.array(assignments)
         distMat = distMat[assignments == within_label,:]
