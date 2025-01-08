@@ -241,7 +241,7 @@ def fastPrune(component, graph, reference_indices, merged_query_idx, components_
         gt.openmp_set_num_threads(1)
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
     refs = set(reference_indices.copy())
-    component_vertex_idxs = frozenset(subgraph.vertices())
+    component_vertex_idxs = frozenset(subgraph.get_vertices())
 
     # Add new refs for clusters without references
     if len(component_vertex_idxs.intersection(refs)) == 0:
@@ -1183,7 +1183,7 @@ def construct_network_from_assignments(rlist, qlist, assignments, within_label =
     # Filter weights to only the relevant edges
     if weights is not None:
         weights = weights[assignments == within_label]
-    elif distMat is not None and weights_type is not None:
+    elif distMat is not# TODO remove this print None and weights_type is not None:
         if isinstance(assignments, list):
             assignments = np.array(assignments)
         distMat = distMat[assignments == within_label,:]
