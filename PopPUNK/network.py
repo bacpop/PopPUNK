@@ -237,6 +237,7 @@ def fastPrune(component, graph, reference_indices, merged_query_idx, components_
         list
             The updated list of reference indices
     """
+    import itertools
     if gt.openmp_enabled():
         gt.openmp_set_num_threads(1)
     subgraph = gt.GraphView(graph, vfilt=components_list == component)
@@ -246,12 +247,14 @@ def fastPrune(component, graph, reference_indices, merged_query_idx, components_
     # Add new refs for clusters without references
     if len(component_vertex_idxs.intersection(refs)) == 0:
         number_new_refs = len(component_vertex_idxs) // FAST_REF_SUBSAMPLE + 1
-        refs.update(component_vertex_idxs[0:number_new_refs])
+        new_refs = list(itertools.islice(component_vertex_idxs, number_new_refs))
+        refs.update(new_refs)
 
     # New refs for merged queries
     merged_samples = list(component_vertex_idxs.intersection(merged_query_idx))
     if len(merged_samples) > 0:
         number_new_refs = len(merged_samples) // FAST_REF_MERGE_SUBSAMPLE + 1
+        new_refs = list(itertools.islice(merged_samples, number_new_refs))
         refs.update(merged_samples[0:number_new_refs])
 
     return(list(refs))
