@@ -691,7 +691,7 @@ def generate_visualisations(query_db,
                                                 n_threads=threads,
                                                 use_gpu=gpu_graph,
                                                 device_id=deviceid)
-        url = createMicroreact(output, microreact_files, api_key)
+        url = createMicroreact(output, microreact_files, api_key, info_csv)
         if url != None:
             sys.stderr.write("Microreact: " + url + "\n")
         else:
