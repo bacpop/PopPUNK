@@ -443,7 +443,7 @@ def generate_visualisations(query_db,
                     # Only add reference isolates if using a reference database
                     if len(refs) == 0 or isolate in refs:
                         query_cluster_isolates.append(isolate)
-        viz_subset = set(query_cluster_isolates)
+        viz_subset = viz_subset.union(query_cluster_isolates)
 
     #******************************#
     #*                            *#
