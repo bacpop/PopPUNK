@@ -3,7 +3,7 @@
  * Python bindings for PopPUNK C++ functions
  *
  */
-
+#include <cstdint>
 // pybind11 headers
 #include <pybind11/eigen.h>
 #include <pybind11/pybind11.h>
