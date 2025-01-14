@@ -324,6 +324,8 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries, outSuffix = '', typ
     if len(merged_queries) > 0:
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         merged_query_idx = set([index_lookup[r] for r in frozenset(merged_queries)])
+    else:
+        merged_query_idx = set()
 
     # Add type isolate, if necessary
     type_isolate_index = None
