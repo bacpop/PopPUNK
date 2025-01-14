@@ -257,6 +257,7 @@ def fastPrune(component, graph, reference_indices, merged_query_idx, components_
         new_refs = list(itertools.islice(merged_samples, number_new_refs))
         refs.update(merged_samples[0:number_new_refs])
 
+    print(list(refs)) # TODO remove
     return(list(refs))
 
 def translate_network_indices(G_ref_df, reference_indices):
@@ -437,6 +438,7 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries, outSuffix = '', typ
                                     set(components))
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
+        print(reference_indices) #TODO remove
 
         # Add type isolate if necessary - before edges are added
         if type_isolate_index is not None and type_isolate_index not in reference_indices:
