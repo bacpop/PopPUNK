@@ -264,7 +264,7 @@ def create_db(args):
                     printClusters(indivNetworks[rank],
                                   strain_rlist,
                                   printCSV = False,
-                                  use_gpu = args.gpu_graph)
+                                  use_gpu = args.gpu_graph)[0]
                 n_clusters = max(lineage_clusters[rank].values())
                 sys.stderr.write("Network for rank " + str(rank) + " has " +
                                  str(n_clusters) + " lineages\n")

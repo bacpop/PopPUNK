@@ -461,14 +461,14 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries, outSuffix = '', typ
 
         # Find any clusters which are represented by >1 references
         # This creates a dictionary: cluster_id: set(ref_idx in cluster)
-        clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
+        clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)[0]
         reference_clusters_in_full_graph = defaultdict(set)
         for reference_index in reference_indices:
             reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
 
         # Calculate the component membership within the reference graph
         ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
-        clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
+        clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)[0]
         # Record the components/clusters the references are in the reference graph
         # dict: name: ref_cluster
         reference_clusters_in_reference_graph = {}
@@ -1538,7 +1538,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     Returns:
         clustering (dict)
             Dictionary of cluster assignments (keys are sequence names)
-
+        merged_queries (list)
+            Any query files which were part of a merge
     """
     if oldClusterFile == None and printRef == False:
         raise RuntimeError("Trying to print query clusters with no query sequences")
