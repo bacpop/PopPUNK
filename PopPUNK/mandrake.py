@@ -12,7 +12,7 @@ import poppunk_refine
 import pp_sketchlib
 from SCE import wtsne
 try:
-    from SCE import wtsne_gpu_fp64
+    from SCE import wtsne_gpu_fp32
     gpu_fn_available = True
 except ImportError:
     gpu_fn_available = False
@@ -63,7 +63,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
         sys.stderr.write("Mandrake analysis already exists; add --overwrite to replace\n")
     else:
         sys.stderr.write("Running mandrake\n")
-        kNN = max(kNN, len(seqLabels) - 1)
+        kNN = min(kNN, len(seqLabels) - 1)
         I, J, dists = poppunk_refine.get_kNN_distances(accMat, kNN, 1, n_threads)
 
         # Set up function call with either CPU or GPU
@@ -76,7 +76,7 @@ def generate_embedding(seqLabels, accMat, perplexity, outPrefix, overwrite, kNN 
               sys.stderr.write("Running on GPU\n")
               n_workers = 65536
               maxIter = round(maxIter / n_workers)
-              wtsne_call = partial(wtsne_gpu_fp64,
+              wtsne_call = partial(wtsne_gpu_fp32,
                                   perplexity=perplexity,
                                   maxIter=maxIter,
                                   blockSize=128,
