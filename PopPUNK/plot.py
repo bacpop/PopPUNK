@@ -559,9 +559,7 @@ def outputsForCytoscape(G, G_mst, isolate_names, clustering, outPrefix, epiCsv, 
         save_network(G, prefix = outPrefix, suffix = suffix, use_graphml = True)
 
     # Store query names
-    querySet = set()
-    if queryList is not None:
-      querySet = frozenset(queryList)
+    querySet = frozenset(queryList) if queryList is not None else frozenset()
 
     # Save each cluster too (useful for very large graphs)
     example_cluster_title = list(clustering.keys())[0]
