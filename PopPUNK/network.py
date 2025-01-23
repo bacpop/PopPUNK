@@ -2018,7 +2018,8 @@ def remove_non_query_components(G, rlist, qlist, use_gpu = False):
         
     return query_subgraph, pruned_names
 
-def generate_network_from_distances(mode = None,
+def generate_network_from_distances(mode,
+                                    model,
                                     core_distMat = None,
                                     acc_distMat = None,
                                     sparse_mat = None,
@@ -2026,7 +2027,6 @@ def generate_network_from_distances(mode = None,
                                     combined_seq = None,
                                     rlist = None,
                                     old_rlist = None,
-                                    model = None,
                                     distance_type = 'core',
                                     threads = 1,
                                     gpu_graph = False):
@@ -2036,6 +2036,8 @@ def generate_network_from_distances(mode = None,
     Args:
         mode (str)
             Whether a core or sparse distance matrix is being analysed
+        model (ClusterFit or LineageFit)
+            A fitted model object
         coreMat (numpy.array)
             NxN array of core distances for N sequences
         accMat (numpy.array)
@@ -2051,7 +2053,6 @@ def generate_network_from_distances(mode = None,
             List of reference sequence labels
         old_rlist (list)
             List of reference sequence labels for previous MST
-        model ()
         distance_type (str)
             Whether to use core or accessory distances for MST calculation
             or dense network weighting
