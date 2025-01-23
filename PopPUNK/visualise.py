@@ -600,8 +600,8 @@ def generate_visualisations(query_db,
                         clustering_name = list(isolateClustering.keys())[0]
                     # Generate MST from recalculated network
                     if use_dense:
-                        G = generate_network_from_distances(mode = 'dense',
-                                                            model = model,
+                        G = generate_network_from_distances('dense',
+                                                            model,
                                                             core_distMat = core_distMat,
                                                             acc_distMat = acc_distMat,
                                                             combined_seq = combined_seq,
@@ -609,8 +609,8 @@ def generate_visualisations(query_db,
                                                             threads = threads,
                                                             gpu_graph = gpu_graph)
                     elif use_sparse:
-                        G = generate_network_from_distances(mode = 'sparse',
-                                                            model = model,
+                        G = generate_network_from_distances('sparse',
+                                                            model,
                                                             sparse_mat = sparse_mat,
                                                             previous_mst = previous_mst,
                                                             rlist = rlist,
