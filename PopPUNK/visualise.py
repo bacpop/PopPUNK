@@ -98,7 +98,9 @@ def get_options():
                         help='File listing sequences in partial query graph after assignment',
                         default=None)
     iGroup.add_argument('--extend-query-graph',
-                        help='Extend the partial query graph to include all co-clustered isolates',
+                        help='Extend the partial query graph from the specified list to '
+                        'include all other sequences in the same clusters (e.g. if using) '
+                        'a larger or later database for visualising than assigning)',
                         default=False,
                         action = 'store_true')
 
