@@ -581,8 +581,6 @@ def queryDatabase(rNames, qNames, dbPrefix, queryPrefix, klist, self = True, num
 
         # Calls to library
         query_db = queryPrefix + "/" + os.path.basename(queryPrefix)
-        # TODO remove this print
-        print(f"{len(rNames)} refs {len(qNames)} queries\n")
         distMat = pp_sketchlib.queryDatabase(ref_db_name=ref_db,
                                              query_db_name=query_db,
                                              rList=rNames,
