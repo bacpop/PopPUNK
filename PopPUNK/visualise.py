@@ -97,6 +97,12 @@ def get_options():
     iGroup.add_argument('--use-partial-query-graph',
                         help='File listing sequences in partial query graph after assignment',
                         default=None)
+    iGroup.add_argument('--extend-query-graph',
+                        help='Extend the partial query graph from the specified list to '
+                        'include all other sequences in the same clusters (e.g. if using) '
+                        'a larger or later database for visualising than assigning)',
+                        default=False,
+                        action = 'store_true')
 
     # output options
     oGroup = parser.add_argument_group('Output options')
@@ -214,18 +220,19 @@ def generate_visualisations(query_db,
                             overwrite,
                             display_cluster,
                             use_partial_query_graph,
+                            extend_query_graph,
                             recalculate_distances,
                             tmp):
 
     from .models import loadClusterFit
 
-    from .network import construct_network_from_assignments
     from .network import generate_minimum_spanning_tree
     from .network import load_network_file
     from .network import cugraph_to_graph_tool
     from .network import save_network
     from .network import sparse_mat_to_network
     from .network import remove_nodes_from_graph
+    from .network import generate_network_from_distances
 
     from .plot import drawMST
     from .plot import outputsForMicroreact
@@ -264,7 +271,7 @@ def generate_visualisations(query_db,
         sys.stderr.write("Must specify at least one type of visualisation to output\n")
         sys.exit(1)
     if cytoscape and not (microreact or phandango or grapetree):
-        if rank_fit == None and (network_file == None or not os.path.isfile(network_file)):
+        if rank_fit == None and not recalculate_distances and (network_file == None or not os.path.isfile(network_file)):
             sys.stderr.write("For cytoscape, specify either a network file to visualise "
                              "with --network-file or a lineage model with --rank-fit\n")
             sys.exit(1)
@@ -277,40 +284,6 @@ def generate_visualisations(query_db,
         except OSError:
             sys.stderr.write("Cannot create output directory\n")
             sys.exit(1)
-
-    #*******************************#
-    #*                             *#
-    #* Extract subset of sequences *#
-    #*                             *#
-    #*******************************#
-
-    # Identify distance matrix for ordered names
-    if distances is None:
-        if query_db is None:
-            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-        else:
-            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
-    else:
-        distances = distances
-
-    # Location and properties of reference database
-    ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
-    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
-
-    # extract subset of distances if requested
-    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
-    all_seq = combined_seq # all_seq is an immutable record use for network parsing
-    if include_files is not None or use_partial_query_graph is not None:
-        viz_subset = set()
-        subset_file = include_files if include_files is not None else use_partial_query_graph
-        with open(subset_file, 'r') as assemblyFiles:
-            for assembly in assemblyFiles:
-                viz_subset.add(assembly.rstrip())
-        if len(viz_subset.difference(combined_seq)) > 0:
-            sys.stderr.write("--include-files contains names not in --distances\n")
-            sys.stderr.write("Please assign distances before subsetting the database\n")
-    else:
-        viz_subset = None
 
     #******************************#
     #*                            *#
@@ -337,6 +310,41 @@ def generate_visualisations(query_db,
         elif previous_mst is not None:
             sys.stderr.write('The prefix of the distance files used to create the previous MST'
                              ' is needed to use the network')
+
+    # Identify distance matrix for ordered names
+    if distances is None:
+        if query_db is None:
+            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
+        else:
+            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
+    else:
+        distances = distances
+
+    #*******************************#
+    #*                             *#
+    #* Extract subset of sequences *#
+    #*                             *#
+    #*******************************#
+
+    # Location and properties of reference database
+    ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
+    kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
+
+    # extract subset of distances if requested
+    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
+    all_seq = combined_seq # all_seq is an immutable record use for network parsing
+    if include_files is not None or use_partial_query_graph is not None:
+        viz_subset = set()
+        # Just use the isolates from the assign output
+        subset_file = include_files if include_files is not None else use_partial_query_graph
+        with open(subset_file, 'r') as assemblyFiles:
+            for assembly in assemblyFiles:
+                viz_subset.add(assembly.rstrip())
+        if len(viz_subset.difference(combined_seq)) > 0:
+            sys.stderr.write("--include-files contains names not in --distances\n")
+            sys.stderr.write("Please assign distances before subsetting the database\n")
+    else:
+        viz_subset = None
 
     #**********************************#
     #*                                *#
@@ -414,6 +422,24 @@ def generate_visualisations(query_db,
                     return_dict = True)
             isolateClustering = joinClusterDicts(isolateClustering, queryIsolateClustering)
 
+    # Add extra isolates to partial query graph if requested
+    if use_partial_query_graph and extend_query_graph:
+        # First identify the query clusteres
+        query_clusters = set()
+        cluster_types = ['Cluster']
+        query_cluster_isolates = []
+        for cluster_type in cluster_types:
+            for isolate in viz_subset:
+                query_clusters.add(isolateClustering[cluster_type][isolate])
+        # Then identify the isolates in these clusters
+        for cluster_type in cluster_types:
+            for isolate in isolateClustering[cluster_type]:
+                if isolateClustering[cluster_type][isolate] in query_clusters:
+                    # Only add reference isolates if using a reference database
+                    if isolate in all_seq:
+                        query_cluster_isolates.append(isolate)
+        viz_subset = viz_subset.union(query_cluster_isolates)
+
     #******************************#
     #*                            *#
     #* Process dense or sparse    *#
@@ -421,7 +447,7 @@ def generate_visualisations(query_db,
     #*                            *#
     #******************************#
 
-    if (tree == "nj" or tree == "both") or (model.type == 'lineage' and rank_fit == None):
+    if (tree == "nj" or tree == "both" or cytoscape) or (model.type == 'lineage' and rank_fit == None):
         
         # Either calculate or read distances
         if recalculate_distances:
@@ -519,7 +545,6 @@ def generate_visualisations(query_db,
                                                             num_threads=threads,
                                                             use_gpu=gpu_dist,
                                                             device_id=deviceid)
-
             else:
                 qlist = None
                 qr_distMat = None
@@ -573,29 +598,27 @@ def generate_visualisations(query_db,
                             clustering_name = display_cluster
                     else:
                         clustering_name = list(isolateClustering.keys())[0]
-                    if use_sparse:
-                        G = generate_mst_from_sparse_input(sparse_mat,
-                                                            rlist,
-                                                            old_rlist = old_rlist,
-                                                            previous_mst = previous_mst,
+                    # Generate MST from recalculated network
+                    if use_dense:
+                        G = generate_network_from_distances('dense',
+                                                            model,
+                                                            core_distMat = core_distMat,
+                                                            acc_distMat = acc_distMat,
+                                                            combined_seq = combined_seq,
+                                                            distance_type = mst_distances,
+                                                            threads = threads,
                                                             gpu_graph = gpu_graph)
-                    elif use_dense:
-                        # Get distance matrix
-                        complete_distMat = \
-                            np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
-                                    pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
-                        # Dense network may be slow
-                        sys.stderr.write("Generating MST from dense distances (may be slow)\n")
-                        G = construct_network_from_assignments(combined_seq,
-                                                                combined_seq,
-                                                                [0]*complete_distMat.shape[0],
-                                                                within_label = 0,
-                                                                distMat = complete_distMat,
-                                                                weights_type = mst_distances,
-                                                                use_gpu = gpu_graph,
-                                                                summarise = False)
-                        if gpu_graph:
-                            G = cugraph.minimum_spanning_tree(G, weight='weights')
+                    elif use_sparse:
+                        G = generate_network_from_distances('sparse',
+                                                            model,
+                                                            sparse_mat = sparse_mat,
+                                                            previous_mst = previous_mst,
+                                                            rlist = rlist,
+                                                            old_rlist = old_rlist,
+                                                            distance_type = mst_distances,
+                                                            model = model,
+                                                            threads = threads,
+                                                            gpu_graph = gpu_graph)
                     else:
                         sys.stderr.write("Need either sparse or dense distances matrix to construct MST\n")
                         exit(1)
@@ -663,7 +686,7 @@ def generate_visualisations(query_db,
                                                 n_threads=threads,
                                                 use_gpu=gpu_graph,
                                                 device_id=deviceid)
-        url = createMicroreact(output, microreact_files, api_key)
+        url = createMicroreact(output, microreact_files, api_key, info_csv)
         if url != None:
             sys.stderr.write("Microreact: " + url + "\n")
         else:
@@ -699,10 +722,30 @@ def generate_visualisations(query_db,
             if gpu_graph:
                 genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(all_seq))
             # Hard delete from network to remove samples (mask doesn't work neatly)
-            if include_files is not None:
-                genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = gpu_graph)
+            if viz_subset is not None:
+                genomeNetwork = remove_nodes_from_graph(genomeNetwork, all_seq, viz_subset, use_gpu = False)
         elif rank_fit is not None:
             genomeNetwork = sparse_mat_to_network(sparse_mat, combined_seq, use_gpu = gpu_graph)
+        elif recalculate_distances:
+            # Recalculate network from new distances
+            if use_dense:
+                genomeNetwork = generate_network_from_distances(mode = 'dense',
+                                                                core_distMat = core_distMat,
+                                                                acc_distMat = acc_distMat,
+                                                                combined_seq = combined_seq,
+                                                                model = model,
+                                                                distance_type = mst_distances,
+                                                                threads = threads,
+                                                                gpu_graph = gpu_graph)
+            elif use_sparse:
+                genomeNetwork = generate_network_from_distances(mode = 'sparse',
+                                                                sparse_mat = sparse_mat,
+                                                                previous_mst = previous_mst,
+                                                                rlist = rlist,
+                                                                old_rlist = old_rlist,
+                                                                distance_type = mst_distances,
+                                                                threads = threads,
+                                                                gpu_graph = gpu_graph)
         else:
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
@@ -756,6 +799,7 @@ def main():
                             args.overwrite,
                             args.display_cluster,
                             args.use_partial_query_graph,
+                            args.extend_query_graph,
                             args.recalculate_distances,
                             args.tmp)
 

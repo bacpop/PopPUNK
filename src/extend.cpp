@@ -181,11 +181,12 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
           dists[i].push_back(dist);
           i_vec[i].push_back(i);
           j_vec[i].push_back(j);
-          if (count_unique_distances)
+          if (count_unique_distances) {
             new_val = abs(dist - prev_value) >= epsilon;
-          if (new_val) {
-            unique_neighbors++;
-            prev_value = dist;
+            if (new_val) {
+              unique_neighbors++;
+              prev_value = dist;
+             }
           } else {
             unique_neighbors = j_vec[i].size();
           }
