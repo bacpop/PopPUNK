@@ -76,8 +76,8 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
     subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile1.txt --output batch1 --overwrite", shell=True, check=True)
     subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2 --overwrite" + lineage_option_string, shell=True, check=True)
     print("../poppunk-runner.py --fit-model lineage --ref-db batch1 --ranks 1,2 --overwrite\n\n")
-    subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1", shell=True, check=True)
-    print(" ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db --overwrite --max-a-dist 1\n\n")
+    subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db full --overwrite --max-a-dist 1", shell=True, check=True)
+    print(" ../poppunk_assign-runner.py --db batch1 --query rfile2.txt --output batch2 --update-db full --overwrite --max-a-dist 1\n\n")
 
     # Load updated distance order
     with open("batch2/batch2.dists.pkl", 'rb') as pickle_file:
@@ -103,8 +103,8 @@ for lineage_option_string in [" "," --count-unique-distances ", " --reciprocal-o
     subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files rfile123.txt --output batch123 --overwrite", shell=True, check=True)
     subprocess.run(python_cmd + " ../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1,2 --overwrite" + lineage_option_string, shell=True, check=True)
     print("../poppunk-runner.py --fit-model lineage --ref-db batch123 --ranks 1,2 --overwrite\n\n")
-    subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite", shell=True, check=True)
-    print(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db --overwrite\n\n")
+    subprocess.run(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db full --overwrite", shell=True, check=True)
+    print(python_cmd + " ../poppunk_assign-runner.py --db batch2 --query rfile3.txt --output batch3 --update-db full --overwrite\n\n")
 
     # Load updated distances order
     with open("batch3/batch3.dists.pkl", 'rb') as pickle_file:

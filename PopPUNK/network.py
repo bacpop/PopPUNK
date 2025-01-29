@@ -279,7 +279,7 @@ def translate_network_indices(G_ref_df, reference_indices):
     G_ref = generate_cugraph(G_ref_df, len(reference_indices) - 1, renumber = True)
     return(G_ref)
 
-def extractReferences(G, dbOrder, outPrefix, merged_queries, outSuffix = '', type_isolate = None,
+def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix = '', type_isolate = None,
                         existingRefs = None, threads = 1, use_gpu = False, fast_mode = False):
     """Extract references for each cluster based on cliques
 
