@@ -1204,8 +1204,8 @@ class LineageFit(ClusterFit):
 
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
-        if (max(self.ranks) >= sample_size):
-            sys.stderr.write("Rank must be less than the number of samples")
+        if (max(self.ranks) >= sample_size or self.max_search_depth >= sample_size):
+            sys.stderr.write("Rank and maximum search depth must be less than the number of samples: " + str(sample_size) + "\n")
             sys.exit(0)
 
         if accessory:
