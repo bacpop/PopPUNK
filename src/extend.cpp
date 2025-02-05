@@ -186,7 +186,9 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
             if (new_val) {
               unique_neighbors++;
               prev_value = dist;
-             }
+            } else {
+              continue; // next j
+            }
           } else {
             unique_neighbors = j_vec[i].size();
           }
