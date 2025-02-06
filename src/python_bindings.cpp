@@ -125,6 +125,7 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("kNN"),
         py::arg("reciprocal_only") = false,
         py::arg("count_unique_distances") = false,
+        py::arg("lineage_resolution"),
         py::arg("num_threads") = 1);
 
   m.def("get_kNN_distances", &get_kNN_distances, py::return_value_policy::reference_internal,

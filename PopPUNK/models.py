@@ -1139,6 +1139,7 @@ class LineageFit(ClusterFit):
         self.reciprocal_only = reciprocal_only
         self.count_unique_distances = count_unique_distances
         self.dist_col = dist_col
+        self.resolution = 1e-10
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype, is_nn_dist = False):
@@ -1177,6 +1178,7 @@ class LineageFit(ClusterFit):
                 lower_rank,
                 self.reciprocal_only,
                 self.count_unique_distances,
+                self.resolution,
                 self.threads)
         self.__save_sparse__(lower_rank_sparse_mat[2],
                              lower_rank_sparse_mat[0],
