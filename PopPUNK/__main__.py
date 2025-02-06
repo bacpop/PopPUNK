@@ -589,8 +589,8 @@ def main():
                                     max_search_depth,
                                     args.reciprocal_only,
                                     args.count_unique_distances,
-                                    1 if args.use_accessory else 0,
                                     args.lineage_resolution,
+                                    1 if args.use_accessory else 0,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
                 model.fit(distMat,

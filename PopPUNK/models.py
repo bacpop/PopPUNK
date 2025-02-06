@@ -1120,8 +1120,8 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only, count_unique_distances,
-                  dist_col = None, lineage_resolution, use_gpu = False):
+    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only,
+                  count_unique_distances, lineage_resolution, dist_col = None, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
