@@ -130,6 +130,10 @@ def get_options():
                                     help="Only use reciprocal kNN matches for lineage definitions",
                                     action = 'store_true',
                                     default = False)
+    lGroup.add_argument('--lineage-resolution',
+                                help="Minimum genetic separation between isolates required to initiate a new lineage",
+                                type = float,
+                                default = 1e-10)
 
     return parser.parse_args()
 
