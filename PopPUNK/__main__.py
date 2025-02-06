@@ -593,8 +593,7 @@ def main():
                                     1 if args.use_accessory else 0,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
-                model.fit(distMat,
-                            args.use_accessory)
+                model.fit(distMat)
 
                 assignments = {}
                 for rank in rank_list:

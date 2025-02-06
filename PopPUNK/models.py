@@ -1188,7 +1188,7 @@ class LineageFit(ClusterFit):
                              n_samples,
                              dtype)
 
-    def fit(self, X, accessory):
+    def fit(self, X):
         '''Extends :func:`~ClusterFit.fit`
 
         Gets assignments by using nearest neigbours.
@@ -1197,8 +1197,6 @@ class LineageFit(ClusterFit):
             X (numpy.array)
                 The core and accessory distances to cluster. Must be set if
                 preprocess is set.
-            accessory (bool)
-                Use accessory rather than core distances
 
         Returns:
             y (numpy.array)
@@ -1210,11 +1208,6 @@ class LineageFit(ClusterFit):
         if (max(self.ranks) >= sample_size or self.max_search_depth >= sample_size):
             sys.stderr.write("Rank and maximum search depth must be less than the number of samples: " + str(sample_size) + "\n")
             sys.exit(0)
-
-        if accessory:
-            self.dist_col = 1
-        else:
-            self.dist_col = 0
 
         row, col, data = \
             poppunk_refine.get_kNN_distances(
