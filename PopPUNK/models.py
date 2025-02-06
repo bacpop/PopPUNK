@@ -1205,19 +1205,21 @@ class LineageFit(ClusterFit):
 
         ClusterFit.fit(self, X)
         sample_size = int(round(0.5 * (1 + np.sqrt(1 + 8 * X.shape[0]))))
-        if (max(self.ranks) >= sample_size or self.max_search_depth >= sample_size):
-            sys.stderr.write("Rank and maximum search depth must be less than the number of samples: " + str(sample_size) + "\n")
+        if (max(self.ranks) >= sample_size):
+            sys.stderr.write("Maximum rank must be less than the number of samples: " + str(sample_size) + "\n")
             sys.exit(0)
+
+        search_depth = min(args.max_search_depth,sample_size-1)
 
         row, col, data = \
             poppunk_refine.get_kNN_distances(
                 distMat=pp_sketchlib.longToSquare(distVec=X[:, [self.dist_col]],
                                                   num_threads=self.threads),
-                kNN=self.max_search_depth,
+                kNN=search_depth,
                 dist_col=self.dist_col,
                 num_threads=self.threads
             )
-        self.__save_sparse__(data, row, col, self.max_search_depth, sample_size, X.dtype,
+        self.__save_sparse__(data, row, col, search_depth, sample_size, X.dtype,
                               is_nn_dist = True)
 
         # Apply filtering of links if requested and extract lower ranks - parallelisation within C++ code
@@ -1254,7 +1256,8 @@ class LineageFit(ClusterFit):
                                 self.max_search_depth,
                                 self.reciprocal_only,
                                 self.count_unique_distances,
-                                self.dist_col],
+                                self.dist_col,
+                                self.resolution],
                                 self.type],
                             pickle_file)
 
@@ -1267,7 +1270,7 @@ class LineageFit(ClusterFit):
             fit_obj (sklearn.mixture.BayesianGaussianMixture)
                 The saved fit object
         '''
-        self.ranks, self.max_search_depth, self.reciprocal_only, self.count_unique_distances, self.dist_col = fit_obj
+        self.ranks, self.max_search_depth, self.reciprocal_only, self.count_unique_distances, self.dist_col, self.resolution = fit_obj
         self.nn_dists = fit_npz
         self.fitted = True
 
