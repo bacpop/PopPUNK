@@ -1120,7 +1120,8 @@ class LineageFit(ClusterFit):
             The ranks used in the fit
     '''
 
-    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only, count_unique_distances, dist_col = None, use_gpu = False):
+    def __init__(self, outPrefix, ranks, max_search_depth, reciprocal_only, count_unique_distances,
+                  dist_col = None, lineage_resolution, use_gpu = False):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
@@ -1139,7 +1140,7 @@ class LineageFit(ClusterFit):
         self.reciprocal_only = reciprocal_only
         self.count_unique_distances = count_unique_distances
         self.dist_col = dist_col
-        self.resolution = 1e-10
+        self.resolution = lineage_resolution
         self.use_gpu = use_gpu
 
     def __save_sparse__(self, data, row, col, rank, n_samples, dtype, is_nn_dist = False):
