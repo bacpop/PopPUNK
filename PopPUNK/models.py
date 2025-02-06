@@ -1209,7 +1209,7 @@ class LineageFit(ClusterFit):
             sys.stderr.write("Maximum rank must be less than the number of samples: " + str(sample_size) + "\n")
             sys.exit(0)
 
-        search_depth = min(args.max_search_depth,sample_size-1)
+        search_depth = min(self.max_search_depth,sample_size-1)
 
         row, col, data = \
             poppunk_refine.get_kNN_distances(
