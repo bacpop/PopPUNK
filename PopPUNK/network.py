@@ -29,6 +29,7 @@ except ImportError:
     pass
 
 import poppunk_refine
+import pp_sketchlib
 
 from .__main__ import accepted_weights_types
 from .__main__ import betweenness_sample_default
@@ -2014,7 +2015,7 @@ def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
        use_gpu (bool)
             Whether graph is a cugraph or not
             [default = False]
-            
+
     Returns:
         G_new (graph)
             Pruned graph
@@ -2045,7 +2046,7 @@ def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
 def remove_non_query_components(G, rlist, qlist, use_gpu = False):
     """
     Removes all components that do not contain a query sequence.
-    
+
     Args:
         G (graph)
             Network of queries linked to reference sequences
@@ -2087,5 +2088,83 @@ def remove_non_query_components(G, rlist, qlist, use_gpu = False):
               pruned_names.append(combined_names[int(v)])
         # Create a filtered graph with only the specified components
         query_subgraph = gt.GraphView(G, vfilt=query_filter)
-        
+
     return query_subgraph, pruned_names
+
+def generate_network_from_distances(mode,
+                                    model,
+                                    core_distMat = None,
+                                    acc_distMat = None,
+                                    sparse_mat = None,
+                                    previous_mst = None,
+                                    combined_seq = None,
+                                    rlist = None,
+                                    old_rlist = None,
+                                    distance_type = 'core',
+                                    threads = 1,
+                                    gpu_graph = False):
+    """
+    Generates a network from a distance matrix.
+
+    Args:
+        mode (str)
+            Whether a core or sparse distance matrix is being analysed
+        model (ClusterFit or LineageFit)
+            A fitted model object
+        coreMat (numpy.array)
+            NxN array of core distances for N sequences
+        accMat (numpy.array)
+            NxN array of accessory distances for N sequences
+        sparse_mat (scipy or cupyx sparse matrix)
+            Sparse matrix of kNN from lineage fit
+        previous_mst (str or graph object)
+            Path of file containing existing network, or already-loaded
+            graph object
+        combined_seq (list)
+            Ordered list of isolate names
+        rlist (list)
+            List of reference sequence labels
+        old_rlist (list)
+            List of reference sequence labels for previous MST
+        distance_type (str)
+            Whether to use core or accessory distances for MST calculation
+            or dense network weighting
+        threads (int)
+            Number of threads to use in calculations
+        use_gpu (bool)
+            Whether to use GPUs for network construction
+
+    Returns:
+        G (graph)
+            The resulting network
+        pruned_names (list)
+            The labels of the sequences in the pruned network
+    """
+    if mode == 'sparse':
+        G = generate_mst_from_sparse_input(sparse_mat,
+                                            rlist,
+                                            old_rlist = old_rlist,
+                                            previous_mst = previous_mst,
+                                            gpu_graph = gpu_graph)
+    elif mode == 'dense':
+        # Get distance matrix
+        complete_distMat = \
+            np.hstack((pp_sketchlib.squareToLong(core_distMat, threads).reshape(-1, 1),
+                    pp_sketchlib.squareToLong(acc_distMat, threads).reshape(-1, 1)))
+        # Identify short distances and use these to extend the model
+        indivAssignments = model.assign(complete_distMat)
+        G = construct_network_from_assignments(combined_seq,
+                                                combined_seq,
+                                                indivAssignments,
+                                                model.within_label,
+                                                distMat = complete_distMat,
+                                                weights_type = distance_type,
+                                                use_gpu = gpu_graph,
+                                                summarise = False)
+        if gpu_graph:
+            G = cugraph.minimum_spanning_tree(G, weight='weights')
+
+    else:
+        sys.stderr.write('Unknown network mode - expect dense or sparse\n')
+
+    return G
