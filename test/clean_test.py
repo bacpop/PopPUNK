@@ -38,6 +38,7 @@ outputDirs = [
     "example_query_stable",
     "example_query_update",
     "example_query_update_2",
+    "example_query_update_fast",
     "example_lineage_query",
     "example_viz",
     "example_viz_subset",
