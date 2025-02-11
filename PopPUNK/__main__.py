@@ -662,7 +662,7 @@ def main():
                     printClusters(indivNetworks[rank],
                                   refList,
                                   printCSV = False,
-                                  use_gpu = args.gpu_graph)
+                                  use_gpu = args.gpu_graph)[0]
                 n_clusters = max(lineage_clusters[rank].values())
                 sys.stderr.write("Network for rank " + str(rank) + " has " +
                                  str(n_clusters) + " lineages\n")
@@ -687,7 +687,7 @@ def main():
                                                      refList,
                                                      output + "/" + os.path.basename(output),
                                                      externalClusterCSV = args.external_clustering,
-                                                     use_gpu = args.gpu_graph)}
+                                                     use_gpu = args.gpu_graph)[0]}
 
         # Save network
         save_network(genomeNetwork, prefix = output, suffix = "_graph", use_gpu = args.gpu_graph)
@@ -711,7 +711,7 @@ def main():
                                       refList,
                                       output + "/" + os.path.basename(output) + "_" + dist_type,
                                       externalClusterCSV = args.external_clustering,
-                                      use_gpu = args.gpu_graph)
+                                      use_gpu = args.gpu_graph)[0]
                     save_network(indivNetworks[dist_type],
                                     prefix = output,
                                     suffix = '_' + dist_type + '_graph',

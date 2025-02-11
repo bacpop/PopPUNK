@@ -47,7 +47,7 @@ def get_options():
                                             '[default = 0]', default=0, type=int)
     oGroup.add_argument('--write-references', help='Write reference database isolates\' cluster assignments out too',
                                               default=False, action='store_true')
-    oGroup.add_argument('--update-db', help='Update reference database with query sequences', default=False, action='store_true')
+    oGroup.add_argument('--update-db', help='Update reference database with query sequences. Full: pick new references from cliques. Fast: pick random new references.', default=False, choices=['full', 'fast', False])
     oGroup.add_argument('--overwrite', help='Overwrite any existing database files', default=False, action='store_true')
     oGroup.add_argument('--graph-weights', help='Save within-strain Euclidean distances into the graph', default=False, action='store_true')
     oGroup.add_argument('--save-partial-query-graph', help='Save only the network components to which queries are assigned', default=False, action='store_true')
@@ -372,14 +372,13 @@ def assign_query_hdf5(dbFuncs,
 
     from .plot import writeClusterCsv
 
-    from .qc import qcDistMat, qcQueryAssignments, prune_distance_matrix, \
+    from .qc import qcDistMat, qcQueryAssignments, \
         prune_query_distance_matrix, write_qc_failure_report
 
     from .sketchlib import addRandom
 
     from .utils import storePickle
     from .utils import readPickle
-    from .utils import update_distance_matrices
     from .utils import createOverallLineage
 
     failed_assembly_qc = {}
@@ -430,7 +429,8 @@ def assign_query_hdf5(dbFuncs,
 
     # Only proceed with a fully-fitted model
     if not model.fitted or (hasattr(model,'assign_points') and model.assign_points == False):
-        sys.stderr.write('Cannot assign points with an incompletely-fitted model\nPlease refine this initial fit with "--fit-model refine"\n')
+        sys.stderr.write('Cannot assign points with an incompletely-fitted model\n'
+                         'Please refine this initial fit with "--fit-model refine"\n')
         sys.exit(1)
 
     # Set directories of previous fit
@@ -457,24 +457,30 @@ def assign_query_hdf5(dbFuncs,
         file_extension_string = ''
         if fit_type != 'default':
             file_extension_string = '_' + fit_type
-        # Find distances vs ref seqs
-        rNames = []
+
+        if os.path.isfile(distances + ".pkl"):
+            rNames = readPickle(distances, enforce_self = True, distances=False)[0]
+        elif update_db:
+            sys.stderr.write("Distance order .pkl missing, cannot use --update-db\n")
+            sys.exit(1)
+        else:
+            rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
+
+        # Take just the ref seqs...
         ref_file_name = os.path.join(model_prefix,
                         os.path.basename(model_prefix) + file_extension_string + ".refs")
+        if not os.path.isfile(ref_file_name):
+            warnings.warn(f"Could not find refs for {fit_type}: {ref_file_name}\n", stacklevel=2)
+            warnings.warn("Supply a model directory with .refs file, or assignment will be slower\n", stacklevel=2)
+        # ...unless a lineage model, they don't exist or doing a full update-db run
         use_ref_graph = \
-            os.path.isfile(ref_file_name) and not update_db and model.type != 'lineage' and not use_full_network
+            os.path.isfile(ref_file_name) and update_db != 'full' and model.type != 'lineage' and not use_full_network
         if use_ref_graph:
+            refNames = list()
             with open(ref_file_name) as refFile:
                 for reference in refFile:
-                    rNames.append(reference.rstrip())
-        else:
-            if os.path.isfile(distances + ".pkl"):
-                rNames = readPickle(distances, enforce_self = True, distances=False)[0]
-            elif update_db:
-                sys.stderr.write("Distance order .pkl missing, cannot use --update-db\n")
-                sys.exit(1)
-            else:
-                rNames = getSeqsInDb(os.path.join(ref_db, os.path.basename(ref_db) + ".h5"))
+                    refNames.append(reference.rstrip())
+            rNames = [ref for ref in rNames if ref in frozenset(refNames)]
 
         # Deal with name clash
         same_names = set(rNames).intersection(qNames)
@@ -556,7 +562,7 @@ def assign_query_hdf5(dbFuncs,
                     printClusters(genomeNetwork[rank],
                                   rNames + qNames,
                                   printCSV = False,
-                                  use_gpu = gpu_graph)
+                                  use_gpu = gpu_graph)[0]
 
             overall_lineage = createOverallLineage(model.ranks, isolateClustering)
             writeClusterCsv(
@@ -635,11 +641,7 @@ def assign_query_hdf5(dbFuncs,
                                         output,
                                         kmers = kmers,
                                         distance_type = dist_type,
-                                        queryQuery = (update_db and
-                                                        (fit_type == 'default' or
-                                                        (fit_type != 'default' and use_ref_graph)
-                                                        )
-                                                    ),
+                                        queryQuery = update_db and fit_type == 'default',
                                         strand_preserved = strand_preserved,
                                         weights = weights,
                                         threads = threads,
@@ -651,14 +653,15 @@ def assign_query_hdf5(dbFuncs,
                     for query, q_betweenness in sorted(query_betweenness.items(), key=itemgetter(1), reverse=True):
                         print(f"{query}\t{q_betweenness}")
 
-                isolateClustering = \
-                    {'combined': printClusters(genomeNetwork,
+                isolateClustering, merged_queries = \
+                                  printClusters(genomeNetwork,
                                                 rNames + qNames,
                                                 output_fn,
                                                 old_cluster_file,
                                                 external_clustering,
                                                 write_references or update_db,
-                                                use_gpu = gpu_graph)}
+                                                use_gpu = gpu_graph)
+                isolateClustering = {'combined': isolateClustering }
             else:
                 if stable is not None:
                     # Some of this could be moved out higher up, e.g. we don't really need
@@ -704,7 +707,8 @@ def assign_query_hdf5(dbFuncs,
                                             queryAssignments[(idx * len(rNames)):((idx + 1) * len(rNames))],
                                             model,
                                             output)[0]
-                        isolate_cluster = printClusters(genomeNetwork,
+                        isolate_cluster = \
+                            printClusters(genomeNetwork,
                                                     rNames + [sample],
                                                     output_fn,
                                                     old_cluster_file,
@@ -712,7 +716,7 @@ def assign_query_hdf5(dbFuncs,
                                                     printRef=False,
                                                     printCSV=False,
                                                     write_unwords=False,
-                                                    use_gpu = gpu_graph)
+                                                    use_gpu = gpu_graph)[0]
                         cluster = int(isolate_cluster[sample])
                         if cluster > len(rNames):
                             cluster = "novel"
@@ -739,6 +743,7 @@ def assign_query_hdf5(dbFuncs,
             if fit_type == 'default':
                 joinDBs(ref_db, output, output,
                         {"threads": threads, "strand_preserved": strand_preserved})
+            sys.stderr.write("Saving model and network\n")
             if model.type == 'lineage':
                 save_network(genomeNetwork[min(model.ranks)],
                                 prefix = output,
@@ -747,7 +752,9 @@ def assign_query_hdf5(dbFuncs,
                 # Save sparse distance matrices and updated model
                 model.outPrefix = os.path.basename(output)
                 model.save()
-            else:
+            elif update_db == 'full':
+                # Don't write the full graph with fast-update, as it's not a true
+                # full graph
                 graph_suffix = file_extension_string + '_graph'
                 save_network(genomeNetwork,
                                 prefix = output,
@@ -763,6 +770,7 @@ def assign_query_hdf5(dbFuncs,
 
             # Clique pruning
             if model.type != 'lineage' and os.path.isfile(ref_file_name):
+                sys.stderr.write(f"Finding references ({update_db})\n")
                 existing_ref_list = []
                 with open(ref_file_name) as refFile:
                     for reference in refFile:
@@ -774,14 +782,13 @@ def assign_query_hdf5(dbFuncs,
                         extractReferences(genomeNetwork,
                                             combined_seq,
                                             output,
+                                            merged_queries,
                                             outSuffix = file_extension_string,
                                             existingRefs = existing_ref_list,
                                             type_isolate = qc_dict['type_isolate'],
                                             threads = threads,
-                                            use_gpu = gpu_graph)
-
-                # intersection that maintains order
-                newQueries = [x for x in qNames if x in frozenset(newRepresentativesNames)]
+                                            use_gpu = gpu_graph,
+                                            fast_mode = update_db == "fast")
 
                 # could also have newRepresentativesNames in this diff (should be the same) - but want
                 # to ensure consistency with the network in case of bad input/bugs
