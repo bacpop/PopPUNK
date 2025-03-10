@@ -9,7 +9,7 @@ dependencies:
   - numpy <=1.22.4
   - scipy
   - python-dateutil
-  - pandas
+  - pandas >= 2.0
   - scikit-learn >=0.24
   - mandrake
   - matplotlib-base

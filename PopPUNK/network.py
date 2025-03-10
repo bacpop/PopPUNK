@@ -1180,7 +1180,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
             vertex_subsample = cp.random.choice(cp.arange(0,G.number_of_vertices() - 1),
                                                 size = subsample,
                                                 replace = False)
-            S = cugraph.subgraph(G, vertex_subsample)
+            S, _ = cugraph.induced_subgraph(G, vertex_subsample)
         component_assignments = cugraph.components.connectivity.connected_components(S)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
@@ -1223,7 +1223,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                 size = component_frequencies[component_frequencies.index == component].iloc[0].astype(int)
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
-                    subgraph = cugraph.subgraph(S, component_vertices)
+                    subgraph, _ = cugraph.induced_subgraph(S, component_vertices)
                     if len(component_vertices) >= betweenness_sample:
                         component_betweenness = cugraph.betweenness_centrality(subgraph,
                                                                                 k = betweenness_sample,
