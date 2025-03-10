@@ -1412,11 +1412,13 @@ def generate_cugraph(G_df, max_index, weights = False, renumber = True):
     G_self_loop = cudf.DataFrame()
     G_self_loop['source'] = node_indices
     G_self_loop['destination'] = node_indices
-    G_self_loop['weights'] = 0.0
+    G_self_loop['weights'] = 1.0
     # Build cudf
     # Weights are needed to extract subgraphs
     # see https://github.com/rapidsai/cugraph/blob/77d833ad/python/cugraph/cugraph/community/subgraph_extraction.py
-    if not weights:
+    if weights:
+        G_df['weights'] = weights
+    else:
         G_df['weights'] = 1.0
     G_df = cudf.concat([G_self_loop,G_df], ignore_index = True)
     # Construct graph
