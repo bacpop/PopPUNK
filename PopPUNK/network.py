@@ -1694,8 +1694,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
             mst_network = gt.Graph(mst_network, prune = True)
         else:
-            sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
-            raise RuntimeError("MST passed unweighted graph")
+            G.ep["weight"] = G.new_edge_property("vector<int>", val = 1)
 
     # Find seed nodes as those with greatest outdegree in each component
     num_components = 1
