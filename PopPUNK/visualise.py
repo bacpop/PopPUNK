@@ -750,6 +750,9 @@ def generate_visualisations(query_db,
             sys.stderr.write('Cytoscape output requires a network file or lineage rank fit to be provided\n')
             sys.exit(1)
         sys.stderr.write('Preparing outputs for cytoscape\n')
+        if gpu_graph:
+            genomeNetwork = cugraph_to_graph_tool(genomeNetwork, isolateNameToLabel(combined_seq))
+            genomeNetwork = gt.GraphView(genomeNetwork, efilt=lambda e: e.source() != e.target()) # filter out self-loops 
         outputsForCytoscape(genomeNetwork,
                             mst_graph,
                             combined_seq,

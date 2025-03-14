@@ -1902,6 +1902,23 @@ def save_network(G, prefix = None, suffix = None, use_graphml = False,
             G.save(file_name + '.gt',
                     fmt = 'gt')
 
+def get_edge_columns(df, source_cols=['source', 'src'], dest_cols=['destination', 'dst'], weight_cols=['weights', 'weight']):
+    """Get the actual column names being used in the dataframe for source, destination and weights.
+    
+    Args:
+        df (DataFrame): The edge dataframe
+        source_cols (list): Possible source column names
+        dest_cols (list): Possible destination column names
+        weight_cols (list): Possible weight column names
+        
+    Returns:
+        tuple: (source_col, dest_col, weight_col) - the actual column names or None if not found
+    """
+    source_col = next((col for col in source_cols if col in df.columns), None)
+    dest_col = next((col for col in dest_cols if col in df.columns), None)
+    weight_col = next((col for col in weight_cols if col in df.columns), None)
+    return source_col, dest_col, weight_col
+
 def cugraph_to_graph_tool(G, rlist):
     """Save a network to disk
 
@@ -1916,13 +1933,17 @@ def cugraph_to_graph_tool(G, rlist):
           Graph tool network
     """
     edge_df = G.view_edge_list()
-    edge_tuple = edge_df[['src', 'dst']].values.tolist()
-    edge_weights = None
-    if 'weights' in edge_df.columns:
-        edge_weights = edge_df['weights'].values_host
+    source_col, dest_col, weight_col = get_edge_columns(edge_df)
+    # Check if required columns exist
+    if source_col is None or dest_col is None:
+        raise ValueError(f"Edge dataframe must contain source and destination columns. Found columns: {edge_df.columns}")
+
+    edge_tuple = edge_df[[source_col, dest_col]].values.tolist() # better way to handle 
+    edge_weights = edge_df[weight_col].values_host if weight_col else None
+    
     G = construct_network_from_edge_list(rlist, rlist,
                                            edge_tuple,
-                                           weights = edge_weights,
+                                           weights= edge_weights,
                                            summarise=False)
     vid = G.new_vertex_property('string',
                                 vals = rlist)
@@ -2161,8 +2182,9 @@ def generate_network_from_distances(mode,
                                                 weights_type = distance_type,
                                                 use_gpu = gpu_graph,
                                                 summarise = False)
-        if gpu_graph:
-            G = cugraph.minimum_spanning_tree(G, weight='weights')
+        # bug maybe?
+        # if gpu_graph:
+        #     G = cugraph.minimum_spanning_tree(G, weight='weights')
 
     else:
         sys.stderr.write('Unknown network mode - expect dense or sparse\n')
