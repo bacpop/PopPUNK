@@ -647,7 +647,7 @@ def assign_query_hdf5(dbFuncs,
                                         threads = threads,
                                         use_gpu = gpu_graph)
                 if qc_dict['run_qc'] and qc_dict['betweenness']:
-                    betweenness = vertex_betweenness(genomeNetwork)[len(rNames):len(rNames) + len(qNames)]
+                    betweenness = vertex_betweenness(genomeNetwork, use_gpu=gpu_graph)[len(rNames):len(rNames) + len(qNames)]
                     query_betweenness = {query: b for query, b in zip(qNames, betweenness)}
                     print("query\tbetweenness")
                     for query, q_betweenness in sorted(query_betweenness.items(), key=itemgetter(1), reverse=True):
