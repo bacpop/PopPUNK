@@ -1325,11 +1325,14 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
     scores = [base_score, base_score * (1 - metrics[3]), base_score * (1 - metrics[4])]
     return(metrics, scores)
 
-# graph-tool only, for now
-def vertex_betweenness(graph, norm=True):
+def vertex_betweenness(graph, norm=True, use_gpu=False):
     """Returns betweenness for nodes in the graph
     """
-    return gt.betweenness(graph, norm=norm)[0].a
+    if not use_gpu:
+        return gt.betweenness(graph, norm=norm)[0].a
+    
+    cugraph_betweenness = cugraph.betweenness_centrality(graph, normalized=norm)
+    return cugraph_betweenness['betweenness_centrality'].to_numpy()
 
 def addQueryToNetwork(dbFuncs, rList, qList, G,
                       assignments, model, queryDB, kmers = None, distance_type = 'euclidean',
@@ -1937,7 +1940,8 @@ def cugraph_to_graph_tool(G, rlist):
     # Check if required columns exist
     if source_col is None or dest_col is None:
         raise ValueError(f"Edge dataframe must contain source and destination columns. Found columns: {edge_df.columns}")
-
+    
+    edge_df = edge_df.query(f"{source_col} != {dest_col}") # remove self-loops
     edge_tuple = edge_df[[source_col, dest_col]].values.tolist() # better way to handle 
     edge_weights = edge_df[weight_col].values_host if weight_col else None
     
