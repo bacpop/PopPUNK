@@ -2214,9 +2214,6 @@ def generate_network_from_distances(mode,
                                                 weights_type = distance_type,
                                                 use_gpu = gpu_graph,
                                                 summarise = False)
-        # bug maybe?
-        # if gpu_graph:
-        #     G = cugraph.minimum_spanning_tree(G, weight='weights')
 
     else:
         sys.stderr.write('Unknown network mode - expect dense or sparse\n')
