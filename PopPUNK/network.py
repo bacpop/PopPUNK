@@ -2068,52 +2068,80 @@ def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
         G_new = gt.Graph(G_new, prune = True)
     return G_new
 
-def remove_non_query_components(G, rlist, qlist, use_gpu = False):
+def remove_non_query_components(G, rlist, qlist, use_gpu=False):
     """
     Removes all components that do not contain a query sequence.
 
     Args:
-        G (graph)
-            Network of queries linked to reference sequences
-        rlist (list)
-            List of reference sequence labels
-        qlist (list)
-            List of query sequence labels
-        use_gpu (bool)
-            Whether to use GPUs for network construction
+        G (graph): Network of queries linked to reference sequences
+        rlist (list): List of reference sequence labels
+        qlist (list): List of query sequence labels
+        use_gpu (bool): Whether to use GPUs for network construction
 
     Returns:
-        G (graph)
-            The resulting network
-        pruned_names (list)
-            The labels of the sequences in the pruned network
+        tuple: (query_subgraph, pruned_names)
+            - query_subgraph (graph): The resulting filtered network
+            - pruned_names (list): The labels of the sequences in the pruned network
     """
-    components_with_query = []
     combined_names = rlist + qlist
-    pruned_names = []
+    
     if use_gpu:
-        sys.stderr.write('Saving partial query graphs is not compatible with GPU networks yet\n')
-        sys.exit(1)
+        return _remove_non_query_components_gpu(G, combined_names, len(rlist))
     else:
-        # Identify network components containing queries
-        component_dict = gt.label_components(G)[0]
-        components_with_query = set()
-        # The number of reference sequences is len(rlist)
-        # These are the first len(rlist) vertices in the graph
-        # Queries that have been added have indices >len(rlist)
-        # Therefore these are the components to retain
-        for i in range(len(rlist),G.num_vertices()):
-            v = G.vertex(i)  # Access vertex by index
-            components_with_query.add(component_dict[v])
-        # Create a boolean filter based on the list of component IDs
-        query_filter = G.new_vertex_property("bool")
-        for v in G.vertices():
-            query_filter[int(v)] = (component_dict[v] in components_with_query)
-            if query_filter[int(v)]:
-              pruned_names.append(combined_names[int(v)])
-        # Create a filtered graph with only the specified components
-        query_subgraph = gt.GraphView(G, vfilt=query_filter)
+        return _remove_non_query_components_cpu(G, combined_names, len(rlist))
 
+
+def _remove_non_query_components_gpu(G, combined_names, num_refs):
+    """GPU implementation of component filtering."""
+    # Find query vertices (those with index >= number of references)
+    query_indexes = list(range(num_refs, G.number_of_vertices()))
+    
+    # Get edge list as DataFrame
+    G_df = G.view_edge_list()
+    source_col, dest_col, weights_col = get_edge_columns(G_df)
+    
+    # Filter edges: keep only those connected to queries and exclude self-loops
+    filtered_G_df = G_df[
+        (G_df[source_col].isin(query_indexes) | G_df[dest_col].isin(query_indexes)) & 
+        (G_df[source_col] != G_df[dest_col])
+    ]
+    
+    # Extract unique nodes from filtered graph and map to original names
+    unique_nodes = cudf.concat([filtered_G_df[source_col], filtered_G_df[dest_col]]).unique().to_arrow().to_pylist()
+    pruned_names = [combined_names[val] for val in unique_nodes]
+    
+    # Create new graph from filtered edges
+    query_subgraph = cugraph.Graph()
+    query_subgraph.from_cudf_edgelist(filtered_G_df, edge_attr=weights_col, renumber=True)
+    
+    return query_subgraph, pruned_names
+
+
+def _remove_non_query_components_cpu(G, combined_names, num_refs):
+    """CPU implementation of component filtering."""
+    pruned_names = []
+    
+    # Get component labels for each vertex
+    component_dict = gt.label_components(G)[0]
+    
+    # Find components containing query vertices
+    components_with_query = set()
+    for i in range(num_refs, G.num_vertices()):
+        v = G.vertex(i)
+        components_with_query.add(component_dict[v])
+    
+    # Create vertex filter property
+    query_filter = G.new_vertex_property("bool")
+    for v in G.vertices():
+        is_in_query_component = component_dict[v] in components_with_query
+        query_filter[int(v)] = is_in_query_component
+        
+        if is_in_query_component:
+            pruned_names.append(combined_names[int(v)])
+    
+    # Create filtered graph view
+    query_subgraph = gt.GraphView(G, vfilt=query_filter)
+    
     return query_subgraph, pruned_names
 
 def generate_network_from_distances(mode,
