@@ -130,6 +130,10 @@ def get_options():
                                     help="Only use reciprocal kNN matches for lineage definitions",
                                     action = 'store_true',
                                     default = False)
+    lGroup.add_argument('--lineage-resolution',
+                                help="Minimum genetic separation between isolates required to initiate a new lineage",
+                                type = float,
+                                default = 1e-10)
 
     return parser.parse_args()
 
@@ -228,6 +232,8 @@ def create_db(args):
                       max_search_depth,
                       args.reciprocal_only,
                       args.count_unique_distances,
+                      args.lineage_resolution,
+                      dist_col = 1 if args.use_accessory else 0,
                       use_gpu = args.gpu_graph)
             model.set_threads(args.threads)
             # Load pruned distance matrix
@@ -236,8 +242,7 @@ def create_db(args):
                                             enforce_self=False,
                                             distances=True)
             # Fit model
-            model.fit(strain_X,
-                        args.use_accessory)
+            model.fit(strain_X)
             # Lineage fit requires some iteration
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)

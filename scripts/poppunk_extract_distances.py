@@ -9,23 +9,50 @@ import argparse
 import dendropy
 from scipy import sparse
 
+# initialise RNG
+rng = np.random.default_rng()
+
 # command line parsing
 def get_options():
 
     parser = argparse.ArgumentParser(description='Extract tab-separated file of distances from pkl and npy files', prog='extract_distances')
 
     # input options
-    parser.add_argument('--distances', help='Prefix of input pickle (and optionally,'
+    ioGroup = parser.add_argument_group('Input and output options')
+    ioGroup.add_argument('--distances', help='Prefix of input pickle (and optionally,'
     '  numpy file) of pre-calculated distances (required)',
                                     required=True)
-    parser.add_argument('--sparse', help='Sparse distance matrix file name',
+    ioGroup.add_argument('--sparse', help='Sparse distance matrix file name',
                                     default = None,
                                     required = False)
-    parser.add_argument('--tree', help='Newick file containing phylogeny of isolates',
+    ioGroup.add_argument('--tree', help='Newick file containing phylogeny of isolates',
                                     required = False,
                                     default = None)
-    parser.add_argument('--output', help='Name of output file',
+    ioGroup.add_argument('--output', help='Name of output file',
                                     required = True)
+
+    # analysis options
+    aGroup = parser.add_argument_group('Analysis options')
+    aGroup.add_argument('--min-pi-dist', help='Minimum core genome distance',
+                                         default = 0.0,
+                                         type=float,
+                                         required = False)
+    aGroup.add_argument('--max-pi-dist', help='Maximum core genome distance',
+                                         default = 1.0,
+                                         type=float,
+                                         required = False)
+    aGroup.add_argument('--min-a-dist', help='Minimum accessory genome distance',
+                                         default = 0.0,
+                                         type=float,
+                                         required = False)
+    aGroup.add_argument('--max-a-dist', help='Maximum accessory genome distance',
+                                         default = 1.0,
+                                         type=float,
+                                         required = False)
+    aGroup.add_argument('--subsample', help='Number of distances to subsample from the total',
+                                         default = None,
+                                         type=int,
+                                         required = False)
 
     return parser.parse_args()
 
@@ -111,6 +138,18 @@ if __name__ == "__main__":
     else:
         X = np.load(args.distances + ".npy")
 
+    # Select subsample if requested
+    if args.subsample is not None:
+        if args.sparse is not None:
+            array_size = sparse_mat.nnz
+        else:
+            array_size = np.shape(X)[0]
+        if args.subsample < array_size:
+          selected_indices = frozenset(rng.random.choice(array_size,args.subsample,replace=False,shuffle=False))
+        else:
+          sys.stderr.write('Subsample is larger than array size\n')
+          sys.exit(1)
+
     # open output file
     with open(args.output, 'w') as oFile:
         # Write header of output file
@@ -123,14 +162,19 @@ if __name__ == "__main__":
         oFile.write("\n")
         # Write distances
         if args.sparse is not None:
-            for (r_index, q_index, dist) in zip(sparse_mat.col, sparse_mat.row, sparse_mat.data):
-                oFile.write("\t".join([q_names[q_index], r_names[r_index], str(dist)]))
-                if args.tree is not None:
-                    oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
-                oFile.write("\n")
+            for i, (r_index, q_index, dist) in enumerate(zip(sparse_mat.col, sparse_mat.row, sparse_mat.data)):
+                if dist >= args.min_pi_dist and dist <= args.max_pi_dist:
+                    if args.subsample is None or i in selected_indices:
+                        oFile.write("\t".join([q_names[q_index], r_names[r_index], str(dist)]))
+                        if args.tree is not None:
+                            oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
+                        oFile.write("\n")
         else:
             for i, (r_index, q_index) in enumerate(listDistInts(r_names, q_names, r_names == q_names)):
-                oFile.write("\t".join([q_names[q_index], r_names[r_index], str(X[i,0]), str(X[i,1])]))
-                if args.tree is not None:
-                    oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
-                oFile.write("\n")
+                if X[i,0] >= args.min_pi_dist and X[i,0] <= args.max_pi_dist and \
+                      X[i,1] >= args.min_a_dist and X[i,1] <= args.max_a_dist:
+                    if args.subsample is None or i in selected_indices:
+                        oFile.write("\t".join([q_names[q_index], r_names[r_index], str(X[i,0]), str(X[i,1])]))
+                        if args.tree is not None:
+                            oFile.write("\t" + str(pdc(tip_index[r_index], tip_index[q_index])))
+                        oFile.write("\n")

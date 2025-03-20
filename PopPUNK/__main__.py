@@ -201,6 +201,10 @@ def get_options():
                                 help='Use accessory distances for lineage definitions [default = use core distances]',
                                 action = 'store_true',
                                 default = False)
+    lineagesGroup.add_argument('--lineage-resolution',
+                                help='Minimum genetic separation between isolates required to initiate a new lineage',
+                                type = float,
+                                default = 1e-10)
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
@@ -585,11 +589,11 @@ def main():
                                     max_search_depth,
                                     args.reciprocal_only,
                                     args.count_unique_distances,
+                                    args.lineage_resolution,
                                     1 if args.use_accessory else 0,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
-                model.fit(distMat,
-                            args.use_accessory)
+                model.fit(distMat)
 
                 assignments = {}
                 for rank in rank_list:

@@ -10,7 +10,6 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 #include <iostream>
-const float epsilon = 1E-10;
 
 // Get indices where each row starts in the sparse matrix
 std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
@@ -147,7 +146,8 @@ struct pair_hash {
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
                       const size_t kNN, bool reciprocal_only,
-                      bool count_unique_distances, size_t num_threads = 1) {
+                      bool count_unique_distances, float epsilon,
+                      size_t num_threads = 1) {
   // Data structures for iteration
   size_t len = 0;
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
@@ -186,7 +186,9 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
             if (new_val) {
               unique_neighbors++;
               prev_value = dist;
-             }
+            } else {
+              continue; // next j
+            }
           } else {
             unique_neighbors = j_vec[i].size();
           }

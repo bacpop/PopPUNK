@@ -1251,7 +1251,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
             vertex_subsample = cp.random.choice(cp.arange(0,G.number_of_vertices() - 1),
                                                 size = subsample,
                                                 replace = False)
-            S = cugraph.subgraph(G, vertex_subsample)
+            S, _ = cugraph.induced_subgraph(G, vertex_subsample)
         component_assignments = cugraph.components.connectivity.connected_components(S)
         component_nums = component_assignments['labels'].unique().astype(int)
         components = len(component_nums)
@@ -1294,7 +1294,7 @@ def networkSummary(G, calc_betweenness=True, betweenness_sample = betweenness_sa
                 size = component_frequencies[component_frequencies.index == component].iloc[0].astype(int)
                 if size > 3:
                     component_vertices = component_assignments['vertex'][component_assignments['labels']==component]
-                    subgraph = cugraph.subgraph(S, component_vertices)
+                    subgraph, _ = cugraph.induced_subgraph(S, component_vertices)
                     if len(component_vertices) >= betweenness_sample:
                         component_betweenness = cugraph.betweenness_centrality(subgraph,
                                                                                 k = betweenness_sample,
@@ -1484,11 +1484,13 @@ def generate_cugraph(G_df, max_index, weights = False, renumber = True):
     G_self_loop = cudf.DataFrame()
     G_self_loop['source'] = node_indices
     G_self_loop['destination'] = node_indices
-    G_self_loop['weights'] = 0.0
+    G_self_loop['weights'] = 1.0
     # Build cudf
     # Weights are needed to extract subgraphs
     # see https://github.com/rapidsai/cugraph/blob/77d833ad/python/cugraph/cugraph/community/subgraph_extraction.py
-    if not weights:
+    if weights:
+        G_df['weights'] = weights
+    else:
         G_df['weights'] = 1.0
     G_df = cudf.concat([G_self_loop,G_df], ignore_index = True)
     # Construct graph
@@ -1768,8 +1770,7 @@ def generate_minimum_spanning_tree(G, from_cugraph = False):
             mst_network = gt.GraphView(G, efilt = mst_edge_prop_map)
             mst_network = gt.Graph(mst_network, prune = True)
         else:
-            sys.stderr.write("generate_minimum_spanning_tree requires a weighted graph\n")
-            raise RuntimeError("MST passed unweighted graph")
+            G.ep["weight"] = G.new_edge_property("vector<int>", val = 1)
 
     # Find seed nodes as those with greatest outdegree in each component
     num_components = 1

@@ -652,9 +652,18 @@ def fitKmerCurve(pairwise, klist, jacobian):
     # curve fit pr = (1-a)(1-c)^k
     # log pr = log(1-a) + k*log(1-c)
     # a = p[0]; c = p[1] (will flip on return)
+    
+    # Estimate starting values
+    starting_gradient = -1.0*np.ptp(np.log(pairwise)).item()/(max(klist)-min(klist))
+    if starting_gradient > 0.0:
+        starting_gradient = 0.0
+    starting_intercept = np.max(np.log(pairwise)).item() - (min(klist)-1)*starting_gradient
+    if starting_intercept > 0.0:
+        starting_intercept = 0.0
+    # Model fit
     try:
         distFit = optimize.least_squares(fun=lambda p, x, y: y - (p[0] + p[1] * x),
-                                     x0=[0.0, -0.01],
+                                     x0=[starting_intercept, starting_gradient],
                                      jac=lambda p, x, y: jacobian,
                                      args=(klist, np.log(pairwise)),
                                      bounds=([-np.inf, -np.inf], [0, 0]))
