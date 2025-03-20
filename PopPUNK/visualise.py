@@ -244,7 +244,7 @@ def generate_visualisations(query_db,
     from .sketchlib import readDBParams
     from .sketchlib import addRandom
     from .sketchlib import joinDBs
-    
+
     from .sparse_mst import generate_mst_from_sparse_input
 
     from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
@@ -448,7 +448,7 @@ def generate_visualisations(query_db,
     #******************************#
 
     if (tree == "nj" or tree == "both" or cytoscape) or (model.type == 'lineage' and rank_fit == None):
-        
+
         # Either calculate or read distances
         if recalculate_distances:
             sys.stderr.write("Recalculating pairwise distances for tree construction\n")
@@ -489,7 +489,7 @@ def generate_visualisations(query_db,
                                                         num_threads=threads,
                                                         use_gpu = gpu_dist,
                                                         device_id = deviceid)
-                                                        
+
             # Convert distance matrix format
             combined_seq, core_distMat, acc_distMat = \
               update_distance_matrices(sequences_to_analyse,
@@ -498,7 +498,7 @@ def generate_visualisations(query_db,
 
         else:
             sys.stderr.write("Reading pairwise distances for tree construction\n")
-            
+
             # Process dense distance matrix
             rlist, qlist, self, complete_distMat = readPickle(distances)
             if not self:
