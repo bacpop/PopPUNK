@@ -825,8 +825,12 @@ def construct_network_from_edge_list(rlist,
             G_df['source'] = [edge_list[0][0]]
             G_df['destination'] = [edge_list[0][1]]
         else:
-            sys.stderr.write('ERROR: Missing link in graph assignment')
-            sys.exit()
+            if previous_network is None:
+                sys.stderr.write('ERROR: Missing link in graph assignment')
+                sys.exit()
+            # empty dataframe, so graph becomes previous network
+            G_df = cudf.DataFrame(columns = ['source','destination'])
+            
         if weights is not None:
             G_df['weights'] = weights
         G = construct_network_from_df(rlist, qlist, G_df,
