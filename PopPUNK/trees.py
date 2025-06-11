@@ -184,8 +184,8 @@ def generate_nj_tree(coreMat, seqLabels, outPrefix, tmp = None, rapidnj = None, 
         tree = buildRapidNJ(rapidnj, seqLabels, coreMat, outPrefix, tmp = tmp, threads = threads)
     else:
         matrix = []
-        for row, idx in enumerate(coreMat):
-            matrix.append(row[0:idx].tolist())
+        for idx,row in enumerate(coreMat):
+            matrix.append(row[0:idx+1].tolist())
         pdm = DistanceMatrix(seqLabels, matrix)
         tree = DistanceTreeConstructor().nj(pdm)
 
