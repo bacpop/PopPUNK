@@ -461,7 +461,7 @@ def generate_visualisations(query_db,
               tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
             else:
               sequences_to_analyse = combined_seq
-              tmp_ref_h5_file = ref_db
+              tmp_ref_h5_file = ref_db + "/" + os.path.basename(ref_db) + ".h5"
             viz_db_name = output + "/" + os.path.basename(output)
             if query_db is not None:
                 # Add from query database
@@ -474,7 +474,8 @@ def generate_visualisations(query_db,
                 os.remove(tmp_query_h5_file)
                 os.remove(tmp_ref_h5_file)
             else:
-                os.rename(tmp_ref_h5_file,viz_db_name)
+                os.symlink(os.path.relpath(tmp_ref_h5_file,os.path.dirname(viz_db_name)),
+                            viz_db_name + ".h5")
 
             # Generate distances
             sys.stderr.write("Comparing sketches\n")
