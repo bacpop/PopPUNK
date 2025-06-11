@@ -462,7 +462,7 @@ def generate_visualisations(query_db,
             else:
               sequences_to_analyse = combined_seq
               tmp_ref_h5_file = ref_db + "/" + os.path.basename(ref_db) + ".h5"
-            viz_db_name = output + "/" + os.path.basename(output)
+            viz_db_name = output + "/" + os.path.basename(output) + ".h5"
             if query_db is not None:
                 # Add from query database
                 query_db_loc = query_db + "/" + os.path.basename(query_db)
@@ -475,7 +475,7 @@ def generate_visualisations(query_db,
                 os.remove(tmp_ref_h5_file)
             else:
                 os.symlink(os.path.relpath(tmp_ref_h5_file,os.path.dirname(viz_db_name)),
-                            viz_db_name + ".h5")
+                            viz_db_name)
 
             # Generate distances
             sys.stderr.write("Comparing sketches\n")
