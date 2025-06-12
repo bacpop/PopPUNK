@@ -77,12 +77,14 @@ def buildRapidNJ(rapidnj, refList, coreMat, outPrefix, tmp = None, threads = 1):
                 fo.write(line.replace("'", ''))
         # tidy unnecessary files
         os.remove(tree_filename+".raw")
-        os.remove(phylip_name)
 
     # record errors
     except subprocess.CalledProcessError as e:
         sys.stderr.write("Could not run command " + rapidnj_cmd + "; returned code: " + str(e.returncode) + "\n")
         sys.exit(1)
+
+    # Remove large tmp file even if calculation failed
+    os.remove(phylip_name)
 
     # read tree and return
     tree = Phylo.read(tree_filename, "newick")
