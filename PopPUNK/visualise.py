@@ -679,6 +679,10 @@ def generate_visualisations(query_db,
     #*              *#
     #****************#
 
+    # Set default
+    if self:
+        qlist = None
+
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
