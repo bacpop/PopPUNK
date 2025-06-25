@@ -16,7 +16,6 @@ from functools import partial
 from multiprocessing import Pool
 import pickle
 import graph_tool.all as gt
-import pp_sketchlib
 
 # Load GPU libraries
 try:
@@ -30,6 +29,7 @@ except ImportError:
     pass
 
 import poppunk_refine
+import pp_sketchlib
 
 from .__main__ import accepted_weights_types
 from .__main__ import betweenness_sample_default
@@ -41,6 +41,10 @@ from .utils import readIsolateTypeFromCsv
 from .utils import check_and_set_gpu
 
 from .unwords import gen_unword
+
+# References per isolate in novel clusters for fast pruning
+FAST_REF_SUBSAMPLE = 10
+FAST_REF_MERGE_SUBSAMPLE = 3
 
 def fetchNetwork(network_dir, model, refList, ref_graph = False,
                   core_only = False, accessory_only = False, use_gpu = False):
@@ -215,6 +219,47 @@ def cliquePrune(component, graph, reference_indices, components_list):
         ref_list = getCliqueRefs(subgraph, refs)
     return(list(ref_list))
 
+def fastPrune(component, graph, reference_indices, merged_query_idx, components_list):
+    """Pick references for a component using a simple random sampling method
+
+    Args:
+        component (int)
+            The component ID to process
+        graph (graph)
+            The graph to process
+        reference_indices (set)
+            The set of reference indices to update
+        merged_query_idx (set)
+            The set of merged query indices
+        components_list (array)
+            The list of component assignments
+
+    Returns:
+        list
+            The updated list of reference indices
+    """
+    import itertools
+    if gt.openmp_enabled():
+        gt.openmp_set_num_threads(1)
+    subgraph = gt.GraphView(graph, vfilt=components_list == component)
+    refs = set(reference_indices.copy())
+    component_vertex_idxs = frozenset(subgraph.get_vertices())
+
+    # Add new refs for clusters without references
+    if len(component_vertex_idxs.intersection(refs)) == 0:
+        number_new_refs = len(component_vertex_idxs) // FAST_REF_SUBSAMPLE + 1
+        new_refs = list(itertools.islice(component_vertex_idxs, number_new_refs))
+        refs.update(new_refs)
+
+    # New refs for merged queries
+    merged_samples = list(component_vertex_idxs.intersection(merged_query_idx))
+    if len(merged_samples) > 0:
+        number_new_refs = len(merged_samples) // FAST_REF_MERGE_SUBSAMPLE + 1
+        new_refs = list(itertools.islice(merged_samples, number_new_refs))
+        refs.update(merged_samples[0:number_new_refs])
+
+    return(list(refs))
+
 def translate_network_indices(G_ref_df, reference_indices):
     """Function for ensuring an updated reference network retains
     numbering consistent with sample names
@@ -235,8 +280,8 @@ def translate_network_indices(G_ref_df, reference_indices):
     G_ref = generate_cugraph(G_ref_df, len(reference_indices) - 1, renumber = True)
     return(G_ref)
 
-def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None,
-                        existingRefs = None, threads = 1, use_gpu = False):
+def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix = '', type_isolate = None,
+                        existingRefs = None, threads = 1, use_gpu = False, fast_mode = False):
     """Extract references for each cluster based on cliques
 
        Writes chosen references to file by calling :func:`~writeReferences`
@@ -248,6 +293,9 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                The order of files in the sketches, so returned references are in the same order
            outPrefix (str)
                Prefix for output file
+           merged_queries (list)
+               Query files which were part of a merged cluster
+               (used for fast assign, to enrich refs with)
            outSuffix (str)
                Suffix for output file  (.refs will be appended)
            type_isolate (str)
@@ -256,6 +304,8 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
                References that should be used for each clique
            use_gpu (bool)
                Use cugraph for graph analysis (default = False)
+           fast_mode (bool)
+               Use random selection rather than clique pruning to pick refs
 
        Returns:
            refFileName (str)
@@ -263,6 +313,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
            references (list)
                An updated list of the reference names
     """
+    # Convert names to indices
     if existingRefs == None:
         references = set()
         reference_indices = set()
@@ -270,6 +321,13 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         references = set(existingRefs)
         index_lookup = {v:k for k,v in enumerate(dbOrder)}
         reference_indices = set([index_lookup[r] for r in references])
+
+    if len(merged_queries) > 0:
+        index_lookup = {v:k for k,v in enumerate(dbOrder)}
+        merged_query_idx = set([index_lookup[r] for r in frozenset(merged_queries)])
+    else:
+        merged_query_idx = set()
+
     # Add type isolate, if necessary
     type_isolate_index = None
     if type_isolate is not None:
@@ -280,7 +338,8 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             sys.exit(1)
 
     if use_gpu:
-
+        if fast_mode:
+            raise RuntimeError("GPU graphs not yet supported with --update-db fast")
         # For large network, use more approximate method for extracting references
         reference = {}
         # Record the original components to which sequences belonged
@@ -360,12 +419,23 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
             gt.openmp_set_num_threads(1)
 
         # Cliques are pruned, taking one reference from each, until none remain
-        with Pool(processes=threads) as pool:
-            ref_lists = pool.map(partial(cliquePrune,
-                                            graph=G,
-                                            reference_indices=reference_indices,
-                                            components_list=components),
-                                 set(components))
+        if fast_mode:
+            sys.stderr.write("Running quick reference picking\n")
+            with Pool(processes=threads) as pool:
+                ref_lists = pool.map(partial(fastPrune,
+                                                graph=G,
+                                                reference_indices=reference_indices,
+                                                merged_query_idx=merged_query_idx,
+                                                components_list=components),
+                                    set(components))
+        else:
+            sys.stderr.write("Running clique finding\n")
+            with Pool(processes=threads) as pool:
+                ref_lists = pool.map(partial(cliquePrune,
+                                                graph=G,
+                                                reference_indices=reference_indices,
+                                                components_list=components),
+                                    set(components))
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
 
@@ -373,6 +443,7 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
         if type_isolate_index is not None and type_isolate_index not in reference_indices:
             reference_indices.add(type_isolate_index)
 
+        sys.stderr.write("Reconstructing clusters with shortest paths\n")
         if gt.openmp_enabled():
             gt.openmp_set_num_threads(threads)
 
@@ -389,14 +460,14 @@ def extractReferences(G, dbOrder, outPrefix, outSuffix = '', type_isolate = None
 
         # Find any clusters which are represented by >1 references
         # This creates a dictionary: cluster_id: set(ref_idx in cluster)
-        clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)
+        clusters_in_full_graph = printClusters(G, dbOrder, printCSV=False)[0]
         reference_clusters_in_full_graph = defaultdict(set)
         for reference_index in reference_indices:
             reference_clusters_in_full_graph[clusters_in_full_graph[dbOrder[reference_index]]].add(reference_index)
 
         # Calculate the component membership within the reference graph
         ref_order = [name for idx, name in enumerate(dbOrder) if idx in frozenset(reference_indices)]
-        clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)
+        clusters_in_reference_graph = printClusters(G_ref, ref_order, printCSV=False)[0]
         # Record the components/clusters the references are in the reference graph
         # dict: name: ref_cluster
         reference_clusters_in_reference_graph = {}
@@ -1282,8 +1353,6 @@ def addQueryToNetwork(dbFuncs, rList, qList, G,
             Model fitted to reference database
         queryDB (str)
             Query database location
-        distances (str)
-            Prefix of distance files for extending network
         kmers (list)
             List of k-mer sizes
         distance_type (str)
@@ -1466,7 +1535,8 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     Returns:
         clustering (dict)
             Dictionary of cluster assignments (keys are sequence names)
-
+        merged_queries (list)
+            Any query files which were part of a merge
     """
     if oldClusterFile == None and printRef == False:
         raise RuntimeError("Trying to print query clusters with no query sequences")
@@ -1514,6 +1584,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
     clustering = {}
     foundOldClusters = []
     cluster_unword = {}
+    merged_queries = []
     if write_unwords:
         unword_generator = gen_unword()
 
@@ -1526,6 +1597,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
 
             # Samples in this cluster that are not queries
             ref_only = oldNames.intersection(newCluster)
+            query_only = newCluster - ref_only
 
             # A cluster with no previous observations
             if len(ref_only) == 0:
@@ -1547,6 +1619,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
                         # Query has merged clusters
                         if len(join) < len(ref_only):
                             merge = True
+                            merged_queries.extend(query_only)
                             needs_unword = True
                             if cls_id == None:
                                 cls_id = oldClusterName
@@ -1606,7 +1679,7 @@ def printClusters(G, rlist, outPrefix=None, oldClusterFile=None,
         if externalClusterCSV is not None:
             printExternalClusters(newClusters, externalClusterCSV, outPrefix, oldNames, printRef)
 
-    return(clustering)
+    return(clustering, merged_queries)
 
 def printExternalClusters(newClusters, extClusterFile, outPrefix,
                           oldNames, printRef = True):
@@ -1942,7 +2015,7 @@ def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
        use_gpu (bool)
             Whether graph is a cugraph or not
             [default = False]
-            
+
     Returns:
         G_new (graph)
             Pruned graph
@@ -1973,7 +2046,7 @@ def remove_nodes_from_graph(G,reflist, samples_to_keep, use_gpu):
 def remove_non_query_components(G, rlist, qlist, use_gpu = False):
     """
     Removes all components that do not contain a query sequence.
-    
+
     Args:
         G (graph)
             Network of queries linked to reference sequences
@@ -2015,7 +2088,7 @@ def remove_non_query_components(G, rlist, qlist, use_gpu = False):
               pruned_names.append(combined_names[int(v)])
         # Create a filtered graph with only the specified components
         query_subgraph = gt.GraphView(G, vfilt=query_filter)
-        
+
     return query_subgraph, pruned_names
 
 def generate_network_from_distances(mode,
@@ -2032,7 +2105,7 @@ def generate_network_from_distances(mode,
                                     gpu_graph = False):
     """
     Generates a network from a distance matrix.
-    
+
     Args:
         mode (str)
             Whether a core or sparse distance matrix is being analysed

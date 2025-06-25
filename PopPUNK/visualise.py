@@ -84,8 +84,8 @@ def get_options():
                         'minimum spanning tree',
                         default=None,
                         type = str)
-    iGroup.add_argument('--recalculate-distances',
-                        help='Recalculate pairwise distances rather than read them from a file',
+    iGroup.add_argument('--read-distances',
+                        help='Read pairwise distances from a file rather than recalculate them',
                         default=False,
                         action = 'store_true')
     iGroup.add_argument('--network-file',
@@ -221,7 +221,7 @@ def generate_visualisations(query_db,
                             display_cluster,
                             use_partial_query_graph,
                             extend_query_graph,
-                            recalculate_distances,
+                            read_distances,
                             tmp):
 
     from .models import loadClusterFit
@@ -244,7 +244,7 @@ def generate_visualisations(query_db,
     from .sketchlib import readDBParams
     from .sketchlib import addRandom
     from .sketchlib import joinDBs
-    
+
     from .sparse_mst import generate_mst_from_sparse_input
 
     from .trees import load_tree, generate_nj_tree, mst_to_phylogeny
@@ -265,6 +265,11 @@ def generate_visualisations(query_db,
 
     # Check on parallelisation of graph-tools
     setGtThreads(threads)
+  
+    # Source of distance information
+    recalculate_distances = True
+    if read_distances or rank_fit is not None or distances is not None:
+        recalculate_distances = False
 
     sys.stderr.write("PopPUNK: visualise\n")
     if not (microreact or phandango or grapetree or cytoscape):
@@ -448,7 +453,7 @@ def generate_visualisations(query_db,
     #******************************#
 
     if (tree == "nj" or tree == "both" or cytoscape) or (model.type == 'lineage' and rank_fit == None):
-        
+
         # Either calculate or read distances
         if recalculate_distances:
             sys.stderr.write("Recalculating pairwise distances for tree construction\n")
@@ -461,8 +466,10 @@ def generate_visualisations(query_db,
               tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
             else:
               sequences_to_analyse = combined_seq
-              tmp_ref_h5_file = ref_db
-            viz_db_name = output + "/" + os.path.basename(output)
+              tmp_ref_h5_file = ref_db + "/" + os.path.basename(ref_db) + ".h5"
+            viz_db_name = output + "/" + os.path.basename(output) + ".h5"
+            if os.path.exists(viz_db_name) and overwrite:
+                os.remove(viz_db_name)
             if query_db is not None:
                 # Add from query database
                 query_db_loc = query_db + "/" + os.path.basename(query_db)
@@ -474,7 +481,10 @@ def generate_visualisations(query_db,
                 os.remove(tmp_query_h5_file)
                 os.remove(tmp_ref_h5_file)
             else:
-                os.rename(tmp_ref_h5_file,viz_db_name)
+                os.symlink(os.path.relpath(tmp_ref_h5_file,
+                            os.path.dirname(viz_db_name)
+                          ),
+                          viz_db_name)
 
             # Generate distances
             sys.stderr.write("Comparing sketches\n")
@@ -489,7 +499,7 @@ def generate_visualisations(query_db,
                                                         num_threads=threads,
                                                         use_gpu = gpu_dist,
                                                         device_id = deviceid)
-                                                        
+
             # Convert distance matrix format
             combined_seq, core_distMat, acc_distMat = \
               update_distance_matrices(sequences_to_analyse,
@@ -498,7 +508,7 @@ def generate_visualisations(query_db,
 
         else:
             sys.stderr.write("Reading pairwise distances for tree construction\n")
-            
+
             # Process dense distance matrix
             rlist, qlist, self, complete_distMat = readPickle(distances)
             if not self:
@@ -669,6 +679,10 @@ def generate_visualisations(query_db,
     #*              *#
     #****************#
 
+    # Set default
+    if self:
+        qlist = None
+
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
@@ -800,7 +814,7 @@ def main():
                             args.display_cluster,
                             args.use_partial_query_graph,
                             args.extend_query_graph,
-                            args.recalculate_distances,
+                            args.read_distances,
                             args.tmp)
 
 if __name__ == '__main__':

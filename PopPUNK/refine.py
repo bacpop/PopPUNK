@@ -467,7 +467,7 @@ def growNetwork(sample_names, i_vec, j_vec, idx_vec, s_range, score_idx = 0,
                                   sample_names,
                                   outPrefix=o_prefix,
                                   write_unwords=False,
-                                  use_gpu=use_gpu)
+                                  use_gpu=use_gpu)[0]
 
             prev_idx = idx
 
