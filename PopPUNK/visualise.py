@@ -468,7 +468,7 @@ def generate_visualisations(query_db,
               sequences_to_analyse = combined_seq
               tmp_ref_h5_file = ref_db + "/" + os.path.basename(ref_db) + ".h5"
             viz_db_name = output + "/" + os.path.basename(output)
-            if os.path.exists(viz_db_name) and overwrite:
+            if os.path.exists(viz_db_name + ".h5") and overwrite:
                 os.remove(viz_db_name)
             if query_db is not None:
                 # Add from query database
