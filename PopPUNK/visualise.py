@@ -336,7 +336,7 @@ def generate_visualisations(query_db,
     kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
 
     # extract subset of distances if requested
-    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
+    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = (query_db is not None))
     all_seq = combined_seq # all_seq is an immutable record use for network parsing
     if include_files is not None or use_partial_query_graph is not None:
         viz_subset = set()
