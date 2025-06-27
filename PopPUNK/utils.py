@@ -610,7 +610,7 @@ def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries =
     with open(fn, 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
         if not allow_non_self and not self:
-            sys.stderr.write("Thi analysis requires an all-v-all"
+            sys.stderr.write("This analysis requires an all-v-all"
                              " distance dataset\n")
             sys.exit(1)
         if include_queries:
