@@ -1125,7 +1125,8 @@ class LineageFit(ClusterFit):
         ClusterFit.__init__(self, outPrefix)
         self.type = 'lineage'
         self.preprocess = False
-        self.max_search_depth = max_search_depth+5 # Set to highest rank by default in main; need to store additional distances
+        max_rank = max(ranks)
+        self.max_search_depth = max(max_search_depth,max_rank+5) # Set to highest rank by default in main; need to store additional distances
                                                    # when there is redundancy (e.g. reciprocal matching, unique distance counting)
                                                    # or other sequences may be pruned out of the database
         self.nn_dists = None # stores the unprocessed kNN at the maximum search depth

@@ -192,7 +192,7 @@ def get_options():
                                 help='Number of kNN distances per sequence to filter when '
                                       'counting neighbours or using only reciprocal matches',
                                 type = int,
-                                default = None)
+                                default = 10000)
     lineagesGroup.add_argument('--write-lineage-networks',
                                 help='Save all lineage networks',
                                 action = 'store_true',
