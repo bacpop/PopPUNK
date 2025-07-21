@@ -168,7 +168,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
       std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
 
       long unique_neighbors = 0;
-      float prev_value = -1;
+      float prev_value = 0.0;
       bool new_val;
       for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
            ++rr_it) {
