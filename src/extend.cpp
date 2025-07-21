@@ -246,9 +246,6 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
 sparse_coo get_kNN_distances(const NumpyMatrix &distMat,
                              const int kNN,
                              const size_t dist_col,
-                             bool reciprocal_only,
-                             bool count_unique_distances,
-                             float epsilon,
                              const size_t num_threads) {
 
   size_t dist_rows = distMat.rows();
