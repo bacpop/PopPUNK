@@ -133,5 +133,8 @@ PYBIND11_MODULE(poppunk_refine, m) {
         py::arg("distMat").noconvert(),
         py::arg("kNN"),
         py::arg("dist_col"),
+        py::arg("reciprocal_only"),
+        py::arg("count_unique_distances"),
+        py::arg("epsilon"),
         py::arg("num_threads") = 1);
 }

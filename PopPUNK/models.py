@@ -1217,6 +1217,9 @@ class LineageFit(ClusterFit):
                                                   num_threads=self.threads),
                 kNN=search_depth,
                 dist_col=self.dist_col,
+                reciprocal_only = self.reciprocal_only,
+                count_unique_distances = self.count_unique_distances,
+                epsilon = self.resolution,
                 num_threads=self.threads
             )
         self.__save_sparse__(data, row, col, search_depth, sample_size, X.dtype,
