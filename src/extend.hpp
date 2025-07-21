@@ -14,7 +14,10 @@ sparse_coo extend(const sparse_coo &sparse_rr_mat,
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat,
                       const size_t n_samples,
                       const size_t kNN,
-                      const size_t num_threads);
+                      bool reciprocal_only,
+                      bool count_unique_distances,
+                      float epsilon,
+                      size_t num_threads = 1);
 
 sparse_coo get_kNN_distances(const NumpyMatrix &distMat,
                              const int kNN,
