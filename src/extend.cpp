@@ -188,9 +188,10 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
             continue; // next j
           }
         } else {
-          unique_neighbors = j_vec[i].size();
+          // Adjust by one for consistent logic with condition above
+          unique_neighbors = j_vec[i].size() - 1;
         }
-        if (unique_neighbors < kNN) {
+        if (unique_neighbors <= kNN) {
           dists[i].push_back(dist);
           i_vec[i].push_back(i);
           j_vec[i].push_back(j);
