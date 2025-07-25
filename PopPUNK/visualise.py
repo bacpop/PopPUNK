@@ -178,6 +178,9 @@ def create_pruned_tmp_db(prefix,subset):
     from .sketchlib import removeFromDB
     from .sketchlib import getSeqsInDb
 
+    if subset is None:
+        subset = set()
+
     h5_name = prefix + "/" + os.path.basename(prefix) + ".h5"
     tmp_h5_name = prefix + "/" + os.path.basename(prefix) + ".tmp.h5"
     sequences_in_db = getSeqsInDb(h5_name)
@@ -344,7 +347,10 @@ def generate_visualisations(query_db,
         subset_file = include_files if include_files is not None else use_partial_query_graph
         with open(subset_file, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
-                viz_subset.add(assembly.rstrip())
+                assembly = assembly.rstrip()
+                if assembly in all_seq:
+                    viz_subset.add(assembly)
+
         if len(viz_subset.difference(combined_seq)) > 0:
             sys.stderr.write("--include-files contains names not in --distances\n")
             sys.stderr.write("Please assign distances before subsetting the database\n")
@@ -469,17 +475,19 @@ def generate_visualisations(query_db,
               tmp_ref_h5_file = ref_db + "/" + os.path.basename(ref_db) + ".h5"
             viz_db_name = output + "/" + os.path.basename(output)
             if os.path.exists(viz_db_name + ".h5") and overwrite:
-                os.remove(viz_db_name)
+                os.remove(viz_db_name + ".h5")
             if query_db is not None:
                 # Add from query database
                 query_db_loc = query_db + "/" + os.path.basename(query_db) + ".h5"
-                tmp_query_h5_file, qlist = create_pruned_tmp_db(query_db,viz_subset)
+                if viz_subset is not None:
+                    tmp_query_h5_file, qlist = create_pruned_tmp_db(query_db,viz_subset)
+                else:
+                    tmp_query_h5_file = query_db_loc
                 joinDBs(tmp_ref_h5_file,
                     tmp_query_h5_file,
-                    viz_db_name + ".h5",
+                    viz_db_name,
                     full_names = True)
-                os.remove(tmp_query_h5_file)
-                os.remove(tmp_ref_h5_file)
+
             else:
                 os.symlink(os.path.relpath(tmp_ref_h5_file,
                             os.path.dirname(viz_db_name)
@@ -505,6 +513,12 @@ def generate_visualisations(query_db,
               update_distance_matrices(sequences_to_analyse,
                                        subset_distMat,
                                        threads = threads)
+
+            # Tidy up
+            if viz_subset is not None:
+                os.remove(tmp_ref_h5_file)
+                if query_db is not None:
+                    os.remove(tmp_query_h5_file)
 
         else:
             sys.stderr.write("Reading pairwise distances for tree construction\n")
@@ -584,7 +598,6 @@ def generate_visualisations(query_db,
     #* Generate trees  *#
     #*                 *#
     #*******************#
-
     # Generate trees
     mst_tree = None
     mst_graph = None
@@ -682,7 +695,6 @@ def generate_visualisations(query_db,
     # Set default
     if self:
         qlist = None
-
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
@@ -773,7 +785,6 @@ def generate_visualisations(query_db,
                             use_partial_query_graph = use_partial_query_graph)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
-
     sys.stderr.write("\nDone\n")
 
 def main():

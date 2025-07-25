@@ -5,6 +5,7 @@
 # universal
 import os
 import sys
+import shutil
 
 import pickle
 import re
@@ -64,6 +65,7 @@ def get_options():
     oGroup.add_argument('--output', required=True, help='Prefix for output files (required)')
     oGroup.add_argument('--no-plot', default=False, action='store_true',
                         help='Do not try and draw the MST')
+    oGroup.add_argument('--overwrite', default=False, help='Overwrite any existing output', action='store_true')
 
     # processing
     other = parser.add_argument_group('Other options')
@@ -147,6 +149,12 @@ def main():
                                                     allow_non_self = False)
 
     # Check output path ok
+    if args.overwrite:
+        if os.path.exists(args.output):
+            if os.path.isdir(args.output):
+                shutil.rmtree(args.output)
+            else:
+                os.remove(args.output)
     if not os.path.isdir(args.output):
         try:
             os.makedirs(args.output)
