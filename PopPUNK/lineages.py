@@ -17,7 +17,9 @@ from .models import LineageFit
 from .plot import writeClusterCsv
 from .sketchlib import readDBParams
 from .qc import prune_distance_matrix, sketchlibAssemblyQC
-from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs
+from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs, update_distance_matrices
+
+import pp_sketchlib
 
 # command line parsing
 def get_options():
@@ -177,7 +179,7 @@ def create_db(args):
     else:
         distances = args.distances
     # Get distances
-    rlist, qlist, self, X = readPickle(distances, enforce_self=False, distances=True)
+#    rlist, qlist, self, X = readPickle(distances, enforce_self=False, distances=True) # Remove?
     # Get parameters
     kmers, sketch_sizes, codon_phased = readDBParams(args.create_db)
     # Ranks to use
@@ -221,11 +223,22 @@ def create_db(args):
                 shutil.rmtree(dest_db)
             elif not os.path.exists(dest_db):
                 os.symlink(rel_path,dest_db)
-            # Extract sparse distances
-            prune_distance_matrix(rlist,
-                            list(set(rlist) - set(isolate_list)),
-                            X,
-                            os.path.join(strain_db_name,strain_db_name + '.dists'))
+            # Calculate within-strain distances
+            strain_distMat = pp_sketchlib.queryDatabase(ref_db_name=dest_db.replace('.h5',''),
+                                                        query_db_name=dest_db.replace('.h5',''),
+                                                        rList=isolate_list,
+                                                        qList=isolate_list,
+                                                        klist=kmers.tolist(),
+                                                        random_correct=True,
+                                                        jaccard=False,
+                                                        num_threads=args.threads,
+                                                        use_gpu = args.gpu_dist,
+                                                        device_id = args.deviceid)
+            # Convert distance matrix format
+#            strain_rlist, strain_X, acc_distMat = \
+#              update_distance_matrices(isolate_list,
+#                                       strain_distMat,
+#                                       threads = args.threads)
             # Initialise model
             model = LineageFit(strain_db_name,
                       rank_list,
@@ -237,12 +250,13 @@ def create_db(args):
                       use_gpu = args.gpu_graph)
             model.set_threads(args.threads)
             # Load pruned distance matrix
-            strain_rlist, strain_qlist, strain_self, strain_X = \
-                                readPickle(os.path.join(strain_db_name,strain_db_name + '.dists'),
-                                            enforce_self=False,
-                                            distances=True)
+#            strain_rlist, strain_qlist, strain_self, strain_X_dummy = \
+#                                readPickle(os.path.join(strain_db_name,strain_db_name + '.dists'),
+#                                            enforce_self=False,
+#                                            distances=False)
             # Fit model
-            model.fit(strain_X)
+            print(strain_distMat)
+            model.fit(strain_distMat)
             # Lineage fit requires some iteration
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
@@ -251,8 +265,8 @@ def create_db(args):
                 if rank <= num_isolates:
                     assignments = model.assign(rank)
                 # Generate networks
-                indivNetworks[rank] = construct_network_from_edge_list(strain_rlist,
-                                                            strain_rlist,
+                indivNetworks[rank] = construct_network_from_edge_list(isolate_list,
+                                                            isolate_list,
                                                             assignments,
                                                             weights = None,
                                                             betweenness_sample = None,
@@ -267,7 +281,7 @@ def create_db(args):
                 # Identify clusters from output
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
-                                  strain_rlist,
+                                  isolate_list,
                                   printCSV = False,
                                   use_gpu = args.gpu_graph)[0]
                 n_clusters = max(lineage_clusters[rank].values())
@@ -276,8 +290,8 @@ def create_db(args):
             # For each strain, print output of each rank as CSV
             overall_lineage[strain] = createOverallLineage(rank_list, lineage_clusters)
             writeClusterCsv(os.path.join(strain_db_name,os.path.basename(strain_db_name) + '_lineages.csv'),
-                strain_rlist,
-                strain_rlist,
+                isolate_list,
+                isolate_list,
                 overall_lineage[strain],
                 output_format = 'phandango',
                 epiCsv = None,
