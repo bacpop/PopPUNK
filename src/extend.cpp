@@ -169,6 +169,9 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
 
       long unique_neighbors = 0;
       float prev_value = 0.0;
+      dists[i] = {};
+      i_vec[i] = {};
+      j_vec[i] = {};
       bool new_val;
       for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
            ++rr_it) {
@@ -186,8 +189,7 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
             prev_value = dist;
           }
         } else {
-          // Adjust by one for consistent logic with condition above
-          unique_neighbors = j_vec[i].size() - 1;
+          unique_neighbors = j_vec[i].size();
         }
         if (unique_neighbors <= kNN) {
           dists[i].push_back(dist);
