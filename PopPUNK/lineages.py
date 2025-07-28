@@ -190,7 +190,8 @@ def create_db(args):
         else:
             max_search_depth = args.max_search_depth
     else:
-        max_search_depth = get_match_search_depth(strains.shape[0],rank_list)
+#        max_search_depth = get_match_search_depth(strains.shape[0],rank_list)
+        max_search_depth = 100
 
     sys.stderr.write("Generating databases for individual strains\n")
     # Dicts for storing typing information
