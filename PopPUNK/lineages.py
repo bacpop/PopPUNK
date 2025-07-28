@@ -171,7 +171,8 @@ def create_db(args):
     else:
         clustering_file = args.external_clustering
     strains = pd.read_csv(clustering_file, dtype = str).groupby(args.clustering_col_name)
-
+    all_isolates = []
+    
     sys.stderr.write("Extracting properties of database\n")
     # Get rlist
     if args.distances is None:
@@ -203,6 +204,7 @@ def create_db(args):
         num_isolates = len(isolate_list)
         if num_isolates >= args.min_count:
             lineage_dbs[strain] = strain_db_name
+            all_isolates.extend(isolate_list)
             if os.path.isdir(strain_db_name) and args.overwrite:
                 sys.stderr.write("--overwrite means {strain_db_name} will be deleted now\n")
                 shutil.rmtree(strain_db_name)
@@ -291,7 +293,7 @@ def create_db(args):
             model.save()
 
     # Print combined strain and lineage clustering
-    print_overall_clustering(overall_lineage,args.output + '.csv',isolate_list)
+    print_overall_clustering(overall_lineage,args.output + '.csv',all_isolates)
 
     # Write scheme to file
     with open(args.db_scheme, 'wb') as pickle_file:
