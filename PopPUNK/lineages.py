@@ -178,8 +178,6 @@ def create_db(args):
         distances = os.path.join(args.create_db,os.path.basename(args.create_db) + ".dists")
     else:
         distances = args.distances
-    # Get distances
-#    rlist, qlist, self, X = readPickle(distances, enforce_self=False, distances=True) # Remove?
     # Get parameters
     kmers, sketch_sizes, codon_phased = readDBParams(args.create_db)
     # Ranks to use
@@ -234,11 +232,7 @@ def create_db(args):
                                                         num_threads=args.threads,
                                                         use_gpu = args.gpu_dist,
                                                         device_id = args.deviceid)
-            # Convert distance matrix format
-#            strain_rlist, strain_X, acc_distMat = \
-#              update_distance_matrices(isolate_list,
-#                                       strain_distMat,
-#                                       threads = args.threads)
+
             # Initialise model
             model = LineageFit(strain_db_name,
                       rank_list,
@@ -249,13 +243,7 @@ def create_db(args):
                       dist_col = 1 if args.use_accessory else 0,
                       use_gpu = args.gpu_graph)
             model.set_threads(args.threads)
-            # Load pruned distance matrix
-#            strain_rlist, strain_qlist, strain_self, strain_X_dummy = \
-#                                readPickle(os.path.join(strain_db_name,strain_db_name + '.dists'),
-#                                            enforce_self=False,
-#                                            distances=False)
             # Fit model
-            print(strain_distMat)
             model.fit(strain_distMat)
             # Lineage fit requires some iteration
             indivNetworks = {}
