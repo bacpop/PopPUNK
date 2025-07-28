@@ -189,7 +189,7 @@ def create_db(args):
         else:
             max_search_depth = args.max_search_depth
     else:
-        max_search_depth = get_match_search_depth(rlist,rank_list)
+        max_search_depth = get_match_search_depth(strains.shape[0],rank_list)
 
     sys.stderr.write("Generating databases for individual strains\n")
     # Dicts for storing typing information
@@ -289,12 +289,12 @@ def create_db(args):
             model.save()
 
     # Print combined strain and lineage clustering
-    print_overall_clustering(overall_lineage,args.output + '.csv',rlist)
+    print_overall_clustering(overall_lineage,args.output + '.csv',isolate_list)
 
     # Write scheme to file
     with open(args.db_scheme, 'wb') as pickle_file:
         pickle.dump([args.create_db,
-                      rlist,
+                      isolate_list,
                       args.model_dir,
                       clustering_file,
                       args.clustering_col_name,
