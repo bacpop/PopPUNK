@@ -17,7 +17,7 @@ from .models import LineageFit
 from .plot import writeClusterCsv
 from .sketchlib import readDBParams
 from .qc import prune_distance_matrix, sketchlibAssemblyQC
-from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs, update_distance_matrices
+from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs, update_distance_matrices, storePickle
 
 import pp_sketchlib
 
@@ -222,7 +222,7 @@ def create_db(args):
             elif not os.path.exists(dest_db):
                 os.symlink(rel_path,dest_db)
             # Store isolate names
-            storePickle(isolate_list, [], True, None, os.path.join(strain_db_name,strain_db_name))
+            storePickle(isolate_list, isolate_list, True, None, os.path.join(strain_db_name,strain_db_name))
             # Calculate within-strain distances
             strain_distMat = pp_sketchlib.queryDatabase(ref_db_name=dest_db.replace('.h5',''),
                                                         query_db_name=dest_db.replace('.h5',''),
