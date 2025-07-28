@@ -116,7 +116,7 @@ def get_options():
                                     help="Number of kNN distances per sequence to filter when "
                                     "counting neighbours or using only reciprocal matches",
                                     type = int,
-                                    default = None)
+                                    default = 10000)
     lGroup.add_argument('--use-accessory',
                                     help="Use accessory distances for lineage clustering",
                                     action = 'store_true',
@@ -190,8 +190,7 @@ def create_db(args):
         else:
             max_search_depth = args.max_search_depth
     else:
-#        max_search_depth = get_match_search_depth(strains.shape[0],rank_list)
-        max_search_depth = 100
+        max_search_depth = max(rank_list)*10
 
     sys.stderr.write("Generating databases for individual strains\n")
     # Dicts for storing typing information

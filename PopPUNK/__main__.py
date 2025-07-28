@@ -579,10 +579,8 @@ def main():
                 # Memory usage determined by maximum search depth
                 if args.max_search_depth is not None:
                     max_search_depth = int(args.max_search_depth)
-                elif args.max_search_depth is None and (args.reciprocal_only or args.count_unique_distances):
-                    max_search_depth = get_match_search_depth(refList,rank_list)
                 else:
-                    max_search_depth = max(rank_list)
+                    max_search_depth = max(rank_list)*10
 
                 model = LineageFit(output,
                                     rank_list,
