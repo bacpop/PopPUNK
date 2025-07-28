@@ -221,6 +221,8 @@ def create_db(args):
                 shutil.rmtree(dest_db)
             elif not os.path.exists(dest_db):
                 os.symlink(rel_path,dest_db)
+            # Store isolate names
+            storePickle(isolate_list, [], True, None, os.path.join(strain_db_name,strain_db_name))
             # Calculate within-strain distances
             strain_distMat = pp_sketchlib.queryDatabase(ref_db_name=dest_db.replace('.h5',''),
                                                         query_db_name=dest_db.replace('.h5',''),
