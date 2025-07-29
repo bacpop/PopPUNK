@@ -17,7 +17,7 @@ from .models import LineageFit
 from .plot import writeClusterCsv
 from .sketchlib import readDBParams
 from .qc import prune_distance_matrix, sketchlibAssemblyQC
-from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs, update_distance_matrices, storePickle
+from .utils import createOverallLineage, readPickle, setupDBFuncs, update_distance_matrices, storePickle
 
 import pp_sketchlib
 
