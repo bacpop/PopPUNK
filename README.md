@@ -11,8 +11,8 @@
 ## Description
 
 Links:
-- [Documentation](https://poppunk.bacpop.org/)
-- [Databases](https://www.bacpop.org/poppunk/)
+- [Documentation](https://poppunk-docs.bacpop.org/)
+- [Databases](https://www.bacpop.org/poppunk-databases/)
 - [Paper](https://doi.org/10.1101/gr.241455.118)
 
 If you find PopPUNK useful, please cite us:
@@ -21,11 +21,11 @@ Lees JA, Harris SR, Tonkin-Hill G, Gladstone RA, Lo SW, Weiser JN, Corander J, B
 Fast and flexible bacterial genomic epidemiology with PopPUNK. *Genome Research* **29**:304-316 (2019).
 doi:[10.1101/gr.241455.118](https://doi.org/10.1101/gr.241455.118)
 
-You can also run your command with `--citation` to get a [list of citations](https://poppunk.readthedocs.io/en/latest/citing.html) and a suggested methods paragraph.
+You can also run your command with `--citation` to get a [list of citations](https://poppunk-docs.bacpop.org/citing.html) and a suggested methods paragraph.
 
 ## News and roadmap
 
-The [roadmap](https://poppunk.bacpop.org/roadmap.html) can be found in the documentation.
+The [roadmap](https://poppunk-docs.bacpop.org/roadmap.html) can be found in the documentation.
 
 ### 2024-08-07
 PopPUNK 2.7.0 comes with two changes:
@@ -40,7 +40,7 @@ such as [LIN](https://doi.org/10.1093/molbev/msac135).
 
 ### 2023-01-18
 We have retired the PopPUNK website. Databases have been expanded, and can be
-found here: https://www.bacpop.org/poppunk/.
+found here: https://www.bacpop.org/poppunk-databases/.
 
 ### 2022-08-04
 The change in scikit-learn's API in v1.0.0 and above mean that HDBSCAN models
@@ -75,7 +75,7 @@ possible, you can either:
 
 ## Installation
 
-This is for the command line version. For more details see [installation](https://poppunk.bacpop.org/installation.html) in the documentation.
+This is for the command line version. For more details see [installation](https://poppunk-docs.bacpop.org/installation.html) in the documentation.
 
 Our (beta) web interface BeeBOP is now also available: https://beebop.dide.ic.ac.uk/
 
@@ -96,17 +96,17 @@ conda config --add channels conda-forge
 
 ## Quick usage
 
-See the [overview](https://poppunk.bacpop.org/overview.html) first. There are two ways of running:
+See the [overview](https://poppunk-docs.bacpop.org/overview.html) first. There are two ways of running:
 
 ### With a supported species
 
-1) Download an [existing database](https://www.bacpop.org/poppunk/).
-2) [Run assignment](https://poppunk.bacpop.org/query_assignment.html).
+1) Download an [existing database](https://www.bacpop.org/poppunk-databases/).
+2) [Run assignment](https://poppunk-docs.bacpop.org/query_assignment.html).
 
 ### With a new species.
-1) [Create sketches of input](https://poppunk.bacpop.org/sketching.html).
-2) [Run QC](https://poppunk.bacpop.org/qc.html).
-3) [Build a model](https://poppunk.bacpop.org/model_fitting.html).
+1) [Create sketches of input](https://poppunk-docs.bacpop.org/sketching.html).
+2) [Run QC](https://poppunk-docs.bacpop.org/qc.html).
+3) [Build a model](https://poppunk-docs.bacpop.org/model_fitting.html).
 
 ## Docker image
 
