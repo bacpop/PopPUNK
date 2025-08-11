@@ -71,7 +71,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'PopPUNK'
-copyright = '2018-2024, John Lees and Nicholas Croucher'
+copyright = '2018-2025, John Lees and Nicholas Croucher'
 author = 'John Lees, Sam Horsfield, Daniel Anderson and Nicholas Croucher'
 
 # The version info for the project you're documenting, acts as replacement for
