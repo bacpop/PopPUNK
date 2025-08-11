@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - uses: ammaraskar/sphinx-action@master
+    - uses: ammaraskar/sphinx-action@8.2.3
       with:
         docs-folder: "docs/"
 
