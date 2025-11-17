@@ -454,11 +454,23 @@ def main():
         pass_list = set(refList) - fail_unconditionally.keys() - fail_assembly_qc.keys() - fail_dist_qc.keys()
         assert(pass_list == (set(refList) - fail_unconditionally.keys()).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
         passed = [x for x in refList if x in pass_list]
-        if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
-            raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
-                               ' not found in isolates after QC; check '
-                               'name of type isolate and QC options\n')
+        #
         
+        #
+        
+
+        if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
+            # Re-select type isolate if it aws nto specified by user 
+            if args.type-isolate is None:
+                raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
+                                ' not found in isolates after QC; select '
+                                'again from the new list\n')
+            # Raise error if the type isolate specified by user was not found after QC
+            else:     
+                raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
+                                ' not found in isolates after QC; check '
+                                'name of type isolate and QC options\n')
+            
         sys.stderr.write(f"{len(passed)} samples passed QC\n")
         if len(passed) < len(refList):
             remove_qc_fail(qc_dict, refList, passed,
