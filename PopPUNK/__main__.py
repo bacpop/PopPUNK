@@ -459,7 +459,7 @@ def main():
         #
         
 
-        if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
+        if qc_dict['type_isolate'] not in pass_list:
             # Re-select type isolate if it aws nto specified by user 
             if args.type_isolate is None:
                 raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
