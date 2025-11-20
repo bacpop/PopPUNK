@@ -363,8 +363,7 @@ def prune_edges(long_edges, query_start,
                 failed=None, min_count=1, allow_ref_ref=True):
     """Gives a list of failed vertices from a list of failing
     edges. Tries to prune by those nodes with highest degree of
-    bad nodes, preferentially removes queries, and doesn't remove
-    the type isolate
+    bad nodes, preferentially removes queries.
 
     Args:
         long_edges (list of tuples)
