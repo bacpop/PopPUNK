@@ -270,11 +270,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
         names = refList + queryList
         self = False
 
-    # Pick type isolate if not supplied
-    if qc_dict['type_isolate'] is None:
-        qc_dict['type_isolate'] = pickTypeIsolate(ref_db, refList)
-        sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
-
     # First check with numpy, which is quicker than iterating over everything
     #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
@@ -285,7 +280,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                 int_offset = 0)
 
     failed = prune_edges(long_edges,
-                                 type_isolate=names.index(qc_dict['type_isolate']),
                                  query_start=len(refList),
                                  allow_ref_ref=self)
     # Convert the edge IDs back to sample names
@@ -302,7 +296,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                     num_ref = len(refList),
                                                     int_offset = 0)
         failed = prune_edges(zero_edges,
-                            type_isolate=names.index(qc_dict['type_isolate']),
                             query_start=len(refList),
                             failed=failed,
                             min_count=zero_count,
