@@ -366,7 +366,7 @@ def qcQueryAssignments(rList, qList, query_assignments, max_clusters,
             retained_samples.append(query)
     return retained_samples, failed_samples
 
-def prune_edges(long_edges, type_isolate, query_start,
+def prune_edges(long_edges, query_start,
                 failed=None, min_count=1, allow_ref_ref=True):
     """Gives a list of failed vertices from a list of failing
     edges. Tries to prune by those nodes with highest degree of
@@ -376,8 +376,6 @@ def prune_edges(long_edges, type_isolate, query_start,
     Args:
         long_edges (list of tuples)
             List of bad edges as node IDs
-        type_isolate (int)
-            The node ID of the type isolate
         query_start (int)
             The first node ID which corresponds to queries
         failed (set or None)
@@ -405,7 +403,7 @@ def prune_edges(long_edges, type_isolate, query_start,
                 # Do not add any refs if querying
                 if r < query_start and q < query_start:
                     if allow_ref_ref:
-                        if q == type_isolate or (counts[r] > counts[q] and counts[r] >= min_count):
+                        if (counts[r] > counts[q] and counts[r] >= min_count):
                             failed.add(r)
                         elif counts[q] >= min_count:
                             failed.add(q)
