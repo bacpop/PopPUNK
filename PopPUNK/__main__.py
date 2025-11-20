@@ -421,6 +421,7 @@ def main():
         }
 
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
+        newDistMat = distMat
 
         fail_unconditionally = {}
         # Unconditional removal
@@ -462,7 +463,7 @@ def main():
 
         # Plot results
         if not args.no_plot:
-            plot_scatter(distMat,
+            plot_scatter(newDistMat,
                          output,
                          output + " distances")
             genome_lengths, ambiguous_bases = get_database_statistics(output)
