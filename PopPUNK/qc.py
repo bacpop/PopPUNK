@@ -52,7 +52,6 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
         sys.stderr.write("Removing " + str(len(remove_seqs)) + " sequences\n")
 
         numNew = len(refList) - len(remove_seqs)
-        global newDistMat
         newDistMat = np.zeros((int(0.5 * numNew * (numNew - 1)), 2), dtype=distMat.dtype)
 
         # Create new reference list iterator
@@ -86,7 +85,6 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
         storePickle(newRefList, newRefList, True, newDistMat, output)
     else:
         newRefList = refList
-        global newDistMat
         newDistMat = distMat
 
     # return new distance matrix and sequence lists
