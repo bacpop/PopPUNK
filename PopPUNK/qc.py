@@ -81,12 +81,13 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
                 else:
                     raise RuntimeError("Row name mismatch. Old: " + ref1 + "," + ref2 + "\n"
                                        "New: " + newRef1 + "," + newRef2 + "\n")
-
-        storePickle(newRefList, newRefList, True, newDistMat, output)
+    
     else:
         newRefList = refList
         newDistMat = distMat
-
+    
+    storePickle(newRefList, newRefList, True, newDistMat, output)
+    
     # return new distance matrix and sequence lists
     return newRefList, newDistMat
 
