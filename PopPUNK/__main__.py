@@ -453,8 +453,8 @@ def main():
         assert(pass_list == (set(refList) - fail_unconditionally.keys()).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
         passed = [x for x in refList if x in pass_list]
         sys.stderr.write(f"{len(passed)} samples passed QC\n")
-        # Update newDistMat
-        if len(passed) < len(refList):
+        # Update newDistMat and write output files
+        if len(passed) <= len(refList):
             newDistMat = remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
