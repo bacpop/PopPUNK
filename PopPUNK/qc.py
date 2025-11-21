@@ -469,10 +469,10 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
         os.rename(tmp_filtered_db_name, output_db_name)
 
         # Remove from the distMat too
-        newRefList, newDistMat = prune_distance_matrix(names,
+        newDistMat = prune_distance_matrix(names,
                               failed,
                               distMat,
-                              f"{prefix}/{os.path.basename(prefix)}.dists")
+                              f"{prefix}/{os.path.basename(prefix)}.dists")[1]
         
         # Update the graph
         prune_graph(ref_db,
