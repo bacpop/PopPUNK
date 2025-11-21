@@ -413,7 +413,7 @@ def prune_edges(long_edges, query_start,
 def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                    strand_preserved=False, threads=1, use_gpu=False):
     """Removes samples failing QC from the database and distances. Also
-    recalculates random match chances.
+    recalculates random match chances. Return a new distance matrix.
 
     Args:
         qc_dict (dict)
@@ -439,6 +439,9 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
             [default = 1].
         use_gpu (bool)
             Whether GPU libraries were used to generate the original network.
+    Return:
+        newDistMat (numpy.array)
+            Updated version of distMat
     """
     from .sketchlib import removeFromDB, addRandom, readDBParams
 
