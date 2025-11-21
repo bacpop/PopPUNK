@@ -87,7 +87,7 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
         newDistMat = distMat
     
     storePickle(newRefList, newRefList, True, newDistMat, output)
-    
+
     # return new distance matrix and sequence lists
     return newRefList, newDistMat
 
@@ -461,7 +461,7 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                     passed,
                     full_names = True)
     # new database file if pruning
-    if failed and not qc_dict['no_remove']:
+    if not qc_dict['no_remove']:
         # sys.stderr.write(f"Removing {len(failed)} samples from database and distances\n")
         tmp_filtered_db_name = f"{prefix}/filtered.{os.path.basename(prefix)}.h5"
         output_db_name = f"{prefix}/{os.path.basename(prefix)}.h5"
