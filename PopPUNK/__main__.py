@@ -455,7 +455,7 @@ def main():
         sys.stderr.write(f"{len(passed)} samples passed QC\n")
         # Update newDistMat
         if len(passed) < len(refList):
-            remove_qc_fail(qc_dict, refList, passed,
+            newDistMat = remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
                            args.strand_preserved, args.threads,
