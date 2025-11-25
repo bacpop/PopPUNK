@@ -77,8 +77,6 @@ def get_options():
                                                 default = default_max_merge, type = int)
     qcGroup.add_argument('--betweenness', default=False, action='store_true',
                                help='Report the betweenness of all the query nodes [default = False]')
-    qcGroup.add_argument('--type-isolate', help='Isolate from which distances can be calculated for pruning [default = None]',
-                                                default = None, type = str)
     qcGroup.add_argument('--length-sigma', help='Number of standard deviations of length distribution beyond '
                                                 'which sequences will be excluded [default = 5]', default = None, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -188,10 +186,9 @@ def main():
             'prop_zero': args.max_zero_dist,
             'max_merge': args.max_merge,
             'betweenness': args.betweenness,
-            'type_isolate': args.type_isolate
         }
     else:
-        qc_dict = {'run_qc': False, 'type_isolate': None }
+        qc_dict = {'run_qc': False}
 
     # Dict of DB access functions for assign_query (which is out of scope)
     dbFuncs = setupDBFuncs(args)
@@ -785,7 +782,6 @@ def assign_query_hdf5(dbFuncs,
                                             merged_queries,
                                             outSuffix = file_extension_string,
                                             existingRefs = existing_ref_list,
-                                            type_isolate = qc_dict['type_isolate'],
                                             threads = threads,
                                             use_gpu = gpu_graph,
                                             fast_mode = update_db == "fast")
