@@ -22,10 +22,7 @@ subprocess.run(python_cmd + " ../poppunk-runner.py --create-db --r-files referen
 
 # create database with different QC options
 sys.stderr.write("Running database QC test (--qc-db)\n")
-# Type isolate can no longer be user specified
-#subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --type-isolate \"12754_4#79\" --overwrite", shell=True, check=True)
-#subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --length-range 2000000 3000000 --overwrite", shell=True, check=True)
-#subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --type-isolate \"12754_4#79\" --remove-samples remove.txt --overwrite", shell=True, check=True)
+# Type isolate can no longer be user specified. Use to have --type-isolate \"12754_4#79\"
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --length-range 2000000 3000000 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --remove-samples remove.txt --overwrite", shell=True, check=True)
