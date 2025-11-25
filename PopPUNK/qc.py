@@ -531,7 +531,8 @@ def get_failure_reasons(sample, fail_dicts):
         if sample in fail_dict
         for reason in fail_dict[sample]
     ]
-    
+
+# Type isolate is no longer supported in PopPUNK   
 def pickTypeIsolate(prefix, refList):
     """Selects a type isolate as that with a minimal proportion
     of missing data.
