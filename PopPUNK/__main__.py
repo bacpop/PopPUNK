@@ -421,7 +421,6 @@ def main():
         }
 
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
-        newDistMat = distMat
 
         fail_unconditionally = {}
         # Unconditional removal
@@ -453,9 +452,9 @@ def main():
         assert(pass_list == (set(refList) - fail_unconditionally.keys()).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
         passed = [x for x in refList if x in pass_list]
         sys.stderr.write(f"{len(passed)} samples passed QC\n")
-        # Update newDistMat and write output files
+        # Update distMat and write output files
         if len(passed) <= len(refList):
-            newDistMat = remove_qc_fail(qc_dict, refList, passed,
+            distMat = remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
                            args.strand_preserved, args.threads,
@@ -463,7 +462,7 @@ def main():
 
         # Plot results
         if not args.no_plot:
-            plot_scatter(newDistMat,
+            plot_scatter(distMat,
                          output,
                          output + " distances")
             genome_lengths, ambiguous_bases = get_database_statistics(output)
