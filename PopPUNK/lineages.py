@@ -326,7 +326,7 @@ def query_db(args):
         external_clustering = clustering_file
 
     # Ignore QC at the moment
-    qc_dict = {'run_qc': False, 'type_isolate': None }
+    qc_dict = {'run_qc': False}
 
     # Check output file
     if args.output is None:

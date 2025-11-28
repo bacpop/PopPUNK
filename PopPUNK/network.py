@@ -280,7 +280,7 @@ def translate_network_indices(G_ref_df, reference_indices):
     G_ref = generate_cugraph(G_ref_df, len(reference_indices) - 1, renumber = True)
     return(G_ref)
 
-def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix = '', type_isolate = None,
+def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix = '',
                         existingRefs = None, threads = 1, use_gpu = False, fast_mode = False):
     """Extract references for each cluster based on cliques
 
@@ -298,8 +298,6 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix 
                (used for fast assign, to enrich refs with)
            outSuffix (str)
                Suffix for output file  (.refs will be appended)
-           type_isolate (str)
-               Isolate to be included in set of references
            existingRefs (list)
                References that should be used for each clique
            use_gpu (bool)
@@ -328,15 +326,6 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix 
     else:
         merged_query_idx = set()
 
-    # Add type isolate, if necessary
-    type_isolate_index = None
-    if type_isolate is not None:
-        if type_isolate in dbOrder:
-            type_isolate_index = dbOrder.index(type_isolate)
-        else:
-            sys.stderr.write('Type isolate ' + type_isolate + ' not found\n')
-            sys.exit(1)
-
     if use_gpu:
         if fast_mode:
             raise RuntimeError("GPU graphs not yet supported with --update-db fast")
@@ -349,10 +338,6 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix 
         # group by partition, which becomes the first column, so retrieve second column
         reference_index_df = partition_assignments.groupby('partition').nth(0)
         reference_indices = reference_index_df['vertex'].to_arrow().to_pylist()
-
-        # Add type isolate if necessary - before edges are added
-        if type_isolate_index is not None and type_isolate_index not in reference_indices:
-            reference_indices.append(type_isolate_index)
 
         # Order found references as in sketchlib database
         reference_names = [dbOrder[int(x)] for x in sorted(reference_indices)]
@@ -438,10 +423,6 @@ def extractReferences(G, dbOrder, outPrefix, merged_queries = list(), outSuffix 
                                     set(components))
         # Returns nested lists, which need to be flattened
         reference_indices = set([entry for sublist in ref_lists for entry in sublist])
-
-        # Add type isolate if necessary - before edges are added
-        if type_isolate_index is not None and type_isolate_index not in reference_indices:
-            reference_indices.add(type_isolate_index)
 
         sys.stderr.write("Reconstructing clusters with shortest paths\n")
         if gt.openmp_enabled():
