@@ -7,7 +7,6 @@ RUN apt-get update && \
                           libarmadillo-dev \
                           libeigen3-dev \
                           libopenblas-dev \
-                          software-properties-common
 
 RUN git clone https://github.com/somme89/rapidNJ.git && \
     cd rapidNJ && \
