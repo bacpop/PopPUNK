@@ -4,7 +4,7 @@ PopPUNK now comes with some basic quality control options, which you should
 run on your sketch database made with ``--create-db`` by running ``--qc-db``
 as follows::
 
-    poppunk --qc-db --ref-db example_db --type-isolate 12754_4_79 --length-range 2000000 3000000
+    poppunk --qc-db --ref-db example_db --length-range 2000000 3000000
 
 For ``poppunk_assign``, instead add ``--run-qc``::
 
@@ -50,17 +50,13 @@ and ``--upper-n`` which gives the absolute maximum value.
 QC of pairwise distances
 ------------------------
 The second QC step uses the pairwise distances, to enable the removal of outlier samples
-that may not be part of the taxon being studied. This is with reference to a type
-isolate. The type isolate will be selected by PopPUNK, unless specified using ``--type-isolate``.
+that may not be part of the taxon being studied.
 
 By default, the maximum allowed accessory distance is 0.5 to ensure you check for contamination.
 However, many species do really have high accessory values above this range, in which case you
 should increase the value of ``--max-a-dist``.
 
 The maximum allowed core distance is also 0.5, by default. This can be altered with ``--max-pi-dist``.
-
-All sequences differing from the type isolate by distances greater than either threshold will be
-identified by the analysis.
 
 Each isolate may have a proportion of distances that are exactly zero as set by
 ``--max-zero-dist``.
