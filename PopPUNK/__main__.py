@@ -99,8 +99,6 @@ def get_options():
                                                 default = default_max_pi_dist, type = float)
     qcGroup.add_argument('--max-zero-dist', help=f"Maximum proportion of zero distances to permit [default = {default_max_zero}]",
                                                 default = default_max_zero, type = float)
-    qcGroup.add_argument('--type-isolate', help='Isolate from which distances will be calculated for pruning [default = None]',
-                                                default = None, type = str)
     qcGroup.add_argument('--length-sigma', help=f"Number of standard deviations of length distribution beyond "
                                                 f"which sequences will be excluded [default = {default_length_sigma}]", default = default_length_sigma, type = int)
     qcGroup.add_argument('--length-range', help='Allowed length range, outside of which sequences will be excluded '
@@ -423,7 +421,6 @@ def main():
             'max_pi_dist': args.max_pi_dist,
             'max_a_dist': args.max_a_dist,
             'prop_zero': args.max_zero_dist,
-            'type_isolate': args.type_isolate
         }
 
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
@@ -457,14 +454,10 @@ def main():
         pass_list = set(refList) - fail_unconditionally.keys() - fail_assembly_qc.keys() - fail_dist_qc.keys()
         assert(pass_list == (set(refList) - fail_unconditionally.keys()).intersection(set(pass_assembly_qc)).intersection(set(pass_dist_qc)))
         passed = [x for x in refList if x in pass_list]
-        if qc_dict['type_isolate'] is not None and qc_dict['type_isolate'] not in pass_list:
-            raise RuntimeError('Type isolate ' + qc_dict['type_isolate'] + \
-                               ' not found in isolates after QC; check '
-                               'name of type isolate and QC options\n')
-        
         sys.stderr.write(f"{len(passed)} samples passed QC\n")
-        if len(passed) < len(refList):
-            remove_qc_fail(qc_dict, refList, passed,
+        # Update distMat and write output files
+        if len(passed) <= len(refList):
+            distMat = remove_qc_fail(qc_dict, refList, passed,
                            [fail_unconditionally, fail_assembly_qc, fail_dist_qc],
                            args.ref_db, distMat, output,
                            args.strand_preserved, args.threads,
@@ -748,7 +741,6 @@ def main():
                                         refList,
                                         output,
                                         outSuffix = dist_string,
-                                        type_isolate = args.type_isolate,
                                         threads = args.threads,
                                         use_gpu = args.gpu_graph)
                 nodes_to_remove = set(range(len(refList))).difference(newReferencesIndices)

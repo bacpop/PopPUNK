@@ -1,3 +1,4 @@
 Cython>=0.26.1
 sphinx>=5.0
 furo
+#furo==2024.1.29  # Quick fix for now. Newer version doesn't work with gha (py38, needs upgrading)

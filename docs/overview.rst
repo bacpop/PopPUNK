@@ -17,7 +17,7 @@ are the current minimum supported versions.
 
 Use query assignment mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^
-If a database is available for your species (see https://www.bacpop.org/poppunk/)
+If a database is available for your species (see https://www.bacpop.org/poppunk-databases/)
 we would strongly recommend downloading it to use to cluster your genomes. This
 has many advantages:
 
