@@ -582,15 +582,15 @@ def generate_visualisations(query_db,
 
         # Prune distance matrix if subsetting data - whether distances were read or recalculated
         if viz_subset is not None:
-          row_slice = [True if name in viz_subset else False for name in combined_seq]
-          combined_seq = [name for name in combined_seq if name in viz_subset]
-          if use_sparse:
-              sparse_mat = sparse_mat[np.ix_(row_slice, row_slice)]
-          if use_dense:
-              if qlist != None:
-                  qlist = list(viz_subset.intersection(qlist))
-              core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
-              acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
+            row_slice = [True if name in viz_subset else False for name in combined_seq]
+            combined_seq = [name for name in combined_seq if name in viz_subset]
+            if use_sparse:
+                sparse_mat = sparse_mat[np.ix_(row_slice, row_slice)]
+            if use_dense:
+                if qlist != None:
+                    qlist = list(viz_subset.intersection(qlist))
+                core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
+                acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
 
 
     #*******************#
