@@ -130,10 +130,11 @@ def get_options():
     # combine
     args = parser.parse_args()
 
-    # ensure directories do not have trailing forward slash
-    for arg in [args.db, args.model_dir, args.output, args.previous_clustering]:
-        if arg is not None:
-            arg = arg.rstrip('\\')
+    # ensure directories do not have trailing slash
+    for attr_name in ['db', 'model_dir', 'output', 'previous_clustering']:
+        attr_value = getattr(args, attr_name)
+        if attr_value is not None:
+            setattr(args, attr_name, attr_value.rstrip('\\').rstrip('/'))
 
     return args
 
@@ -278,7 +279,6 @@ def assign_query(dbFuncs,
     createDatabaseDir = dbFuncs['createDatabaseDir']
     constructDatabase = dbFuncs['constructDatabase']
     readDBParams = dbFuncs['readDBParams']
-
     if ref_db == output and overwrite == False:
         sys.stderr.write("--output and --db must be different to "
                          "prevent overwrite.\n")
