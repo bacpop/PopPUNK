@@ -339,9 +339,11 @@ def generate_visualisations(query_db,
     kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
 
     # extract subset of distances if requested - allow for a different reference database to be used as distances are recalculated by default
+    qlist = None
     raw_combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = False)
     if query_db is not None:
-        raw_combined_seq = raw_combined_seq + read_rlist_from_distance_pickle(query_db + "/" + os.path.basename(query_db) + '.dists.pkl', only_queries = True)
+        qlist = read_rlist_from_distance_pickle(query_db + "/" + os.path.basename(query_db) + '.dists.pkl', only_queries = True)
+        raw_combined_seq = raw_combined_seq + qlist
     combined_seq = list(dict.fromkeys(raw_combined_seq))
     all_seq = combined_seq # all_seq is an immutable record use for network parsing
     if include_files is not None or use_partial_query_graph is not None:
