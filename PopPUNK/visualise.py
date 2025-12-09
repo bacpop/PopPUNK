@@ -342,7 +342,7 @@ def generate_visualisations(query_db,
     raw_combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = False)
     if query_db is not None:
         raw_combined_seq = raw_combined_seq + read_rlist_from_distance_pickle(query_db + "/" + os.path.basename(query_db) + '.dists.pkl', only_queries = True)
-    combined_seq = OrderedSet(raw_combined_seq)
+    combined_seq = list(dict.fromkeys(raw_combined_seq))
     all_seq = combined_seq # all_seq is an immutable record use for network parsing
     if include_files is not None or use_partial_query_graph is not None:
         viz_subset = set()
