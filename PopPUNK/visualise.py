@@ -321,10 +321,7 @@ def generate_visualisations(query_db,
 
     # Identify distance matrix for ordered names
     if distances is None:
-        if query_db is None:
-            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-        else:
-            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
+        distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
     else:
         distances = distances
 
