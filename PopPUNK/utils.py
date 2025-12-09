@@ -593,7 +593,7 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
 
     return use_gpu
 
-def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries = False):
+def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries = False, only_queries = False):
     """Return the list of reference sequences from a distance pickle.
 
     Args:
@@ -603,6 +603,8 @@ def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries =
             Whether non-self distance datasets are permissible
         include_queries (bool)
             Whether queries should be included in the rlist
+        only_queries (bool)
+            Whether only the query distances should be returned
     Returns:
         rlist (list)
             List of reference sequence names
@@ -615,4 +617,6 @@ def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries =
             sys.exit(1)
         if include_queries:
             rlist = rlist + qlist
+        if only_queries:
+            rlist = qlist
     return rlist
