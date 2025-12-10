@@ -7,11 +7,11 @@ configuring the required packages necessitates some extra steps, outlined below.
 
 Installing GPU packages
 -----------------------
-To use GPU acceleration, PopPUNK uses ``cupy``, ``numba`` and the ``cudatoolkit``
+To use GPU acceleration, PopPUNK uses ``cupy``, ``numba`` and the ``cuda-toolkit``
 packages from RAPIDS. Both ``cupy`` and ``numba`` can be installed as standard packages
-using conda. The ``cudatoolkit`` packages need to be matched to your CUDA version.
+using conda. The ``cuda-toolkit`` packages need to be matched to your CUDA version.
 The command ``nvidia-smi`` can be used to find the supported `CUDA version <https://stackoverflow.com/questions/53422407/different-cuda-versions-shown-by-nvcc-and-nvidia-smi>`__.
-Installation of the ``cudatoolkit`` with conda (or the faster conda alternative,
+Installation of the ``cuda-toolkit`` with conda (or the faster conda alternative,
 `mamba <https://mamba.readthedocs.io/en/latest/installation.html>`__) should be guided
 by the RAPIDS `guide <https://rapids.ai/start.html#get-rapids>`__. This information
 will enable the installation of PopPUNK into a clean conda environment with a command
@@ -19,7 +19,7 @@ such as (modify the ``CUDA_VERSION`` variable as appropriate)::
 
     export CUDA_VERSION=11.3
     conda create -n poppunk_gpu -c rapidsai -c nvidia -c conda-forge \
-    -c bioconda -c defaults rapids>=22.12 python=3.8 cudatoolkit=$CUDA_VERSION \
+    -c bioconda -c defaults rapids>=22.12 python=3.8 cuda-toolkit=$CUDA_VERSION \
     pp-sketchlib>=2.0.1 poppunk>=2.6.0 networkx cupy numba
     conda activate poppunk_gpu
 
@@ -32,7 +32,7 @@ environment can be slow, and therefore we recommend mamba as a faster alternativ
 
     export CUDA_VERSION=11.3
     mamba create -n poppunk_gpu -c rapidsai -c nvidia -c conda-forge \
-    -c bioconda -c defaults rapids=22.12 python>=3.8 cudatoolkit=$CUDA_VERSION \
+    -c bioconda -c defaults rapids=22.12 python>=3.8 cuda-toolkit=$CUDA_VERSION \
     cuda-nvcc=$CUDA_VERSION cuda-cudart=$CUDA_VERSION networkx cupy numba cmake \
     pybind11 highfive Eigen openblas libgomp libgfortran-ng poppunk>=2.6.0
 
