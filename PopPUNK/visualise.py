@@ -405,8 +405,13 @@ def generate_visualisations(query_db,
             if model.type == "lineage":
                 mode = "lineages"
                 suffix = "_lineages.csv"
-            cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+            # Load from reference database if it contains a clustering file (e.g. post query); load from model directory otherwise
+            if os.path.exists(os.path.join(ref_db, os.path.basename(ref_db) + suffix)):
+                cluster_file = os.path.join(ref_db, os.path.basename(ref_db) + suffix)
+            else:
+                cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
 
+    sys.stderr.write("Loading clustering from " + cluster_file + "; change this using --previous-clustering if necessary\n")
     isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                mode = mode,
                                                return_dict = True)
