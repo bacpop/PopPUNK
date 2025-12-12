@@ -700,7 +700,7 @@ def generate_visualisations(query_db,
     #****************#
 
     # Set default
-    if self:
+    if query_db is None:
         qlist = None
     # Now have all the objects needed to generate selected visualisations
     if microreact:
