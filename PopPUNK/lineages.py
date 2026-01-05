@@ -11,6 +11,8 @@ import shutil
 import pandas as pd
 from collections import defaultdict
 
+from .__init__ import SEARCH_DEPTH_FACTOR, DEFAULT_LINEAGE_RESOLUTION
+
 from .assign import assign_query_hdf5
 from .network import construct_network_from_edge_list, printClusters, save_network
 from .models import LineageFit
@@ -135,7 +137,7 @@ def get_options():
     lGroup.add_argument('--lineage-resolution',
                                 help="Minimum genetic separation between isolates required to initiate a new lineage",
                                 type = float,
-                                default = 1e-10)
+                                default = DEFAULT_LINEAGE_RESOLUTION)
 
     return parser.parse_args()
 

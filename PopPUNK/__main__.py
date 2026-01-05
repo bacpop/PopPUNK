@@ -11,7 +11,7 @@ from collections import defaultdict
 
 # import poppunk package
 from .__init__ import __version__
-from .__init__ import SEARCH_DEPTH_FACTOR
+from .__init__ import SEARCH_DEPTH_FACTOR, DEFAULT_LINEAGE_RESOLUTION
 
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
@@ -205,7 +205,7 @@ def get_options():
     lineagesGroup.add_argument('--lineage-resolution',
                                 help='Minimum genetic separation between isolates required to initiate a new lineage',
                                 type = float,
-                                default = 1e-10)
+                                default = DEFAULT_LINEAGE_RESOLUTION)
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
