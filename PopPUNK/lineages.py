@@ -171,7 +171,6 @@ def create_db(args):
     else:
         clustering_file = args.external_clustering
     strains = pd.read_csv(clustering_file, dtype = str).groupby(args.clustering_col_name)
-    all_isolates = []
     
     sys.stderr.write("Extracting properties of database\n")
     # Get rlist
@@ -198,6 +197,7 @@ def create_db(args):
         max_search_depth = max(rank_list)*SEARCH_DEPTH_FACTOR
 
     sys.stderr.write("Generating databases for individual strains\n")
+    all_isolates = list()
     # Dicts for storing typing information
     lineage_dbs = {}
     overall_lineage = {}
