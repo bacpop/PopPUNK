@@ -81,11 +81,12 @@ def prune_distance_matrix(refList, remove_seqs_in, distMat, output):
                 else:
                     raise RuntimeError("Row name mismatch. Old: " + ref1 + "," + ref2 + "\n"
                                        "New: " + newRef1 + "," + newRef2 + "\n")
-
-        storePickle(newRefList, newRefList, True, newDistMat, output)
+    
     else:
         newRefList = refList
         newDistMat = distMat
+    
+    storePickle(newRefList, newRefList, True, newDistMat, output)
 
     # return new distance matrix and sequence lists
     return newRefList, newDistMat
@@ -270,11 +271,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
         names = refList + queryList
         self = False
 
-    # Pick type isolate if not supplied
-    if qc_dict['type_isolate'] is None:
-        qc_dict['type_isolate'] = pickTypeIsolate(ref_db, refList)
-        sys.stderr.write('Selected type isolate for distance QC is ' + qc_dict['type_isolate'] + '\n')
-
     # First check with numpy, which is quicker than iterating over everything
     #long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])])[1].tolist()
     long_distance_rows = np.where([(distMat[:, 0] > qc_dict['max_pi_dist']) | (distMat[:, 1] > qc_dict['max_a_dist'])],0,1)[0].tolist()
@@ -285,7 +281,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                 int_offset = 0)
 
     failed = prune_edges(long_edges,
-                                 type_isolate=names.index(qc_dict['type_isolate']),
                                  query_start=len(refList),
                                  allow_ref_ref=self)
     # Convert the edge IDs back to sample names
@@ -302,7 +297,6 @@ def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
                                                     num_ref = len(refList),
                                                     int_offset = 0)
         failed = prune_edges(zero_edges,
-                            type_isolate=names.index(qc_dict['type_isolate']),
                             query_start=len(refList),
                             failed=failed,
                             min_count=zero_count,
@@ -366,18 +360,15 @@ def qcQueryAssignments(rList, qList, query_assignments, max_clusters,
             retained_samples.append(query)
     return retained_samples, failed_samples
 
-def prune_edges(long_edges, type_isolate, query_start,
+def prune_edges(long_edges, query_start,
                 failed=None, min_count=1, allow_ref_ref=True):
     """Gives a list of failed vertices from a list of failing
     edges. Tries to prune by those nodes with highest degree of
-    bad nodes, preferentially removes queries, and doesn't remove
-    the type isolate
+    bad nodes, preferentially removes queries.
 
     Args:
         long_edges (list of tuples)
             List of bad edges as node IDs
-        type_isolate (int)
-            The node ID of the type isolate
         query_start (int)
             The first node ID which corresponds to queries
         failed (set or None)
@@ -405,7 +396,7 @@ def prune_edges(long_edges, type_isolate, query_start,
                 # Do not add any refs if querying
                 if r < query_start and q < query_start:
                     if allow_ref_ref:
-                        if q == type_isolate or (counts[r] > counts[q] and counts[r] >= min_count):
+                        if (counts[r] > counts[q] and counts[r] >= min_count):
                             failed.add(r)
                         elif counts[q] >= min_count:
                             failed.add(q)
@@ -423,7 +414,7 @@ def prune_edges(long_edges, type_isolate, query_start,
 def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                    strand_preserved=False, threads=1, use_gpu=False):
     """Removes samples failing QC from the database and distances. Also
-    recalculates random match chances.
+    recalculates random match chances. Return a new distance matrix.
 
     Args:
         qc_dict (dict)
@@ -449,6 +440,9 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
             [default = 1].
         use_gpu (bool)
             Whether GPU libraries were used to generate the original network.
+    Return:
+        newDistMat (numpy.array)
+            Updated version of distMat
     """
     from .sketchlib import removeFromDB, addRandom, readDBParams
 
@@ -467,7 +461,7 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
                     passed,
                     full_names = True)
     # new database file if pruning
-    if failed and not qc_dict['no_remove']:
+    if not qc_dict['no_remove']:
         # sys.stderr.write(f"Removing {len(failed)} samples from database and distances\n")
         tmp_filtered_db_name = f"{prefix}/filtered.{os.path.basename(prefix)}.h5"
         output_db_name = f"{prefix}/{os.path.basename(prefix)}.h5"
@@ -479,7 +473,7 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
         os.rename(tmp_filtered_db_name, output_db_name)
 
         # Remove from the distMat too
-        prune_distance_matrix(names,
+        (_, newDistMat) = prune_distance_matrix(names,
                               failed,
                               distMat,
                               f"{prefix}/{os.path.basename(prefix)}.dists")
@@ -500,6 +494,8 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
 
     # write failing & reasons
     write_qc_failure_report(failed, fail_dicts, prefix)
+
+    return newDistMat
 
 def write_qc_failure_report(failed_samples, fail_dicts, output_prefix):
     """
@@ -535,51 +531,3 @@ def get_failure_reasons(sample, fail_dicts):
         if sample in fail_dict
         for reason in fail_dict[sample]
     ]
-    
-def pickTypeIsolate(prefix, refList):
-    """Selects a type isolate as that with a minimal proportion
-    of missing data.
-
-    Args:
-        prefix (str)
-            Prefix for database
-        refList (list)
-            References to pick from
-
-    Returns:
-        type_isolate (str)
-            Name of isolate selected as reference
-    """
-    # open databases
-    import h5py
-    db_name = prefix + '/' + os.path.basename(prefix) + '.h5'
-    hdf_in = h5py.File(db_name, 'r')
-
-    min_prop_n = 1.0
-    type_isolate = None
-
-    try:
-        # process data structures
-        read_grp = hdf_in['sketches']
-        # iterate through sketches
-        for sample in refList:
-            if sample in read_grp:
-                if 'reads' in hdf_in['sketches'][sample].attrs and \
-                    hdf_in['sketches'][sample].attrs['reads']:
-                    sample_prop_n = 1.0
-                else:
-                    sample_prop_n = hdf_in['sketches'][sample].attrs['missing_bases']/hdf_in['sketches'][sample].attrs['length']
-                if sample_prop_n < min_prop_n:
-                    min_prop_n = sample_prop_n
-                    type_isolate = sample
-                if min_prop_n == 0.0:
-                    break
-    # if failure still close files to avoid corruption
-    except:
-        hdf_in.close()
-        sys.stderr.write('Problem processing h5 databases during QC - aborting\n')
-        print("Unexpected error:", sys.exc_info()[0], file = sys.stderr)
-        raise
-
-    return type_isolate
-
