@@ -9,3 +9,6 @@ __version__ = '2.7.8'
 SKETCHLIB_MAJOR = 2
 SKETCHLIB_MINOR = 0
 SKETCHLIB_PATCH = 1
+
+# Lineage search depth default
+SEARCH_DEPTH_FACTOR = 10

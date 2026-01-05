@@ -190,7 +190,12 @@ def create_db(args):
         else:
             max_search_depth = args.max_search_depth
     else:
-        max_search_depth = max(rank_list)*10
+        # By default retain a larger number of search distances
+        # than the maximum requested rank because when counting only
+        # unique distances, and merging distances differing by less
+        # than epsilon, more than the max rank number of values is
+        # required
+        max_search_depth = max(rank_list)*SEARCH_DEPTH_FACTOR
 
     sys.stderr.write("Generating databases for individual strains\n")
     # Dicts for storing typing information

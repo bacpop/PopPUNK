@@ -11,6 +11,7 @@ from collections import defaultdict
 
 # import poppunk package
 from .__init__ import __version__
+from .__init__ import SEARCH_DEPTH_FACTOR
 
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
@@ -579,7 +580,12 @@ def main():
                 if args.max_search_depth is not None:
                     max_search_depth = int(args.max_search_depth)
                 else:
-                    max_search_depth = max(rank_list)*10
+                    # By default retain a larger number of search distances
+                    # than the maximum requested rank because when counting only
+                    # unique distances, and merging distances differing by less
+                    # than epsilon, more than the max rank number of values is
+                    # required
+                    max_search_depth = max(rank_list)*SEARCH_DEPTH_FACTOR
 
                 model = LineageFit(output,
                                     rank_list,
