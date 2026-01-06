@@ -11,6 +11,7 @@ from collections import defaultdict
 
 # import poppunk package
 from .__init__ import __version__
+from .__init__ import SEARCH_DEPTH_FACTOR, DEFAULT_LINEAGE_RESOLUTION
 
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
@@ -190,7 +191,7 @@ def get_options():
                                 help='Number of kNN distances per sequence to filter when '
                                       'counting neighbours or using only reciprocal matches',
                                 type = int,
-                                default = None)
+                                default = 10000)
     lineagesGroup.add_argument('--write-lineage-networks',
                                 help='Save all lineage networks',
                                 action = 'store_true',
@@ -199,6 +200,10 @@ def get_options():
                                 help='Use accessory distances for lineage definitions [default = use core distances]',
                                 action = 'store_true',
                                 default = False)
+    lineagesGroup.add_argument('--lineage-resolution',
+                                help='Minimum genetic separation between isolates required to initiate a new lineage',
+                                type = float,
+                                default = DEFAULT_LINEAGE_RESOLUTION)
 
     other = parser.add_argument_group('Other options')
     other.add_argument('--threads', default=1, type=int, help='Number of threads to use [default = 1]')
@@ -273,7 +278,6 @@ def main():
     from .utils import setupDBFuncs
     from .utils import readPickle, storePickle
     from .utils import createOverallLineage
-    from .utils import get_match_search_depth
     from .utils import check_and_set_gpu
 
     # check kmer properties
@@ -568,21 +572,24 @@ def main():
                 # Memory usage determined by maximum search depth
                 if args.max_search_depth is not None:
                     max_search_depth = int(args.max_search_depth)
-                elif args.max_search_depth is None and (args.reciprocal_only or args.count_unique_distances):
-                    max_search_depth = get_match_search_depth(refList,rank_list)
                 else:
-                    max_search_depth = max(rank_list)
+                    # By default retain a larger number of search distances
+                    # than the maximum requested rank because when counting only
+                    # unique distances, and merging distances differing by less
+                    # than epsilon, more than the max rank number of values is
+                    # required
+                    max_search_depth = max(rank_list)*SEARCH_DEPTH_FACTOR
 
                 model = LineageFit(output,
                                     rank_list,
                                     max_search_depth,
                                     args.reciprocal_only,
                                     args.count_unique_distances,
+                                    args.lineage_resolution,
                                     1 if args.use_accessory else 0,
                                     use_gpu = args.gpu_graph)
                 model.set_threads(args.threads)
-                model.fit(distMat,
-                            args.use_accessory)
+                model.fit(distMat)
 
                 assignments = {}
                 for rank in rank_list:

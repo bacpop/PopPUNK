@@ -84,8 +84,8 @@ def get_options():
                         'minimum spanning tree',
                         default=None,
                         type = str)
-    iGroup.add_argument('--recalculate-distances',
-                        help='Recalculate pairwise distances rather than read them from a file',
+    iGroup.add_argument('--read-distances',
+                        help='Read pairwise distances from a file rather than recalculate them',
                         default=False,
                         action = 'store_true')
     iGroup.add_argument('--network-file',
@@ -178,6 +178,9 @@ def create_pruned_tmp_db(prefix,subset):
     from .sketchlib import removeFromDB
     from .sketchlib import getSeqsInDb
 
+    if subset is None:
+        subset = set()
+
     h5_name = prefix + "/" + os.path.basename(prefix) + ".h5"
     tmp_h5_name = prefix + "/" + os.path.basename(prefix) + ".tmp.h5"
     sequences_in_db = getSeqsInDb(h5_name)
@@ -221,7 +224,7 @@ def generate_visualisations(query_db,
                             display_cluster,
                             use_partial_query_graph,
                             extend_query_graph,
-                            recalculate_distances,
+                            read_distances,
                             tmp):
 
     from .models import loadClusterFit
@@ -265,6 +268,11 @@ def generate_visualisations(query_db,
 
     # Check on parallelisation of graph-tools
     setGtThreads(threads)
+  
+    # Source of distance information
+    recalculate_distances = True
+    if read_distances or rank_fit is not None or distances is not None:
+        recalculate_distances = False
 
     sys.stderr.write("PopPUNK: visualise\n")
     if not (microreact or phandango or grapetree or cytoscape):
@@ -313,10 +321,7 @@ def generate_visualisations(query_db,
 
     # Identify distance matrix for ordered names
     if distances is None:
-        if query_db is None:
-            distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
-        else:
-            distances = query_db + "/" + os.path.basename(query_db) + ".dists"
+        distances = ref_db + "/" + os.path.basename(ref_db) + ".dists"
     else:
         distances = distances
 
@@ -330,8 +335,13 @@ def generate_visualisations(query_db,
     ref_db_loc = ref_db + "/" + os.path.basename(ref_db)
     kmers, sketch_sizes, codon_phased = readDBParams(ref_db)
 
-    # extract subset of distances if requested
-    combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = True)
+    # extract subset of distances if requested - allow for a different reference database to be used as distances are recalculated by default
+    qlist = None
+    raw_combined_seq = read_rlist_from_distance_pickle(distances + '.pkl', include_queries = False)
+    if query_db is not None:
+        qlist = read_rlist_from_distance_pickle(query_db + "/" + os.path.basename(query_db) + '.dists.pkl', only_queries = True)
+        raw_combined_seq = raw_combined_seq + qlist
+    combined_seq = list(dict.fromkeys(raw_combined_seq))
     all_seq = combined_seq # all_seq is an immutable record use for network parsing
     if include_files is not None or use_partial_query_graph is not None:
         viz_subset = set()
@@ -339,7 +349,10 @@ def generate_visualisations(query_db,
         subset_file = include_files if include_files is not None else use_partial_query_graph
         with open(subset_file, 'r') as assemblyFiles:
             for assembly in assemblyFiles:
-                viz_subset.add(assembly.rstrip())
+                assembly = assembly.rstrip()
+                if assembly in all_seq:
+                    viz_subset.add(assembly)
+
         if len(viz_subset.difference(combined_seq)) > 0:
             sys.stderr.write("--include-files contains names not in --distances\n")
             sys.stderr.write("Please assign distances before subsetting the database\n")
@@ -392,8 +405,13 @@ def generate_visualisations(query_db,
             if model.type == "lineage":
                 mode = "lineages"
                 suffix = "_lineages.csv"
-            cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
+            # Load from reference database if it contains a clustering file (e.g. post query); load from model directory otherwise
+            if os.path.exists(os.path.join(ref_db, os.path.basename(ref_db) + suffix)):
+                cluster_file = os.path.join(ref_db, os.path.basename(ref_db) + suffix)
+            else:
+                cluster_file = os.path.join(model_prefix, os.path.basename(model_prefix) + suffix)
 
+    sys.stderr.write("Loading clustering from " + cluster_file + "; change this using --previous-clustering if necessary\n")
     isolateClustering = readIsolateTypeFromCsv(cluster_file,
                                                mode = mode,
                                                return_dict = True)
@@ -461,20 +479,27 @@ def generate_visualisations(query_db,
               tmp_ref_h5_file, rlist = create_pruned_tmp_db(ref_db,viz_subset)
             else:
               sequences_to_analyse = combined_seq
-              tmp_ref_h5_file = ref_db
+              tmp_ref_h5_file = ref_db + "/" + os.path.basename(ref_db) + ".h5"
             viz_db_name = output + "/" + os.path.basename(output)
+            if os.path.exists(viz_db_name + ".h5") and overwrite:
+                os.remove(viz_db_name + ".h5")
             if query_db is not None:
                 # Add from query database
-                query_db_loc = query_db + "/" + os.path.basename(query_db)
-                tmp_query_h5_file, qlist = create_pruned_tmp_db(query_db,viz_subset)
+                query_db_loc = query_db + "/" + os.path.basename(query_db) + ".h5"
+                if viz_subset is not None:
+                    tmp_query_h5_file, qlist = create_pruned_tmp_db(query_db,viz_subset)
+                else:
+                    tmp_query_h5_file = query_db_loc
                 joinDBs(tmp_ref_h5_file,
                     tmp_query_h5_file,
                     viz_db_name,
                     full_names = True)
-                os.remove(tmp_query_h5_file)
-                os.remove(tmp_ref_h5_file)
+
             else:
-                os.rename(tmp_ref_h5_file,viz_db_name)
+                os.symlink(os.path.relpath(tmp_ref_h5_file,
+                            os.path.dirname(viz_db_name)
+                          ),
+                          viz_db_name + ".h5")
 
             # Generate distances
             sys.stderr.write("Comparing sketches\n")
@@ -495,6 +520,12 @@ def generate_visualisations(query_db,
               update_distance_matrices(sequences_to_analyse,
                                        subset_distMat,
                                        threads = threads)
+
+            # Tidy up
+            if viz_subset is not None:
+                os.remove(tmp_ref_h5_file)
+                if query_db is not None:
+                    os.remove(tmp_query_h5_file)
 
         else:
             sys.stderr.write("Reading pairwise distances for tree construction\n")
@@ -556,17 +587,17 @@ def generate_visualisations(query_db,
                                              qlist, qr_distMat, qq_distMat,
                                              threads = threads)
 
-            # Prune distance matrix if subsetting data
-            if viz_subset is not None:
-              row_slice = [True if name in viz_subset else False for name in combined_seq]
-              combined_seq = [name for name in combined_seq if name in viz_subset]
-              if use_sparse:
-                  sparse_mat = sparse_mat[np.ix_(row_slice, row_slice)]
-              if use_dense:
-                  if qlist != None:
-                      qlist = list(viz_subset.intersection(qlist))
-                  core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
-                  acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
+        # Prune distance matrix if subsetting data - whether distances were read or recalculated
+        if viz_subset is not None:
+            row_slice = [True if name in viz_subset else False for name in combined_seq]
+            combined_seq = [name for name in combined_seq if name in viz_subset]
+            if use_sparse:
+                sparse_mat = sparse_mat[np.ix_(row_slice, row_slice)]
+            if use_dense:
+                if qlist != None:
+                    qlist = list(viz_subset.intersection(qlist))
+                core_distMat = core_distMat[np.ix_(row_slice, row_slice)]
+                acc_distMat = acc_distMat[np.ix_(row_slice, row_slice)]
 
 
     #*******************#
@@ -574,7 +605,6 @@ def generate_visualisations(query_db,
     #* Generate trees  *#
     #*                 *#
     #*******************#
-
     # Generate trees
     mst_tree = None
     mst_graph = None
@@ -669,6 +699,9 @@ def generate_visualisations(query_db,
     #*              *#
     #****************#
 
+    # Set default
+    if query_db is None:
+        qlist = None
     # Now have all the objects needed to generate selected visualisations
     if microreact:
         sys.stderr.write("Writing microreact output\n")
@@ -759,7 +792,6 @@ def generate_visualisations(query_db,
                             use_partial_query_graph = use_partial_query_graph)
         if model.type == 'lineage':
             sys.stderr.write("Note: Only support for output of cytoscape graph at lowest rank\n")
-
     sys.stderr.write("\nDone\n")
 
 def main():
@@ -800,7 +832,7 @@ def main():
                             args.display_cluster,
                             args.use_partial_query_graph,
                             args.extend_query_graph,
-                            args.recalculate_distances,
+                            args.read_distances,
                             args.tmp)
 
 if __name__ == '__main__':

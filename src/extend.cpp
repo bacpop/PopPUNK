@@ -10,7 +10,6 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 #include <iostream>
-const float epsilon = 1E-10;
 
 // Get indices where each row starts in the sparse matrix
 std::vector<long> row_start_indices(const sparse_coo &sparse_rr_mat,
@@ -147,7 +146,8 @@ struct pair_hash {
 
 sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
                       const size_t kNN, bool reciprocal_only,
-                      bool count_unique_distances, size_t num_threads = 1) {
+                      bool count_unique_distances, float epsilon,
+                      size_t num_threads = 1) {
   // Data structures for iteration
   size_t len = 0;
   std::vector<long> row_start_idx = row_start_indices(sparse_rr_mat, n_samples);
@@ -168,7 +168,10 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
       std::vector<long> rr_ordered_idx = sort_indexes(rr_dists, 1);
 
       long unique_neighbors = 0;
-      float prev_value = -1;
+      float prev_value = 0.0;
+      dists[i] = {};
+      i_vec[i] = {};
+      j_vec[i] = {};
       bool new_val;
       for (auto rr_it = rr_ordered_idx.cbegin(); rr_it != rr_ordered_idx.cend();
            ++rr_it) {
@@ -177,19 +180,21 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
         if (j == i) {
           continue;
         }
-        if (unique_neighbors < kNN) {
+        // For count unique distances - stop before adding the first
+        // representative of a new distance to avoid inconsistent links
+        if (count_unique_distances) {
+          new_val = abs(dist - prev_value) >= epsilon;
+          if (new_val) {
+            unique_neighbors++;
+            prev_value = dist;
+          }
+        } else {
+          unique_neighbors = j_vec[i].size();
+        }
+        if (unique_neighbors <= kNN) {
           dists[i].push_back(dist);
           i_vec[i].push_back(i);
           j_vec[i].push_back(j);
-          if (count_unique_distances) {
-            new_val = abs(dist - prev_value) >= epsilon;
-            if (new_val) {
-              unique_neighbors++;
-              prev_value = dist;
-             }
-          } else {
-            unique_neighbors = j_vec[i].size();
-          }
         } else {
           break; // next i
         }
@@ -240,8 +245,10 @@ sparse_coo lower_rank(const sparse_coo &sparse_rr_mat, const size_t n_samples,
   return (std::make_tuple(i_vec_all, j_vec_all, dists_all));
 }
 
-sparse_coo get_kNN_distances(const NumpyMatrix &distMat, const int kNN,
-                             const size_t dist_col, const size_t num_threads) {
+sparse_coo get_kNN_distances(const NumpyMatrix &distMat,
+                             const int kNN,
+                             const size_t dist_col,
+                             const size_t num_threads) {
 
   size_t dist_rows = distMat.rows();
   std::vector<float> dists(dist_rows * kNN);

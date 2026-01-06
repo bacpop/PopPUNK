@@ -593,7 +593,7 @@ def check_and_set_gpu(use_gpu, gpu_lib, quit_on_fail = False):
 
     return use_gpu
 
-def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries = False):
+def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries = False, only_queries = False):
     """Return the list of reference sequences from a distance pickle.
 
     Args:
@@ -603,6 +603,8 @@ def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries =
             Whether non-self distance datasets are permissible
         include_queries (bool)
             Whether queries should be included in the rlist
+        only_queries (bool)
+            Whether only the query distances should be returned
     Returns:
         rlist (list)
             List of reference sequence names
@@ -610,28 +612,11 @@ def read_rlist_from_distance_pickle(fn, allow_non_self = True, include_queries =
     with open(fn, 'rb') as pickle_file:
         rlist, qlist, self = pickle.load(pickle_file)
         if not allow_non_self and not self:
-            sys.stderr.write("Thi analysis requires an all-v-all"
+            sys.stderr.write("This analysis requires an all-v-all"
                              " distance dataset\n")
             sys.exit(1)
         if include_queries:
             rlist = rlist + qlist
+        if only_queries:
+            rlist = qlist
     return rlist
-
-def get_match_search_depth(rlist,rank_list):
-    """Return a default search depth for lineage model fitting.
-
-    Args:
-        rlist (list)
-            List of sequences in database
-        rank_list (list)
-            List of ranks to be used to fit lineage models
-    Returns:
-        max_search_depth (int)
-            Maximum kNN used for lineage model fitting
-    """
-    # Defaults to maximum of 10% of database size, unless this is smaller than the maximum search rank
-    max_search_depth = max([int(0.1*len(rlist)),int(1.1*max(rank_list)),int(1+max(rank_list))])
-    # Cannot be higher than the number of comparisons
-    if max_search_depth > len(rlist) - 1:
-        max_search_depth = len(rlist) - 1
-    return max_search_depth

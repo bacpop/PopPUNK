@@ -11,13 +11,17 @@ import shutil
 import pandas as pd
 from collections import defaultdict
 
+from .__init__ import SEARCH_DEPTH_FACTOR, DEFAULT_LINEAGE_RESOLUTION
+
 from .assign import assign_query_hdf5
 from .network import construct_network_from_edge_list, printClusters, save_network
 from .models import LineageFit
 from .plot import writeClusterCsv
 from .sketchlib import readDBParams
 from .qc import prune_distance_matrix, sketchlibAssemblyQC
-from .utils import createOverallLineage, get_match_search_depth, readPickle, setupDBFuncs
+from .utils import createOverallLineage, readPickle, setupDBFuncs, update_distance_matrices, storePickle
+
+import pp_sketchlib
 
 # command line parsing
 def get_options():
@@ -114,7 +118,7 @@ def get_options():
                                     help="Number of kNN distances per sequence to filter when "
                                     "counting neighbours or using only reciprocal matches",
                                     type = int,
-                                    default = None)
+                                    default = 10000)
     lGroup.add_argument('--use-accessory',
                                     help="Use accessory distances for lineage clustering",
                                     action = 'store_true',
@@ -130,6 +134,10 @@ def get_options():
                                     help="Only use reciprocal kNN matches for lineage definitions",
                                     action = 'store_true',
                                     default = False)
+    lGroup.add_argument('--lineage-resolution',
+                                help="Minimum genetic separation between isolates required to initiate a new lineage",
+                                type = float,
+                                default = DEFAULT_LINEAGE_RESOLUTION)
 
     return parser.parse_args()
 
@@ -165,15 +173,13 @@ def create_db(args):
     else:
         clustering_file = args.external_clustering
     strains = pd.read_csv(clustering_file, dtype = str).groupby(args.clustering_col_name)
-
+    
     sys.stderr.write("Extracting properties of database\n")
     # Get rlist
     if args.distances is None:
         distances = os.path.join(args.create_db,os.path.basename(args.create_db) + ".dists")
     else:
         distances = args.distances
-    # Get distances
-    rlist, qlist, self, X = readPickle(distances, enforce_self=False, distances=True)
     # Get parameters
     kmers, sketch_sizes, codon_phased = readDBParams(args.create_db)
     # Ranks to use
@@ -185,9 +191,15 @@ def create_db(args):
         else:
             max_search_depth = args.max_search_depth
     else:
-        max_search_depth = get_match_search_depth(rlist,rank_list)
+        # By default retain a larger number of search distances
+        # than the maximum requested rank because when counting only
+        # unique distances, and merging distances differing by less
+        # than epsilon, more than the max rank number of values is
+        # required
+        max_search_depth = max(rank_list)*SEARCH_DEPTH_FACTOR
 
     sys.stderr.write("Generating databases for individual strains\n")
+    all_isolates = list()
     # Dicts for storing typing information
     lineage_dbs = {}
     overall_lineage = {}
@@ -199,6 +211,7 @@ def create_db(args):
         num_isolates = len(isolate_list)
         if num_isolates >= args.min_count:
             lineage_dbs[strain] = strain_db_name
+            all_isolates.extend(isolate_list)
             if os.path.isdir(strain_db_name) and args.overwrite:
                 sys.stderr.write("--overwrite means {strain_db_name} will be deleted now\n")
                 shutil.rmtree(strain_db_name)
@@ -217,27 +230,32 @@ def create_db(args):
                 shutil.rmtree(dest_db)
             elif not os.path.exists(dest_db):
                 os.symlink(rel_path,dest_db)
-            # Extract sparse distances
-            prune_distance_matrix(rlist,
-                            list(set(rlist) - set(isolate_list)),
-                            X,
-                            os.path.join(strain_db_name,strain_db_name + '.dists'))
+            # Store isolate names
+            storePickle(isolate_list, isolate_list, True, None, os.path.join(strain_db_name,strain_db_name + '.dists'))
+            # Calculate within-strain distances
+            strain_distMat = pp_sketchlib.queryDatabase(ref_db_name=dest_db.replace('.h5',''),
+                                                        query_db_name=dest_db.replace('.h5',''),
+                                                        rList=isolate_list,
+                                                        qList=isolate_list,
+                                                        klist=kmers.tolist(),
+                                                        random_correct=True,
+                                                        jaccard=False,
+                                                        num_threads=args.threads,
+                                                        use_gpu = args.gpu_dist,
+                                                        device_id = args.deviceid)
+
             # Initialise model
             model = LineageFit(strain_db_name,
                       rank_list,
                       max_search_depth,
                       args.reciprocal_only,
                       args.count_unique_distances,
+                      args.lineage_resolution,
+                      dist_col = 1 if args.use_accessory else 0,
                       use_gpu = args.gpu_graph)
             model.set_threads(args.threads)
-            # Load pruned distance matrix
-            strain_rlist, strain_qlist, strain_self, strain_X = \
-                                readPickle(os.path.join(strain_db_name,strain_db_name + '.dists'),
-                                            enforce_self=False,
-                                            distances=True)
             # Fit model
-            model.fit(strain_X,
-                        args.use_accessory)
+            model.fit(strain_distMat)
             # Lineage fit requires some iteration
             indivNetworks = {}
             lineage_clusters = defaultdict(dict)
@@ -246,8 +264,8 @@ def create_db(args):
                 if rank <= num_isolates:
                     assignments = model.assign(rank)
                 # Generate networks
-                indivNetworks[rank] = construct_network_from_edge_list(strain_rlist,
-                                                            strain_rlist,
+                indivNetworks[rank] = construct_network_from_edge_list(isolate_list,
+                                                            isolate_list,
                                                             assignments,
                                                             weights = None,
                                                             betweenness_sample = None,
@@ -262,7 +280,7 @@ def create_db(args):
                 # Identify clusters from output
                 lineage_clusters[rank] = \
                     printClusters(indivNetworks[rank],
-                                  strain_rlist,
+                                  isolate_list,
                                   printCSV = False,
                                   use_gpu = args.gpu_graph)[0]
                 n_clusters = max(lineage_clusters[rank].values())
@@ -271,8 +289,8 @@ def create_db(args):
             # For each strain, print output of each rank as CSV
             overall_lineage[strain] = createOverallLineage(rank_list, lineage_clusters)
             writeClusterCsv(os.path.join(strain_db_name,os.path.basename(strain_db_name) + '_lineages.csv'),
-                strain_rlist,
-                strain_rlist,
+                isolate_list,
+                isolate_list,
                 overall_lineage[strain],
                 output_format = 'phandango',
                 epiCsv = None,
@@ -282,12 +300,12 @@ def create_db(args):
             model.save()
 
     # Print combined strain and lineage clustering
-    print_overall_clustering(overall_lineage,args.output + '.csv',rlist)
+    print_overall_clustering(overall_lineage,args.output + '.csv',all_isolates)
 
     # Write scheme to file
     with open(args.db_scheme, 'wb') as pickle_file:
         pickle.dump([args.create_db,
-                      rlist,
+                      isolate_list,
                       args.model_dir,
                       clustering_file,
                       args.clustering_col_name,
