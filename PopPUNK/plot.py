@@ -130,7 +130,7 @@ def plot_evaluation_histogram(input_data, n_bins = 100, prefix = 'hist',
     plt.xlabel(xlab)
     plt.ylabel('Frequency')
     plt.savefig(os.path.join(prefix, os.path.basename(prefix) + '_' + suffix + '.png'))
-    plt.savefig(os.path.join(prefix,prefix + '.png'))
+    #plt.savefig(os.path.join(prefix,prefix + '.png'))
     plt.close()
 
 def plot_fit(klist, raw_matching, raw_fit, corrected_matching, corrected_fit, out_prefix, title):
