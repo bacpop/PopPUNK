@@ -3,16 +3,12 @@ Overview
 This page details the way in which we would advise that you *should* use and
 run PopPUNK, if possible.
 
-.. image:: images/poppunk_flowchart.png
-   :alt:  Flowchart for choosing how to use PopPUNK
-   :align: center
-
 Use the command line interface
 ------------------------------
 
 Installation and version
 ^^^^^^^^^^^^^^^^^^^^^^^^
-Install via conda if possible. Version 2.5.0 of PopPUNK and version 2.0.0 of pp-sketchlib
+Install via conda if possible. Version 2.7.8 of PopPUNK and version 2.0.1 of pp-sketchlib
 are the current minimum supported versions.
 
 Use query assignment mode
@@ -34,6 +30,10 @@ to define your sample's strains.
 
 If you want to avoid any merged clusters (and get 'stable nomenclature') use the
 ``--stable`` flag.
+
+GPSCs for *Streptococcus pneumoniae*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Current best practices are listed on the [pneumogen website](https://www.pneumogen.net/gps/#/training#gpsc-assignment) of the GPS project.
 
 Fit your own model
 ^^^^^^^^^^^^^^^^^^
