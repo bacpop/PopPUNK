@@ -235,6 +235,64 @@ def sketchlibAssemblyQC(prefix, names, qc_dict):
 
     return retained_samples, failed_samples
 
+def autoDistFind(distMat,qc_dict):
+    """Find the distance threshold above which the distances are too far 
+       apart from the major population.
+
+    Args:
+        
+        x (float)
+            Sensitivity. A distance has to be at least 1+x times bigger than 
+            the distance 1 percent below it to be considered as an outlier.
+        r (float)
+            Resolution of detection. The smallest unit of increment in terms 
+            of number of distances in scanning through the distance list.
+    """ 
+
+    L = len(distMat)  # Total number of distance pairs
+    # Calculate the number of bins that gives a resolution of r distances per bin
+    n = int(L/qc_dict['r'])   # n = number of bins
+    step = int(n//100)  # step = number of bins in 1%. 
+    s = step-1  # step -1 for ease of notation later 
+    y = 100*step*qc_dict['x']/n+1  # y = modified x. Same sensitivity as x but across a step of bins.
+    percentiles = np.linspace(100/n,100,n)
+
+    pi = distMat[:,0]
+    a = distMat[:,1]
+    pi_pcs = np.percentile(pi,percentiles)
+    a_pcs = np.percentile(a,percentiles)
+    
+    print(f"Detecting maximum distance cut-offs")
+    print(f"Using x={qc_dict['x']}, r={qc_dict['r']}")
+
+    # Jump detection
+    pi_jumps = []
+    a_jumps = []
+    j = 0
+    for pcs in [pi_pcs,a_pcs]:    
+        # Start searching for jumps from 75% upwards, stopping at i+1 = n.
+        for i in range(int(len(pcs)*0.75),len(pcs)-1):
+            if pcs[i-s]*y < pcs[i+1] and j == 0:
+                pi_jumps.append(pcs[i])
+            if pcs[i-s]*y < pcs[i+1] and j == 1:
+                a_jumps.append(pcs[i])
+        j +=1
+
+    
+    if len(pi_jumps) != 0:
+        max_pi = min(pi_jumps)
+    else:
+        max_pi = max(pi)
+        print("No outlier detected in core distance")
+
+    if len(a_jumps) != 0:
+        max_a = min(a_jumps)
+    else:
+        max_a = max(a)
+        print("No outlier detected in accessory distance")
+    
+    return max_pi, max_a
+
 
 def qcDistMat(distMat, refList, queryList, ref_db, qc_dict):
     """Checks distance matrix for outliers.
