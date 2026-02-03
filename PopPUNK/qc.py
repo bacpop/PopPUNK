@@ -262,34 +262,33 @@ def autoDistFind(distMat,qc_dict):
     pi_pcs = np.percentile(pi,percentiles)
     a_pcs = np.percentile(a,percentiles)
     
-    print(f"Detecting maximum distance cut-offs")
-    print(f"Using x={qc_dict['x']}, r={qc_dict['r']}")
+    sys.stderr.write(f"Detecting maximum distance cut-offs")
+    sys.stderr.write(f"Using x={qc_dict['x']}, r={qc_dict['r']}")
 
     # Jump detection
     pi_jumps = []
     a_jumps = []
-    j = 0
-    for pcs in [pi_pcs,a_pcs]:    
+    
+    for j, pcs in enumerate([pi_pcs,a_pcs]):    
         # Start searching for jumps from 75% upwards, stopping at i+1 = n.
         for i in range(int(len(pcs)*0.75),len(pcs)-1):
             if pcs[i-s]*y < pcs[i+1] and j == 0:
                 pi_jumps.append(pcs[i])
             if pcs[i-s]*y < pcs[i+1] and j == 1:
-                a_jumps.append(pcs[i])
-        j +=1
+                a_jumps.append(pcs[i])      
 
     
     if len(pi_jumps) != 0:
         max_pi = min(pi_jumps)
     else:
         max_pi = max(pi)
-        print("No outlier detected in core distance")
+        sys.stderr.write("No outlier detected in core distance")
 
     if len(a_jumps) != 0:
         max_a = min(a_jumps)
     else:
         max_a = max(a)
-        print("No outlier detected in accessory distance")
+        sys.stderr.write("No outlier detected in accessory distance")
     
     return max_pi, max_a
 
