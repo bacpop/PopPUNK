@@ -116,6 +116,9 @@ After ``--auto-max-dists both`` under default settings::
 You can tune distance quality control to be more strict by using smaller ``x``. For example, ``x = 0.1`` would remove the S. pneumoniae 
 cluster at the top right corner, which belongs to a population with a distinct biological feature.
 
+The default ``r`` should be enough for datasets of more than 100 genomes. To make sure all outliers are picked out, ``r`` / (number of distance pairs) 
+needs to be smaller than 1 / (number of genomes). You can increase resolution by decreasing ``r`` at negligible time cost.
+
 QC of the network (assign only)
 -------------------------------
 Finally, you may also check network properties.
