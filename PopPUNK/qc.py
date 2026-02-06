@@ -262,8 +262,7 @@ def autoDistFind(distMat,qc_dict):
     pi_pcs = np.percentile(pi,percentiles)
     a_pcs = np.percentile(a,percentiles)
     
-    sys.stderr.write(f"Detecting maximum distance cut-offs")
-    sys.stderr.write(f"Using x={qc_dict['x']}, r={qc_dict['r']}")
+    sys.stderr.write(f"Detecting maximum distance cutoffs using x = {qc_dict['x']}, r = {qc_dict['r']}\n")
 
     # Jump detection
     pi_jumps = []
