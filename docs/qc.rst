@@ -14,7 +14,8 @@ The following criteria are available:
 
 - Outlying genome length (calculated during sketching, for assemblies or reads) with ``--length-range`` and/or ``--length-sigma``.
 - Too many 'N's with ``--prop-n`` and/or ``--upper-n``.
-- Outlying core or accessory distances with ``--max-pi-dist`` and ``--max-a-dist`` respectively.
+- Outlying core or accessory distances manually with ``--max-pi-dist`` and ``--max-a-dist`` respectively.
+- Outlying core and/or accessory distances automatically with ``--auto-max-dists``, with customisable sensitivity ``--x`` and resolution ``--r``.
 - Too many zero distances with ``--max-zero-dist``.
 
 For ``poppunk --create-db`` only:
@@ -60,6 +61,63 @@ The maximum allowed core distance is also 0.5, by default. This can be altered w
 
 Each isolate may have a proportion of distances that are exactly zero as set by
 ``--max-zero-dist``.
+
+Genome data from multiple sources could contain misannotated genomes or contamination from closely related species. 
+PopPUNK provides an automated maximum distance inclusion option to remove the genomes that are likely to 
+be outliers. To use ``--auto-max-dists``, you would need to specify which distance to do automation (``core``, 
+``accessory`` or ``both``). 
+
+To determine maximum allowed distances, core and accessory distances are each ordered 
+and scanned from the 75th percentile onwards. The list of distances is checked in steps of ``r`` distances 
+(default ``r = 50``) for outlier behaviour. If a distance is more than 1 + ``x`` (default ``x = 0.2``) times greater 
+than the distance 1 percent before it, it will be classified as an outlier. The maximum allowed distance 
+will be selected as the one before the smallest outlier.
+
+Here is an example of automated maximum distance on 5000 Streptococcus pneumoniae genomes sampled from `AlltheBacteria <https://allthebacteria.org/>`__ database. 
+
+Before QC:
+
+.. image:: images/s.pneumoniae_5k_db_distanceDistribution.png
+   :alt:  pneumo 5k raw distances
+   :align: center
+
+After ``--auto-max-dists both`` under default settings::
+    
+    poppunk --qc-db --ref-db s.pneumoniae_5k_db --output s.pneumoniae_5k_qc_default --auto-max-dists both 
+    PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
+            (with backend: sketchlib v2.1.4
+            sketchlib: /Users/apeng/miniconda3/envs/poppunk38/lib/python3.8/site-packages/pp_sketchlib.cpython-38-darwin.so)
+
+    Graph-tools OpenMP parallelisation enabled: with 1 threads
+    Running QC on sketches
+    Using proportion cutoff for ambiguous bases: 0.1
+    Using standard deviation for length cutoff: 5
+    7 samples failed
+    Detecting maximum distance cutoffs using
+    x = 0.2, r = 50
+    Running QC on distances
+    Using cutoff for core distances: 0.01761072874069214
+    Using cutoff for accessory distances: 0.3976665222594735
+    Using cutoff for proportion of zero distances: 0.05
+    8 samples failed
+    4986 samples passed QC
+    Removing 14 sequences
+    Loading network from s.pneumoniae_5k_db/s.pneumoniae_5k_db_graph.gt
+    Network loaded: 5000 samples
+    Recalculating random matches with strand_preserved = False
+    Calculating random match chances using Monte Carlo
+
+    Done
+
+.. image:: images/s.pneumoniae_5k_qc_default_distanceDistribution.png
+   :alt:  pneumo 5k distances after default automatic QC
+   :align: center
+
+You can tune distance quality control to be more strict by using smaller ``x``. For example, ``x = 0.1`` would remove the S. pneumoniae 
+cluster at the top right corner, which belongs to a population with a distinct biological feature.
+
+The default ``r`` should be enough for datasets of more than 100 genomes. To make sure all outliers are picked out, ``r`` / (number of distance pairs) 
+needs to be smaller than 1 / (number of genomes). You can increase resolution by decreasing ``r`` at negligible time cost.
 
 QC of the network (assign only)
 -------------------------------

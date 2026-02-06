@@ -21,6 +21,8 @@ default_prop_n = 0.1
 default_max_zero = 0.05
 default_max_a_dist = 0.5
 default_max_pi_dist = 0.1
+default_x = 0.2
+default_r = 50
 default_max_merge = -1 # off
 
 #******************************#
@@ -110,6 +112,10 @@ def get_options():
                                                 type = float)
     qcGroup.add_argument('--upper-n', help='Threshold ambiguous base count above which sequences will be excluded',
                                                 default=None, type = int)
+    qcGroup.add_argument('--auto-max-dists', help='Find the optimal maxmimum distances to permit by percentile jump detection', 
+                                                choices=["core","accessory","both"], default=None, type=str)
+    qcGroup.add_argument('--x', help=f"Sensitivity of jump detection in automated max distance finding [default = {default_x}]", default=default_x, type=float)
+    qcGroup.add_argument('--r', help=f"Resolution of jump detection in automated max distance finding [default = {default_r}]", default=default_r, type=int)
 
     # model fitting
     modelGroup = parser.add_argument_group('Model fit options')
@@ -272,7 +278,7 @@ def main():
     from .plot import plot_scatter
     from .plot import plot_database_evaluations
 
-    from .qc import prune_distance_matrix, qcDistMat, sketchlibAssemblyQC, remove_qc_fail
+    from .qc import prune_distance_matrix, qcDistMat, sketchlibAssemblyQC, remove_qc_fail, autoDistFind
 
     from .utils import setGtThreads
     from .utils import setupDBFuncs
@@ -422,6 +428,9 @@ def main():
             'max_pi_dist': args.max_pi_dist,
             'max_a_dist': args.max_a_dist,
             'prop_zero': args.max_zero_dist,
+            'auto_max_dists': args.auto_max_dists,
+            'x': args.x,
+            'r':args.r
         }
 
         refList, queryList, self, distMat = readPickle(distances, enforce_self=True)
@@ -442,6 +451,17 @@ def main():
                                 qc_dict)
         sys.stderr.write(f"{len(fail_assembly_qc)} samples failed\n")
 
+        # Automatically look for outliers in core and accessory distances
+        if args.auto_max_dists:
+            auto_max_pi, auto_max_a = autoDistFind(distMat,qc_dict)
+            if args.auto_max_dists == "both":
+                qc_dict["max_pi_dist"] = auto_max_pi
+                qc_dict["max_a_dist"] = auto_max_a
+            elif args.auto_max_dists == "core":
+                qc_dict["max_pi_dist"] = auto_max_pi
+            elif args.auto_max_dists == "accessory":
+                qc_dict["max_a_dist"] = auto_max_a
+        
         # QC pairwise distances to identify long distances indicative of anomalous sequences in the collection
         pass_dist_qc, fail_dist_qc = \
             qcDistMat(distMat,
