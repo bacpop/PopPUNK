@@ -14,7 +14,8 @@ The following criteria are available:
 
 - Outlying genome length (calculated during sketching, for assemblies or reads) with ``--length-range`` and/or ``--length-sigma``.
 - Too many 'N's with ``--prop-n`` and/or ``--upper-n``.
-- Outlying core or accessory distances with ``--max-pi-dist`` and ``--max-a-dist`` respectively.
+- Outlying core or accessory distances manually with ``--max-pi-dist`` and ``--max-a-dist`` respectively.
+- Outlying core and/or accessory distances automatically with ``--auto-max-dists``, with customisable sensitivity ``--x`` and resolution ``--r``.
 - Too many zero distances with ``--max-zero-dist``.
 
 For ``poppunk --create-db`` only:
@@ -60,6 +61,17 @@ The maximum allowed core distance is also 0.5, by default. This can be altered w
 
 Each isolate may have a proportion of distances that are exactly zero as set by
 ``--max-zero-dist``.
+
+Genome data from multiple sources could contain misannotated genomes or contamination from closely related species. 
+PopPUNK provides an automated maximum distance inclusion option to remove the genomes that are likely to 
+be outliers. To use ``--auto-max-dists``, you would need to specify which distance to do automation (core, 
+accessory or both). 
+
+To determine maximum allowed distances, core and accessory distances are each ordered 
+and scanned from the 75th percentile onwards. The list of distances is checked in steps of ``r`` distances 
+(default ``r = 50``) for outlier behaviour. If a distance is more than 1 + ``x`` (default ``x = 0.2``) times greater 
+than the distance 1 percent before it, it will be classified as an outlier. The maximum allowed distance 
+will be selected as the one before the smallest outlier.
 
 QC of the network (assign only)
 -------------------------------
