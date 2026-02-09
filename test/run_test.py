@@ -25,7 +25,8 @@ sys.stderr.write("Running database QC test (--qc-db)\n")
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --length-range 2000000 3000000 --overwrite", shell=True, check=True)
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --remove-samples remove.txt --overwrite", shell=True, check=True)
-# test if QC gives the same output as the original distances when there is no samples to remove
+subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_db --output example_qc --auto-max-dists both --overwrite", shell=True, check=True)
+# test if QC gives the same output as the original distances when there is no sample to remove
 subprocess.run(python_cmd + " ../poppunk-runner.py --qc-db --ref-db example_qc --output example_qc_noRemove", shell=True, check=True)
 
 
