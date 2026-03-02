@@ -2,12 +2,12 @@ import json
 import gzip
 import random
 import string
-import pkg_resources
+from importlib.resources import files
 
 # Based on a simple interpretation of https://simple.wikipedia.org/wiki/Syllable
 def gen_unword(unique=True):
     # Download from https://github.com/dwyl/english-words/raw/master/words_dictionary.json
-    word_list = pkg_resources.resource_stream(__name__, 'data/words_dictionary.json.gz')
+    word_list = files(__package__).joinpath('data/words_dictionary.json.gz')
     with gzip.open(word_list, 'rb') as word_list:
         real_words = json.load(word_list)
 

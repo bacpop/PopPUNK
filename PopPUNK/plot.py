@@ -257,7 +257,7 @@ def plot_dbscan_results(X, y, n_clusters, out_prefix, use_gpu):
         # Convert to numpy for plotting
         import cupy as cp
         X = cp.asnumpy(X)
-    
+
     # Black removed and is used for noise instead.
     unique_labels = set(y)
     colours = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]  # changed to work with two clusters
@@ -846,7 +846,7 @@ def createMicroreact(prefix, microreact_files, api_key=None, info_csv=None):
         info_csv (str)
             CSV file containing additional information for Microreact
     """
-    import pkg_resources
+    from importlib.resources import files
     import pickle
     import requests
     import json
@@ -855,13 +855,13 @@ def createMicroreact(prefix, microreact_files, api_key=None, info_csv=None):
     microreact_api_new_url = "https://microreact.org/api/projects/create"
     description_string = "PopPUNK run on " + datetime.now().strftime("%Y-%b-%d %H:%M")
     # Load example JSON to be modified
-    with pkg_resources.resource_stream(__name__, 'data/microreact_example.pkl') as example_pickle:
-        json_pickle = pickle.load(example_pickle)
+    with files(__package__).joinpath('data/microreact_example.pkl').open('rb') as f:
+        json_pickle = pickle.load(f)
     json_pickle["meta"]["name"] = description_string
-    
+
     # Update maps and timelines
     update_maps_timelines(json_pickle, info_csv)
-    
+
     # Read data in
     with open(microreact_files[0]) as cluster_file:
         csv_string = cluster_file.read()
@@ -904,7 +904,7 @@ def update_maps_timelines(micoreact_sample_json, info_csv=None):
     """
     Update the maps and timelines in the Microreact JSON file.
     Removes maps and timelines if the required columns are not present in the info CSV.
-    
+
     Args:
         micoreact_sample_json (dict)
             Microreact JSON file
@@ -920,7 +920,7 @@ def update_maps_timelines(micoreact_sample_json, info_csv=None):
             micoreact_sample_json["maps"] = {}
         if 'year' not in info_df.columns:
             micoreact_sample_json["timelines"] = {}
-            
+
 def outputsForPhandango(combined_list, clustering, nj_tree, mst_tree, outPrefix, epiCsv,
                         queryList = None, overwrite = False):
     """Generate files for Phandango
