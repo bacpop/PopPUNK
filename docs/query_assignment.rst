@@ -28,7 +28,7 @@ though novel clusters will still be separately identified as 'NA'.
 
 Note that maintaining stable nomenclature in a dynamic population is not possible (for any
 nomenclature). If you are maintaining a database and want to add new queries in, you will
-need to use ``--update-db`` which may merge clusters. There is no way with two or more updates
+need to use ``--update-db full`` which may merge clusters. There is no way with two or more updates
 of giving consistent new names to merged clusters.
 
 Downloading a database
@@ -137,7 +137,7 @@ clusters.
 
 By default, only the query genome clusters are included here. The reference genome
 clusters are considered unchanged from the input. If there are many merges and you
-wish to know their new cluster IDs, use ``--update-db`` (:ref:`update-db`).
+wish to know their new cluster IDs, use ``--update-db full`` (:ref:`update-db`).
 
 You can use ``poppunk_visualise`` to look at your results. Here's an example output
 to cytoscape, showing the clusters as colours, reference genomes as circles and
@@ -176,7 +176,7 @@ Increasing speed
 Query assignment is the most efficient mode in which to run PopPUNK, typically requiring :math:`Q` sketches and
 :math:`RQ` distances. If you are updating the database, this increases to :math:`Q^2 + RQ`
 distances. If you are assigning a very large number of queries you can run ``poppunk_assign``
-with ``--update-db`` repeatedly for batches of query input, as the :math:`Q^2` term will
+with ``--update-db` fast` repeatedly for batches of query input, as the :math:`Q^2` term will
 be reduced by clique-pruning at each iteration.
 
 Straightforward ways to increase speed include:
@@ -193,11 +193,11 @@ Updating the database
 ---------------------
 If you want to add your query genomes into the reference database so that they
 can be used to inform future cluster assignment, this is as simple as adding the
-``--update-db`` option to the command above. This is particularly useful when novel
+``--update-db full`` option to the command above. This is particularly useful when novel
 query clusters have been found -- they will then be the consistent name for future assignments::
 
     poppunk_assign --db database --query qfile.txt \
-    --output poppunk_clusters --threads 8 --update-db
+    --output poppunk_clusters --threads 8 --update-db full
 
     Graph-tools OpenMP parallelisation enabled: with 4 threads
     PopPUNK (POPulation Partitioning Using Nucleotide Kmers)
@@ -224,6 +224,13 @@ database listed above, except for the model. You can use ``--model-dir`` to targ
 this for future assignment, or copy it over yourself. Alternatively, if you run
 with the same ``--output`` folder as ``--ref-db``, adding ``--overwrite``, the original
 input folder will contain the updated database containing everything needed.
+
+``--update-db`` needs either ``full`` or ``fast``, which affects how references are chosen
+from each cluster. ``full`` is the standard behaviour which finds cliques (full connected parts
+of the graph), picks a reference from them, prunes the clique iteratively until the graph has been covered.
+``fast`` is a newer mode, mostly useful for databases with over 50k genomes, where reference picking
+becomes rate limiting. In this case 10% of samples within each cluster are randomly picked as references
+(or 1/3, when a cluster has been merged).
 
 .. note::
     This mode can take longer to run with large numbers of input query genomes,
