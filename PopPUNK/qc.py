@@ -547,6 +547,8 @@ def remove_qc_fail(qc_dict, names, passed, fail_dicts, ref_db, distMat, prefix,
         db_kmers = readDBParams(ref_db)[0]
         addRandom(prefix, passed, db_kmers, strand_preserved,
                     overwrite=True, threads=threads)
+    else:
+        newDistMat = distMat
 
     # write failing & reasons
     write_qc_failure_report(failed, fail_dicts, prefix)
