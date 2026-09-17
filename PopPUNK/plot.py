@@ -78,7 +78,7 @@ def plot_scatter(X, out_prefix, title, kde = True):
     plt.title(title)
     plt.xlabel('Core distance (' + r'$\pi$' + ')')
     plt.ylabel('Accessory distance (' + r'$a$' + ')')
-    plt.savefig(os.path.join(out_prefix, os.path.basename(out_prefix) + '_distanceDistribution.png'))
+    plt.savefig(out_prefix + '_distanceDistribution.png')
     plt.close()
 
 def plot_database_evaluations(prefix, genome_lengths, ambiguous_bases):
