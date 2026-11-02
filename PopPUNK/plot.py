@@ -671,7 +671,7 @@ def writeClusterCsv(outfile, nodeNames, nodeLabels, clustering,
         columns_to_be_omitted = ['id', 'Id', 'ID', 'combined_Cluster__autocolour',
         'core_Cluster__autocolour', 'accessory_Cluster__autocolour',
         'overall_Lineage']
-        epiData = pd.read_csv(epiCsv, index_col = False, quotechar='"')
+        epiData = pd.read_csv(epiCsv, index_col = False, quotechar='"', dtype = str)
         epiData.index = isolateNameToLabel(epiData.iloc[:,0])
         for e in epiData.columns.values:
             if e not in columns_to_be_omitted:
