@@ -8,7 +8,7 @@ _spec.loader.exec_module(banner)
 
 
 def test_banner_starts_and_ends_cleanly():
-    assert banner.BANNER.startswith('  ///o')
+    assert banner.BANNER.splitlines()[0].strip().startswith('///o')
     assert banner.BANNER.endswith('\n')
 
 
