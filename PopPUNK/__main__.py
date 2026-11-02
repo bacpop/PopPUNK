@@ -12,6 +12,7 @@ from collections import defaultdict
 # import poppunk package
 from .__init__ import __version__
 from .__init__ import SEARCH_DEPTH_FACTOR, DEFAULT_LINEAGE_RESOLUTION
+from .banner import BANNER
 
 # globals
 accepted_weights_types = ["core", "accessory", "euclidean"]
@@ -254,6 +255,8 @@ def main():
     if sys.version_info[0] < 3:
         sys.stderr.write('PopPUNK requires python version 3 or above\n')
         sys.exit(1)
+    if sys.stderr.isatty():
+        sys.stderr.write(BANNER + '\n')
 
     args = get_options()
 
